@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+# 视频压缩的中间文件（超限时留在这里供检查，不进仓库）
+build_tmp/
+.DS_Store
