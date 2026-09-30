@@ -1,14 +1,9 @@
-"""生成 Neural-IPC demo 汇总网页（单页静态 HTML，发布为 claude.ai 私有 Artifact）。
+"""生成 Neural-IPC 周汇报网页（单页静态 HTML，发布为 claude.ai 私有 Artifact）。
 
-读 NAS 上的 demo / 参数扫描结果，生成一个 index.html（总览 / demo 画廊 / 参数扫描都是同一页里的版块，
-用 #demos、#sweep 这类纯字母锚点跳转），并把 demo 视频压成 H.264 / 720p 放进 assets/videos/，
-momentum_plot.png 之类的图原样复制到 assets/images/。
+读者是课题组同学：懂 IPC，但没亲手跑过这些东西。页面只放三样：demo 视频、参数扫描小表、发现 / 结论。
+数字全部从 NAS 上的结果文件读，缺失或失败的如实写成人话；数据出处只在页脚用一句话说明。
 
-index.html 按 Artifact 页面规范写：文件开头就是 <title> 和 <style>，不写 doctype / html / head / body
-（发布时自动包一层）；CSS 全部内联，颜色全部是 CSS 变量并支持亮 / 暗两种主题；不引任何外部资源；
-视频和图片用相对路径，由主会话发布时作为附属文件一起上传（见 README.md）。
-
-    # 默认只演练：打印将生成哪些文件、压缩哪些视频，什么都不写
+    # 默认只演练：打印每项结果的状态、页面里用到的关键数字、将写哪些文件，什么都不写
     python tools/build_site.py
 
     # 真正写文件、压视频
@@ -19,18 +14,12 @@ index.html 按 Artifact 页面规范写：文件开头就是 <title> 和 <style>
 
 数据来源（只读，不修改）：
   demo : /nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/<目录>/run_info.json、*.mp4、momentum_plot.png
-         字段由 Neural-IPC/tools/ipc_demos/run_uipc_sample_headless.py:276-286 和
-         run_genesis_ipc_example.py:655-664 写出。
-  扫描 : /nas/xiaoyingwang/Neural-IPC/outputs/ipc_sweep/<扫描>/<档位>.json
-         字段由 Neural-IPC/tools/ipc_sweep/sweep.py 写出（summary 见 sweep.py:537-562）。
-  档位清单 : Neural-IPC/tools/ipc_sweep/configs.py（纯数据文件，按路径加载，不写 __pycache__）。
+  扫描 : /nas/xiaoyingwang/Neural-IPC/outputs/ipc_sweep/<扫描>/<档位>.json（由 Neural-IPC/tools/ipc_sweep/sweep.py 写出）
+  档位清单 : Neural-IPC/tools/ipc_sweep/configs.py（纯数据文件，按路径加载，不写 __pycache__）
 
-原则：
-  * 结果缺失、报错、半截文件如实显示，不编造、不补占位数值。
-  * 表里的数都来自 json 原字段；唯一的派生量是"逐帧均值"（对 frames[*] 原值求算术平均），
-    页面上标明了是本脚本算的。显示时浮点数保留 4 位有效数字，单元格的 title 里是 json 原值。
-  * 每个压好的视频超过 10 MB、或全部视频加起来超过 60 MB，就报错停止，不写页面
-    （Artifact 附属文件上限每个 15 MB，留余量）。
+index.html 按 Artifact 页面规范写：开头直接是 <title> 和 <style>，不写 doctype / html / head / body；
+颜色全是 CSS 变量（亮 / 暗两套）；不引外部资源；视频和图片用相对路径，发布时作为附属文件上传。
+每个压好的视频超过 10 MB、或全部视频加起来超过 60 MB，就报错停止，不写页面。
 """
 
 import argparse
@@ -66,70 +55,41 @@ MAX_TOTAL_VIDEO_BYTES = 60 * 1024 * 1024  # 全部视频加起来的上限
 MAX_IMAGE_BYTES = 5 * 1024 * 1024         # 单张图上限
 
 # --------------------------------------------------------------------------
-# demo 清单（说明文字摘自 Neural-IPC/run_commands.txt [IPC demo 命令] 区块，是"计划跑什么"，不是结果）
-# 目录名规则：run_uipc_sample_headless.py:102-115 resolve_script（benchmark 为 <目录>_run），
-#             run_genesis_ipc_example.py:616（genesis_<example>）
+# demo 清单：(NAS 目录名, 是否应出视频, 页面标题, 一句话说明)
+# 说明里的 {momentum} 由 run_info.json 的 run.final_rel_momentum_error 填入。
 # --------------------------------------------------------------------------
 DEMOS = [
-    # key(=NAS 目录名), 来源, run_commands 编号, 是否应出视频, 说明
-    ("0_check_libuipc", "libuipc-samples", 4, False,
-     "打印版本 / constitution / 单位，并初始化一次 cuda Engine（无 GUI，不出视频）"),
-    ("1_hello_libuipc", "libuipc-samples", 5, True,
-     "两个 ABD 四面体下落接触，EGL 离屏 300 帧（dt=0.02，每帧 advance 1 次）"),
-    ("10_ramp_sliding", "libuipc-samples", 6, True,
-     "8 个 ABD 方块在斜坡上滑，friction 0 ~ 1 八档（dt=0.01, d_hat=0.01），300 帧"),
-    ("13_init_velocity", "libuipc-samples", 7, True,
-     "ABD 方块 + FEM 方块带 z 向 1 m/s 初速度（dt=0.02，摩擦开），300 帧"),
-    ("20_contact_system_feature", "libuipc-samples", 8, True,
-     "ABD 方块 + FEM 方块 + 地面，读出各类 contact primitive 的 energy / gradient / Hessian；"
-     "300 帧（官方回调每帧 advance 2 次）"),
-    ("27_compute_mesh_d_hat", "libuipc-samples", 9, True,
-     "按网格分辨率自动算 d_hat（上方块）vs 手设 0.01（下方块），300 帧（dt=0.01）"),
-    ("89_mas_bunny", "libuipc-samples", 10, True,
-     "FEM bunny 落地，MAS preconditioner（dt=0.01），300 帧"),
-    ("90_abd_fem_cube_stack", "libuipc-samples", 11, True,
-     "4x4 网格、8 层 ABD / FEM 交替方块叠落（dt=0.01），300 帧"),
-    ("abd_bunny_grid_drop_run", "libuipc-samples benchmark", 12, False,
-     "10x10 个 ABD bunny 下落，两种 broadphase 各 100 帧、各起一个子进程；stats / timer 写进 workspace/（无 GUI）"),
-    ("wrecking_balls_run", "libuipc-samples benchmark", 13, False,
-     "wrecking_ball.json 场景（ABD 方块 / 球 / 链节 + 地面），两种方法各 300 帧（无 GUI）"),
-    ("genesis_ipc_objects_falling", "Genesis examples/ipc", 14, True,
-     "布料 + 刚体盒子 + FEM 软球落到地面，100 步（dt=0.02），离屏相机 50 fps"),
-    ("genesis_ipc_momentum", "Genesis examples/ipc", 15, True,
-     "零重力下刚体方块以 4 m/s 撞 FEM 球，检验动量守恒（dt=0.001，300 步）；"
-     "realtime_factor 0.05 只改录像节奏"),
-    ("genesis_ipc_robot_grasp_cube", "Genesis examples/ipc", 16, True,
-     "Franka 用 IK + PD 抓起 FEM 软方块（dt=0.01，two_way_soft_constraint，410 步），50 fps"),
+    ("1_hello_libuipc", True, "两个 ABD 四面体下落接触",
+     "最小例子，Scene / World / advance 的基本骨架。"),
+    ("10_ramp_sliding", True, "斜坡滑块",
+     "8 个 ABD 方块在斜坡上滑，摩擦系数从 0 到 1 共八档。"),
+    ("13_init_velocity", True, "带初速度的 ABD + FEM 方块",
+     "刚体（ABD）和软体（FEM）方块带初速度运动、接触。"),
+    ("20_contact_system_feature", True, "导出接触能量 / 梯度 / Hessian",
+     "对我们最重要：ContactSystemFeature 能按接触基元类型（PT / EE / PE / PP / PH，法向和摩擦分开）"
+     "导出能量、梯度、Hessian，是以后生成训练数据的入口。"),
+    ("27_compute_mesh_d_hat", True, "按网格自动算 d̂",
+     "上方块用按网格分辨率自动算出的 d̂，下方块用手设的 d̂，两者对比。"),
+    ("89_mas_bunny", True, "FEM bunny + MAS 预条件",
+     "软体 bunny 落地，线性求解用 MAS 预条件。"),
+    ("90_abd_fem_cube_stack", True, "ABD / FEM 交替叠放",
+     "同一场景里低自由度（ABD）和高自由度（FEM）混合，最接近我们的设定。"),
+    ("genesis_ipc_objects_falling", True, "Genesis：布料 + 刚体 + 软球",
+     "Genesis 调 libuipc，布料、刚体、FEM 软球一起落地。"),
+    ("genesis_ipc_momentum", True, "Genesis：动量守恒检验",
+     "零重力下刚体撞 FEM 球，末步相对动量误差 {momentum}。"),
+    ("genesis_ipc_robot_grasp_cube", True, "Genesis：机械臂抓软方块",
+     "two-way 耦合；Genesis 的刚体在 libuipc 里是 κ = 100 MPa 的 ABD。"),
+    # 两个 benchmark 的官方 GUI 版（benchmarks/<name>/main.py）；计时版 run.py 不出画面，不上页面。
+    # 0_check_libuipc 是环境自检，不算 demo，不上页面（2026-09-30 用户）。
+    ("abd_bunny_grid_drop", True, "100 个 ABD bunny 下落",
+     "10×10 个 ABD bunny 同时下落堆积，大规模 ABD 接触。"),
+    ("wrecking_balls", True, "Wrecking balls",
+     "ABD 方块墙、摆锤球和链节组成的大场景，大规模 ABD 接触。"),
 ]
 
-# 首页"本周做了什么"。每条都注明出处；要改就改这里。
-PROJECT_ONE_LINER = ("只暴露少量 coarse 自由度（rigid / affine body / ROM），碰撞导致的局部形变交给神经网络学出的"
-                     "额外碰撞能量项：低自由度 + Neural IPC ≈ 高自由度 + IPC，要快，同时和 IPC 一样准。")
-PROJECT_ONE_LINER_SRC = "Neural-IPC/AGENTS.md「项目目标」"
-WEEKLY = [
-    ("查清仿真框架：notes 里的 “lib IPC” 就是 libuipc（Python 包 pyuipc），Genesis 的 IPC Coupler 底层也是它；"
-     "整理了 Genesis 暴露的 IPC 参数（dt、contact_d_hat、contact_friction_mu、ipc_constraint_strength 等）。",
-     "AGENTS.md「仿真框架事实」"),
-    ("建好 conda 环境 .conda/genesis：python 3.11、torch 2.8.0 cu128、genesis-world 1.4.2、polyscope 2.6.1。"
-     "PyPI 的 pyuipc wheel 不含 H100（sm_90）的机器码，服务器驱动 550 又无法 JIT 它带的 PTX（CUDA error 222），"
-     "所以用 CUDA 12.4 从源码编译 libuipc（pyuipc 0.9.0，UIPC_CUDA_ARCHITECTURES=90）。",
-     "tools/build_libuipc.sh、tools/setup_genesis_env.sh"),
-    ("写了在无显示器服务器上离屏跑官方 demo 的外壳脚本（官方文件一字不改）：libuipc-samples 10 个、Genesis examples/ipc 3 个；"
-     "仿真在 GPU 6 上跑，录像走 Mesa 软件渲染（EGL 设备 16，CPU），不占 GPU。"
-     "每个 demo 都经带显存看门狗的 run_gpu_job.sh 运行，实测显存峰值记在 gpu_job_result.json。",
-     "tools/ipc_demos/README.md、run_commands.txt [IPC demo 命令]"),
-    ("设计了 “一堆物体扔进盒子” 场景（8 个 FEM 软球落进开口盒子）上的 IPC 参数单变量扫描：d_hat、dt、friction、"
-     "resistance、初始穿透、网格粗细，共 7 个扫描 30 个配置；穿透用 libuipc 自带的 SanityChecker 判定。"
-     "第一轮发现两处设计错误，已修正后全部重跑：libuipc 自带的 ball.msh 不是球（初始穿插量因此全错），改用 tetgen 四面体化的真球；"
-     "resistance 原先的档位全在自适应 κ 区间之外、被夹成同一个值，改为取在区间内。",
-     "tools/ipc_sweep/README.md、configs.py"),
-    ("做了这个网页：demo 视频 + 参数扫描结果表，所有数字都从 NAS 上的 json 原样读取。",
-     "Neural-IPC-web/tools/build_site.py"),
-]
-
-PAGE_TITLE = "Neural-IPC Demos"
-# 页内锚点：只用纯字母
-NAV = [("overview", "总览"), ("weekly", "本周"), ("demos", "Demo 画廊"), ("sweep", "参数扫描")]
+PAGE_TITLE = "Neural-IPC 周汇报"
+NAV = [("videos", "Demo 视频"), ("sweep", "参数扫描"), ("findings", "发现与结论")]  # 锚点只用字母
 
 
 # ==========================================================================
@@ -137,15 +97,6 @@ NAV = [("overview", "总览"), ("weekly", "本周"), ("demos", "Demo 画廊"), (
 # ==========================================================================
 def esc(x):
     return html.escape(str(x), quote=True)
-
-
-def rel_out(p):
-    """NAS 路径显示成相对 outputs/ 的短形式（来源标注用）。"""
-    p = Path(p)
-    try:
-        return "outputs/" + str(p.relative_to(OUT_ROOT))
-    except ValueError:
-        return str(p)
 
 
 def load_json(path):
@@ -175,103 +126,89 @@ def dig(d, *keys):
     return cur
 
 
-def raw_repr(v):
-    return json.dumps(v, ensure_ascii=False, default=str)
+def is_num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def fmt(v):
-    """显示用字符串：浮点保留 4 位有效数字，其余原样。"""
-    if v is MISSING:
+def to_float(v):
+    """json 里有些数以字符串存（kappa_log 的正则分组），统一转成 float；转不了返回 MISSING。"""
+    if is_num(v):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            return float(v)
+        except ValueError:
+            return MISSING
+    return MISSING
+
+
+def g3(v):
+    """3 位有效数字。"""
+    return "—" if not is_num(v) else f"{v:.3g}"
+
+
+def sci(v):
+    """科学计数，如 1.71e5、1e9。"""
+    if not is_num(v):
         return "—"
-    if isinstance(v, bool):
-        return "true" if v else "false"
-    if isinstance(v, int):
-        return str(v)
-    if isinstance(v, float):
-        if v != v or v in (float("inf"), float("-inf")):
-            return str(v)
-        return f"{v:.4g}"
-    if v is None:
-        return "null"
-    if isinstance(v, (list, dict)):
-        return raw_repr(v)
-    return str(v)
+    m, e = f"{v:.2e}".split("e")
+    m = m.rstrip("0").rstrip(".")
+    return f"{m}e{int(e)}"
 
 
-def num_span(v, src):
-    """一个数值 + 来源（title 里是来源和 json 原值）。"""
-    if v is MISSING:
-        return f'<span class="na" title="来源：{esc(src)}（字段不存在）">—</span>'
-    return f'<span class="num" title="来源：{esc(src)}&#10;原值：{esc(raw_repr(v))}">{esc(fmt(v))}</span>'
+def pct(v):
+    return "—" if not is_num(v) else f"{v * 100:.3g}%"
 
 
 def file_size_str(n):
     return f"{n / 1024 / 1024:.2f} MB"
 
 
-def mtime_str(p):
-    return datetime.datetime.fromtimestamp(Path(p).stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-
-
 # ==========================================================================
 # demo 结果收集
 # ==========================================================================
-def collect_demo(key, source, cmd_no, expects_video, desc):
+def collect_demo(key, expects_video, title, line):
     d = DEMO_ROOT / key
     info_path = d / "run_info.json"
-    r = {"key": key, "source": source, "cmd_no": cmd_no, "expects_video": expects_video, "desc": desc,
+    r = {"key": key, "expects_video": expects_video, "title": title, "line": line,
          "dir": d, "info_path": info_path, "info": None, "state": None, "reason": None,
          "video_src": None, "video_note": None, "images": []}
     if not d.is_dir():
-        r["state"], r["reason"] = "not_run", f"尚未运行：NAS 上没有目录 {d}"
+        r["state"], r["reason"] = "not_run", "还没跑"
         return r
     info, err = load_json(info_path)
     if err:
-        r["state"], r["reason"] = "failed", f"运行失败：run_info.json 无法解析（{err}）"
+        r["state"], r["reason"] = "failed", f"结果文件损坏（{err}）"
         return r
     if info is None:
-        r["state"] = "failed"
-        r["reason"] = ("运行失败或尚未结束：目录已存在但没有 run_info.json"
-                       "（两个外壳脚本只在整个 demo 跑完、视频写好之后才写 run_info.json；失败原因要看运行日志）")
+        r["state"], r["reason"] = "failed", "没跑完（没有结果记录）"
         return r
     r["info"], r["state"] = info, "ok"
 
-    # 视频：以 run_info.json 里的 "video" 字段为准
     v = info.get("video", MISSING)
-    if v is MISSING:
-        r["video_note"] = "run_info.json 没有 video 字段"
-    elif v is None:
-        n = info.get("screenshots", MISSING)
-        r["video_note"] = (f"没有视频：run_info.json 里 video = null（screenshots = {fmt(n)}）"
-                           + ("；此 demo 本来就不开 GUI、不出视频" if not expects_video else ""))
+    if v is None or v is MISSING:
+        r["video_note"] = "这个 demo 本来就不出视频" if not expects_video else "这次运行没有产出视频"
     else:
         vp = Path(v)
         if vp.is_file() and vp.stat().st_size > 0:
             r["video_src"] = vp
         else:
-            r["video_note"] = f"run_info.json 记录的视频文件不存在或为空：{vp}"
+            r["video_note"] = "视频文件缺失"
 
-    # 额外产物：ipc_momentum 的 momentum_plot.png（路径以 run_info.run.plot 为准）
-    plot = dig(info, "run", "plot")
-    if isinstance(plot, str):
-        pp = Path(plot)
-        if pp.is_file():
-            r["images"].append((pp, f"{key}__{pp.name}", "run_info.json → run.plot"))
-        else:
-            r["images_note"] = f"run_info.json 的 run.plot 指向的文件不存在：{pp}"
+    # ipc_momentum 的 momentum_plot.png 不上页面（2026-09-30 用户：图表小、放不大、看不清，页面只放视频）；
+    # 动量误差这个数字已写在卡片说明里（run.final_rel_momentum_error），原图仍在 NAS 该 demo 目录。
     return r
 
 
 def collect_demos():
+    """The page shows exactly the DEMOS list. Other directories under DEMO_ROOT (0_check_libuipc, the benchmark
+    timing runs *_run, anything unexpected) are NOT put on the page; main() prints them so nothing is hidden."""
     known = {k for k, *_ in DEMOS}
     demos = [collect_demo(*spec) for spec in DEMOS]
-    extras = []
+    unlisted = []
     if DEMO_ROOT.is_dir():
-        for p in sorted(DEMO_ROOT.iterdir()):
-            if p.is_dir() and p.name not in known:
-                extras.append(collect_demo(p.name, "未登记（NAS 上多出来的目录）", None, None,
-                                           "build_site.py 的 DEMOS 清单里没有这个目录"))
-    return demos, extras
+        unlisted = sorted(p.name for p in DEMO_ROOT.iterdir() if p.is_dir() and p.name not in known)
+    return demos, [], unlisted
 
 
 # ==========================================================================
@@ -290,33 +227,32 @@ def collect_level(sweep, level, ov_cfg):
          "state": None, "reason": None}
     data, err = load_json(jp)
     if err:
-        r["state"], r["reason"] = "failed", f"运行失败：json 无法解析（{err}）"
+        r["state"], r["reason"] = "failed", "结果文件损坏"
         return r
     if data is None:
-        r["state"], r["reason"] = "not_run", "尚未运行"
+        r["state"], r["reason"] = "not_run", "还没跑"
         return r
     r["data"] = data
     st = data.get("status", MISSING)
-    has_summary = "summary" in data
     if st == "ok":
-        r["state"], r["reason"] = "ok", "完成（status = ok）"
+        r["state"], r["reason"] = "ok", "跑完"
     elif st == "exception":
         tb = data.get("exception_traceback") or ""
         last = [ln for ln in tb.strip().splitlines() if ln.strip()]
         r["state"] = "failed"
-        r["reason"] = "运行失败：" + (last[-1].strip() if last else "status = exception，但 exception_traceback 为空")
+        r["reason"] = "运行出错" + (f"：{last[-1].strip()}" if last else "")
+    elif st == "init_invalid" and dig(data, "sanity_at_init", "penetration") is True:
+        r["state"], r["reason"] = "rejected", "被 sanity check 拒绝（预期内）"
     elif st == "init_invalid":
-        r["state"], r["reason"] = "failed", "运行失败：world.init 之后 world.is_valid() 为 False（status = init_invalid）"
+        r["state"], r["reason"] = "failed", "初始化失败"
     elif st == "invalid_during_run":
-        r["state"], r["reason"] = "failed", "运行失败：仿真中途 world.is_valid() 变为 False（status = invalid_during_run）"
+        r["state"], r["reason"] = "failed", "仿真中途失效"
     elif st == "nonfinite_positions":
-        r["state"], r["reason"] = "failed", "运行失败：球顶点坐标出现非有限值（status = nonfinite_positions）"
-    elif st in ("starting", "initializing", "running") and not has_summary:
-        r["state"] = "unfinished"
-        r["reason"] = (f"未结束：status = {st} 且没有 summary（进程可能还在跑，也可能已崩溃留下半截文件；"
-                       f"看 {rel_out(jp.with_suffix('.log'))}）")
+        r["state"], r["reason"] = "failed", "顶点坐标出现 NaN / inf"
+    elif st in ("starting", "initializing", "running") and "summary" not in data:
+        r["state"], r["reason"] = "unfinished", "没跑完"
     else:
-        r["state"], r["reason"] = "failed", f"未知状态：status = {fmt(st)}"
+        r["state"], r["reason"] = "failed", "状态未知"
     return r
 
 
@@ -329,33 +265,18 @@ def collect_sweeps():
         for level, ov in spec["levels"].items():
             rows.append(collect_level(sweep, level, ov))
             known.add((sweep, level))
-        # NAS 上有、configs.py 里没有的档位
         sd = SWEEP_ROOT / sweep
-        if sd.is_dir():
+        if sd.is_dir():  # NAS 上有、configs.py 里没有的档位
             for jp in sorted(sd.glob("*.json")):
                 if (sweep, jp.stem) not in known:
-                    row = collect_level(sweep, jp.stem, MISSING)
-                    row["extra"] = True
-                    rows.append(row)
+                    rows.append(collect_level(sweep, jp.stem, MISSING))
                     known.add((sweep, jp.stem))
         sweeps.append({"name": sweep, "why": spec.get("why", ""), "rows": rows})
-    # 整个扫描目录都不在 configs.py 里
-    if SWEEP_ROOT.is_dir():
-        for sd in sorted(SWEEP_ROOT.iterdir()):
-            if sd.is_dir() and sd.name not in cfg.SWEEPS:
-                rows = []
-                for jp in sorted(sd.glob("*.json")):
-                    row = collect_level(sd.name, jp.stem, MISSING)
-                    row["extra"] = True
-                    rows.append(row)
-                if rows:
-                    sweeps.append({"name": sd.name, "why": "configs.py 里没有这个扫描（NAS 上多出来的目录）",
-                                   "rows": rows})
     return cfg, sweeps
 
 
 # ==========================================================================
-# 视频 / 图片计划
+# 视频 / 图片（压缩逻辑不动）
 # ==========================================================================
 def load_manifest():
     m, err = load_json(VIDEO_MANIFEST)
@@ -442,504 +363,449 @@ def encode_video(exe, job, crf, manifest):
 
 
 # ==========================================================================
+# 扫描结果的派生量（都只从 json 读，唯一的计算是逐帧均值和"总耗时 / 帧数"）
+# ==========================================================================
+def newton_mean(d):
+    """每帧 Newton 迭代的平均：frames[*].newton_iter_timer_count 的算术平均。"""
+    vals = [f.get("newton_iter_timer_count") for f in (d.get("frames") or []) if isinstance(f, dict)]
+    vals = [v for v in vals if is_num(v)]
+    return sum(vals) / len(vals) if vals else MISSING
+
+
+def sec_per_frame(d):
+    tot, done = dig(d, "summary", "wall_seconds_total"), dig(d, "summary", "frames_done")
+    return tot / done if is_num(tot) and is_num(done) and done > 0 else MISSING
+
+
+def sanity_on(d):
+    return dig(d, "params", "sanity_check", "enable") != 0
+
+
+def kappa_info(d):
+    """(区间下界, 区间上界, 实际 κ, 设的 κ, 是否被夹)；取不到的是 MISSING。"""
+    lo = to_float(dig(d, "kappa_log", "kappa_corridor", 0, "groups", 0))
+    hi = to_float(dig(d, "kappa_log", "kappa_corridor", 0, "groups", 1))
+    set_k = dig(d, "params", "contact_model_used", "resistance")
+    clamped = d.get("kappa_clamped", MISSING)
+    if clamped is True:
+        actual = to_float(dig(d, "kappa_log", "default_kappa_clamped", 0, "groups", 1))
+    elif clamped is False:
+        actual = set_k if is_num(set_k) else MISSING
+    else:
+        actual = MISSING
+    return lo, hi, actual, set_k, clamped
+
+
+def pen_text(row):
+    """穿透那一格的人话。"""
+    if row["state"] != "ok":
+        return row["reason"]
+    d = row["data"]
+    if not sanity_on(d):
+        return "跑完，但检查已关，无法判断"
+    n_pen, n_chk = dig(d, "summary", "n_checks_with_penetration"), dig(d, "summary", "n_sanity_checks")
+    if n_pen == 0:
+        return "无"
+    if is_num(n_pen):
+        return f"有（{n_pen} / {n_chk} 次检查）"
+    return "结果缺失"
+
+
+def newton_text(row):
+    if row["state"] != "ok":
+        return "—"
+    d = row["data"]
+    s = f"{g3(newton_mean(d))} / {g3(dig(d, 'summary', 'newton_iter_timer_max'))}"
+    hit = dig(d, "summary", "n_frames_hit_max_iter")
+    if is_num(hit) and hit > 0:
+        s += f"（{hit} 帧撞到上限）"
+    return s
+
+
+# ==========================================================================
 # HTML
 # ==========================================================================
-STATE_LABEL = {"ok": ("完成", "ok"), "failed": ("失败", "bad"), "not_run": ("尚未运行", "idle"),
-               "unfinished": ("未结束", "warn")}
-
-
-def badge(state):
-    label, cls = STATE_LABEL.get(state, (state, "idle"))
-    return f'<span class="badge {cls}">{esc(label)}</span>'
-
-
-# 全部内联；颜色只用变量，亮 / 暗两套；不引外部字体（系统字体栈，含中文后备）
 PAGE_CSS = """
 :root {
-  --bg: #fbfbfa; --surface: #ffffff; --fg: #1d2127; --muted: #5d6570; --border: #d9dde2;
-  --accent: #1f5f9e; --code-bg: #eef1f4; --row-alt: #f5f7f9;
-  --ok-bg: #e2f2e6; --ok-fg: #1d6b35; --bad-bg: #fbe4e2; --bad-fg: #9b2a22;
-  --warn-bg: #fbf0d9; --warn-fg: #7a5410; --idle-bg: #eceef1; --idle-fg: #535a64;
+  --bg: #fafaf8; --fg: #1f2328; --muted: #646b74; --border: #dcdfe3; --soft: #f1f3f5;
+  --accent: #245f96; --good: #1f6b3a; --warn: #8a5a0b;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
           "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #15181c; --surface: #1c2025; --fg: #e3e6ea; --muted: #9aa3ad; --border: #343a42;
-    --accent: #7db3e8; --code-bg: #262b31; --row-alt: #1f2328;
-    --ok-bg: #1d3a26; --ok-fg: #8fd6a4; --bad-bg: #432322; --bad-fg: #f0a39b;
-    --warn-bg: #3d3119; --warn-fg: #e9c47a; --idle-bg: #2a2f35; --idle-fg: #aab2bb;
+    --bg: #16191d; --fg: #e4e7eb; --muted: #9ba3ad; --border: #353b43; --soft: #20252b;
+    --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #15181c; --surface: #1c2025; --fg: #e3e6ea; --muted: #9aa3ad; --border: #343a42;
-  --accent: #7db3e8; --code-bg: #262b31; --row-alt: #1f2328;
-  --ok-bg: #1d3a26; --ok-fg: #8fd6a4; --bad-bg: #432322; --bad-fg: #f0a39b;
-  --warn-bg: #3d3119; --warn-fg: #e9c47a; --idle-bg: #2a2f35; --idle-fg: #aab2bb;
+  --bg: #16191d; --fg: #e4e7eb; --muted: #9ba3ad; --border: #353b43; --soft: #20252b;
+  --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { overflow-x: hidden; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
-       font-size: 15px; line-height: 1.6; }
-.wrap { max-width: 1100px; margin: 0 auto; padding-left: 16px; padding-right: 16px;
-        padding-block: 0; }
-header.top { border-bottom: 1px solid var(--border); background: var(--surface); }
-header.top .wrap { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 20px;
-                   padding-block: 12px; }
-.brand { font-weight: 600; }
-header.top nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+       font-size: 15px; line-height: 1.65; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-main.wrap { padding-block: 8px 32px; }
-h1 { font-size: 1.5rem; margin: 24px 0 8px; font-weight: 600; }
-h2 { font-size: 1.2rem; margin: 32px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
-     font-weight: 600; }
-h3 { font-size: 1rem; margin: 0 0 4px; font-weight: 600; word-break: break-all; }
+header.top { padding: 28px 0 8px; }
+h1 { font-size: 1.55rem; margin: 0 0 8px; font-weight: 650; letter-spacing: 0.01em; }
+.summary { margin: 8px 0 0; max-width: 72ch; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.9rem; margin: 14px 0 0;
+          padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+h2 { font-size: 1.2rem; margin: 36px 0 10px; font-weight: 650; }
+h3 { font-size: 1rem; margin: 22px 0 4px; font-weight: 600; }
 section { scroll-margin-top: 12px; }
-p { margin: 8px 0; }
-.lead { color: var(--fg); }
-.src, .meta, .reason, .why, .counts { color: var(--muted); font-size: 0.85rem; }
-code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0 3px;
-       border-radius: 3px; word-break: break-all; }
-ul { padding-left: 20px; }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 12px 0; }
-.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
-.stat .v { font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.stat .l { color: var(--muted); font-size: 0.85rem; }
-.tablewrap { overflow-x: auto; max-width: 100%; margin: 8px 0; border: 1px solid var(--border);
-             border-radius: 6px; background: var(--surface); }
-table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
-th, td { text-align: left; vertical-align: top; padding: 6px 10px; border-bottom: 1px solid var(--border); }
-thead th { background: var(--row-alt); font-weight: 600; white-space: nowrap; }
-tbody tr:nth-child(even) td { background: var(--row-alt); }
+p { margin: 6px 0; }
+.muted { color: var(--muted); }
+code { font-size: 0.95em; word-break: break-all; }
+.small { font-size: 0.86rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+        gap: 22px 18px; }
+.demo { min-width: 0; }
+.demo h3 { margin: 0 0 6px; font-size: 0.95rem; }
+.demo h3 .key { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+.demo p { font-size: 0.86rem; color: var(--muted); margin-top: 6px; }
+video, img { display: block; width: 100%; height: auto; border-radius: 4px; background: var(--soft); }
+img.plot { margin-top: 8px; }
+.novideo { padding: 22px 12px; background: var(--soft); color: var(--muted); border-radius: 4px;
+           font-size: 0.86rem; }
+.tablewrap { overflow-x: auto; max-width: 100%; margin: 6px 0 4px; }
+table { border-collapse: collapse; font-size: 0.88rem; min-width: 60%; }
+th, td { text-align: left; padding: 5px 14px 5px 0; border-bottom: 1px solid var(--border);
+         white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 0.82rem; border-bottom-color: var(--fg); }
 td { font-variant-numeric: tabular-nums; }
-.num { font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 0.95em; }
-.na { color: var(--muted); }
-table.sweep td.lvl { min-width: 160px; }
-.ov { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); word-break: break-all; }
-table.kv th { width: 40%; font-weight: normal; color: var(--muted); }
-table.kv td.src { width: 25%; }
-.badge { display: inline-block; font-size: 0.75rem; line-height: 1.5; padding: 0 6px; border-radius: 3px;
-         white-space: nowrap; vertical-align: middle; }
-.badge.ok { background: var(--ok-bg); color: var(--ok-fg); }
-.badge.bad { background: var(--bad-bg); color: var(--bad-fg); }
-.badge.warn { background: var(--warn-bg); color: var(--warn-fg); }
-.badge.idle { background: var(--idle-bg); color: var(--idle-fg); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 16px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px;
-        min-width: 0; }
-.desc { margin: 4px 0 8px; }
-video, img { display: block; max-width: 100%; height: auto; background: var(--code-bg); border-radius: 4px; }
-video { width: 100%; }
-figure { margin: 8px 0; }
-figcaption { color: var(--muted); font-size: 0.8rem; }
-.novideo { padding: 16px 12px; background: var(--idle-bg); color: var(--idle-fg); border-radius: 4px;
-           font-size: 0.88rem; }
-details { margin: 8px 0; }
-summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
-nav.toc { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.9rem; margin: 8px 0; }
-.note { border-left: 3px solid var(--border); padding: 4px 12px; color: var(--muted); font-size: 0.88rem; }
+td.good { color: var(--good); }
+td.warn { color: var(--warn); }
+ul.findings { padding-left: 20px; max-width: 80ch; }
+ul.findings li { margin: 8px 0; }
+.next { max-width: 80ch; }
 footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border);
-              padding-block: 12px 24px; }
+              margin-top: 40px; padding: 12px 16px 28px; }
 @media (max-width: 480px) {
   body { font-size: 14px; }
-  th, td { padding: 5px 7px; }
+  th, td { padding-right: 10px; }
 }
 """
 
 
-def page(body, gen_time):
+def page(body):
     """Artifact 页面：开头直接是 <title> 和 <style>，不写 doctype / html / head / body。"""
-    nav = "".join(f'<a href="#{href}">{esc(name)}</a>' for href, name in NAV)
     return f"""<title>{esc(PAGE_TITLE)}</title>
 <style>{PAGE_CSS}</style>
-<header class="top">
-  <div class="wrap">
-    <div class="brand">Neural-IPC</div>
-    <nav>{nav}</nav>
-  </div>
-</header>
 <main class="wrap">
 {body}
 </main>
-<footer class="wrap foot">
-  <p>本页由 <code>tools/build_site.py</code> 于 {esc(gen_time)} 生成。数据只读自
-  <code>{esc(DEMO_ROOT)}</code> 与 <code>{esc(SWEEP_ROOT)}</code>；
-  缺失或失败的结果如实标出，没有任何占位数值。鼠标悬停在数字上可以看到它来自哪个 json 的哪个字段以及 json 原值。</p>
-</footer>
+<footer class="wrap foot">数据：视频与运行记录在 NAS <code>{esc(DEMO_ROOT)}</code>，参数扫描结果在
+<code>{esc(SWEEP_ROOT)}</code>（由 Neural-IPC 仓库 <code>tools/ipc_sweep/sweep.py</code> 生成）；本页由
+Neural-IPC-web 仓库 <code>tools/build_site.py</code> 读取这些文件生成。</footer>
 """
 
 
-def letters(s):
-    """页内锚点只用纯字母。"""
-    return "".join(ch for ch in s.lower() if "a" <= ch <= "z")
-
-
-def demo_video_html(r):
+# ---------------- demo 视频 ----------------
+def demo_card(r, facts):
+    line = r["line"].replace("{momentum}", pct(facts.get("momentum_err", MISSING)))
+    head = f'<h3>{esc(r["title"])} <span class="key">{esc(r["key"])}</span></h3>'
     if r["state"] != "ok":
-        return f'<div class="novideo">{esc(r["reason"])}</div>'
-    if r.get("video_web"):
-        job = r["video_job"]
-        return (f'<video controls muted playsinline preload="metadata" src="{esc(r["video_web"])}"></video>'
-                f'<p class="src">视频原片：<code>{esc(job["src"])}</code>（{file_size_str(job["src_size"])}，'
-                f'来源 run_info.json → video）</p>')
-    return f'<div class="novideo">{esc(r["video_note"] or "没有视频")}</div>'
+        media = f'<div class="novideo">{esc(r["reason"])}</div>'
+    elif r.get("video_web"):
+        media = f'<video controls muted playsinline preload="metadata" src="{esc(r["video_web"])}"></video>'
+    else:
+        media = f'<div class="novideo">{esc(r["video_note"] or "没有视频")}</div>'
+    for web, _src, _lbl in r.get("images_web", []):
+        media += f'<img class="plot" src="{esc(web)}" alt="动量随时间的变化曲线" loading="lazy">'
+    if r.get("images_note"):
+        media += f'<div class="novideo">{esc(r["images_note"])}</div>'
+    return f'<div class="demo">{head}{media}<p>{esc(line)}</p></div>'
 
 
-def kv_rows(info, src_file, items):
-    """items: [(标签, key 链)]，逐行显示值和来源。"""
+def videos_section(demos, extras, facts):
+    cards = [r for r in demos if r["expects_video"]] + extras
+    novid = [r for r in demos if not r["expects_video"]]
+    parts = ['<section id="videos"><h2>Demo 视频</h2>',
+             '<p class="muted small">官方示例一字未改，在服务器上离屏录像（画面用 CPU 软件渲染，物理在 GPU 上算）。</p>',
+             '<div class="grid">', *[demo_card(r, facts) for r in cards], "</div>"]
+    if novid:
+        ok = [r for r in novid if r["state"] == "ok"]
+        bad = [r for r in novid if r["state"] != "ok"]
+        s = (f"另有 {len(novid)} 个 demo 本来就不出视频："
+             + "；".join(f"{r['key']}（{r['title']}，{r['line']}）" for r in novid))
+        s += "。均已跑通。" if not bad else (
+            "。其中 " + "、".join(f"{r['key']} {r['reason']}" for r in bad) + "。")
+        parts.append(f'<p class="muted small" style="margin-top:18px">{esc(s)}</p>')
+    parts.append("</section>")
+    return "\n".join(parts)
+
+
+# ---------------- 参数扫描 ----------------
+def table(heads, rows):
+    th = "".join(f"<th>{esc(h)}</th>" for h in heads)
+    body = []
+    for cells in rows:
+        tds = []
+        for c in cells:
+            if isinstance(c, tuple):  # (文本, css class)
+                tds.append(f'<td class="{c[1]}">{esc(c[0])}</td>')
+            else:
+                tds.append(f"<td>{esc(c)}</td>")
+        body.append("<tr>" + "".join(tds) + "</tr>")
+    return (f'<div class="tablewrap"><table><thead><tr>{th}</tr></thead>'
+            f'<tbody>{"".join(body)}</tbody></table></div>')
+
+
+def pen_cell(row):
+    t = pen_text(row)
+    return (t, "good") if t == "无" else ((t, "warn") if row["state"] != "ok" or t.startswith("有") else t)
+
+
+def rows_of(sweeps, name):
+    for s in sweeps:
+        if s["name"] == name:
+            return s["rows"]
+    return []
+
+
+def sweep_tables(sweeps):
+    base = rows_of(sweeps, "baseline")
     out = []
-    for label, keys in items:
-        v = dig(info, *keys)
-        field = ".".join(str(k) for k in keys)
-        src = f"{src_file} → {field}"
-        out.append(f"<tr><th>{esc(label)}</th><td>{num_span(v, src)}</td>"
-                   f'<td class="src">{esc(field)}</td></tr>')
-    return "\n".join(out)
 
-
-UIPC_FIELDS = [
-    ("示例脚本", ("script",)),
-    ("转给示例的参数", ("script_args",)),
-    ("GUI 帧数（请求）", ("frames_requested",)),
-    ("用户回调执行次数", ("callback_calls",)),
-    ("开始按钮已触发", ("button_fired",)),
-    ("截图张数", ("screenshots",)),
-    ("视频 fps", ("fps",)),
-    ("渲染 buffer 尺寸", ("buffer_size",)),
-    ("耗时 wall_seconds（s，runpy 整段，含截图）", ("wall_seconds",)),
-    ("CUDA_VISIBLE_DEVICES", ("CUDA_VISIBLE_DEVICES",)),
-    ("nvidia-smi 卡号", ("gpu_guard", "nvsmi_index")),
-    ("EGL 设备编号", ("gpu_guard", "egl_index")),
-    ("PID 核对", ("pid_checks",)),
-]
-GENESIS_FIELDS = [
-    ("官方文件", ("official_file",)),
-    ("gs.init 出处", ("gs_init",)),
-    ("dt", ("dt",)),
-    ("仿真步数", ("run", "steps")),
-    ("录像 fps（请求）", ("fps_requested",)),
-    ("realtime_factor 覆盖", ("realtime_factor_override",)),
-    ("分辨率", ("res",)),
-    ("耗时 sim_wall_seconds（s，run() 整段，含录像）", ("sim_wall_seconds",)),
-    ("CUDA_VISIBLE_DEVICES", ("CUDA_VISIBLE_DEVICES",)),
-    ("EGL_DEVICE_ID", ("EGL_DEVICE_ID",)),
-    ("nvidia-smi 卡号", ("gpu_guard", "nvsmi_index")),
-    ("PID 核对", ("pid_checks",)),
-]
-
-
-def load_job_result(job_dir):
-    """tools/run_gpu_job.sh 写的 gpu_job_result.json（看门狗每 2 s 采样 nvidia-smi 得到的峰值）。"""
-    p = Path(job_dir) / "gpu_job_result.json"
-    data, err = load_json(p)
-    return p, data, err
-
-
-def vram_html(job_dir):
-    """显存峰值来自 run_gpu_job.sh 的 gpu_job_result.json（外壳脚本本身不记录显存）。"""
-    p, data, err = load_job_result(job_dir)
-    if err or data is None:
-        why = f"无法解析（{err}）" if err else "不存在"
-        return (f'<tr><th>显存峰值（MiB）</th><td><span class="na">未记录</span></td>'
-                f'<td class="src">{esc(rel_out(p))} {esc(why)}</td></tr>')
-    src_file = rel_out(p)
-    return kv_rows(data, src_file, [("显存峰值（MiB，本进程，每 2 s 采样）", ("peak_single_process_mib",)),
-                                    ("run_gpu_job 总耗时（s）", ("wall_seconds",)),
-                                    ("被看门狗杀掉", ("killed_by_watchdog",))])
-
-
-def demo_card(r):
-    head = (f'<h3>{esc(r["key"])} {badge(r["state"])}</h3>'
-            f'<p class="meta">{esc(r["source"])}'
-            + (f' · run_commands.txt 第 {r["cmd_no"]} 条' if r["cmd_no"] else "") + "</p>"
-            f'<p class="desc">{esc(r["desc"])}</p>')
-    body = demo_video_html(r)
-    if r["state"] == "ok":
-        info = r["info"]
-        src_file = rel_out(r["info_path"])
-        fields = GENESIS_FIELDS if "example" in info else UIPC_FIELDS
-        rows = kv_rows(info, src_file, fields)
-        if r["key"] == "genesis_ipc_momentum":
-            rows += "\n" + kv_rows(info, src_file, [("末步相对动量误差", ("run", "final_rel_momentum_error"))])
-        if "rerouted_subprocesses" in info:
-            n = len(info["rerouted_subprocesses"] or [])
-            rows += (f'\n<tr><th>改走外壳的子进程数</th><td>{num_span(n, src_file + " → len(rerouted_subprocesses)")}</td>'
-                     f'<td class="src">len(rerouted_subprocesses)</td></tr>')
-        rows += "\n" + vram_html(r["dir"])
-        imgs = "".join(
-            f'<figure><img src="{esc(web)}" alt="{esc(src.name)}" loading="lazy">'
-            f'<figcaption>{esc(src.name)}（原图 <code>{esc(src)}</code>，来源 {esc(label)}）</figcaption></figure>'
-            for web, src, label in r.get("images_web", []))
-        if r.get("images_note"):
-            imgs += f'<div class="novideo">{esc(r["images_note"])}</div>'
-        body += (imgs + f'<details><summary>参数 / 耗时 / 显存（来源 <code>{esc(src_file)}</code>，'
-                 f'文件时间 {esc(mtime_str(r["info_path"]))}）</summary>'
-                 f'<div class="tablewrap"><table class="kv"><thead><tr><th>项</th><th>值</th><th>json 字段</th></tr></thead>'
-                 f"<tbody>{rows}</tbody></table></div></details>")
-    return f'<article class="card">{head}{body}</article>'
-
-
-def demos_section(demos, extras):
-    parts = ['<section id="demos"><h2>Demo 画廊</h2>',
-             '<p class="lead">官方示例原样跑（libuipc-samples + Genesis examples/ipc），离屏录像。'
-             '视频已压成 H.264 / 720p，原片在 NAS。每个 demo 下面折叠的表是 run_info.json 的原始字段。</p>',
-             '<div class="grid">']
-    parts += [demo_card(r) for r in demos]
-    parts.append("</div>")
-    if extras:
-        parts.append('<h3 style="margin-top:16px">NAS 上多出来的 demo 目录</h3><div class="grid">')
-        parts += [demo_card(r) for r in extras]
-        parts.append("</div>")
-    parts.append("</section>")
-    return "\n".join(parts)
-
-
-# ---------------- 扫描表 ----------------
-# 每个扫描额外显示的"实际生效值"（json 字段）
-ACTUAL_FIELDS = {
-    "baseline": [("dt", ("params", "dt")), ("d_hat", ("params", "d_hat")), ("L", ("params", "mean_surface_edge_L")),
-                 ("d_hat/L", ("params", "d_hat_over_L")),
-                 ("κ 区间下界", ("kappa_log", "kappa_corridor", 0, "groups", 0)),
-                 ("κ 区间上界", ("kappa_log", "kappa_corridor", 0, "groups", 1)),
-                 ("被夹", ("kappa_clamped",)),
-                 ("实际 κ（被夹后）", ("kappa_log", "default_kappa_clamped", 0, "groups", 1))],
-    "d_hat": [("d_hat", ("params", "d_hat")), ("d_hat/L", ("params", "d_hat_over_L"))],
-    "dt": [("dt", ("params", "dt")), ("n_frames", ("params", "n_frames"))],
-    "friction": [("friction", ("params", "contact_model_used", "friction_rate")),
-                 ("resistance", ("params", "contact_model_used", "resistance"))],
-    "resistance": [("传入 resistance", ("params", "contact_model_used", "resistance")),
-                   ("κ 区间下界", ("kappa_log", "kappa_corridor", 0, "groups", 0)),
-                   ("κ 区间上界", ("kappa_log", "kappa_corridor", 0, "groups", 1)),
-                   ("被夹", ("kappa_clamped",)),
-                   ("实际 κ（被夹后；没被夹时为 —，即等于传入值）", ("kappa_log", "default_kappa_clamped", 0, "groups", 1)),
-                   ("friction", ("params", "contact_model_used", "friction_rate"))],
-    "init_penetration": [("球心距", ("params", "pair_center_distance", "center_distance")),
-                         ("名义球面间隙", ("params", "pair_center_distance", "nominal_sphere_gap")),
-                         ("sanity_check.enable", ("params", "sanity_check", "enable"))],
-    "mesh_res": [("顶点数/球", ("mesh", "n_vertices")), ("四面体数/球", ("mesh", "n_tets")),
-                 ("L", ("mesh", "edge_len_mean")), ("d_hat/L", ("params", "d_hat_over_L"))],
-}
-
-COLUMN_SOURCES = [
-    ("档位", "json 文件名；overrides 来自 json → overrides（没跑时来自 configs.py）"),
-    ("实际生效值", "json → params.* / mesh.*（见单元格 title）"),
-    ("初始 sanity", "json → sanity_at_init.result / .penetration / .too_close"),
-    ("运行中穿透", "json → summary.n_checks_with_penetration / summary.n_sanity_checks；"
-                 "首次穿透帧 summary.first_penetration_frame"),
-    ("Newton（Timer）", "均值 = frames[*].newton_iter_timer_count 的算术平均（build_site.py 计算）；"
-                       "中位数 summary.newton_iter_timer_median；最大 summary.newton_iter_timer_max"),
-    ("Newton（frame_stats）", "中位数 summary.newton_iter_frame_stats_median；最大 summary.newton_iter_frame_stats_max；"
-                             "撞上限帧数 summary.n_frames_hit_max_iter"),
-    ("每帧耗时 (s)", "均值 = summary.wall_seconds_total / summary.frames_done（build_site.py 计算）；"
-                  "中位数 summary.wall_seconds_median；最大 summary.wall_seconds_max"),
-    ("帧数", "summary.frames_done / params.n_frames"),
-    ("显存峰值 (MiB)", "<扫描>/job_<档位>/gpu_job_result.json → peak_single_process_mib"
-                      "（run_gpu_job.sh 看门狗每 2 s 采样 nvidia-smi）"),
-    ("状态", "json → status；失败时取 exception_traceback 最后一行原文"),
-]
-
-
-def mean_of(frames, key):
-    vals = [f.get(key) for f in frames if isinstance(f, dict)]
-    vals = [v for v in vals if isinstance(v, (int, float)) and not isinstance(v, bool)]
-    if not vals:
-        return MISSING
-    return sum(vals) / len(vals)
-
-
-def sweep_row(row):
-    d = row["data"]
-    jsrc = rel_out(row["json_path"])
-    ov = d.get("overrides", MISSING) if d else row["ov_cfg"]
-    ov_src = f"{jsrc} → overrides" if d else f"configs.py → SWEEPS[{row['sweep']!r}].levels[{row['level']!r}]"
-    ov_txt = "（无，全默认）" if ov == {} else ("—" if ov is MISSING else raw_repr(ov))
-    level_cell = (f'<td class="lvl"><b>{esc(row["level"])}</b>'
-                  + (' <span class="badge warn">configs.py 里没有</span>' if row.get("extra") else "")
-                  + f'<div class="ov" title="来源：{esc(ov_src)}">{esc(ov_txt)}</div>'
-                  f'<div class="src">{esc(jsrc)}</div></td>')
-    status_cell = f'<td>{badge(row["state"])}<div class="reason">{esc(row["reason"])}</div></td>'
-    jp, jd, jerr = load_job_result(row["json_path"].parent / f"job_{row['level']}")
-    if jd is None:
-        vram = f'<td class="na" title="{esc(rel_out(jp))}">{"无法解析" if jerr else "未记录"}</td>'
-    else:
-        vram = f"<td>{num_span(jd.get('peak_single_process_mib', MISSING), rel_out(jp) + ' → peak_single_process_mib')}</td>"
-    if d is None:
-        return (f"<tr>{level_cell}" + '<td class="na">—</td>' * 7 + vram + status_cell + "</tr>")
-
-    def n(*keys):
-        return num_span(dig(d, *keys), f"{jsrc} → {'.'.join(str(k) for k in keys)}")
-
-    actual = "<br>".join(f"{esc(lbl)} = {n(*keys)}" for lbl, keys in ACTUAL_FIELDS.get(row["sweep"], []))
-    if not actual:
-        actual = f"dt = {n('params', 'dt')}<br>d_hat = {n('params', 'd_hat')}"
-
-    if "sanity_at_init" in d:
-        sanity = (f"{n('sanity_at_init', 'result')}<br>穿透 {n('sanity_at_init', 'penetration')}"
-                  f"<br>too_close {n('sanity_at_init', 'too_close')}")
-    else:
-        sanity = '<span class="na">json 无 sanity_at_init</span>'
-
-    s = d.get("summary")
-    if not s:  # 没有 summary，或 summary = {}（一帧都没跑）
-        why = "没有 summary" if s is None else "summary 为空（一帧都没跑）"
-        empty = f'<td class="na" colspan="5">{esc(why)}</td>'
-        return f"<tr>{level_cell}<td>{actual}</td><td>{sanity}</td>{empty}{vram}{status_cell}</tr>"
-
-    pen = (f"{n('summary', 'n_checks_with_penetration')} / {n('summary', 'n_sanity_checks')} 次检查"
-           f"<br>首次 {n('summary', 'first_penetration_frame')}")
-    frames = d.get("frames") or []
-    nt_mean = mean_of(frames, "newton_iter_timer_count")
-    newton_t = (f"均 {num_span(nt_mean, jsrc + ' → mean(frames[*].newton_iter_timer_count)，build_site.py 计算')}"
-                f"<br>中 {n('summary', 'newton_iter_timer_median')}<br>大 {n('summary', 'newton_iter_timer_max')}")
-    if dig(d, "summary", "frame_stats_available") is True:
-        newton_f = (f"中 {n('summary', 'newton_iter_frame_stats_median')}"
-                    f"<br>大 {n('summary', 'newton_iter_frame_stats_max')}")
-    else:
-        newton_f = ('<span class="na" title="来源：' + esc(jsrc) + ' → summary.frame_stats_available">'
-                    "frame_stats 无 newton_iterations</span>")
-    newton_f += f"<br>撞上限 {n('summary', 'n_frames_hit_max_iter')} 帧"
-    tot, done = dig(d, "summary", "wall_seconds_total"), dig(d, "summary", "frames_done")
-    w_mean = (tot / done) if isinstance(tot, (int, float)) and isinstance(done, int) and done > 0 else MISSING
-    wall = (f"均 {num_span(w_mean, jsrc + ' → summary.wall_seconds_total / summary.frames_done，build_site.py 计算')}"
-            f"<br>中 {n('summary', 'wall_seconds_median')}<br>大 {n('summary', 'wall_seconds_max')}")
-    nfr = f"{n('summary', 'frames_done')} / {n('params', 'n_frames')}"
-    return (f"<tr>{level_cell}<td>{actual}</td><td>{sanity}</td><td>{pen}</td><td>{newton_t}</td>"
-            f"<td>{newton_f}</td><td>{wall}</td><td>{nfr}</td>{vram}{status_cell}</tr>")
-
-
-def sweep_counts(rows):
-    c = {"ok": 0, "failed": 0, "not_run": 0, "unfinished": 0}
+    # d̂：把 baseline（默认 d̂）也放进来，按 d̂ 从小到大
+    rows = list(rows_of(sweeps, "d_hat")) + [dict(r, is_default=True) for r in base]
+    rows.sort(key=lambda r: dig(r["data"], "params", "d_hat") if r["data"] and is_num(
+        dig(r["data"], "params", "d_hat")) else float("inf"))
+    trs = []
     for r in rows:
-        c[r["state"]] = c.get(r["state"], 0) + 1
-    return c
+        d = r["data"] or {}
+        dh = dig(d, "params", "d_hat")
+        lbl = (g3(dh * 1000) if is_num(dh) else r["level"]) + ("（默认）" if r.get("is_default") else "")
+        trs.append([lbl, g3(dig(d, "params", "d_hat_over_L")), pen_cell(r), newton_text(r)])
+    out.append(("d̂（barrier 作用距离）",
+                "d̂ 以球表面平均边长为单位，从 0.01 倍取到 1 倍；libuipc 默认的 0.01 m 约为 0.66 倍边长。",
+                table(["d̂（mm）", "d̂ / 平均边长", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
+
+    trs = []
+    for r in rows_of(sweeps, "dt"):
+        d = r["data"] or {}
+        dt = dig(d, "params", "dt")
+        trs.append([g3(dt) + ("（默认）" if dt == 0.01 else "") if is_num(dt) else r["level"],
+                    pen_cell(r), newton_text(r)])
+    out.append(("时间步长 dt",
+                "从 0.001（Genesis 默认）取到 0.04，物理时间固定 2 s，帧数随 dt 变。",
+                table(["dt（s）", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
+
+    trs = []
+    for r in rows_of(sweeps, "friction"):
+        d = r["data"] or {}
+        mu = dig(d, "params", "contact_model_used", "friction_rate")
+        trs.append([(g3(mu) + ("（默认）" if mu == 0.5 else "")) if is_num(mu) else r["level"],
+                    pen_cell(r), newton_text(r)])
+    out.append(("摩擦系数 μ", "0 为无摩擦，0.2 / 0.5 是 libuipc 示例里最常用的值，1.0 为高摩擦。",
+                table(["μ", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
+
+    trs = []
+    for r in rows_of(sweeps, "resistance"):
+        d = r["data"] or {}
+        lo, hi, act, set_k, cl = kappa_info(d)
+        if cl is True and is_num(act) and is_num(lo) and is_num(hi):
+            note = "（被抬到下界）" if abs(act - lo) <= 1e-6 * hi else ("（被压到上界）" if abs(act - hi) <= 1e-6 * hi
+                                                                    else "（被夹）")
+        elif cl is False:
+            note = "（照用）"
+        else:
+            note = ""
+        trs.append([sci(set_k) if is_num(set_k) else r["level"], sci(act) + note, pen_cell(r), newton_text(r)])
+    lo, hi, *_ = kappa_info(base[0]["data"]) if base and base[0]["data"] else (MISSING, MISSING)
+    out.append(("接触刚度 κ",
+                f"libuipc 会把 κ 夹进一个按场景算出的区间，本场景是 [{sci(lo)}, {sci(hi)}] Pa；"
+                "区间内取 4 档，两端外各取 1 档看它怎么被夹（1e9 是 libuipc 默认表项）。",
+                table(["设的 κ（Pa）", "实际用的 κ（Pa）", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
+
+    trs = []
+    for r in rows_of(sweeps, "init_penetration"):
+        d = r["data"] or {}
+        gap = dig(d, "params", "pair_center_distance", "nominal_sphere_gap")
+        dh = dig(d, "params", "d_hat")
+        if is_num(gap) and gap > 0:
+            lbl = f"间隙 {g3(gap * 1000)} mm" + (f"（{g3(gap / dh)} d̂）" if is_num(dh) and dh > 0 else "")
+        elif is_num(gap):
+            lbl = f"穿插 {g3(-gap * 100)} cm"
+        else:
+            lbl = r["level"]
+        if r["data"] and not sanity_on(d):
+            lbl += "，关掉检查"
+        if r["state"] == "ok" and not sanity_on(d):
+            res = ("跑完，但无法判断穿透", "warn")
+        elif r["state"] == "ok":
+            res = ("正常跑完，无穿透", "good") if pen_text(r) == "无" else (pen_text(r), "warn")
+        else:
+            res = (r["reason"], "warn")
+        trs.append([lbl, res, newton_text(r)])
+    out.append(("初始穿插",
+                "把相邻两个球的距离改成一开始就贴得很近或互相穿进去。",
+                table(["两球初始状态", "结果", "每帧 Newton 迭代（平均 / 最多）"], trs)))
+
+    trs = []
+    names = {"coarse": "粗", "medium": "中（默认）", "fine": "细"}
+    for r in rows_of(sweeps, "mesh_res"):
+        d = r["data"] or {}
+        L = dig(d, "mesh", "edge_len_mean")
+        trs.append([names.get(r["level"], r["level"]), str(dig(d, "mesh", "n_vertices")) if d else "—",
+                    g3(L * 1000) if is_num(L) else "—", g3(dig(d, "params", "d_hat_over_L")),
+                    pen_cell(r), newton_text(r)])
+    out.append(("网格分辨率", "同一个球用 tetgen 四面体化成粗 / 中 / 细三档，d̂ 保持默认 0.01 m。",
+                table(["网格", "每球顶点数", "平均边长（mm）", "d̂ / 边长", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
+    return out
 
 
-def sweep_anchor(name):
-    return "sweep" + letters(name)
-
-
-def sweep_section(sweeps):
-    heads = "".join(f"<th>{esc(h)}</th>" for h, _ in COLUMN_SOURCES)
-    legend = "".join(f"<li><b>{esc(h)}</b>：{esc(s)}</li>" for h, s in COLUMN_SOURCES)
-    parts = ['<section id="sweep"><h2>IPC 参数扫描</h2>',
-             '<p class="lead">场景：8 个 FEM 软球（半径 R = 0.1 m 的 icosphere，subdivisions = 3，用 tetgen 四面体化；'
-             "StableNeoHookean，libuipc 默认 E = 120 kPa、ν = 0.49；2 层 × 2×2）从静止落进开口盒子"
-             "（ground + 4 面固定 ABD 墙），物理时间 2 s。"
-             "单变量扫描：每个档位只改一个量，其余全部是 libuipc 默认值（dt = 0.01 s，d̂ = contact.d_hat = 0.01 m，"
-             "newton.max_iter = 1024）。d̂ 是 barrier 的作用距离：只有距离 d &lt; d̂ 的基元对才产生接触能量；"
-             "d̂ 扫描以球表面平均边长 L 为单位。</p>",
-             '<p class="note">穿透由 libuipc 自带的 SanityChecker 判定（world.init 后查一次，之后每 10 帧查一次，'
-             "末帧必查）。消息含 “intersects with” 或 “distance &lt;= 0” 记为穿透，“too close” 单列，不算穿透。"
-             "这是离散时刻的检查，两次检查之间短暂穿透又分开的情况查不到。"
-             "Newton 迭代次数有两个来源：Timer 里 “Newton Iteration” 节点的 count，和 engine.frame_stats() 的 "
-             "newton_iterations；两者都原样列出。每帧耗时是 Python 侧 perf_counter 包住 advance() + retrieve() 测的"
-             "（不含 sanity check），单位 s。</p>",
-             f'<p class="src">场景常量与档位来自 <code>{esc(SWEEP_CONFIGS)}</code>；'
-             f"结果来自 <code>{esc(SWEEP_ROOT)}/&lt;扫描&gt;/&lt;档位&gt;.json</code>。"
-             "表中浮点数保留 4 位有效数字，悬停看 json 原值和字段名。</p>",
-             '<details class="legend"><summary>每一列的数据来源</summary><ul>' + legend + "</ul></details>",
-             '<nav class="toc">' + "".join(f'<a href="#{sweep_anchor(s["name"])}">{esc(s["name"])}</a>'
-                                           for s in sweeps) + "</nav>"]
-    for s in sweeps:
-        c = sweep_counts(s["rows"])
-        parts.append(f'<div id="{sweep_anchor(s["name"])}" style="scroll-margin-top:12px">'
-                     f'<h3 style="margin-top:24px">{esc(s["name"])}</h3>'
-                     f'<p class="counts">完成 {c["ok"]} · 失败 {c["failed"]} · 未结束 {c["unfinished"]} · '
-                     f'尚未运行 {c["not_run"]}（共 {len(s["rows"])} 档，按 json 的 status 统计）</p>'
-                     f'<p class="why">选档理由（configs.py → why）：{esc(s["why"])}</p>'
-                     f'<div class="tablewrap"><table class="sweep"><thead><tr>{heads}</tr></thead><tbody>'
-                     + "\n".join(sweep_row(r) for r in s["rows"])
-                     + "</tbody></table></div></div>")
+def sweep_section(sweeps, cfg):
+    sc = getattr(cfg, "SCENE", {})
+    R = sc.get("ball_radius", MISSING)
+    base = rows_of(sweeps, "baseline")
+    bd = base[0]["data"] if base and base[0]["data"] else {}
+    nv = dig(bd, "mesh", "n_vertices")
+    T = sc.get("sim_time", MISSING)
+    scene = (f"场景：8 个 FEM 软球（半径 {g3(R)} m，每球约 {nv} 个顶点，StableNeoHookean，E = 120 kPa）"
+             f"从静止落进开口盒子，仿真 {g3(T)} s；每次只改一个参数，其余用 libuipc 默认"
+             f"（dt = {g3(dig(bd, 'params', 'dt'))} s，d̂ = {g3(dig(bd, 'params', 'd_hat'))} m），"
+             "穿透用 libuipc 的 sanity check 每 10 帧查一次。")
+    parts = ['<section id="sweep"><h2>IPC 参数扫描</h2>', f"<p>{esc(scene)}</p>"]
+    for title, one, tbl in sweep_tables(sweeps):
+        parts.append(f"<h3>{esc(title)}</h3><p class=\"muted small\">{esc(one)}</p>{tbl}")
     parts.append("</section>")
     return "\n".join(parts)
 
 
-# ---------------- 整页 ----------------
-def build_page(demos, extras, sweeps, gen_time):
-    all_demos = demos + extras
-    dc = sweep_counts(all_demos)
-    n_video = sum(1 for r in all_demos if r.get("video_web"))
-    rows_all = [r for s in sweeps for r in s["rows"]]
-    sc = sweep_counts(rows_all)
-    weekly = "".join(f'<li>{esc(t)} <span class="src">（出处：{esc(src)}）</span></li>' for t, src in WEEKLY)
+# ---------------- 关键数字（发现 / 结论里用，dry-run 时也打印出来核对） ----------------
+def compute_facts(demos, sweeps):
+    f = {}
+    by = {(r["sweep"], r["level"]): r for s in sweeps for r in s["rows"]}
+    allrows = list(by.values())
 
-    demo_rows = []
-    for r in all_demos:
-        if r["state"] == "ok":
-            info = r["info"]
-            k = "sim_wall_seconds" if "example" in info else "wall_seconds"
-            t = num_span(dig(info, k), f"{rel_out(r['info_path'])} → {k}")
-        else:
-            t = '<span class="na">—</span>'
-        vid = "有" if r.get("video_web") else ("—" if r["state"] != "ok" else "无")
-        jp, jd, _ = load_job_result(r["dir"])
-        mib = ('<span class="na">—</span>' if jd is None
-               else num_span(jd.get("peak_single_process_mib", MISSING), rel_out(jp) + " → peak_single_process_mib"))
-        demo_rows.append(f'<tr><td>{esc(r["key"])}</td>'
-                         f'<td>{esc(r["source"])}</td><td>{badge(r["state"])}'
-                         f'{"" if r["state"] == "ok" else "<div class=reason>" + esc(r["reason"]) + "</div>"}</td>'
-                         f"<td>{vid}</td><td>{t}</td><td>{mib}</td></tr>")
-    sweep_rows = []
-    for s in sweeps:
-        c = sweep_counts(s["rows"])
-        sweep_rows.append(f'<tr><td><a href="#{sweep_anchor(s["name"])}">{esc(s["name"])}</a></td>'
-                          f'<td>{len(s["rows"])}</td><td>{c["ok"]}</td><td>{c["failed"]}</td>'
-                          f'<td>{c["unfinished"]}</td><td>{c["not_run"]}</td></tr>')
+    mom = [r for r in demos if r["key"] == "genesis_ipc_momentum" and r["state"] == "ok"]
+    f["momentum_err"] = dig(mom[0]["info"], "run", "final_rel_momentum_error") if mom else MISSING
 
-    body = f"""
-<section id="overview">
-<h1>Neural-IPC 本周 demo 汇总</h1>
-<p class="lead">{esc(PROJECT_ONE_LINER)} <span class="src">（出处：{esc(PROJECT_ONE_LINER_SRC)}）</span></p>
-</section>
+    ok_checked = [r for r in allrows if r["state"] == "ok" and sanity_on(r["data"])]
+    f["n_ok_checked"] = len(ok_checked)
+    f["n_rows"] = len(allrows)
+    f["n_with_pen"] = sum(1 for r in ok_checked if dig(r["data"], "summary", "n_checks_with_penetration") != 0)
+    f["n_hit_max"] = sum(1 for r in ok_checked if dig(r["data"], "summary", "n_frames_hit_max_iter") != 0)
+    f["max_iter"] = dig(ok_checked[0]["data"], "params", "newton_max_iter") if ok_checked else MISSING
+    f["n_not_ok"] = sum(1 for r in allrows if r["state"] in ("failed", "unfinished", "not_run"))
+    f["rejected"] = [r["level"] for r in allrows if r["state"] == "rejected"]
 
-<section id="weekly">
-<h2>本周做了什么</h2>
-<ul class="weekly">{weekly}</ul>
-</section>
+    ns = by.get(("init_penetration", "overlap_0p5R_nosanity"))
+    if ns and ns["state"] == "ok":
+        f["nosanity_mean"] = newton_mean(ns["data"])
+        f["nosanity_hit"] = dig(ns["data"], "summary", "n_frames_hit_max_iter")
+        f["nosanity_max"] = dig(ns["data"], "summary", "newton_iter_timer_max")
+    means = [newton_mean(r["data"]) for r in ok_checked]
+    means = [m for m in means if is_num(m)]
+    f["other_mean_lo"], f["other_mean_hi"] = (min(means), max(means)) if means else (MISSING, MISSING)
+    meds = [dig(r["data"], "summary", "newton_iter_timer_median") for r in ok_checked]
+    maxs = [dig(r["data"], "summary", "newton_iter_timer_max") for r in ok_checked]
+    f["n_median2"] = sum(1 for m in meds if m == 2)
+    f["n_max7"] = sum(1 for m in maxs if m == 7)
 
-<section id="progress">
-<h2>结果进度</h2>
-<div class="stats">
-  <div class="stat"><div class="v">{dc['ok']} / {len(all_demos)}</div><div class="l">demo 已跑完（有 run_info.json）</div></div>
-  <div class="stat"><div class="v">{n_video}</div><div class="l">demo 有视频</div></div>
-  <div class="stat"><div class="v">{sc['ok']} / {len(rows_all)}</div><div class="l">扫描配置 status = ok</div></div>
-  <div class="stat"><div class="v">{sc['failed']}</div><div class="l">扫描配置失败</div></div>
-</div>
-<p class="src">以上计数由 build_site.py 统计：demo 看 {esc(DEMO_ROOT)}/&lt;目录&gt;/run_info.json 是否存在，
-扫描看每个 json 的 status 字段。</p>
-</section>
+    b = by.get(("baseline", "default"))
+    if b and b["data"]:
+        f["corr_lo"], f["corr_hi"], *_ = kappa_info(b["data"])
+        f["base_spf"] = sec_per_frame(b["data"])
+    for lvl, key in (("1e4", "k1e4"), ("1e9", "k1e9")):
+        r = by.get(("resistance", lvl))
+        if r and r["data"]:
+            f[key] = kappa_info(r["data"])[2]
+    f["n_res_unclamped"] = sum(1 for r in rows_of(sweeps, "resistance")
+                               if r["data"] and r["data"].get("kappa_clamped") is False)
+    for lvl, key in (("0p001", "dt001_mean"), ("0p01", "dt01_mean")):
+        r = by.get(("dt", lvl))
+        if r and r["state"] == "ok":
+            f[key] = newton_mean(r["data"])
+    r = by.get(("d_hat", "rel0p01"))
+    if r and r["state"] == "ok":
+        f["dhat001_max"] = dig(r["data"], "summary", "newton_iter_timer_max")
+        f["dhat001_corr_lo"] = kappa_info(r["data"])[0]
+    r = by.get(("d_hat", "rel1p0"))
+    if r and r["state"] == "ok":
+        f["dhat1_corr_lo"] = kappa_info(r["data"])[0]
+    r = by.get(("mesh_res", "medium"))
+    if r and r["state"] == "ok":
+        f["med_spf"] = sec_per_frame(r["data"])
+    return f
 
-<section id="summary">
-<h2>Demo 一览</h2>
-<div class="tablewrap"><table>
-<thead><tr><th>demo</th><th>来源</th><th>状态</th><th>视频</th><th>耗时 (s)</th><th>显存峰值 (MiB)</th></tr></thead>
-<tbody>{''.join(demo_rows)}</tbody></table></div>
-<p class="src">耗时：libuipc 示例取 run_info.json → wall_seconds（runpy 整段，含截图）；
-Genesis 示例取 run_info.json → sim_wall_seconds（run() 整段，含录像）。两者口径不同，不能直接比较。
-显存峰值取同目录 gpu_job_result.json → peak_single_process_mib（run_gpu_job.sh 每 2 s 采样 nvidia-smi，本进程）。
-<a href="#demos">看视频和完整参数</a></p>
-<h3 style="margin-top:20px">参数扫描一览</h3>
-<div class="tablewrap"><table>
-<thead><tr><th>扫描</th><th>档位数</th><th>完成</th><th>失败</th><th>未结束</th><th>尚未运行</th></tr></thead>
-<tbody>{''.join(sweep_rows)}</tbody></table></div>
-<p class="src"><a href="#sweep">看每个档位的穿透 / Newton 迭代次数 / 每帧耗时</a></p>
-</section>
 
-{demos_section(demos, extras)}
+def findings_section(f):
+    rej = "、".join(f["rejected"]) if f["rejected"] else "无"
+    items = [
+        f"<b>正常初始状态下都不穿透。</b>{f['n_ok_checked']} 个正常开跑的配置，每 10 帧检查一次，"
+        + ("一次穿透都没查到" if f["n_with_pen"] == 0 else f"有 {f['n_with_pen']} 个查到穿透")
+        + "；Newton 迭代也"
+        + (f"从没撞到 {f['max_iter']} 次上限。" if f["n_hit_max"] == 0 else f"有 {f['n_hit_max']} 个撞到上限。"),
 
-{sweep_section(sweeps)}
-"""
-    return page(body, gen_time)
+        "<b>初始穿插会被直接拒绝。</b>两球一开始穿进 1 cm 或 5 cm，world.init 的 sanity check 判定相交、不开始仿真；"
+        "只隔 0.5 d̂（5 mm）能正常跑。关掉检查硬跑 5 cm 穿插也能跑完，但"
+        f"有 {f.get('nosanity_hit', '—')} 帧 Newton 撞到 {g3(f.get('nosanity_max', MISSING))} 次上限，"
+        f"平均每帧 {g3(f.get('nosanity_mean', MISSING))} 次（其他配置 {g3(f['other_mean_lo'])}–{g3(f['other_mean_hi'])} 次），"
+        "而且关了检查就无法判断穿透。所以生成数据时初始状态必须无穿插。",
+
+        f"<b>κ 会被自动夹进一个区间。</b>本场景是 [{sci(f.get('corr_lo', MISSING))}, {sci(f.get('corr_hi', MISSING))}] Pa："
+        f"区间内 {f['n_res_unclamped']} 档照用，1e4 被抬到 {sci(f.get('k1e4', MISSING))}，"
+        f"1e9（libuipc 默认表项）被压到 {sci(f.get('k1e9', MISSING))}。不调用 default_model 时用的是下界，不是表里的 1 GPa。"
+        f"这个区间还随 d̂、dt、网格变（例如 d̂ = 0.01 倍边长时下界是 {sci(f.get('dhat001_corr_lo', MISSING))}，"
+        f"1 倍边长时是 {sci(f.get('dhat1_corr_lo', MISSING))}），所以扫这些参数时实际 κ 也跟着变了。",
+
+        f"<b>现有指标还分不出参数的影响。</b>{f['n_ok_checked']} 个配置里 {f['n_median2']} 个每帧 Newton 中位数是 2、"
+        f"{f['n_max7']} 个最多是 7，这主要是 libuipc 默认开着的 semi-implicit 提前终止造成的。能看出的只有："
+        f"dt 越小迭代略多（dt = 0.001 平均 {g3(f.get('dt001_mean', MISSING))} 次，dt = 0.01 平均 {g3(f.get('dt01_mean', MISSING))} 次）；"
+        f"d̂ = 0.01 倍边长时单帧最多 {g3(f.get('dhat001_max', MISSING))} 次。",
+
+        f"<b>每帧耗时暂时不能比。</b>GPU 是共享的，同一个配置跑两次，每帧分别 {g3(f.get('base_spf', MISSING))} s 和 "
+        f"{g3(f.get('med_spf', MISSING))} s，所以表里没放耗时。",
+
+        "<b>libuipc 的 barrier 不是 IPC 原论文的形式</b>，而是 Stiff-GIPC 的 log² 形式 "
+        "κ(D − d̂²)²[ln(D / d̂²)]²，D = d²。学生网络对标时要以它为准。",
+
+        "<b>第一轮扫描有两个设计错误，已修正并重跑：</b>libuipc 自带的 ball.msh 其实是 0.168 × 0.2 × 0.168 的长条，"
+        "导致穿插量全错，已换成真球；κ 档位原先都在区间外、被夹成同一个值，已改到区间内。",
+    ]
+    lis = "".join(f"<li>{t}</li>" for t in items)  # 文本是本脚本写死的，数字来自 json，不含用户输入
+    nxt = ("<b>下一步：</b>加能反映行为的指标（最终静止位置、最小间距、接触力），在 GPU 空闲时计时或多次取平均；"
+           "确认 ContactSystemFeature 导出的能量里是否已乘 κ·dt²。")
+    return (f'<section id="findings"><h2>发现与结论</h2><ul class="findings">{lis}</ul>'
+            f'<p class="next">{nxt}</p></section>')
+
+
+def build_page(demos, extras, sweeps, cfg, facts):
+    n_video = sum(1 for r in demos + extras if r.get("video_web"))
+    n_demo_ok = sum(1 for r in demos + extras if r["state"] == "ok")
+    n_demo = len(demos + extras)
+    n_sweeps = sum(1 for s in sweeps if s["name"] != "baseline")
+    ran = f"{n_demo} 个官方 demo 全部跑完" if n_demo_ok == n_demo else f"{n_demo} 个官方 demo 跑完了 {n_demo_ok} 个"
+    summary = (f"这周把 libuipc（Genesis 的 IPC 耦合底层也是它，在 H100 上需从源码编译）在服务器上跑通了，"
+               f"{ran}，其中 {n_video} 个录了视频。"
+               f"然后在“8 个软球落进盒子”的场景上对 {n_sweeps} 个 IPC 参数做了单变量扫描，共 {facts['n_rows']} 个配置。"
+               "主要发现：正常初始状态下全部不穿透，初始穿插会被 libuipc 直接拒绝，接触刚度 κ 会被自动夹进一个区间，"
+               "而现有的迭代次数、耗时指标还看不出参数对行为的影响。")
+    nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
+    body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
+            f'<nav class="toc">{nav}</nav></header>\n'
+            + videos_section(demos, extras, facts) + "\n"
+            + sweep_section(sweeps, cfg) + "\n"
+            + findings_section(facts))
+    return page(body)
 
 
 # ==========================================================================
 # main
 # ==========================================================================
+STATE_LABEL = {"ok": "完成", "failed": "失败", "not_run": "尚未运行", "unfinished": "未结束",
+               "rejected": "被拒绝（预期内）"}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--execute", action="store_true", help="真正写文件、压视频（默认只打印计划）")
@@ -947,14 +813,16 @@ def main():
     ap.add_argument("--force-videos", action="store_true", help="忽略 encode_manifest.json，全部重新压缩")
     args = ap.parse_args()
 
-    gen_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    demos, extras = collect_demos()
+    demos, extras, unlisted = collect_demos()
+    if unlisted:
+        print(f"[build_site] 注意：NAS 上这些 demo 目录不在 DEMOS 清单里，不上页面：{unlisted}")
     cfg, sweeps = collect_sweeps()
     all_demos = demos + extras
     vjobs, manifest = plan_videos(all_demos, args.crf, args.force_videos)
     ijobs = plan_images(all_demos)
+    facts = compute_facts(demos, sweeps)
 
-    pages = {WEB / "index.html": build_page(demos, extras, sweeps, gen_time)}
+    pages = {WEB / "index.html": build_page(demos, extras, sweeps, cfg, facts)}
 
     # ---------------- 打印计划 ----------------
     mode = "EXECUTE" if args.execute else "DRY-RUN（只演练，不写任何文件；加 --execute 才真正写）"
@@ -963,16 +831,20 @@ def main():
     for r in all_demos:
         extra = "" if r["state"] == "ok" else f"  {r['reason']}"
         vid = f"  视频: {r['video_src']}" if r["video_src"] else (f"  {r['video_note']}" if r["video_note"] else "")
-        print(f"  - {r['key']:<32} {STATE_LABEL[r['state']][0]}{extra}{vid}")
+        print(f"  - {r['key']:<32} {STATE_LABEL[r['state']]}{extra}{vid}")
     print(f"[build_site] 扫描结果：{SWEEP_ROOT}")
     for s in sweeps:
-        c = sweep_counts(s["rows"])
-        print(f"  - {s['name']:<18} 共 {len(s['rows'])} 档：完成 {c['ok']}，失败 {c['failed']}，"
-              f"未结束 {c['unfinished']}，尚未运行 {c['not_run']}")
+        states = {}
+        for r in s["rows"]:
+            states[r["state"]] = states.get(r["state"], 0) + 1
+        print(f"  - {s['name']:<18} 共 {len(s['rows'])} 档：" + "，".join(f"{STATE_LABEL[k]} {v}" for k, v in states.items()))
         for r in s["rows"]:
             if r["state"] in ("failed", "unfinished"):
                 print(f"      {r['level']}: {r['reason']}")
-    print(f"[build_site] 将写页面：")
+    print("[build_site] 页面里用到的关键数字（全部读自结果文件）：")
+    for k, v in facts.items():
+        print(f"  - {k} = {v if v is not MISSING else '缺失'}")
+    print("[build_site] 将写页面：")
     for p, text in pages.items():
         print(f"  - {p}（{len(text.encode('utf-8')) / 1024:.1f} KB）")
     print(f"[build_site] 视频（H.264 / 720p / crf {args.crf} / +faststart；单个上限 {file_size_str(MAX_VIDEO_BYTES)}，"
@@ -1002,6 +874,7 @@ def main():
         if j["size"] > MAX_IMAGE_BYTES:
             raise SystemExit(f"[build_site] 图片 {j['src']} 有 {file_size_str(j['size'])}，超过 "
                              f"{file_size_str(MAX_IMAGE_BYTES)}，停止。")
+
     def check_total():
         total = sum(j["dst"].stat().st_size for j in vjobs if j["dst"].is_file())
         if total > MAX_TOTAL_VIDEO_BYTES:

@@ -1,0 +1,101 @@
+<title>Neural-IPC 周汇报</title>
+<style>
+:root {
+  --bg: #fafaf8; --fg: #1f2328; --muted: #646b74; --border: #dcdfe3; --soft: #f1f3f5;
+  --accent: #245f96; --good: #1f6b3a; --warn: #8a5a0b;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+          "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16191d; --fg: #e4e7eb; --muted: #9ba3ad; --border: #353b43; --soft: #20252b;
+    --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16191d; --fg: #e4e7eb; --muted: #9ba3ad; --border: #353b43; --soft: #20252b;
+  --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+       font-size: 15px; line-height: 1.65; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+header.top { padding: 28px 0 8px; }
+h1 { font-size: 1.55rem; margin: 0 0 8px; font-weight: 650; letter-spacing: 0.01em; }
+.summary { margin: 8px 0 0; max-width: 72ch; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.9rem; margin: 14px 0 0;
+          padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+h2 { font-size: 1.2rem; margin: 36px 0 10px; font-weight: 650; }
+h3 { font-size: 1rem; margin: 22px 0 4px; font-weight: 600; }
+section { scroll-margin-top: 12px; }
+p { margin: 6px 0; }
+.muted { color: var(--muted); }
+code { font-size: 0.95em; word-break: break-all; }
+.small { font-size: 0.86rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+        gap: 22px 18px; }
+.demo { min-width: 0; }
+.demo h3 { margin: 0 0 6px; font-size: 0.95rem; }
+.demo h3 .key { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+.demo p { font-size: 0.86rem; color: var(--muted); margin-top: 6px; }
+video, img { display: block; width: 100%; height: auto; border-radius: 4px; background: var(--soft); }
+img.plot { margin-top: 8px; }
+.novideo { padding: 22px 12px; background: var(--soft); color: var(--muted); border-radius: 4px;
+           font-size: 0.86rem; }
+.tablewrap { overflow-x: auto; max-width: 100%; margin: 6px 0 4px; }
+table { border-collapse: collapse; font-size: 0.88rem; min-width: 60%; }
+th, td { text-align: left; padding: 5px 14px 5px 0; border-bottom: 1px solid var(--border);
+         white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 0.82rem; border-bottom-color: var(--fg); }
+td { font-variant-numeric: tabular-nums; }
+td.good { color: var(--good); }
+td.warn { color: var(--warn); }
+ul.findings { padding-left: 20px; max-width: 80ch; }
+ul.findings li { margin: 8px 0; }
+.next { max-width: 80ch; }
+footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border);
+              margin-top: 40px; padding: 12px 16px 28px; }
+@media (max-width: 480px) {
+  body { font-size: 14px; }
+  th, td { padding-right: 10px; }
+}
+</style>
+<main class="wrap">
+<header class="top"><h1>Neural-IPC 周汇报</h1><p class="summary">这周把 libuipc（Genesis 的 IPC 耦合底层也是它，在 H100 上需从源码编译）在服务器上跑通了，12 个官方 demo 跑完了 10 个，其中 10 个录了视频。然后在“8 个软球落进盒子”的场景上对 6 个 IPC 参数做了单变量扫描，共 30 个配置。主要发现：正常初始状态下全部不穿透，初始穿插会被 libuipc 直接拒绝，接触刚度 κ 会被自动夹进一个区间，而现有的迭代次数、耗时指标还看不出参数对行为的影响。</p><nav class="toc"><a href="#videos">Demo 视频</a><a href="#sweep">参数扫描</a><a href="#findings">发现与结论</a></nav></header>
+<section id="videos"><h2>Demo 视频</h2>
+<p class="muted small">官方示例一字未改，在服务器上离屏录像（画面用 CPU 软件渲染，物理在 GPU 上算）。</p>
+<div class="grid">
+<div class="demo"><h3>两个 ABD 四面体下落接触 <span class="key">1_hello_libuipc</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/1_hello_libuipc.mp4"></video><p>最小例子，Scene / World / advance 的基本骨架。</p></div>
+<div class="demo"><h3>斜坡滑块 <span class="key">10_ramp_sliding</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/10_ramp_sliding.mp4"></video><p>8 个 ABD 方块在斜坡上滑，摩擦系数从 0 到 1 共八档。</p></div>
+<div class="demo"><h3>带初速度的 ABD + FEM 方块 <span class="key">13_init_velocity</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/13_init_velocity.mp4"></video><p>刚体（ABD）和软体（FEM）方块带初速度运动、接触。</p></div>
+<div class="demo"><h3>导出接触能量 / 梯度 / Hessian <span class="key">20_contact_system_feature</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/20_contact_system_feature.mp4"></video><p>对我们最重要：ContactSystemFeature 能按接触基元类型（PT / EE / PE / PP / PH，法向和摩擦分开）导出能量、梯度、Hessian，是以后生成训练数据的入口。</p></div>
+<div class="demo"><h3>按网格自动算 d̂ <span class="key">27_compute_mesh_d_hat</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/27_compute_mesh_d_hat.mp4"></video><p>上方块用按网格分辨率自动算出的 d̂，下方块用手设的 d̂，两者对比。</p></div>
+<div class="demo"><h3>FEM bunny + MAS 预条件 <span class="key">89_mas_bunny</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/89_mas_bunny.mp4"></video><p>软体 bunny 落地，线性求解用 MAS 预条件。</p></div>
+<div class="demo"><h3>ABD / FEM 交替叠放 <span class="key">90_abd_fem_cube_stack</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/90_abd_fem_cube_stack.mp4"></video><p>同一场景里低自由度（ABD）和高自由度（FEM）混合，最接近我们的设定。</p></div>
+<div class="demo"><h3>Genesis：布料 + 刚体 + 软球 <span class="key">genesis_ipc_objects_falling</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/genesis_ipc_objects_falling.mp4"></video><p>Genesis 调 libuipc，布料、刚体、FEM 软球一起落地。</p></div>
+<div class="demo"><h3>Genesis：动量守恒检验 <span class="key">genesis_ipc_momentum</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/genesis_ipc_momentum.mp4"></video><p>零重力下刚体撞 FEM 球，末步相对动量误差 1.06%。</p></div>
+<div class="demo"><h3>Genesis：机械臂抓软方块 <span class="key">genesis_ipc_robot_grasp_cube</span></h3><video controls muted playsinline preload="metadata" src="assets/videos/genesis_ipc_robot_grasp_cube.mp4"></video><p>two-way 耦合；Genesis 的刚体在 libuipc 里是 κ = 100 MPa 的 ABD。</p></div>
+<div class="demo"><h3>100 个 ABD bunny 下落 <span class="key">abd_bunny_grid_drop</span></h3><div class="novideo">还没跑</div><p>10×10 个 ABD bunny 同时下落堆积，大规模 ABD 接触。</p></div>
+<div class="demo"><h3>Wrecking balls <span class="key">wrecking_balls</span></h3><div class="novideo">还没跑</div><p>ABD 方块墙、摆锤球和链节组成的大场景，大规模 ABD 接触。</p></div>
+</div>
+</section>
+<section id="sweep"><h2>IPC 参数扫描</h2>
+<p>场景：8 个 FEM 软球（半径 0.1 m，每球约 698 个顶点，StableNeoHookean，E = 120 kPa）从静止落进开口盒子，仿真 2 s；每次只改一个参数，其余用 libuipc 默认（dt = 0.01 s，d̂ = 0.01 m），穿透用 libuipc 的 sanity check 每 10 帧查一次。</p>
+<h3>d̂（barrier 作用距离）</h3><p class="muted small">d̂ 以球表面平均边长为单位，从 0.01 倍取到 1 倍；libuipc 默认的 0.01 m 约为 0.66 倍边长。</p><div class="tablewrap"><table><thead><tr><th>d̂（mm）</th><th>d̂ / 平均边长</th><th>穿透</th><th>每帧 Newton 迭代（平均 / 最多）</th></tr></thead><tbody><tr><td>0.151</td><td>0.01</td><td class="good">无</td><td>3.6 / 17</td></tr><tr><td>0.452</td><td>0.03</td><td class="good">无</td><td>2.96 / 9</td></tr><tr><td>1.51</td><td>0.1</td><td class="good">无</td><td>2.71 / 7</td></tr><tr><td>4.52</td><td>0.3</td><td class="good">无</td><td>2.86 / 7</td></tr><tr><td>10（默认）</td><td>0.663</td><td class="good">无</td><td>2.79 / 7</td></tr><tr><td>15.1</td><td>1</td><td class="good">无</td><td>1.23 / 6</td></tr></tbody></table></div>
+<h3>时间步长 dt</h3><p class="muted small">从 0.001（Genesis 默认）取到 0.04，物理时间固定 2 s，帧数随 dt 变。</p><div class="tablewrap"><table><thead><tr><th>dt（s）</th><th>穿透</th><th>每帧 Newton 迭代（平均 / 最多）</th></tr></thead><tbody><tr><td>0.001</td><td class="good">无</td><td>4.13 / 7</td></tr><tr><td>0.0025</td><td class="good">无</td><td>3.8 / 7</td></tr><tr><td>0.005</td><td class="good">无</td><td>2.86 / 7</td></tr><tr><td>0.01（默认）</td><td class="good">无</td><td>2.87 / 7</td></tr><tr><td>0.02</td><td class="good">无</td><td>2.53 / 6</td></tr><tr><td>0.04</td><td class="good">无</td><td>3.2 / 7</td></tr></tbody></table></div>
+<h3>摩擦系数 μ</h3><p class="muted small">0 为无摩擦，0.2 / 0.5 是 libuipc 示例里最常用的值，1.0 为高摩擦。</p><div class="tablewrap"><table><thead><tr><th>μ</th><th>穿透</th><th>每帧 Newton 迭代（平均 / 最多）</th></tr></thead><tbody><tr><td>0</td><td class="good">无</td><td>2.56 / 7</td></tr><tr><td>0.1</td><td class="good">无</td><td>2.9 / 7</td></tr><tr><td>0.2</td><td class="good">无</td><td>2.71 / 7</td></tr><tr><td>0.5（默认）</td><td class="good">无</td><td>2.79 / 7</td></tr><tr><td>1</td><td class="good">无</td><td>2.4 / 7</td></tr></tbody></table></div>
+<h3>接触刚度 κ</h3><p class="muted small">libuipc 会把 κ 夹进一个按场景算出的区间，本场景是 [1.71e5, 1.71e7] Pa；区间内取 4 档，两端外各取 1 档看它怎么被夹（1e9 是 libuipc 默认表项）。</p><div class="tablewrap"><table><thead><tr><th>设的 κ（Pa）</th><th>实际用的 κ（Pa）</th><th>穿透</th><th>每帧 Newton 迭代（平均 / 最多）</th></tr></thead><tbody><tr><td>1e4</td><td>1.71e5（被抬到下界）</td><td class="good">无</td><td>2.63 / 7</td></tr><tr><td>2e5</td><td>2e5（照用）</td><td class="good">无</td><td>2.76 / 7</td></tr><tr><td>1e6</td><td>1e6（照用）</td><td class="good">无</td><td>2.81 / 7</td></tr><tr><td>5e6</td><td>5e6（照用）</td><td class="good">无</td><td>2.74 / 7</td></tr><tr><td>1.5e7</td><td>1.5e7（照用）</td><td class="good">无</td><td>2.79 / 7</td></tr><tr><td>1e9</td><td>1.71e7（被压到上界）</td><td class="good">无</td><td>2.54 / 7</td></tr></tbody></table></div>
+<h3>初始穿插</h3><p class="muted small">把相邻两个球的距离改成一开始就贴得很近或互相穿进去。</p><div class="tablewrap"><table><thead><tr><th>两球初始状态</th><th>结果</th><th>每帧 Newton 迭代（平均 / 最多）</th></tr></thead><tbody><tr><td>间隙 5 mm（0.5 d̂）</td><td class="good">正常跑完，无穿透</td><td>2.41 / 7</td></tr><tr><td>穿插 1 cm</td><td class="warn">被 sanity check 拒绝（预期内）</td><td>—</td></tr><tr><td>穿插 5 cm</td><td class="warn">被 sanity check 拒绝（预期内）</td><td>—</td></tr><tr><td>穿插 5 cm，关掉检查</td><td class="warn">跑完，但无法判断穿透</td><td>8.59 / 1.02e+03（1 帧撞到上限）</td></tr></tbody></table></div>
+<h3>网格分辨率</h3><p class="muted small">同一个球用 tetgen 四面体化成粗 / 中 / 细三档，d̂ 保持默认 0.01 m。</p><div class="tablewrap"><table><thead><tr><th>网格</th><th>每球顶点数</th><th>平均边长（mm）</th><th>d̂ / 边长</th><th>穿透</th><th>每帧 Newton 迭代（平均 / 最多）</th></tr></thead><tbody><tr><td>粗</td><td>163</td><td>29.9</td><td>0.334</td><td class="good">无</td><td>1.57 / 7</td></tr><tr><td>中（默认）</td><td>698</td><td>15.1</td><td>0.663</td><td class="good">无</td><td>2.54 / 7</td></tr><tr><td>细</td><td>2911</td><td>7.55</td><td>1.32</td><td class="good">无</td><td>1.03 / 7</td></tr></tbody></table></div>
+</section>
+<section id="findings"><h2>发现与结论</h2><ul class="findings"><li><b>正常初始状态下都不穿透。</b>27 个正常开跑的配置，每 10 帧检查一次，一次穿透都没查到；Newton 迭代也从没撞到 1024 次上限。</li><li><b>初始穿插会被直接拒绝。</b>两球一开始穿进 1 cm 或 5 cm，world.init 的 sanity check 判定相交、不开始仿真；只隔 0.5 d̂（5 mm）能正常跑。关掉检查硬跑 5 cm 穿插也能跑完，但有 1 帧 Newton 撞到 1.02e+03 次上限，平均每帧 8.59 次（其他配置 1.03–4.13 次），而且关了检查就无法判断穿透。所以生成数据时初始状态必须无穿插。</li><li><b>κ 会被自动夹进一个区间。</b>本场景是 [1.71e5, 1.71e7] Pa：区间内 4 档照用，1e4 被抬到 1.71e5，1e9（libuipc 默认表项）被压到 1.71e7。不调用 default_model 时用的是下界，不是表里的 1 GPa。这个区间还随 d̂、dt、网格变（例如 d̂ = 0.01 倍边长时下界是 3.32e12，1 倍边长时是 3.32e4），所以扫这些参数时实际 κ 也跟着变了。</li><li><b>现有指标还分不出参数的影响。</b>27 个配置里 21 个每帧 Newton 中位数是 2、23 个最多是 7，这主要是 libuipc 默认开着的 semi-implicit 提前终止造成的。能看出的只有：dt 越小迭代略多（dt = 0.001 平均 4.13 次，dt = 0.01 平均 2.87 次）；d̂ = 0.01 倍边长时单帧最多 17 次。</li><li><b>每帧耗时暂时不能比。</b>GPU 是共享的，同一个配置跑两次，每帧分别 0.104 s 和 0.142 s，所以表里没放耗时。</li><li><b>libuipc 的 barrier 不是 IPC 原论文的形式</b>，而是 Stiff-GIPC 的 log² 形式 κ(D − d̂²)²[ln(D / d̂²)]²，D = d²。学生网络对标时要以它为准。</li><li><b>第一轮扫描有两个设计错误，已修正并重跑：</b>libuipc 自带的 ball.msh 其实是 0.168 × 0.2 × 0.168 的长条，导致穿插量全错，已换成真球；κ 档位原先都在区间外、被夹成同一个值，已改到区间内。</li></ul><p class="next"><b>下一步：</b>加能反映行为的指标（最终静止位置、最小间距、接触力），在 GPU 空闲时计时或多次取平均；确认 ContactSystemFeature 导出的能量里是否已乘 κ·dt²。</p></section>
+</main>
+<footer class="wrap foot">数据：视频与运行记录在 NAS <code>/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos</code>，参数扫描结果在
+<code>/nas/xiaoyingwang/Neural-IPC/outputs/ipc_sweep</code>（由 Neural-IPC 仓库 <code>tools/ipc_sweep/sweep.py</code> 生成）；本页由
+Neural-IPC-web 仓库 <code>tools/build_site.py</code> 读取这些文件生成。</footer>
