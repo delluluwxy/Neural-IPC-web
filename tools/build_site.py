@@ -110,13 +110,18 @@ WEEKLY = [
     ("查清仿真框架：notes 里的 “lib IPC” 就是 libuipc（Python 包 pyuipc），Genesis 的 IPC Coupler 底层也是它；"
      "整理了 Genesis 暴露的 IPC 参数（dt、contact_d_hat、contact_friction_mu、ipc_constraint_strength 等）。",
      "AGENTS.md「仿真框架事实」"),
-    ("建好 conda 环境 .conda/genesis：python 3.11、genesis-world 1.4.2、pyuipc 0.0.28、polyscope 2.6.1。",
-     "tools/ipc_demos/README.md"),
+    ("建好 conda 环境 .conda/genesis：python 3.11、torch 2.8.0 cu128、genesis-world 1.4.2、polyscope 2.6.1。"
+     "PyPI 的 pyuipc wheel 不含 H100（sm_90）的机器码，服务器驱动 550 又无法 JIT 它带的 PTX（CUDA error 222），"
+     "所以用 CUDA 12.4 从源码编译 libuipc（pyuipc 0.9.0，UIPC_CUDA_ARCHITECTURES=90）。",
+     "tools/build_libuipc.sh、tools/setup_genesis_env.sh"),
     ("写了在无显示器服务器上离屏跑官方 demo 的外壳脚本（官方文件一字不改）：libuipc-samples 10 个、Genesis examples/ipc 3 个；"
-     "启动时核对 EGL 设备和 CUDA_VISIBLE_DEVICES 是同一张卡。",
+     "仿真在 GPU 6 上跑，录像走 Mesa 软件渲染（EGL 设备 16，CPU），不占 GPU。"
+     "每个 demo 都经带显存看门狗的 run_gpu_job.sh 运行，实测显存峰值记在 gpu_job_result.json。",
      "tools/ipc_demos/README.md、run_commands.txt [IPC demo 命令]"),
     ("设计了 “一堆物体扔进盒子” 场景（8 个 FEM 软球落进开口盒子）上的 IPC 参数单变量扫描：d_hat、dt、friction、"
-     "resistance、初始穿透、网格粗细，共 7 个扫描 29 个配置；穿透用 libuipc 自带的 SanityChecker 判定。",
+     "resistance、初始穿透、网格粗细，共 7 个扫描 30 个配置；穿透用 libuipc 自带的 SanityChecker 判定。"
+     "第一轮发现两处设计错误，已修正后全部重跑：libuipc 自带的 ball.msh 不是球（初始穿插量因此全错），改用 tetgen 四面体化的真球；"
+     "resistance 原先的档位全在自适应 κ 区间之外、被夹成同一个值，改为取在区间内。",
      "tools/ipc_sweep/README.md、configs.py"),
     ("做了这个网页：demo 视频 + 参数扫描结果表，所有数字都从 NAS 上的 json 原样读取。",
      "Neural-IPC-web/tools/build_site.py"),
@@ -628,14 +633,24 @@ GENESIS_FIELDS = [
 ]
 
 
-def vram_html(info, src_file):
-    """两个外壳脚本都不记录显存；若以后 run_info 里出现含 mem / vram 的顶层字段就原样显示。"""
-    keys = [k for k in info if "mem" in k.lower() or "vram" in k.lower()]
-    if not keys:
-        return (f'<tr><th>显存</th><td><span class="na">未记录</span></td>'
-                f'<td class="src">{esc(src_file)} 里没有显存字段（外壳脚本不记录显存）</td></tr>')
-    return "\n".join(f"<tr><th>显存（{esc(k)}）</th><td>{num_span(info[k], f'{src_file} → {k}')}</td>"
-                     f'<td class="src">{esc(k)}</td></tr>' for k in keys)
+def load_job_result(job_dir):
+    """tools/run_gpu_job.sh 写的 gpu_job_result.json（看门狗每 2 s 采样 nvidia-smi 得到的峰值）。"""
+    p = Path(job_dir) / "gpu_job_result.json"
+    data, err = load_json(p)
+    return p, data, err
+
+
+def vram_html(job_dir):
+    """显存峰值来自 run_gpu_job.sh 的 gpu_job_result.json（外壳脚本本身不记录显存）。"""
+    p, data, err = load_job_result(job_dir)
+    if err or data is None:
+        why = f"无法解析（{err}）" if err else "不存在"
+        return (f'<tr><th>显存峰值（MiB）</th><td><span class="na">未记录</span></td>'
+                f'<td class="src">{esc(rel_out(p))} {esc(why)}</td></tr>')
+    src_file = rel_out(p)
+    return kv_rows(data, src_file, [("显存峰值（MiB，本进程，每 2 s 采样）", ("peak_single_process_mib",)),
+                                    ("run_gpu_job 总耗时（s）", ("wall_seconds",)),
+                                    ("被看门狗杀掉", ("killed_by_watchdog",))])
 
 
 def demo_card(r):
@@ -655,7 +670,7 @@ def demo_card(r):
             n = len(info["rerouted_subprocesses"] or [])
             rows += (f'\n<tr><th>改走外壳的子进程数</th><td>{num_span(n, src_file + " → len(rerouted_subprocesses)")}</td>'
                      f'<td class="src">len(rerouted_subprocesses)</td></tr>')
-        rows += "\n" + vram_html(info, src_file)
+        rows += "\n" + vram_html(r["dir"])
         imgs = "".join(
             f'<figure><img src="{esc(web)}" alt="{esc(src.name)}" loading="lazy">'
             f'<figcaption>{esc(src.name)}（原图 <code>{esc(src)}</code>，来源 {esc(label)}）</figcaption></figure>'
@@ -688,12 +703,20 @@ def demos_section(demos, extras):
 # 每个扫描额外显示的"实际生效值"（json 字段）
 ACTUAL_FIELDS = {
     "baseline": [("dt", ("params", "dt")), ("d_hat", ("params", "d_hat")), ("L", ("params", "mean_surface_edge_L")),
-                 ("d_hat/L", ("params", "d_hat_over_L"))],
+                 ("d_hat/L", ("params", "d_hat_over_L")),
+                 ("κ 区间下界", ("kappa_log", "kappa_corridor", 0, "groups", 0)),
+                 ("κ 区间上界", ("kappa_log", "kappa_corridor", 0, "groups", 1)),
+                 ("被夹", ("kappa_clamped",)),
+                 ("实际 κ（被夹后）", ("kappa_log", "default_kappa_clamped", 0, "groups", 1))],
     "d_hat": [("d_hat", ("params", "d_hat")), ("d_hat/L", ("params", "d_hat_over_L"))],
     "dt": [("dt", ("params", "dt")), ("n_frames", ("params", "n_frames"))],
     "friction": [("friction", ("params", "contact_model_used", "friction_rate")),
                  ("resistance", ("params", "contact_model_used", "resistance"))],
-    "resistance": [("resistance", ("params", "contact_model_used", "resistance")),
+    "resistance": [("传入 resistance", ("params", "contact_model_used", "resistance")),
+                   ("κ 区间下界", ("kappa_log", "kappa_corridor", 0, "groups", 0)),
+                   ("κ 区间上界", ("kappa_log", "kappa_corridor", 0, "groups", 1)),
+                   ("被夹", ("kappa_clamped",)),
+                   ("实际 κ（被夹后；没被夹时为 —，即等于传入值）", ("kappa_log", "default_kappa_clamped", 0, "groups", 1)),
                    ("friction", ("params", "contact_model_used", "friction_rate"))],
     "init_penetration": [("球心距", ("params", "pair_center_distance", "center_distance")),
                          ("名义球面间隙", ("params", "pair_center_distance", "nominal_sphere_gap")),
@@ -715,6 +738,8 @@ COLUMN_SOURCES = [
     ("每帧耗时 (s)", "均值 = summary.wall_seconds_total / summary.frames_done（build_site.py 计算）；"
                   "中位数 summary.wall_seconds_median；最大 summary.wall_seconds_max"),
     ("帧数", "summary.frames_done / params.n_frames"),
+    ("显存峰值 (MiB)", "<扫描>/job_<档位>/gpu_job_result.json → peak_single_process_mib"
+                      "（run_gpu_job.sh 看门狗每 2 s 采样 nvidia-smi）"),
     ("状态", "json → status；失败时取 exception_traceback 最后一行原文"),
 ]
 
@@ -738,8 +763,13 @@ def sweep_row(row):
                   + f'<div class="ov" title="来源：{esc(ov_src)}">{esc(ov_txt)}</div>'
                   f'<div class="src">{esc(jsrc)}</div></td>')
     status_cell = f'<td>{badge(row["state"])}<div class="reason">{esc(row["reason"])}</div></td>'
+    jp, jd, jerr = load_job_result(row["json_path"].parent / f"job_{row['level']}")
+    if jd is None:
+        vram = f'<td class="na" title="{esc(rel_out(jp))}">{"无法解析" if jerr else "未记录"}</td>'
+    else:
+        vram = f"<td>{num_span(jd.get('peak_single_process_mib', MISSING), rel_out(jp) + ' → peak_single_process_mib')}</td>"
     if d is None:
-        return (f"<tr>{level_cell}" + '<td class="na">—</td>' * 7 + status_cell + "</tr>")
+        return (f"<tr>{level_cell}" + '<td class="na">—</td>' * 7 + vram + status_cell + "</tr>")
 
     def n(*keys):
         return num_span(dig(d, *keys), f"{jsrc} → {'.'.join(str(k) for k in keys)}")
@@ -758,7 +788,7 @@ def sweep_row(row):
     if not s:  # 没有 summary，或 summary = {}（一帧都没跑）
         why = "没有 summary" if s is None else "summary 为空（一帧都没跑）"
         empty = f'<td class="na" colspan="5">{esc(why)}</td>'
-        return f"<tr>{level_cell}<td>{actual}</td><td>{sanity}</td>{empty}{status_cell}</tr>"
+        return f"<tr>{level_cell}<td>{actual}</td><td>{sanity}</td>{empty}{vram}{status_cell}</tr>"
 
     pen = (f"{n('summary', 'n_checks_with_penetration')} / {n('summary', 'n_sanity_checks')} 次检查"
            f"<br>首次 {n('summary', 'first_penetration_frame')}")
@@ -779,7 +809,7 @@ def sweep_row(row):
             f"<br>中 {n('summary', 'wall_seconds_median')}<br>大 {n('summary', 'wall_seconds_max')}")
     nfr = f"{n('summary', 'frames_done')} / {n('params', 'n_frames')}"
     return (f"<tr>{level_cell}<td>{actual}</td><td>{sanity}</td><td>{pen}</td><td>{newton_t}</td>"
-            f"<td>{newton_f}</td><td>{wall}</td><td>{nfr}</td>{status_cell}</tr>")
+            f"<td>{newton_f}</td><td>{wall}</td><td>{nfr}</td>{vram}{status_cell}</tr>")
 
 
 def sweep_counts(rows):
@@ -797,8 +827,9 @@ def sweep_section(sweeps):
     heads = "".join(f"<th>{esc(h)}</th>" for h, _ in COLUMN_SOURCES)
     legend = "".join(f"<li><b>{esc(h)}</b>：{esc(s)}</li>" for h, s in COLUMN_SOURCES)
     parts = ['<section id="sweep"><h2>IPC 参数扫描</h2>',
-             '<p class="lead">场景：8 个 FEM 软球（StableNeoHookean，libuipc 默认 E = 120 kPa、ν = 0.49，'
-             "2 层 × 2×2，R = 0.1 m）从静止落进开口盒子（ground + 4 面固定 ABD 墙），物理时间 2 s。"
+             '<p class="lead">场景：8 个 FEM 软球（半径 R = 0.1 m 的 icosphere，subdivisions = 3，用 tetgen 四面体化；'
+             "StableNeoHookean，libuipc 默认 E = 120 kPa、ν = 0.49；2 层 × 2×2）从静止落进开口盒子"
+             "（ground + 4 面固定 ABD 墙），物理时间 2 s。"
              "单变量扫描：每个档位只改一个量，其余全部是 libuipc 默认值（dt = 0.01 s，d̂ = contact.d_hat = 0.01 m，"
              "newton.max_iter = 1024）。d̂ 是 barrier 的作用距离：只有距离 d &lt; d̂ 的基元对才产生接触能量；"
              "d̂ 扫描以球表面平均边长 L 为单位。</p>",
@@ -846,10 +877,13 @@ def build_page(demos, extras, sweeps, gen_time):
         else:
             t = '<span class="na">—</span>'
         vid = "有" if r.get("video_web") else ("—" if r["state"] != "ok" else "无")
+        jp, jd, _ = load_job_result(r["dir"])
+        mib = ('<span class="na">—</span>' if jd is None
+               else num_span(jd.get("peak_single_process_mib", MISSING), rel_out(jp) + " → peak_single_process_mib"))
         demo_rows.append(f'<tr><td>{esc(r["key"])}</td>'
                          f'<td>{esc(r["source"])}</td><td>{badge(r["state"])}'
                          f'{"" if r["state"] == "ok" else "<div class=reason>" + esc(r["reason"]) + "</div>"}</td>'
-                         f"<td>{vid}</td><td>{t}</td></tr>")
+                         f"<td>{vid}</td><td>{t}</td><td>{mib}</td></tr>")
     sweep_rows = []
     for s in sweeps:
         c = sweep_counts(s["rows"])
@@ -883,10 +917,11 @@ def build_page(demos, extras, sweeps, gen_time):
 <section id="summary">
 <h2>Demo 一览</h2>
 <div class="tablewrap"><table>
-<thead><tr><th>demo</th><th>来源</th><th>状态</th><th>视频</th><th>耗时 (s)</th></tr></thead>
+<thead><tr><th>demo</th><th>来源</th><th>状态</th><th>视频</th><th>耗时 (s)</th><th>显存峰值 (MiB)</th></tr></thead>
 <tbody>{''.join(demo_rows)}</tbody></table></div>
 <p class="src">耗时：libuipc 示例取 run_info.json → wall_seconds（runpy 整段，含截图）；
 Genesis 示例取 run_info.json → sim_wall_seconds（run() 整段，含录像）。两者口径不同，不能直接比较。
+显存峰值取同目录 gpu_job_result.json → peak_single_process_mib（run_gpu_job.sh 每 2 s 采样 nvidia-smi，本进程）。
 <a href="#demos">看视频和完整参数</a></p>
 <h3 style="margin-top:20px">参数扫描一览</h3>
 <div class="tablewrap"><table>
