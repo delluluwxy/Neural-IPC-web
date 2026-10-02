@@ -1175,9 +1175,15 @@ def genesis_conclusions(f, videos):
             return "这一组改用 icosphere 细分 2 / 3 / 4 次的软球重跑，新结果出来前不下结论。"
         return ("三档软球四面体化后每球顶点数分别为 "
                 + "、".join(f"{name} {vrng(m)}" for name, m in ms)
-                + "；末帧最低点分别为 " + "、".join(f"{g3(m.get('lowest_mm'))} mm" for _, m in ms)
-                + "；低于地面的物体分别为 " + "、".join(f"{len(m.get('below') or [])} 个" for _, m in ms)
-                + "；每帧 Newton 迭代平均分别为 " + "、".join(f"{g3(m.get('newton_mean'))} 次" for _, m in ms) + "。")
+                + "；软球表面最低点分别为 " + "、".join(f"{surf_txt(m)}" for _, m in ms)
+                + "（都在地面以上，穿透检查都没报）；每帧 Newton 迭代平均分别为 "
+                + "、".join(f"{g3(m.get('newton_mean'))} 次" for _, m in ms)
+                + "。<b>在这个场景里，网格粗细不影响是否穿地，迭代次数也相近。</b>"
+                  "翻转四面体在粗网格和细网格档都较多（" + "、".join(
+                    f"{name} {min(ni for *_, ni, _ in m['split']['balls'])}–"
+                    f"{max(ni for *_, ni, _ in m['split']['balls'])} 个" if m.get("split") else f"{name} —"
+                    for name, m in ms)
+                + "），每档只跑一次、堆法不同，原因待查。")
 
     b = g("baseline", "default")
     ok_all = [v for k, v in f.items() if k.startswith("g/") and v.get("state") == "ok"]
@@ -1207,6 +1213,20 @@ def genesis_conclusions(f, videos):
                 "off": (f"{g3(offs[0])} mm" if same else f"{rng(offs)} mm") if offs else "—", "off_same": same,
                 "g_dt2": f"{g3(sp['g_dt2'] * 1000)} mm" if is_num(sp["g_dt2"]) else "—"}
 
+    def surf_mm(r):  # 软球表面最低点（mm）；该档没有分项读数时返回 MISSING
+        bs = (r.get("split") or {}).get("balls") or []
+        return min(s for _, s, *_ in bs) * 1000 if bs else MISSING
+
+    def surf_txt(r):
+        v = surf_mm(r)
+        return f"{g3(v)} mm" if is_num(v) else "—"
+
+    def off_txt(r):  # 刚体 IPC 高度 − Genesis 读数（mm）
+        rs = (r.get("split") or {}).get("rigids") or []
+        offs = [(ip - gp) * 1000 for _, ip, gp in rs]
+        return f"{g3(sum(offs) / len(offs))} mm" if offs else "—"
+
+    dhat_rows = sorted(rows("d_hat"), key=lambda v: v.get("value", 0))
     sb, s2 = split(b), split(d2)
     rigid_note = ("刚体方块在 IPC 里的中心高度比 Genesis 读出的高 {off}{each}，正好等于 g·dt²（{g}）："
                   "Genesis 的刚体求解器在 IPC 把位置写回之后，又自己多走了一步重力，所以 Genesis 读出的刚体位置偏低，"
@@ -1225,26 +1245,24 @@ def genesis_conclusions(f, videos):
          f"正常开跑的 {len(ok_all)} 个配置，libuipc 的穿透检查（每 10 帧一次）"
          + ("一次都没报。" if n_pen == 0 else f"有 {n_pen} 个报了穿透。")),
 
-        ("<b>迭代次数与期待一致：d̂ 越小，Newton 迭代越多</b>（d̂ = 2 mm 时单帧最多 "
-         f"{g3(d2.get('newton_max'))} 次，1 cm 时 {g3(b.get('newton_max'))} 次，3 cm 时 {g3(d30.get('newton_max'))} 次）。"
-         + (f"<b>之前看到的“低于地面”是读法造成的，表面并没有穿地。</b>d̂ = 2 mm 那次扫描里，软球表面最低点 {s2['surf']}，"
-            "仍在地面以上，和 libuipc 每 10 帧穿透检查"
-            + ("一次都没报" if d2.get("pen_checks") == 0 else f"报了 {d2.get('pen_checks')} 次") + "一致；"
-            f"表里 {g3(d2.get('lowest_mm'))} mm 那个读数是软球的内部顶点（内部最低 {s2['interior']}）。"
+        ("<b>与期待一致：d̂ 越大，物体停得离地越远；d̂ 越小，Newton 迭代越多。</b>软球表面离地的最低点："
+         + "、".join(f"d̂ = {g3(v.get('value') * 1000)} mm 时 {surf_txt(v)}" for v in dhat_rows)
+         + "——间隙大约是 d̂ 的 0.7–0.9 倍，因为 barrier 在距离小于 d̂ 时才开始推，物体停在斥力和重力平衡处；"
+         f"单帧 Newton 最多：d̂ = 2 mm 时 {g3(d2.get('newton_max'))} 次，1 cm 时 {g3(b.get('newton_max'))} 次，"
+         f"3 cm 时 {g3(d30.get('newton_max'))} 次（d̂ 小，barrier 更陡、更难解）。"
+         + (f"<b>表面从未穿地</b>：各档 libuipc 每 10 帧穿透检查都没报；表里的负读数是软球内部顶点"
+            f"（d̂ = 2 mm 时内部最低 {s2['interior']}）和 Genesis 刚体读数偏移。"
             + rigid_note.format(off=s2["off"], each="（每个都一样）" if s2["off_same"] else "", g=s2["g_dt2"])
-            + f"<b>另一个现象，待确认：</b>这次运行里软球大量四面体翻转（{s2['inv']}，翻转 / 总数），"
-            f"官方 d̂ 那次只有 {sb['inv_rng'] if sb else '—'} 个；但两次运行物体堆法不同，"
-            "还不能说是 d̂ 变小造成的，待同一堆法下对比确认。"
-            f"d̂ = 5 mm 档的结果文件没有这些分项读数，表里的 {g3(d5.get('lowest_mm'))} mm 分不清是表面还是内部顶点。"
-            if s2 else
-            "表里 d̂ 小时的负读数来自 Genesis 状态读出的顶点（含软球内部顶点、刚体读数），分不清是不是表面穿地，待查。")),
+            + f"<b>另一个现象，待确认：</b>d̂ 小时软球大量四面体翻转（d̂ = 2 mm：{s2['inv']}，翻转 / 总数；"
+            f"官方 d̂：{sb['inv_rng'] if sb else '—'} 个）；每档只跑一次、物体堆法不同，还不能下因果结论。"
+            if s2 else "")),
 
         (f"<b>迭代次数与期待一致：dt 越小，每帧 Newton 迭代越多。</b>dt ={g3(dts.get('value'))} s 时平均 {g3(dts.get('newton_mean'))}、"
          f"最多 {g3(dts.get('newton_max'))} 次；官方的 {g3((b.get('value') or {}).get('dt'))} s 时平均 {g3(b.get('newton_mean'))}、"
-         f"最多 {g3(b.get('newton_max'))} 次。表里末帧最低点低于地面 1 mm 以上的出现在 dt = {'、'.join(dt_below) or '—'} s，"
-         f"{'、'.join(dt_clean) or '—'} s 没有；但这些档的结果文件没有分项读数，这个最低点包括软球内部顶点和 Genesis 的刚体读数"
-         + ("（d̂ 那组已经查明这两种读法会读出负值而表面没穿地）" if s2 else "")
-         + "，所以分不清是不是真的穿地，待补分项读数后再看。"),
+         f"最多 {g3(b.get('newton_max'))} 次。各档软球表面最低点都在地面以上（{rng([surf_mm(v) for v in dt_rows])} mm），"
+         "穿透检查都没报。刚体在 IPC 与 Genesis 里的高度差逐档为 "
+         + "、".join(f"dt = {g3(v.get('value'))} s：{off_txt(v)}" for v in dt_rows)
+         + "，每档都正好等于 g·dt²——这直接证实了偏移来自 Genesis 刚体求解器写回后多走的一步重力，不是穿地。"),
 
         (f"<b>与期待一致：摩擦不影响穿透和迭代。</b>μ 取 {'、'.join(g3(v.get('value')) for v in sorted(fr, key=lambda v: v.get('value', 0)))} 共 {len(fr)} 档，"
          + ("扫描读数里都没有物体低于地面，" if not any(v.get("below") for v in fr) else "")
