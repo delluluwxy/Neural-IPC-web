@@ -290,6 +290,9 @@ def collect_sweeps(backend="libuipc", cfg=None):
         sd = root / sweep
         if sd.is_dir():  # NAS 上有、configs.py 里没有的档位
             for jp in sorted(sd.glob("*.json")):
+                d, _ = load_json(jp)
+                if not isinstance(d, dict) or d.get("sweep") != sweep:  # e.g. run_gpu_job's gpu_job_result.json
+                    continue
                 if (sweep, jp.stem) not in known:
                     rows.append(collect_level(sweep, jp.stem, MISSING, root))
                     known.add((sweep, jp.stem))
