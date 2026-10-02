@@ -28,6 +28,8 @@ import html
 import importlib.util
 import json
 import os
+import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -74,6 +76,9 @@ DEMOS = [
      "软体 bunny 落地，线性求解用 MAS 预条件。"),
     ("90_abd_fem_cube_stack", True, "ABD / FEM 交替叠放",
      "同一场景里低自由度（ABD）和高自由度（FEM）混合，最接近我们的设定。"),
+    ("genesis_ipc_objects_in_box", True, "Genesis：一堆物体扔进盒子（官方 objects_falling 场景 + 盒子）",
+     "官方 ipc_objects_falling 场景（布料 + 刚体方块 + FEM 软球）原样，外加一个开口盒子和更多同款物体。"
+     "实验设置、按原理期待的结果、原始数字和结论见下方「官方参数：一堆物体扔进盒子」。"),
     ("genesis_ipc_objects_falling", True, "Genesis：布料 + 刚体 + 软球",
      "Genesis 调 libuipc，布料、刚体、FEM 软球一起落地。"),
     ("genesis_ipc_momentum", True, "Genesis：动量守恒检验",
@@ -89,7 +94,7 @@ DEMOS = [
 ]
 
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("videos", "Demo 视频"), ("sweep", "参数扫描"), ("findings", "发现与结论")]  # 锚点只用字母
+NAV = [("videos", "Demo 视频"), ("sweep", "参数扫描（经 Genesis）"), ("libuipc", "libuipc 层对照")]  # 锚点只用字母
 
 
 # ==========================================================================
@@ -203,7 +208,7 @@ def collect_demo(key, expects_video, title, line):
 def collect_demos():
     """The page shows exactly the DEMOS list. Other directories under DEMO_ROOT (0_check_libuipc, the benchmark
     timing runs *_run, anything unexpected) are NOT put on the page; main() prints them so nothing is hidden."""
-    known = {k for k, *_ in DEMOS}
+    known = {k for k, *_ in DEMOS} | {GEN_VIDEO_ROOT.name}  # 扫描各档视频另由 gen_level_videos 收集
     demos = [collect_demo(*spec) for spec in DEMOS]
     unlisted = []
     if DEMO_ROOT.is_dir():
@@ -221,8 +226,8 @@ def load_sweep_configs():
     return mod
 
 
-def collect_level(sweep, level, ov_cfg):
-    jp = SWEEP_ROOT / sweep / f"{level}.json"
+def collect_level(sweep, level, ov_cfg, root=SWEEP_ROOT):
+    jp = root / sweep / f"{level}.json"
     r = {"sweep": sweep, "level": level, "ov_cfg": ov_cfg, "json_path": jp, "data": None,
          "state": None, "reason": None}
     data, err = load_json(jp)
@@ -234,6 +239,11 @@ def collect_level(sweep, level, ov_cfg):
         return r
     r["data"] = data
     st = data.get("status", MISSING)
+    # 结果文件里的 overrides 与当前 configs.py 的档位不一致 = 旧配置的结果，等重跑覆盖（json 往返后比较：tuple 存成 list）
+    if ov_cfg is not MISSING and isinstance(data.get("overrides"), dict) \
+            and data["overrides"] != json.loads(json.dumps(ov_cfg)):
+        r["state"], r["reason"], r["data"] = "stale", "重跑中", None  # 旧数据一律不上页面
+        return r
     if st == "ok":
         r["state"], r["reason"] = "ok", "跑完"
     elif st == "exception":
@@ -245,6 +255,16 @@ def collect_level(sweep, level, ov_cfg):
         r["state"], r["reason"] = "rejected", "被 sanity check 拒绝（预期内）"
     elif st == "init_invalid":
         r["state"], r["reason"] = "failed", "初始化失败"
+    elif st == "build_failed":  # genesis：scene.build 抛异常（sweep.py run_one_genesis）
+        tb = data.get("build_traceback") or ""
+        flagged = " ".join(x.get("text", "") for x in (dig(data, "log_flagged", "flagged_first") or [])
+                           if isinstance(x, dict))
+        last = [ln for ln in tb.strip().splitlines() if ln.strip()]
+        if "intersect" in (tb + flagged).lower():
+            r["state"], r["reason"] = "rejected", "开跑前被拒绝（检测到相交）"
+        else:
+            r["state"] = "failed"
+            r["reason"] = "建场景出错" + (f"：{last[-1].strip()}" if last else "")
     elif st == "invalid_during_run":
         r["state"], r["reason"] = "failed", "仿真中途失效"
     elif st == "nonfinite_positions":
@@ -256,20 +276,22 @@ def collect_level(sweep, level, ov_cfg):
     return r
 
 
-def collect_sweeps():
-    cfg = load_sweep_configs()
+def collect_sweeps(backend="libuipc", cfg=None):
+    """backend = libuipc：SWEEP_ROOT/<扫描>，cfg.SWEEPS；genesis：SWEEP_ROOT/genesis/<扫描>，cfg.GENESIS_SWEEPS。"""
+    cfg = cfg or load_sweep_configs()
+    root, table = (SWEEP_ROOT, cfg.SWEEPS) if backend == "libuipc" else (SWEEP_ROOT / "genesis", cfg.GENESIS_SWEEPS)
     sweeps = []
     known = set()
-    for sweep, spec in cfg.SWEEPS.items():
+    for sweep, spec in table.items():
         rows = []
         for level, ov in spec["levels"].items():
-            rows.append(collect_level(sweep, level, ov))
+            rows.append(collect_level(sweep, level, ov, root))
             known.add((sweep, level))
-        sd = SWEEP_ROOT / sweep
+        sd = root / sweep
         if sd.is_dir():  # NAS 上有、configs.py 里没有的档位
             for jp in sorted(sd.glob("*.json")):
                 if (sweep, jp.stem) not in known:
-                    rows.append(collect_level(sweep, jp.stem, MISSING))
+                    rows.append(collect_level(sweep, jp.stem, MISSING, root))
                     known.add((sweep, jp.stem))
         sweeps.append({"name": sweep, "why": spec.get("why", ""), "rows": rows})
     return cfg, sweeps
@@ -378,6 +400,8 @@ def sec_per_frame(d):
 
 
 def sanity_on(d):
+    if d.get("sanity_check_enabled") is False:  # genesis 版直接写了这个字段
+        return False
     return dig(d, "params", "sanity_check", "enable") != 0
 
 
@@ -459,6 +483,14 @@ nav.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.9rem; marg
           padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 h2 { font-size: 1.2rem; margin: 36px 0 10px; font-weight: 650; }
 h3 { font-size: 1rem; margin: 22px 0 4px; font-weight: 600; }
+h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--border); }
+h4 { font-size: 0.95rem; margin: 18px 0 4px; font-weight: 600; }
+pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.76rem;
+          line-height: 1.45; background: var(--soft); border-radius: 4px; padding: 10px 12px; margin: 6px 0;
+          max-width: 100%; overflow-x: auto; white-space: pre; }
+details.repro { margin: 10px 0 26px; }
+details.repro summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
+p.concl { max-width: 80ch; }
 section { scroll-margin-top: 12px; }
 p { margin: 6px 0; }
 .muted { color: var(--muted); }
@@ -528,7 +560,7 @@ def videos_section(demos, extras, facts):
     cards = [r for r in demos if r["expects_video"]] + extras
     novid = [r for r in demos if not r["expects_video"]]
     parts = ['<section id="videos"><h2>Demo 视频</h2>',
-             '<p class="muted small">官方示例一字未改，在服务器上离屏录像（画面用 CPU 软件渲染，物理在 GPU 上算）。</p>',
+             '<p class="muted small">官方示例一字未改（只有“扔进盒子”是在官方场景上加了盒子和更多同款物体），在服务器上离屏录像（画面用 CPU 软件渲染，物理在 GPU 上算）。</p>',
              '<div class="grid">', *[demo_card(r, facts) for r in cards], "</div>"]
     if novid:
         ok = [r for r in novid if r["state"] == "ok"]
@@ -570,7 +602,198 @@ def rows_of(sweeps, name):
     return []
 
 
-def sweep_tables(sweeps):
+# ---- Genesis 版扫描：json 里没有 params / mesh 字段，参数从 overrides 或 libuipc_config 读 ----
+# overrides 里没写的键取官方 ipc_objects_falling.py / Genesis 默认值（出处见 Neural-IPC tools/ipc_sweep/configs.py
+# GENESIS_SWEEPS 上方注释：contact_resistance 默认 1e9，FEM friction_mu 默认 0.1；ball_subdiv 不给 = 官方
+# gs.morphs.Sphere(radius=0.08)，见 run_genesis_ipc_example.py soft_ball_morph）
+GENESIS_DEFAULTS = {"friction_mu": 0.1, "contact_resistance": 1e9, "overlap_balls": 0.0, "ball_subdiv": None}
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+# genesis fem_entity.py:542 打印 (n_elements, n_vertices)；软球是 Sphere（官方）或 Mesh（icosphere），材料都是 FEM.Elastic
+BALL_SIZE_RE = re.compile(r"morph: (?:Sphere|Mesh), size: \((\d+), (\d+)\), material: <gs\.materials\.FEM\.Elastic>")
+GEN_VIDEO_ROOT = DEMO_ROOT / "genesis_box_levels"   # 每档视频：<扫描>_<档位>/genesis_ipc_objects_in_box.mp4
+GEN_PY = PROJECT / ".conda" / "genesis" / "bin" / "python"
+GEN_ENV = "CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=6 HF_HOME=/nas/xiaoyingwang/Neural-IPC/checkpoints/hf_home"
+
+
+def gen_value(d, sweep):
+    """这一档在该扫描维度上的取值（数）。"""
+    if sweep == "d_hat":
+        return dig(d, "libuipc_config", "contact", "d_hat")
+    if sweep == "dt":
+        return d.get("dt", MISSING)
+    key = {"friction": "friction_mu", "resistance": "contact_resistance",
+           "init_penetration": "overlap_balls", "mesh_res": "ball_subdiv"}[sweep]
+    return (d.get("overrides") or {}).get(key, GENESIS_DEFAULTS[key])
+
+
+def gen_ball_verts(d):
+    """各 FEM 软球（四面体化后，含内部）的顶点数，从该档 log 里 Genesis 打印的 'size: (单元数, 顶点数)' 读。"""
+    lp = d.get("log_path")
+    if not lp or not Path(lp).is_file():
+        return []
+    txt = ANSI_RE.sub("", Path(lp).read_text(encoding="utf-8", errors="replace"))
+    return [int(m.group(2)) for m in BALL_SIZE_RE.finditer(txt)]
+
+
+def gen_ground_out(d):
+    """(末帧最低点 m, 低于地面 1 mm 以上的物体名单, 其余越出盒壁的物体名单)。
+    地面 z = 0；inside_box 判据见 sweep.py object_summary（xy 不超出内壁 1 mm 且最低点不低于地面 1 mm）。"""
+    objs = {k: o for k, o in (d.get("objects_final") or {}).items() if isinstance(o, dict)}
+    zs = [o["min_z"] for o in objs.values() if is_num(o.get("min_z"))]
+    below = [k for k, o in objs.items() if is_num(o.get("min_z")) and o["min_z"] < -1e-3]
+    out = [k for k, o in objs.items() if o.get("inside_box") is False and k not in below]
+    return (min(zs) if zs else MISSING), below, out
+
+
+def gen_level_value(r, sweep, cfg):
+    """档位取值：有结果用结果文件里的；没有（没跑 / 重跑中）用 configs.py 里该档的 overrides。"""
+    if r["data"]:
+        return gen_value(r["data"], sweep)
+    if r["sweep"] == "baseline":
+        return MISSING
+    ov = cfg.GENESIS_SWEEPS[r["sweep"]]["levels"].get(r["level"], {})
+    key = {"d_hat": "contact_d_hat", "dt": "dt", "friction": "friction_mu", "resistance": "contact_resistance",
+           "init_penetration": "overlap_balls", "mesh_res": "ball_subdiv"}[sweep]
+    return ov.get(key, MISSING)
+
+
+def gen_label(r, sweep, cfg):
+    if sweep == "baseline":
+        return "官方默认参数"
+    v = gen_level_value(r, sweep, cfg)
+    dflt = "（官方默认）" if r["sweep"] == "baseline" else ""
+    if sweep == "mesh_res":
+        if r["sweep"] == "baseline":
+            return "官方 Sphere 网格（官方默认）"
+        size = {"coarse": "粗", "medium": "中", "fine": "细"}.get(r["level"], r["level"])
+        # trimesh.creation.icosphere(subdivisions=k)：表面 10·4^k + 2 个顶点（soft_ball_morph docstring）
+        return size + (f"：icosphere 细分 {v} 次（表面 {10 * 4 ** v + 2} 个顶点）" if isinstance(v, int) else "")
+    if not is_num(v):
+        return r["level"] + dflt
+    if sweep == "d_hat":
+        return g3(v * 1000) + dflt
+    if sweep == "resistance":
+        return sci(v) + dflt
+    if sweep == "init_penetration":
+        return ("不穿插" if v == 0 else f"两个软球互相穿进 {g3(v)} R") + dflt
+    return g3(v) + dflt
+
+
+GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC 原理期待的结果)；baseline = 官方参数的盒子 demo
+    ("baseline", "官方参数：一堆物体扔进盒子", "不改任何参数，全部用官方本例的值和 Genesis 默认。", "配置",
+     "物体落下、互相碰撞后堆在盒子里。IPC 的 barrier 让任意两个表面之间始终留着一点小于 d̂ 的间隙，"
+     "所以全程不该有穿透，静止后物体离地面也只差不到 d̂ 的一小段。"),
+    ("d_hat", "d̂（barrier 作用距离）", "改 contact_d_hat。官方本例取 1 cm，Genesis 注释说应按网格分辨率取。", "d̂（mm）",
+     "d̂ 是 barrier 开始起作用的距离。d̂ 变小，物体之间、物体与地面停住时的间隙跟着变小，接触更“硬”，"
+     "Newton 迭代一般会变多；d̂ 变大，物体隔得更远就被推开。不论 d̂ 取多少，都不该出现穿透。"),
+    ("dt", "时间步长 dt", "改 SimOptions.dt。官方本例 0.02 s；物理时长固定 2 s，帧数随 dt 变。", "dt（s）",
+     "dt 变小，每一步物体移动得更少；但 libuipc 会按 1/dt² 抬高接触刚度的下限，接触更硬，"
+     "所以每步的 Newton 次数不一定减少，总步数则成倍增加。不论 dt 多大都不该穿透。"),
+    ("friction", "摩擦系数 μ", "改所有 FEM 物体（布料和软球）的 friction_mu，与接触对象按几何平均组合；Genesis 默认 0.1。",
+     "μ",
+     "μ 只管物体互相滑动时的切向阻力：μ 越大越不容易滑，堆得越陡。它不改变法向的 barrier，"
+     "所以不该影响会不会穿透，对 Newton 次数的影响也应该很小。"),
+    ("resistance", "接触刚度 κ", "改 Genesis 的 contact_resistance，默认 1e9 Pa。", "设的 κ（Pa）",
+     "κ 是 barrier 的刚度。libuipc 会把它夹进一个按场景算出的区间：在区间内变化时，间隙和迭代次数会略有变化；"
+     "区间外的值会被夹到边界，结果应该和边界值一样。"),
+    ("init_penetration", "初始穿插", "多放一个软球，让它和官方软球一开始就互相穿进去一部分（R 为球半径）。",
+     "初始状态",
+     "IPC 的 barrier 只在两个表面距离为正时才有定义，一开始就穿插的话能量没有意义，"
+     "所以 libuipc 的初始化检查应该直接拒绝开跑。"),
+    ("mesh_res", "网格分辨率", "把软球换成同样大小、表面细分 2 / 3 / 4 次的 icosphere，由 Genesis 自己四面体化。",
+     "软球网格",
+     "网格越细，球面越接近真球，接触时参与的顶点越多，每步要解的未知数越多、越慢。"
+     "只要初始无穿插，网格粗细都不该影响会不会穿透，物体落地后的大致位置应该接近。"),
+]
+
+
+def gen_defaults_text(gd):
+    """官方默认参数一句话（dt、d̂ 读官方默认档的结果文件，κ、μ 是 Genesis 默认值）。"""
+    dh = dig(gd, "libuipc_config", "contact", "d_hat")
+    return (f"dt = {g3(gd.get('dt', MISSING))} s、d̂ = {g3(dh * 100) if is_num(dh) else '—'} cm、"
+            f"κ = {sci(GENESIS_DEFAULTS['contact_resistance'])} Pa、μ = {g3(GENESIS_DEFAULTS['friction_mu'])}、软球用官方 Sphere 网格")
+
+
+def gen_scene_text(gd, cfg):
+    """场景一句话（物体个数、盒子尺寸读官方默认档的结果文件）。"""
+    a = gd.get("box_inner_half", MISSING)
+    return (f"官方 ipc_objects_falling.py（一块布、一个刚体方块、一个 FEM 软球）原样照搬，外加一个开口盒子"
+            f"（4 面固定墙，内宽 {g3(a * 2) if is_num(a) else '—'} m）和从约 2 m 高落下的 {len(gd.get('pile_boxes') or [])} 个刚体方块、"
+            f"{len(gd.get('pile_balls') or [])} 个软球，共 {len(gd.get('objects_at_init') or [])} 个物体，"
+            f"仿真 {g3(getattr(cfg, 'GENESIS_SIM_TIME', MISSING))} s")
+
+
+def gen_split(d):
+    """结果文件 objects_final 里新增的分项读数（只有重跑过的档才有，没有就返回 None，不补不猜）：
+    FEM 软球 surface_min_z / interior_min_z / n_inverted_tets / n_tets，刚体 ipc_pos_z / genesis_pos_z。
+    返回 {"balls": [(名, 表面最低, 内部最低, 翻转数, 四面体数)], "rigids": [(名, IPC 高度, Genesis 高度)],
+          "g_dt2": |g_z|·dt²（g 取 libuipc_config.gravity，dt 取结果文件）}。"""
+    objs = d.get("objects_final") or {}
+    balls = [(k, o["surface_min_z"], o.get("interior_min_z"), o.get("n_inverted_tets"), o.get("n_tets"))
+             for k, o in objs.items() if isinstance(o, dict) and is_num(o.get("surface_min_z"))]
+    rigids = [(k, o["ipc_pos_z"], o.get("genesis_pos_z")) for k, o in objs.items()
+              if isinstance(o, dict) and is_num(o.get("ipc_pos_z")) and is_num(o.get("genesis_pos_z"))]
+    if not balls and not rigids:
+        return None
+    gz, dt = dig(d, "libuipc_config", "gravity", 2, 0), d.get("dt", MISSING)  # gravity 存成 [[0.0], [0.0], [-9.81]]
+    return {"balls": balls, "rigids": rigids,
+            "g_dt2": abs(gz) * dt * dt if is_num(gz) and is_num(dt) else MISSING}
+
+
+def gen_split_table(r, sweep, cfg):
+    """原始输出里的分项读数表（该档结果文件有这些字段才出）。"""
+    sp = gen_split(r["data"]) if r["state"] == "ok" else None
+    if not sp:
+        return ""
+    trs = [[k, "FEM 软球", g3(s * 1000), g3(i * 1000) if is_num(i) else "—", f"{ni} / {nt}", "—", "—"]
+           for k, s, i, ni, nt in sp["balls"]]
+    trs += [[k, "刚体", "—", "—", "—", g3(ip * 1000), g3(gp * 1000)] for k, ip, gp in sp["rigids"]]
+    return (f'<p class="small"><b>{esc(gen_label(r, sweep, cfg))}</b>：末帧逐个物体的分项读数（扫描那次运行）</p>'
+            + table(["物体", "类型", "表面最低点（mm）", "内部顶点最低点（mm）", "翻转的四面体 / 四面体总数",
+                     "刚体中心高度：IPC 里（mm）", "刚体中心高度：Genesis 读出（mm）"], trs))
+
+
+def gen_raw_cells(r):
+    """一档的原始数字（直接读结果文件，唯一的汇总是"各物体末帧最低点里取最低"）。"""
+    if r["state"] != "ok":
+        return [r["reason"], "—", "—", "—", "—", "—"]
+    d = r["data"]
+    s = d.get("summary") or {}
+    low, _, _ = gen_ground_out(d)
+    n_obj = len(d.get("objects_final") or {})
+    return [f"跑完 {s.get('frames_done', '—')} 帧",
+            f"{s.get('n_checks_with_penetration', '—')} / {s.get('n_sanity_checks', '—')}",
+            f"{g3(s.get('newton_iter_timer_median'))} / {g3(s.get('newton_iter_timer_max'))}",
+            str(s.get("n_frames_hit_max_iter", "—")),
+            g3(low * 1000) if is_num(low) else "—",
+            f"{d.get('n_objects_outside_box', '—')} / {n_obj}"]
+
+
+def genesis_sweep_tables(sweeps, cfg):
+    """[(扫描, 标题, 一句话, 排好序的行, 原始数字表)]；每张表都带官方默认那一档。"""
+    base = rows_of(sweeps, "baseline")
+    out = []
+    for sweep, title, one, head, expect in GENESIS_TABLES:
+        rows = list(base) if sweep == "baseline" else list(rows_of(sweeps, sweep)) + list(base)
+
+        def key(r):
+            if sweep == "baseline":
+                return 0
+            if r["sweep"] == "baseline" and sweep == "mesh_res":  # 官方网格放最前，其余按细分次数
+                return -float("inf")
+            v = gen_level_value(r, sweep, cfg)
+            return v if is_num(v) else float("inf")
+        rows.sort(key=key)
+        trs = [[gen_label(r, sweep, cfg)] + gen_raw_cells(r) for r in rows]
+        out.append((sweep, title, one, expect, rows,
+                    table([head, "运行", "穿透检查（查到穿透 / 检查次数）", "每帧 Newton 迭代（中位 / 最多）",
+                           "撞到迭代上限的帧数", "末帧最低点（mm，地面 = 0，Genesis 状态读出）", "末帧不在盒内的物体 / 物体总数"], trs)))
+    return out
+
+
+def sweep_tables(sweeps, backend="libuipc", cfg=None):
+    if backend == "genesis":
+        return genesis_sweep_tables(sweeps, cfg)
     base = rows_of(sweeps, "baseline")
     out = []
 
@@ -662,7 +885,162 @@ def sweep_tables(sweeps):
     return out
 
 
-def sweep_section(sweeps, cfg):
+def gen_level_videos(gsweeps):
+    """{(扫描, 档位): 视频记录}，记录格式同 collect_demo（plan_videos / demo_card 直接复用）。
+    只认 GEN_VIDEO_ROOT/<扫描>_<档位>/ 下 mp4 非空、且 job.exit 为 0 或 4 的
+    （run_genesis_ipc_example.py：3 = 有帧出画面，4 = 第二遍重新仿真的范围超出第一遍，即 GPU 运行不逐位一致，
+    视频和 camera_fit.json 照常写出）；否则写"视频未生成"，不拿别的视频顶替。
+    视频旁的数字只取该目录自己的 camera_fit.json（视频那次运行），与扫描 json（另一次运行）分开。
+    初始穿插那组开跑前就被拒，没有视频，不建记录。"""
+    out = {}
+    for s in gsweeps:
+        if s["name"] == "init_penetration":
+            continue
+        for r in s["rows"]:
+            d = GEN_VIDEO_ROOT / f"{r['sweep']}_{r['level']}"
+            ex = d / "job.exit"
+            code = ex.read_text().strip() if ex.is_file() else None
+            mp4 = d / "genesis_ipc_objects_in_box.mp4"
+            done = code in ("0", "4") and mp4.is_file() and mp4.stat().st_size > 0
+            cf, _ = load_json(d / "camera_fit.json")
+            vmin = to_float(dig(cf, "bbox_pass2", "min", 2)) if cf else MISSING
+            line = ""
+            if done and cf:
+                exceeds = cf.get("pass2_bbox_exceeds_pass1")
+                nout = dig(cf, "verify", "n_frames_out")
+                nout = nout if nout is not MISSING else "—"
+                line = (f"视频这次运行：整段可见表面最低点 {g3(vmin * 1000) if is_num(vmin) else '—'} mm"
+                        "（刚体用的是 Genesis 读数，比 IPC 里低 g·dt²）；"
+                        f"出画面的帧数 {nout}；第二遍范围超出第一遍："
+                        + ("是（两遍 GPU 仿真不逐位一致，不是出框）" if exceeds else "否" if exceeds is False else "—"))
+            out[(r["sweep"], r["level"])] = {
+                "key": f"box_{r['sweep']}_{r['level']}", "expects_video": True, "title": "", "line": line,
+                "dir": d, "state": "ok", "reason": None, "images": [], "video_min_z": vmin,
+                "video_src": mp4 if done else None,
+                "video_note": None if done else ("视频未生成" if code in (None, "0", "4") else f"视频未生成（录像退出码 {code}）")}
+    return out
+
+
+def init_log_excerpt(log_path):
+    """初始穿插档的 libuipc / Genesis 日志原文摘录（只去掉终端颜色码，不改写）：
+    前 3 行 Intersection detected、SimplicialSurfaceIntersectionCheck 那一段（到下一条带 [ 开头的日志为止）、
+    World is not valid 各行、Genesis 的 IPC world initialized successfully、最后一行 AttributeError。
+    返回 (行列表, Intersection detected 总行数)；文件不在返回 (None, 0)。"""
+    p = Path(log_path)
+    if not p.is_file():
+        return None, 0
+    lines = ANSI_RE.sub("", p.read_text(encoding="utf-8", errors="replace")).splitlines()
+    inter = [ln for ln in lines if "Intersection detected" in ln]
+    out = inter[:3]
+    i = next((k for k, ln in enumerate(lines) if "SimplicialSurfaceIntersectionCheck" in ln), None)
+    if i is not None:
+        j = i + 1
+        while j < len(lines) and not lines[j].startswith("["):
+            j += 1
+        out += lines[i:j]
+    out += [ln for ln in lines if "World is not valid" in ln]
+    out += [ln for ln in lines if "IPC world initialized successfully" in ln]
+    out += [ln for ln in lines if ln.startswith("AttributeError")][-1:]
+    return out, len(inter)
+
+
+def genesis_commit():
+    """生成页面时 Neural-IPC 仓库的 HEAD（短哈希）。读不到就停，不写猜的值。"""
+    p = subprocess.run(["git", "-C", str(PROJECT), "log", "-1", "--format=%h"], capture_output=True, text=True)
+    if p.returncode != 0 or not p.stdout.strip():
+        raise SystemExit(f"[build_site] 读不到 {PROJECT} 的 git commit：{p.stderr}")
+    return p.stdout.strip()
+
+
+def repro_block(sweep, rows, cfg, commit):
+    """「一步一步复现」：每档跑扫描 + 录视频的完整命令（绝对路径、无占位）。
+    扫描命令用结果文件里记录的原始 argv（没有结果的档按 configs.py 拼）；视频命令与
+    Neural-IPC tools/ipc_sweep/run_sweep_queue.sh 的 VIDEO=1 分支一致，overrides 取 configs.GENESIS_SWEEPS 该档原样。"""
+    head = f"cd {PROJECT} && {GEN_ENV} {GEN_PY}"
+    out = [f"# 代码版本：Neural-IPC commit {commit}（git -C {PROJECT} log -1 --format=%h，生成本页时读取）"]
+    own = [r for r in rows if sweep == "baseline" or r["sweep"] != "baseline"]  # 官方默认档只在它自己的实验里给命令
+    for n, r in enumerate(own, 1):
+        argv = (r["data"] or {}).get("argv")
+        if not (isinstance(argv, list) and argv):
+            argv = [str(PROJECT / "tools" / "ipc_sweep" / "sweep.py"), "--backend", "genesis",
+                    "--sweep", r["sweep"], "--level", r["level"]]
+        lbl = gen_label(r, sweep, cfg)
+        out += ["", f"# {n}. {lbl}",
+                f"# {n}a. 跑这一档，结果写到 {SWEEP_ROOT / 'genesis' / r['sweep'] / (r['level'] + '.json')}",
+                f"{head} {' '.join(shlex.quote(str(a)) for a in argv)}"]
+        if sweep != "init_penetration":
+            ov = cfg.GENESIS_SWEEPS[r["sweep"]]["levels"][r["level"]]
+            vd = GEN_VIDEO_ROOT / f"{r['sweep']}_{r['level']}"
+            out += [f"# {n}b. 录这一档的视频，写到 {vd / 'genesis_ipc_objects_in_box.mp4'}",
+                    f"{head} {PROJECT / 'tools' / 'ipc_demos' / 'run_genesis_ipc_example.py'} --example ipc_objects_in_box "
+                    f"--overrides {shlex.quote(json.dumps(ov))} --out-dir {vd} "
+                    "--egl-device-index 16 --software-render --fit-camera"]
+    return ('<details class="repro"><summary>一步一步复现</summary>'
+            f'<pre class="log">{esc(chr(10).join(out))}</pre></details>')
+
+
+def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, concl, commit, gd):
+    """一个实验，固定顺序：①实验设置 ②按原理期待的结果 ③原始输出（每档视频 + 该视频运行的 camera_fit 数字 /
+    日志原文，再加扫描运行的原始数字表）④解释与结论（只用 json / 日志数据）⑤一步一步复现。"""
+    if sweep == "baseline":
+        setting = f"{one}（{gen_defaults_text(gd)}）。"
+    else:
+        vals = "、".join(gen_label(r, sweep, cfg) for r in rows if r["sweep"] != "baseline")
+        setting = f"{one}取值：{vals}；其余参数保持官方默认（{gen_defaults_text(gd)}），表里也放了官方默认那一档对照。"
+    parts = [f"<h3>{esc(title)}</h3>",
+             f"<h4>实验设置</h4><p>{esc(setting)}场景：{esc(gen_scene_text(gd, cfg))}。</p>",
+             f"<h4>按原理期待的结果</h4><p>{esc(expect)}</p>",
+             "<h4>原始输出</h4>"]
+    if sweep == "init_penetration":
+        for r in rows:
+            if r["sweep"] == "baseline":
+                continue
+            lines, n_inter = init_log_excerpt((r["data"] or {}).get("log_path")
+                                              or SWEEP_ROOT / "genesis" / sweep / f"{r['level']}.log")
+            parts.append(f'<p class="small"><b>{esc(gen_label(r, sweep, cfg))}</b>：开跑前就被拒，没有视频；'
+                         "下面是日志原文摘录。</p>")
+            if lines is None:
+                parts.append('<div class="novideo">日志文件不存在</div>')
+                continue
+            parts.append(f'<pre class="log">{esc(chr(10).join(lines))}</pre>')
+            parts.append(f'<p class="muted small">摘自 <code>{esc((r["data"] or {}).get("log_path", ""))}</code>，'
+                         f"只去掉了终端颜色码；Intersection detected 共 {n_inter} 行，这里只列前 3 行，"
+                         "其余省略的行见原文件。</p>")
+    else:
+        cards = [demo_card(dict(videos[(r["sweep"], r["level"])], title=gen_label(r, sweep, cfg)), {})
+                 for r in rows if (r["sweep"], r["level"]) in videos]
+        parts.append('<div class="grid">' + "".join(cards) + "</div>")
+    if sweep != "init_penetration":
+        parts.append('<p class="muted small">下表是扫描那次运行的结果文件（和视频不是同一次 GPU 运行）；'
+                     "最低点是 Genesis 状态读出的末帧各物体顶点里最低的一个，包括软球的内部顶点，"
+                     "刚体用的是 Genesis 读数（见下方分项读数）。</p>")
+    parts.append(tbl)
+    # 官方默认档的分项读数只在它自己和 d̂ 两个实验里出（d̂ 结论要拿它对照），其它实验不重复
+    parts += [t for t in (gen_split_table(r, sweep, cfg) for r in rows
+                          if sweep in ("baseline", "d_hat") or r["sweep"] != "baseline") if t]
+    parts.append(f'<h4>解释与结论</h4><p class="concl">{concl.get(sweep, "")}</p>')
+    parts.append(repro_block(sweep, rows, cfg, commit))
+    return "\n".join(parts)
+
+
+def sweep_section(gsweeps, sweeps, cfg, videos, facts, commit):
+    """先放 Genesis 扫描（主结果），再放 libuipc 层对照（直接调 libuipc，不经过 Genesis）。"""
+    gb = rows_of(gsweeps, "baseline")
+    gd = gb[0]["data"] if gb and gb[0]["data"] else {}
+    gscene = ("所有实验都在同一个 Genesis 场景里做，每次只改一个参数。每一档跑两次：一次是扫描（记录穿透检查、"
+              "Newton 迭代、末帧各物体位置），一次是录视频；两次是独立的 GPU 运行，结果不逐位相同，"
+              "所以视频旁的数字和表里的数字分开写。穿透用 libuipc 的 sanity check 每 10 帧查一次。")
+    parts = ['<section id="sweep"><h2>IPC 参数扫描（经 Genesis）</h2>', f"<p>{esc(gscene)}</p>"]
+    concl = genesis_conclusions(facts, videos)
+    for sweep, title, one, expect, rows, tbl in sweep_tables(gsweeps, "genesis", cfg):
+        parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, concl, commit, gd))
+    parts.append(f'<p class="next">{NEXT_STEPS}</p>')
+    parts.append("</section>")
+    parts.append('<section id="libuipc">' + libuipc_sweep_block(sweeps, cfg) + "</section>")
+    return "\n".join(parts)
+
+
+def libuipc_sweep_block(sweeps, cfg):
     sc = getattr(cfg, "SCENE", {})
     R = sc.get("ball_radius", MISSING)
     base = rows_of(sweeps, "baseline")
@@ -673,10 +1051,9 @@ def sweep_section(sweeps, cfg):
              f"从静止落进开口盒子，仿真 {g3(T)} s；每次只改一个参数，其余用 libuipc 默认"
              f"（dt = {g3(dig(bd, 'params', 'dt'))} s，d̂ = {g3(dig(bd, 'params', 'd_hat'))} m），"
              "穿透用 libuipc 的 sanity check 每 10 帧查一次。")
-    parts = ['<section id="sweep"><h2>IPC 参数扫描</h2>', f"<p>{esc(scene)}</p>"]
+    parts = ['<h3 class="sub">libuipc 层对照（直接调 libuipc，不经过 Genesis）</h3>', f"<p>{esc(scene)}</p>"]
     for title, one, tbl in sweep_tables(sweeps):
-        parts.append(f"<h3>{esc(title)}</h3><p class=\"muted small\">{esc(one)}</p>{tbl}")
-    parts.append("</section>")
+        parts.append(f"<h4>{esc(title)}</h4><p class=\"muted small\">{esc(one)}</p>{tbl}")
     return "\n".join(parts)
 
 
@@ -738,71 +1115,186 @@ def compute_facts(demos, sweeps):
     return f
 
 
-def findings_section(f):
-    rej = "、".join(f["rejected"]) if f["rejected"] else "无"
-    items = [
-        f"<b>正常初始状态下都不穿透。</b>{f['n_ok_checked']} 个正常开跑的配置，每 10 帧检查一次，"
-        + ("一次穿透都没查到" if f["n_with_pen"] == 0 else f"有 {f['n_with_pen']} 个查到穿透")
-        + "；Newton 迭代也"
-        + (f"从没撞到 {f['max_iter']} 次上限。" if f["n_hit_max"] == 0 else f"有 {f['n_hit_max']} 个撞到上限。"),
+def compute_genesis_facts(gsweeps):
+    """Genesis 扫描每一档的关键数（结论里用；dry-run 时逐档打印核对）。键 g/<扫描>/<档位>。"""
+    f = {}
+    for s in gsweeps:
+        for r in s["rows"]:
+            k = f"g/{r['sweep']}/{r['level']}"
+            if r["state"] != "ok":
+                f[k] = {"state": r["state"], "reason": r["reason"]}
+                continue
+            d = r["data"]
+            low, below, outw = gen_ground_out(d)
+            # 官方默认档同时是每个扫描维度的默认值，按维度各存一份
+            value = ({sw: gen_value(d, sw) for sw, *_ in GENESIS_TABLES if sw != "baseline"} if r["sweep"] == "baseline"
+                     else gen_value(d, r["sweep"]))
+            f[k] = {"state": "ok", "value": value, "pen_checks": dig(d, "summary", "n_checks_with_penetration"),
+                    "lowest_mm": low * 1000 if is_num(low) else MISSING, "below": below, "out_wall": outw,
+                    "newton_mean": newton_mean(d), "newton_max": dig(d, "summary", "newton_iter_timer_max"),
+                    "hit_max": dig(d, "summary", "n_frames_hit_max_iter"), "split": gen_split(d)}
+            if r["sweep"] == "mesh_res" or r["sweep"] == "baseline":
+                f[k]["ball_verts"] = gen_ball_verts(d)
+    return f
 
-        "<b>初始穿插会被直接拒绝。</b>两球一开始穿进 1 cm 或 5 cm，world.init 的 sanity check 判定相交、不开始仿真；"
-        "只隔 0.5 d̂（5 mm）能正常跑。关掉检查硬跑 5 cm 穿插也能跑完，但"
-        f"有 {f.get('nosanity_hit', '—')} 帧 Newton 撞到 {g3(f.get('nosanity_max', MISSING))} 次上限，"
-        f"平均每帧 {g3(f.get('nosanity_mean', MISSING))} 次（其他配置 {g3(f['other_mean_lo'])}–{g3(f['other_mean_hi'])} 次），"
-        "而且关了检查就无法判断穿透。所以生成数据时初始状态必须无穿插。",
 
-        f"<b>κ 会被自动夹进一个区间。</b>本场景是 [{sci(f.get('corr_lo', MISSING))}, {sci(f.get('corr_hi', MISSING))}] Pa："
-        f"区间内 {f['n_res_unclamped']} 档照用，1e4 被抬到 {sci(f.get('k1e4', MISSING))}，"
-        f"1e9（libuipc 默认表项）被压到 {sci(f.get('k1e9', MISSING))}。不调用 default_model 时用的是下界，不是表里的 1 GPa。"
-        f"这个区间还随 d̂、dt、网格变（例如 d̂ = 0.01 倍边长时下界是 {sci(f.get('dhat001_corr_lo', MISSING))}，"
-        f"1 倍边长时是 {sci(f.get('dhat1_corr_lo', MISSING))}），所以扫这些参数时实际 κ 也跟着变了。",
+def genesis_conclusions(f, videos):
+    """每个 Genesis 实验的「解释与结论」，返回 {扫描: html}。κ 一条引用 libuipc 层对照里实测的夹取区间。
+    定性的话是 2026-10-02 读完全部 genesis json 后写的；数字全部来自 facts（结果文件）。
+    mesh_res 一条只陈列新数据的数字（ball_subdiv 重跑后），定性结论要等主会话看过新数据再补。"""
+    def g(sweep, level):
+        return f.get(f"g/{sweep}/{level}", {})
 
-        f"<b>现有指标还分不出参数的影响。</b>{f['n_ok_checked']} 个配置里 {f['n_median2']} 个每帧 Newton 中位数是 2、"
-        f"{f['n_max7']} 个最多是 7，这主要是 libuipc 默认开着的 semi-implicit 提前终止造成的。能看出的只有："
-        f"dt 越小迭代略多（dt = 0.001 平均 {g3(f.get('dt001_mean', MISSING))} 次，dt = 0.01 平均 {g3(f.get('dt01_mean', MISSING))} 次）；"
-        f"d̂ = 0.01 倍边长时单帧最多 {g3(f.get('dhat001_max', MISSING))} 次。",
+    def rows(sweep):  # 该扫描的各档 + 官方默认档（value 换成该维度上的默认值）
+        b0 = g("baseline", "default")
+        out = [v for k, v in f.items() if k.startswith(f"g/{sweep}/")]
+        if b0.get("state") == "ok":
+            out.append(dict(b0, value=b0["value"].get(sweep, MISSING)))
+        return [v for v in out if v.get("state") == "ok"]
 
-        f"<b>每帧耗时暂时不能比。</b>GPU 是共享的，同一个配置跑两次，每帧分别 {g3(f.get('base_spf', MISSING))} s 和 "
-        f"{g3(f.get('med_spf', MISSING))} s，所以表里没放耗时。",
+    def rng(vals):
+        vals = [v for v in vals if is_num(v)]
+        return f"{g3(min(vals))}–{g3(max(vals))}" if vals else "—"
 
-        "<b>libuipc 的 barrier 不是 IPC 原论文的形式</b>，而是 Stiff-GIPC 的 log² 形式 "
-        "κ(D − d̂²)²[ln(D / d̂²)]²，D = d²。学生网络对标时要以它为准。",
+    def vmm(sweep, level):  # 视频那次运行的整段可见表面最低点（mm），来自该档视频目录的 camera_fit.json
+        rec = videos.get((sweep, level)) or {}
+        v = rec.get("video_min_z", MISSING) if rec.get("video_src") else MISSING
+        return f"{g3(v * 1000)} mm" if is_num(v) else "—（视频未生成）"
 
-        "<b>第一轮扫描有两个设计错误，已修正并重跑：</b>libuipc 自带的 ball.msh 其实是 0.168 × 0.2 × 0.168 的长条，"
-        "导致穿插量全错，已换成真球；κ 档位原先都在区间外、被夹成同一个值，已改到区间内。",
+    def vrng(r):
+        vs = r.get("ball_verts") or []
+        return f"{min(vs)}–{max(vs)}" if vs else "—"
+
+    def mesh_text():
+        lv = [("coarse", "粗"), ("medium", "中"), ("fine", "细")]
+        ms = [(name, g("mesh_res", k)) for k, name in lv]
+        if any(m.get("state") != "ok" for _, m in ms):
+            return "这一组改用 icosphere 细分 2 / 3 / 4 次的软球重跑，新结果出来前不下结论。"
+        return ("三档软球四面体化后每球顶点数分别为 "
+                + "、".join(f"{name} {vrng(m)}" for name, m in ms)
+                + "；末帧最低点分别为 " + "、".join(f"{g3(m.get('lowest_mm'))} mm" for _, m in ms)
+                + "；低于地面的物体分别为 " + "、".join(f"{len(m.get('below') or [])} 个" for _, m in ms)
+                + "；每帧 Newton 迭代平均分别为 " + "、".join(f"{g3(m.get('newton_mean'))} 次" for _, m in ms) + "。")
+
+    b = g("baseline", "default")
+    ok_all = [v for k, v in f.items() if k.startswith("g/") and v.get("state") == "ok"]
+    n_pen = sum(1 for v in ok_all if v.get("pen_checks") != 0)
+    init = [v for k, v in f.items() if k.startswith("g/init_penetration/")]
+    n_rej = sum(1 for v in init if v.get("state") == "rejected")
+    d2, d5, d30 = g("d_hat", "0p002"), g("d_hat", "0p005"), g("d_hat", "0p03")
+    dt_rows = sorted(rows("dt"), key=lambda v: v.get("value", 0))
+    dt_below = [g3(v["value"]) for v in dt_rows if v.get("below")]
+    dt_clean = [g3(v["value"]) for v in dt_rows if not v.get("below")]
+    dts = g("dt", "0p002")
+    fr, kr = rows("friction"), rows("resistance")
+
+    def split(r):
+        """分项读数的文字片段；该档没有新字段返回 None。"""
+        sp = r.get("split")
+        if not sp:
+            return None
+        bs, rs = sp["balls"], sp["rigids"]
+        offs = [(ip - gp) * 1000 for _, ip, gp in rs]
+        same = bool(offs) and max(offs) - min(offs) < 0.05  # 各刚体偏移相同（差 < 0.05 mm）
+        return {"surf": f"{g3(min(s for _, s, *_ in bs) * 1000)} mm" if bs else "—",
+                "interior": f"{g3(min(i for *_, i, _, _ in bs if is_num(i)) * 1000)} mm"
+                            if any(is_num(x[2]) for x in bs) else "—",
+                "inv": "、".join(f"{ni}/{nt}" for *_, ni, nt in bs),
+                "inv_rng": rng([ni for *_, ni, _ in bs]),
+                "off": (f"{g3(offs[0])} mm" if same else f"{rng(offs)} mm") if offs else "—", "off_same": same,
+                "g_dt2": f"{g3(sp['g_dt2'] * 1000)} mm" if is_num(sp["g_dt2"]) else "—"}
+
+    sb, s2 = split(b), split(d2)
+    rigid_note = ("刚体方块在 IPC 里的中心高度比 Genesis 读出的高 {off}{each}，正好等于 g·dt²（{g}）："
+                  "Genesis 的刚体求解器在 IPC 把位置写回之后，又自己多走了一步重力，所以 Genesis 读出的刚体位置偏低，"
+                  "IPC 里的方块并没有穿地。视频旁的“可见表面最低点”里刚体用的也是 Genesis 读数，同样含这段偏移。")
+    items = [  # 顺序与下面 zip 的扫描名一一对应
+        ("<b>无穿透这一点与期待一致</b>：libuipc 每 10 帧一次的穿透检查 "
+         f"{b.get('pen_checks', '—')} 次报了穿透"
+         + (f"；软球表面最低点 {sb['surf']}，软球里翻转的四面体分别为 {sb['inv']}（翻转 / 总数）。"
+            + rigid_note.format(off=sb["off"], each="（每个都一样）" if sb["off_same"] else "", g=sb["g_dt2"])
+            if sb else "。")
+         + f"视频那次运行整段可见表面最低点 {vmm('baseline', 'default')}。"),
+
+        (f"<b>与期待一致：初始状态必须无穿插。</b>让两个软球一开始互相穿进 0.1 R 或 0.5 R，{len(init)} 档里 {n_rej} 档"
+         "在建场景时就被 libuipc 判定相交（日志里报 Intersection detected），仿真没有开始。"
+         "但 Genesis 没把它报成一条清楚的错误，而是接着崩在一个不相关的报错上，排查时要去看 libuipc 的日志。"
+         f"正常开跑的 {len(ok_all)} 个配置，libuipc 的穿透检查（每 10 帧一次）"
+         + ("一次都没报。" if n_pen == 0 else f"有 {n_pen} 个报了穿透。")),
+
+        ("<b>迭代次数与期待一致：d̂ 越小，Newton 迭代越多</b>（d̂ = 2 mm 时单帧最多 "
+         f"{g3(d2.get('newton_max'))} 次，1 cm 时 {g3(b.get('newton_max'))} 次，3 cm 时 {g3(d30.get('newton_max'))} 次）。"
+         + (f"<b>之前看到的“低于地面”是读法造成的，表面并没有穿地。</b>d̂ = 2 mm 那次扫描里，软球表面最低点 {s2['surf']}，"
+            "仍在地面以上，和 libuipc 每 10 帧穿透检查"
+            + ("一次都没报" if d2.get("pen_checks") == 0 else f"报了 {d2.get('pen_checks')} 次") + "一致；"
+            f"表里 {g3(d2.get('lowest_mm'))} mm 那个读数是软球的内部顶点（内部最低 {s2['interior']}）。"
+            + rigid_note.format(off=s2["off"], each="（每个都一样）" if s2["off_same"] else "", g=s2["g_dt2"])
+            + f"<b>另一个现象，待确认：</b>这次运行里软球大量四面体翻转（{s2['inv']}，翻转 / 总数），"
+            f"官方 d̂ 那次只有 {sb['inv_rng'] if sb else '—'} 个；但两次运行物体堆法不同，"
+            "还不能说是 d̂ 变小造成的，待同一堆法下对比确认。"
+            f"d̂ = 5 mm 档的结果文件没有这些分项读数，表里的 {g3(d5.get('lowest_mm'))} mm 分不清是表面还是内部顶点。"
+            if s2 else
+            "表里 d̂ 小时的负读数来自 Genesis 状态读出的顶点（含软球内部顶点、刚体读数），分不清是不是表面穿地，待查。")),
+
+        (f"<b>迭代次数与期待一致：dt 越小，每帧 Newton 迭代越多。</b>dt ={g3(dts.get('value'))} s 时平均 {g3(dts.get('newton_mean'))}、"
+         f"最多 {g3(dts.get('newton_max'))} 次；官方的 {g3((b.get('value') or {}).get('dt'))} s 时平均 {g3(b.get('newton_mean'))}、"
+         f"最多 {g3(b.get('newton_max'))} 次。表里末帧最低点低于地面 1 mm 以上的出现在 dt = {'、'.join(dt_below) or '—'} s，"
+         f"{'、'.join(dt_clean) or '—'} s 没有；但这些档的结果文件没有分项读数，这个最低点包括软球内部顶点和 Genesis 的刚体读数"
+         + ("（d̂ 那组已经查明这两种读法会读出负值而表面没穿地）" if s2 else "")
+         + "，所以分不清是不是真的穿地，待补分项读数后再看。"),
+
+        (f"<b>与期待一致：摩擦不影响穿透和迭代。</b>μ 取 {'、'.join(g3(v.get('value')) for v in sorted(fr, key=lambda v: v.get('value', 0)))} 共 {len(fr)} 档，"
+         + ("扫描读数里都没有物体低于地面，" if not any(v.get("below") for v in fr) else "")
+         + f"迭代次数平均 {rng([v.get('newton_mean') for v in fr])} 次，没有明显规律；"
+           "“越大越不容易滑、堆得越陡”这一点，现有数据里没有对应的量，无法判断。"),
+
+        (f"<b>无法判断是否与期待一致。</b>contact_resistance 从 "
+         f"{sci(min((v.get('value') for v in kr), default=MISSING))} 到 {sci(max((v.get('value') for v in kr), default=MISSING))} Pa "
+         f"共 {len(kr)} 档，结果几乎一样（迭代平均 {rng([v.get('newton_mean') for v in kr])} 次"
+         + ("，扫描读数里都没有物体低于地面" if not any(v.get("below") for v in kr) else "") + "）。"
+         f"libuipc 会把 κ 夹进按场景算出的区间（直接调 libuipc 的对照场景里区间是 [{sci(f.get('corr_lo', MISSING))}, "
+         f"{sci(f.get('corr_hi', MISSING))}] Pa，1e9 被压到 {sci(f.get('k1e9', MISSING))}），"
+         "但 Genesis 把 libuipc 的日志设成只输出 error，这里看不到 κ 有没有被夹、被夹成多少。"
+         "几档结果几乎一样，和“都被夹进同一个区间”对得上，但还不能确认。"),
+
+        mesh_text(),
     ]
-    lis = "".join(f"<li>{t}</li>" for t in items)  # 文本是本脚本写死的，数字来自 json，不含用户输入
-    nxt = ("<b>下一步：</b>加能反映行为的指标（最终静止位置、最小间距、接触力），在 GPU 空闲时计时或多次取平均；"
-           "确认 ContactSystemFeature 导出的能量里是否已乘 κ·dt²。")
-    return (f'<section id="findings"><h2>发现与结论</h2><ul class="findings">{lis}</ul>'
-            f'<p class="next">{nxt}</p></section>')
+    # 文本是本脚本写死的，数字来自 json，不含用户输入
+    return dict(zip(["baseline", "init_penetration", "d_hat", "dt", "friction", "resistance", "mesh_res"], items))
 
 
-def build_page(demos, extras, sweeps, cfg, facts):
+NEXT_STEPS = ("<b>下一步：</b>在同一堆法下对比不同 d̂ 的四面体翻转；把软球表面 / 内部、刚体 IPC / Genesis 的分项读数补到其它档；在 Genesis 里打开 libuipc 的日志，"
+              "确认 κ 实际取值；加能反映堆积形态的指标。")
+
+
+def build_page(demos, extras, gsweeps, sweeps, cfg, facts, videos, commit):
     n_video = sum(1 for r in demos + extras if r.get("video_web"))
     n_demo_ok = sum(1 for r in demos + extras if r["state"] == "ok")
     n_demo = len(demos + extras)
-    n_sweeps = sum(1 for s in sweeps if s["name"] != "baseline")
-    ran = f"{n_demo} 个官方 demo 全部跑完" if n_demo_ok == n_demo else f"{n_demo} 个官方 demo 跑完了 {n_demo_ok} 个"
-    summary = (f"这周把 libuipc（Genesis 的 IPC 耦合底层也是它，在 H100 上需从源码编译）在服务器上跑通了，"
+    n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
+    n_grows = sum(len(s["rows"]) for s in gsweeps)
+    ran = f"{n_demo} 个 demo 全部跑完" if n_demo_ok == n_demo else f"{n_demo} 个 demo 跑完了 {n_demo_ok} 个"
+    summary = (f"这周把 libuipc（Genesis 的 IPC 耦合底层也是它，在 H100 上需从源码编译）和 Genesis 在服务器上跑通了，"
                f"{ran}，其中 {n_video} 个录了视频。"
-               f"然后在“8 个软球落进盒子”的场景上对 {n_sweeps} 个 IPC 参数做了单变量扫描，共 {facts['n_rows']} 个配置。"
-               "主要发现：正常初始状态下全部不穿透，初始穿插会被 libuipc 直接拒绝，接触刚度 κ 会被自动夹进一个区间，"
-               "而现有的迭代次数、耗时指标还看不出参数对行为的影响。")
+               f"然后用 Genesis 做了“一堆物体扔进盒子”（官方 ipc_objects_falling 场景加一个盒子），"
+               f"在上面对 {n_gsweeps} 个 IPC 参数做了单变量扫描，共 {n_grows} 个配置；之前直接调 libuipc 的那套扫描留作对照。"
+               "主要发现：初始穿插会被拒绝开跑；之前看到的“物体低于地面”是读法造成的（软球内部顶点、"
+               "Genesis 刚体多走一步重力），表面没有穿地；d̂ 小时观察到软球大量四面体翻转，待同堆法对比确认；"
+               "dt 越小迭代越多；摩擦和 κ 在现有指标下看不出差别；"
+               + ("网格粗细这组正在用新网格重跑。" if any(r["state"] == "stale" for r in rows_of(gsweeps, "mesh_res"))
+                  else "网格粗细见对应小节。"))
     nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
             + videos_section(demos, extras, facts) + "\n"
-            + sweep_section(sweeps, cfg) + "\n"
-            + findings_section(facts))
+            + sweep_section(gsweeps, sweeps, cfg, videos, facts, commit))
     return page(body)
 
 
 # ==========================================================================
 # main
 # ==========================================================================
-STATE_LABEL = {"ok": "完成", "failed": "失败", "not_run": "尚未运行", "unfinished": "未结束",
+STATE_LABEL = {"ok": "完成", "failed": "失败", "not_run": "尚未运行", "unfinished": "未结束", "stale": "旧配置的结果，重跑中",
                "rejected": "被拒绝（预期内）"}
 
 
@@ -817,12 +1309,16 @@ def main():
     if unlisted:
         print(f"[build_site] 注意：NAS 上这些 demo 目录不在 DEMOS 清单里，不上页面：{unlisted}")
     cfg, sweeps = collect_sweeps()
+    _, gsweeps = collect_sweeps("genesis", cfg)
     all_demos = demos + extras
-    vjobs, manifest = plan_videos(all_demos, args.crf, args.force_videos)
+    videos = gen_level_videos(gsweeps)   # Genesis 扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
+    vjobs, manifest = plan_videos(all_demos + list(videos.values()), args.crf, args.force_videos)
     ijobs = plan_images(all_demos)
     facts = compute_facts(demos, sweeps)
+    facts.update(compute_genesis_facts(gsweeps))
+    commit = genesis_commit()
 
-    pages = {WEB / "index.html": build_page(demos, extras, sweeps, cfg, facts)}
+    pages = {WEB / "index.html": build_page(demos, extras, gsweeps, sweeps, cfg, facts, videos, commit)}
 
     # ---------------- 打印计划 ----------------
     mode = "EXECUTE" if args.execute else "DRY-RUN（只演练，不写任何文件；加 --execute 才真正写）"
@@ -832,8 +1328,11 @@ def main():
         extra = "" if r["state"] == "ok" else f"  {r['reason']}"
         vid = f"  视频: {r['video_src']}" if r["video_src"] else (f"  {r['video_note']}" if r["video_note"] else "")
         print(f"  - {r['key']:<32} {STATE_LABEL[r['state']]}{extra}{vid}")
-    print(f"[build_site] 扫描结果：{SWEEP_ROOT}")
-    for s in sweeps:
+    print(f"[build_site] Genesis 每档视频：{GEN_VIDEO_ROOT}（Neural-IPC commit {commit}）")
+    for (sw, lv), r in videos.items():
+        print(f"  - {sw}/{lv:<14} " + (f"视频: {r['video_src']}  {r['line']}" if r["video_src"] else r["video_note"]))
+    print(f"[build_site] 扫描结果：{SWEEP_ROOT}（genesis 版在其下 genesis/，先列）")
+    for s in [dict(s, name="genesis/" + s["name"]) for s in gsweeps] + sweeps:
         states = {}
         for r in s["rows"]:
             states[r["state"]] = states.get(r["state"], 0) + 1
