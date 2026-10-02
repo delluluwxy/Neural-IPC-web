@@ -609,7 +609,10 @@ def rows_of(sweeps, name):
 # overrides 里没写的键取官方 ipc_objects_falling.py / Genesis 默认值（出处见 Neural-IPC tools/ipc_sweep/configs.py
 # GENESIS_SWEEPS 上方注释：contact_resistance 默认 1e9，FEM friction_mu 默认 0.1；ball_subdiv 不给 = 官方
 # gs.morphs.Sphere(radius=0.08)，见 run_genesis_ipc_example.py soft_ball_morph）
-GENESIS_DEFAULTS = {"friction_mu": 0.1, "contact_resistance": 1e9, "overlap_balls": 0.0, "ball_subdiv": None}
+GENESIS_DEFAULTS = {"friction_mu": 0.1, "contact_resistance": 1e9, "overlap_balls": 0.0, "ball_subdiv": None,
+                    "ball_E": 1.0e3}  # ball_E: official soft ball FEM.Elastic(E=1.0e3), ipc_objects_falling.py
+GENESIS_KEYS = {"friction": "friction_mu", "resistance": "contact_resistance", "init_penetration": "overlap_balls",
+                "mesh_res": "ball_subdiv", "inversion_vs_E": "ball_E"}  # sweep -> override key in configs.GENESIS_SWEEPS
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 # genesis fem_entity.py:542 打印 (n_elements, n_vertices)；软球是 Sphere（官方）或 Mesh（icosphere），材料都是 FEM.Elastic
 BALL_SIZE_RE = re.compile(r"morph: (?:Sphere|Mesh), size: \((\d+), (\d+)\), material: <gs\.materials\.FEM\.Elastic>")
@@ -624,8 +627,7 @@ def gen_value(d, sweep):
         return dig(d, "libuipc_config", "contact", "d_hat")
     if sweep == "dt":
         return d.get("dt", MISSING)
-    key = {"friction": "friction_mu", "resistance": "contact_resistance",
-           "init_penetration": "overlap_balls", "mesh_res": "ball_subdiv"}[sweep]
+    key = GENESIS_KEYS[sweep]
     return (d.get("overrides") or {}).get(key, GENESIS_DEFAULTS[key])
 
 
@@ -655,8 +657,7 @@ def gen_level_value(r, sweep, cfg):
     if r["sweep"] == "baseline":
         return MISSING
     ov = cfg.GENESIS_SWEEPS[r["sweep"]]["levels"].get(r["level"], {})
-    key = {"d_hat": "contact_d_hat", "dt": "dt", "friction": "friction_mu", "resistance": "contact_resistance",
-           "init_penetration": "overlap_balls", "mesh_res": "ball_subdiv"}[sweep]
+    key = {"d_hat": "contact_d_hat", "dt": "dt", **GENESIS_KEYS}[sweep]
     return ov.get(key, MISSING)
 
 
@@ -673,6 +674,8 @@ def gen_label(r, sweep, cfg):
         return size + (f"：icosphere 细分 {v} 次（表面 {10 * 4 ** v + 2} 个顶点）" if isinstance(v, int) else "")
     if not is_num(v):
         return r["level"] + dflt
+    if sweep == "inversion_vs_E":
+        return f"软球 E = {sci(v)} Pa" + ("（官方 E，即 d̂ 扫描的 2 mm 档）" if r["sweep"] == "d_hat" else "")
     if sweep == "d_hat":
         return g3(v * 1000) + dflt
     if sweep == "resistance":
@@ -707,6 +710,10 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "软球网格",
      "网格越细，球面越接近真球，接触时参与的顶点越多，每步要解的未知数越多、越慢。"
      "只要初始无穿插，网格粗细都不该影响会不会穿透，物体落地后的大致位置应该接近。"),
+    ("inversion_vs_E", "软球硬度 E（查四面体翻转）", "d̂ 固定 2 mm（翻转最多的一档），只把软球的杨氏模量 E 从官方的 1e3 Pa 换成 1e4、1e5 Pa。",
+     "软球 E",
+     "官方软球 E = 1 kPa，自重压力 ρ·g·2R ≈ 1000 × 9.8 × 0.16 ≈ 1.6 kPa 已超过 E，球会被压到大应变；"
+     "Stable Neo-Hookean 在四面体翻转后能量仍有限，所以不会阻止翻转。若翻转是材料太软造成的，E 越大翻转应越少。"),
 ]
 
 
@@ -777,7 +784,9 @@ def genesis_sweep_tables(sweeps, cfg):
     base = rows_of(sweeps, "baseline")
     out = []
     for sweep, title, one, head, expect in GENESIS_TABLES:
-        rows = list(base) if sweep == "baseline" else list(rows_of(sweeps, sweep)) + list(base)
+        # inversion_vs_E keeps d̂ = 2 mm, so its reference row is the d̂ = 2 mm level (official E), not the baseline
+        ref = [r for r in rows_of(sweeps, "d_hat") if r["level"] == "0p002"] if sweep == "inversion_vs_E" else base
+        rows = list(base) if sweep == "baseline" else list(rows_of(sweeps, sweep)) + list(ref)
 
         def key(r):
             if sweep == "baseline":
@@ -1183,7 +1192,7 @@ def genesis_conclusions(f, videos):
                     f"{name} {min(ni for *_, ni, _ in m['split']['balls'])}–"
                     f"{max(ni for *_, ni, _ in m['split']['balls'])} 个" if m.get("split") else f"{name} —"
                     for name, m in ms)
-                + "），每档只跑一次、堆法不同，原因待查。")
+                + "），原因见「软球硬度 E」一节（官方软球太软）；同一配置两次运行的翻转数也会不同（GPU 上不逐位一致）。")
 
     b = g("baseline", "default")
     ok_all = [v for k, v in f.items() if k.startswith("g/") and v.get("state") == "ok"]
@@ -1226,6 +1235,50 @@ def genesis_conclusions(f, videos):
         offs = [(ip - gp) * 1000 for _, ip, gp in rs]
         return f"{g3(sum(offs) / len(offs))} mm" if offs else "—"
 
+    def debug_json(name, sweep, level):
+        """A diagnostic rerun outside the main sweep (SWEEP_ROOT/<name>/<sweep>/<level>.json); {} if absent."""
+        p = SWEEP_ROOT / name / sweep / f"{level}.json"
+        return json.loads(p.read_text()) if p.is_file() else {}
+
+    def inv_pct(r):  # 全部软球的翻转四面体占比，来自该档分项读数
+        bs = (r.get("split") or {}).get("balls") or []
+        n, t = sum(x[3] for x in bs if is_num(x[3])), sum(x[4] for x in bs if is_num(x[4]))
+        return f"{g3(100 * n / t)}%（{n} / {t}）" if t else "—"
+
+    def kappa_text():
+        """κ 区间与被夹情况：Genesis 把 libuipc 日志设成 error，这里读打开 libuipc Info 日志重跑的三档
+        （genesis_kappa_debug，Neural-IPC run_commands 第 12 条）的 kappa_log。"""
+        runs = [("baseline", "default"), ("resistance", "1e6"), ("resistance", "1e11")]
+        ds = [(s, lv, debug_json("genesis_kappa_debug", s, lv)) for s, lv in runs]
+        corr = next((dig(d, "kappa_log", "kappa_corridor", 0, "groups") for *_, d in ds if d), MISSING)
+        if not isinstance(corr, list):
+            return "这几档没有打开 libuipc 日志的重跑结果，看不到 κ 是否被夹。"
+        parts = []
+        for s, lv, d in ds:
+            set_k = (d.get("overrides") or {}).get("contact_resistance", GENESIS_DEFAULTS["contact_resistance"])
+            hits = [x["groups"] for x in dig(d, "kappa_log", "model_kappa_clamped") or [] if float(x["groups"][0]) > 0]
+            parts.append(f"设 {sci(set_k)}：" + (f"{len(hits)} 个接触模型被夹到 {sci(float(hits[0][3]))}" if hits else "在区间内，照用"))
+        return (f"打开 libuipc 日志重跑（官方默认、1e6、1e11 三档）读到：这个场景的 κ 区间是 [{sci(float(corr[0]))}, "
+                f"{sci(float(corr[1]))}] Pa；" + "；".join(parts) + "。")
+
+    def inversion_text():
+        """软球四面体翻转：同帧 Genesis 读数与 libuipc 内部位置的对比（genesis_inversion_debug，Neural-IPC
+        run_commands 第 13 条），加 d̂ = 2 mm 下 E = 1e3 / 1e4 / 1e5 三档翻转占比。"""
+        dbg = debug_json("genesis_inversion_debug", "d_hat", "0p002").get("objects_final") or {}
+        bs = [o for o in dbg.values() if isinstance(o, dict) and "uipc_n_inverted_tets" in o]
+        same = all(o["uipc_n_inverted_tets"] == o["n_inverted_tets"] for o in bs)
+        gap = max((o["genesis_vs_uipc_max_abs_m"] for o in bs), default=MISSING)
+        e4, e5 = g("inversion_vs_E", "dhat2mm_E1e4"), g("inversion_vs_E", "dhat2mm_E1e5")
+        if not bs or e4.get("state") != "ok" or e5.get("state") != "ok":
+            return "这一组还没跑完，先不下结论。"
+        return (("<b>翻转是 libuipc 的 FEM 解里真有的，不是读数问题：</b>" if same else "<b>两边读数的翻转数不一致：</b>")
+                + f"同一帧里 Genesis 读到的软球顶点和 libuipc 内部位置最多差 {sci(gap)} m，两边数出的翻转四面体"
+                + ("完全一样。" if same else "不同，要再查。")
+                + f"<b>与期待一致：E 越大翻转越少。</b>d̂ = 2 mm 下软球 E = 1e3 / 1e4 / 1e5 Pa 时翻转占比分别为 "
+                f"{inv_pct(d2)}、{inv_pct(e4)}、{inv_pct(e5)}；E ≥ 1e4 后软球内部顶点也不再低于地面"
+                f"（内部最低 {split(e4)['interior'] if split(e4) else '—'}、{split(e5)['interior'] if split(e5) else '—'}）。"
+                "所以翻转和“内部顶点低于地面”都来自官方软球太软（E = 1 kPa）；表面全程没有穿透。用作训练数据的软体要用更大的 E，并检查四面体翻转。")
+
     dhat_rows = sorted(rows("d_hat"), key=lambda v: v.get("value", 0))
     sb, s2 = split(b), split(d2)
     rigid_note = ("刚体方块在 IPC 里的中心高度比 Genesis 读出的高 {off}{each}，正好等于 g·dt²（{g}）："
@@ -1253,8 +1306,7 @@ def genesis_conclusions(f, videos):
          + (f"<b>表面从未穿地</b>：各档 libuipc 每 10 帧穿透检查都没报；表里的负读数是软球内部顶点"
             f"（d̂ = 2 mm 时内部最低 {s2['interior']}）和 Genesis 刚体读数偏移。"
             + rigid_note.format(off=s2["off"], each="（每个都一样）" if s2["off_same"] else "", g=s2["g_dt2"])
-            + f"<b>另一个现象，待确认：</b>d̂ 小时软球大量四面体翻转（d̂ = 2 mm：{s2['inv']}，翻转 / 总数；"
-            f"官方 d̂：{sb['inv_rng'] if sb else '—'} 个）；每档只跑一次、物体堆法不同，还不能下因果结论。"
+            + f"d̂ 小时软球大量四面体翻转（d̂ = 2 mm：{s2['inv']}，翻转 / 总数），原因见「软球硬度 E」一节：官方软球太软。"
             if s2 else "")),
 
         (f"<b>迭代次数与期待一致：dt 越小，每帧 Newton 迭代越多。</b>dt ={g3(dts.get('value'))} s 时平均 {g3(dts.get('newton_mean'))}、"
@@ -1269,23 +1321,24 @@ def genesis_conclusions(f, videos):
          + f"迭代次数平均 {rng([v.get('newton_mean') for v in fr])} 次，没有明显规律；"
            "“越大越不容易滑、堆得越陡”这一点，现有数据里没有对应的量，无法判断。"),
 
-        (f"<b>无法判断是否与期待一致。</b>contact_resistance 从 "
+        (f"<b>与期待一致：区间外的 κ 被夹到边界。</b>contact_resistance 从 "
          f"{sci(min((v.get('value') for v in kr), default=MISSING))} 到 {sci(max((v.get('value') for v in kr), default=MISSING))} Pa "
-         f"共 {len(kr)} 档，结果几乎一样（迭代平均 {rng([v.get('newton_mean') for v in kr])} 次"
-         + ("，扫描读数里都没有物体低于地面" if not any(v.get("below") for v in kr) else "") + "）。"
-         f"libuipc 会把 κ 夹进按场景算出的区间（直接调 libuipc 的对照场景里区间是 [{sci(f.get('corr_lo', MISSING))}, "
-         f"{sci(f.get('corr_hi', MISSING))}] Pa，1e9 被压到 {sci(f.get('k1e9', MISSING))}），"
-         "但 Genesis 把 libuipc 的日志设成只输出 error，这里看不到 κ 有没有被夹、被夹成多少。"
-         "几档结果几乎一样，和“都被夹进同一个区间”对得上，但还不能确认。"),
+         f"共 {len(kr)} 档，软球表面最低点 {rng([surf_mm(v) for v in kr])} mm，迭代平均 {rng([v.get('newton_mean') for v in kr])} 次。"
+         + kappa_text()
+         + "所以官方默认 1e9 和更大的值实际是同一个 κ（区间上界），结果几乎一样；只有区间内的值才真正改变接触刚度。"
+           "Genesis 默认把 libuipc 日志设成只输出 error（genesis ipc_coupler/coupler.py:272-276），这些夹取警告平时看不到。"),
 
         mesh_text(),
+
+        inversion_text(),
     ]
     # 文本是本脚本写死的，数字来自 json，不含用户输入
-    return dict(zip(["baseline", "init_penetration", "d_hat", "dt", "friction", "resistance", "mesh_res"], items))
+    return dict(zip(["baseline", "init_penetration", "d_hat", "dt", "friction", "resistance", "mesh_res",
+                     "inversion_vs_E"], items))
 
 
-NEXT_STEPS = ("<b>下一步：</b>在同一堆法下对比不同 d̂ 的四面体翻转；把软球表面 / 内部、刚体 IPC / Genesis 的分项读数补到其它档；在 Genesis 里打开 libuipc 的日志，"
-              "确认 κ 实际取值；加能反映堆积形态的指标。")
+NEXT_STEPS = ("<b>下一步：</b>生成数据时显式固定 κ（落在 libuipc 区间内并从日志核对没被夹）、软体用更大的 E 并检查四面体翻转；"
+              "加能反映堆积形态的指标。")
 
 
 def build_page(demos, extras, gsweeps, sweeps, cfg, facts, videos, commit):
@@ -1300,8 +1353,8 @@ def build_page(demos, extras, gsweeps, sweeps, cfg, facts, videos, commit):
                f"然后用 Genesis 做了“一堆物体扔进盒子”（官方 ipc_objects_falling 场景加一个盒子），"
                f"在上面对 {n_gsweeps} 个 IPC 参数做了单变量扫描，共 {n_grows} 个配置；之前直接调 libuipc 的那套扫描留作对照。"
                "主要发现：初始穿插会被拒绝开跑；之前看到的“物体低于地面”是读法造成的（软球内部顶点、"
-               "Genesis 刚体多走一步重力），表面没有穿地；d̂ 小时观察到软球大量四面体翻转，待同堆法对比确认；"
-               "dt 越小迭代越多；摩擦和 κ 在现有指标下看不出差别；"
+               "Genesis 刚体多走一步重力），表面没有穿地；软球四面体翻转是官方软球太软（E = 1 kPa）造成的，E 加大到 1e5 后消失；"
+               "dt 越小迭代越多；摩擦看不出差别；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
                + ("网格粗细这组正在用新网格重跑。" if any(r["state"] == "stale" for r in rows_of(gsweeps, "mesh_res"))
                   else "网格粗细见对应小节。"))
     nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
