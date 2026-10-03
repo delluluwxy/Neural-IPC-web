@@ -803,9 +803,9 @@ def col_wall_gap(d):
 
 
 def contact_kind(name):
-    """Readable kind of a contact_gaps_final name (sweep.py: "<i>_Sphere_Elastic", "<i>_Box_Rigid", "<i>_Mesh_Cloth",
-    "<i>_wall", "ground")."""
-    for key, kind in (("Sphere", "软球"), ("Box", "方块"), ("Cloth", "布"), ("wall", "墙"), ("ground", "地面")):
+    """Readable kind of a contact_gaps_final name (sweep.py: "<i>_Sphere_Elastic" or "<i>_Mesh_Elastic" (icosphere balls
+    of mesh_res), "<i>_Box_Rigid", "<i>_Mesh_Cloth", "<i>_wall", "ground")."""
+    for key, kind in (("Elastic", "软球"), ("Box", "方块"), ("Cloth", "布"), ("wall", "墙"), ("ground", "地面")):
         if key in name:
             return kind
     return name
