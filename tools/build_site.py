@@ -586,10 +586,19 @@ def rows_of(sweeps, name):
 # overrides 里没写的键取官方 ipc_objects_falling.py / Genesis 默认值（出处见 Neural-IPC tools/ipc_sweep/configs.py
 # GENESIS_SWEEPS 上方注释：contact_resistance 默认 1e9，FEM friction_mu 默认 0.1；ball_subdiv 不给 = 官方
 # gs.morphs.Sphere(radius=0.08)，见 run_genesis_ipc_example.py soft_ball_morph）
+# Official / Genesis / libuipc default of every override key (ipc_objects_falling.py, materials/rigid.py coup_friction,
+# libuipc scene_default_config.cpp contact/eps_velocity and contact/constitution)
 GENESIS_DEFAULTS = {"friction_mu": 0.1, "contact_resistance": 1e9, "overlap_balls": 0.0, "ball_subdiv": None,
-                    "ball_E": 1.0e3}  # ball_E: official soft ball FEM.Elastic(E=1.0e3), ipc_objects_falling.py
+                    "ball_E": 1.0e3, "box_coup_friction": 0.1, "ground_coup_friction": 0.1,
+                    "contact_eps_velocity": 0.01, "contact_constitution": "ipc", "ball_nu": 0.3, "ball_rho": 1000.0,
+                    "box_rho": 500.0, "cloth_E": 1e5, "cloth_thickness": 0.001, "cloth_bending": 50.0,
+                    "cloth_rho": 200.0}
 GENESIS_KEYS = {"friction": "friction_mu", "resistance": "contact_resistance", "init_penetration": "overlap_balls",
-                "mesh_res": "ball_subdiv", "inversion_vs_E": "ball_E"}  # sweep -> override key in configs.GENESIS_SWEEPS
+                "mesh_res": "ball_subdiv", "inversion_vs_E": "ball_E", "box_friction": "box_coup_friction",
+                "ground_friction": "ground_coup_friction", "eps_velocity": "contact_eps_velocity",
+                "constitution": "contact_constitution", "ball_nu": "ball_nu", "ball_rho": "ball_rho",
+                "box_rho": "box_rho", "cloth_E": "cloth_E", "cloth_thickness": "cloth_thickness",
+                "cloth_bending": "cloth_bending", "cloth_rho": "cloth_rho"}  # sweep -> override key in configs
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 # genesis fem_entity.py:542 打印 (n_elements, n_vertices)；软球是 Sphere（官方）或 Mesh（icosphere），材料都是 FEM.Elastic
 BALL_SIZE_RE = re.compile(r"morph: (?:Sphere|Mesh), size: \((\d+), (\d+)\), material: <gs\.materials\.FEM\.Elastic>")
@@ -667,8 +676,12 @@ def gen_label(r, sweep, cfg):
         size = {"coarse": "粗", "medium": "中", "fine": "细"}.get(r["level"], r["level"])
         # trimesh.creation.icosphere(subdivisions=k)：表面 10·4^k + 2 个顶点（soft_ball_morph docstring）
         return size + (f"：icosphere 细分 {v} 次（表面 {10 * 4 ** v + 2} 个顶点）" if isinstance(v, int) else "")
+    if isinstance(v, str):
+        return v + dflt
     if not is_num(v):
         return r["level"] + dflt
+    if sweep == "cloth_thickness":
+        return g3(v * 1000) + dflt
     if sweep == "inversion_vs_E":
         return f"软球 E = {sci(v)} Pa" + ("（官方 E，即 d̂ 扫描的 2 mm 档）" if r["sweep"] == "d_hat" else "")
     if sweep == "d_hat":
@@ -710,6 +723,33 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "软球 E",
      "官方软球 E = 1 kPa，自重压力 ρ·g·2R ≈ 1000 × 9.8 × 0.16 ≈ 1.6 kPa 已超过 E，球会被压到大应变；"
      "Stable Neo-Hookean 在四面体翻转后能量仍有限，所以不会阻止翻转。若翻转是材料太软造成的，E 越大翻转应越少。"),
+    ("box_friction", "方块的摩擦系数", "改刚体方块的 coup_friction（Genesis 默认 0.1），与接触对象按几何平均组合。", "方块 μ",
+     "摩擦只管切向：方块的 μ 越大，方块越不容易在地面、布和别的物体上滑，更容易停在落点附近；不改变法向的 barrier，"
+     "所以不影响会不会穿透，接触间隙也应基本不变。"),
+    ("ground_friction", "地面的摩擦系数", "改地面的 coup_friction（Genesis 默认 0.1），与每个物体的摩擦按几何平均组合。",
+     "地面 μ",
+     "地面 μ 越大，落地的物体越不容易滑，越停在落点附近；μ = 0 时所有物体与地面之间都没有摩擦（几何平均为 0），"
+     "应滑散到墙边。不影响穿透和法向间隙。"),
+    ("eps_velocity", "静摩擦判定速度 ε_v", "改 contact_eps_velocity（libuipc 默认 0.01 m/s）：相对滑动速度低于它按静摩擦处理。",
+     "ε_v（m/s）",
+     "ε_v 越大，越慢的滑动都被当成“粘住”，物体更容易停住、不容易慢慢滑走；ε_v 越小越接近真实的库仑摩擦，"
+     "静止的物体可能还在缓慢滑移。不影响法向间隙。"),
+    ("constitution", "接触能量模型", "改 contact_constitution（libuipc 默认 ipc），换成 isometric。", "接触模型",
+     "两种模型的 barrier 形式不同，同样的 d̂ 下物体停住的间隙和求解难度可能不同；都应不穿透。"),
+    ("ball_nu", "软球泊松比 ν", "改软球的泊松比（官方 0.3）。", "软球 ν",
+     "ν 越接近 0.5 球越难压缩体积：受压时横向鼓得更多。对接触间隙影响应很小。"),
+    ("ball_rho", "软球密度 ρ", "改软球的密度（官方 1000 kg/m³）。", "软球 ρ（kg/m³）",
+     "球越重，压在接触上的力越大，barrier 要更大的推力才托得住，所以球与接触面之间的间隙应越小。"),
+    ("box_rho", "方块密度 ρ", "改刚体方块的密度（官方 500 kg/m³）。", "方块 ρ（kg/m³）",
+     "方块越重，方块与接触面之间的间隙应越小；其余物体不受影响。"),
+    ("cloth_E", "布的杨氏模量 E", "改布的 E（官方 1e5 Pa）。", "布 E（Pa）",
+     "E 越大布越难拉伸，越像一张绷着的膜；对布与物体之间的间隙影响应很小。"),
+    ("cloth_thickness", "布的厚度", "改布的厚度（官方 1 mm）。", "布厚度（mm）",
+     "厚度同时决定布的质量和面内刚度：越厚越重、越硬；越重的布压在物体上，间隙应越小。"),
+    ("cloth_bending", "布的弯曲刚度", "改布的 bending_stiffness（官方 50）。", "弯曲刚度",
+     "弯曲刚度越大布越难折弯、越像一块板，盖在物体上时垂得越少；对间隙影响应很小。"),
+    ("cloth_rho", "布的密度 ρ", "改布的密度（官方 200 kg/m³）。", "布 ρ（kg/m³）",
+     "布越重，布与接触面之间的间隙应越小。"),
 ]
 
 
@@ -723,6 +763,17 @@ OBSERVE = {
     "init_penetration": "libuipc 开跑前检查的日志原文。",
     "mesh_res": "四面体有没有翻转、总耗时。",
     "inversion_vs_E": "四面体翻转的比例。",
+    "box_friction": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙（法向有没有受影响）。",
+    "ground_friction": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙。",
+    "eps_velocity": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙。",
+    "constitution": "各接触面之间的间隙、每帧 Newton 迭代几次。",
+    "ball_nu": "各接触面之间的间隙、四面体有没有翻转。",
+    "ball_rho": "各接触面之间的间隙（软球那几类接触是否变小）。",
+    "box_rho": "各接触面之间的间隙（方块那几类接触是否变小）。",
+    "cloth_E": "各接触面之间的间隙（布那几类接触）。",
+    "cloth_thickness": "各接触面之间的间隙（布那几类接触）。",
+    "cloth_bending": "各接触面之间的间隙（布那几类接触）。",
+    "cloth_rho": "各接触面之间的间隙（布那几类接触是否变小）。",
 }
 # Each experiment's conclusion in one or two sentences (the numbers are in the table right above it; the verified
 # data behind each sentence is in Neural-IPC docs/claude_todo.md and the meeting outline section 4)
@@ -813,9 +864,10 @@ def contact_kind(name):
 
 def col_contact(d):
     """Gaps of the surface pairs in contact at the last frame (shortest surface-to-surface distance below d_hat, where
-    libuipc's barrier acts), grouped by the kinds of the two surfaces, from the rerun of the same level that records
-    them (sweep.py contact_gaps_final, under genesis_<set>_contact/)."""
-    c, _ = load_json(SWEEP_ROOT / f"genesis_{GEN_TAG}_contact" / d["sweep"] / f"{d['level']}.json")
+    libuipc's barrier acts), grouped by the kinds of the two surfaces (sweep.py contact_gaps_final). Levels run before
+    sweep.py recorded them are read from their rerun under genesis_<set>_contact/."""
+    c = d if "contact_gaps_final" in d else load_json(
+        SWEEP_ROOT / f"genesis_{GEN_TAG}_contact" / d["sweep"] / f"{d['level']}.json")[0]
     dh = dig(c, "libuipc_config", "contact", "d_hat") if isinstance(c, dict) else MISSING
     if not (isinstance(c, dict) and c.get("status") == "ok" and "contact_gaps_final" in c and is_num(dh)):
         return "—"
@@ -828,15 +880,34 @@ def col_contact(d):
                     for k, v in sorted(groups.items())) or "没有"
 
 
+def col_kappa(d):
+    """The contact stiffness libuipc actually used, from its own log lines (sweep.py kappa_log, needs --log-level
+    Debug): the clamped value when the set kappa fell outside the scene's corridor, else the set value."""
+    kl = d.get("kappa_log") or {}
+    corr = [h["groups"] for h in kl.get("kappa_corridor", [])]
+    clamped = sorted({float(h["groups"][3]) for h in kl.get("model_kappa_clamped", [])})
+    if not corr:
+        return "—（这次没开 libuipc 日志）"
+    lo, hi = sci(float(corr[0][0])), sci(float(corr[0][1]))
+    if clamped:
+        return f"被夹到 {'、'.join(sci(k) for k in clamped)}（允许区间 [{lo}, {hi}]）"
+    return f"没被夹，用设的值（允许区间 [{lo}, {hi}]）"
+
+
 NEWTON, SECONDS = ("每帧 Newton 迭代（中位 / 最多）", col_newton), ("仿真总耗时（s）", col_wall_seconds)
+KAPPA = ("libuipc 实际用的 κ（Pa，日志原文）", col_kappa)
 CONTACT = ("停住时各接触面之间的间隙（mm，只列小于 d̂ 的）", col_contact)
 FLIPPED, TOP, WALL = ("翻转的四面体", col_flipped), ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
 # CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
 SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, FLIPPED], "dt": [CONTACT, NEWTON, SECONDS],
-                 "friction": [TOP, WALL], "resistance": [CONTACT], "init_penetration": [],
-                 "mesh_res": [FLIPPED, SECONDS], "inversion_vs_E": [FLIPPED]}
+                 "friction": [TOP, WALL], "resistance": [KAPPA, CONTACT], "init_penetration": [],
+                 "mesh_res": [FLIPPED, SECONDS], "inversion_vs_E": [FLIPPED],
+                 "box_friction": [TOP, WALL, CONTACT], "ground_friction": [TOP, WALL, CONTACT],
+                 "eps_velocity": [TOP, WALL, CONTACT], "constitution": [CONTACT, NEWTON],
+                 "ball_nu": [CONTACT, FLIPPED], "ball_rho": [CONTACT], "box_rho": [CONTACT], "cloth_E": [CONTACT],
+                 "cloth_thickness": [CONTACT], "cloth_bending": [CONTACT], "cloth_rho": [CONTACT]}
 
 
 def gen_raw_cells(r, sweep):
