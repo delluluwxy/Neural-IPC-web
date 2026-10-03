@@ -506,6 +506,7 @@ th { font-weight: 600; color: var(--muted); font-size: 0.82rem; border-bottom-co
 td { font-variant-numeric: tabular-nums; }
 td.good { color: var(--good); }
 td.warn { color: var(--warn); }
+ul.obs { max-width: 90ch; font-size: 1.02rem; font-weight: 600; margin: 8px 0; padding-left: 22px; } ul.obs li { margin: 3px 0; }
 main.wrap { counter-reset: sec; } main.wrap section > h2 { counter-increment: sec; counter-reset: sub; } main.wrap section > h2::before { content: counter(sec) ". "; } main.wrap section > h3 { counter-increment: sub; } main.wrap section > h3::before { content: counter(sec) "." counter(sub) " "; }
 img.initframe { display: block; max-width: 640px; width: 100%; margin: 6px 0; }
 mjx-container { max-width: 100%; } mjx-container svg { max-width: 100%; height: auto; }
@@ -727,6 +728,22 @@ OBSERVE = {
     "resistance": "每一对接触面之间的最短距离：刚度真的变了，间隙就该跟着变。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
     "mesh_res": "libuipc 实际用的 κ（日志原文）、停住时各接触面之间的间隙、总耗时。",
+}
+# Short cause -> effect observations of each experiment, every one readable off its table (numbers in brackets)
+OBSERVATIONS = {
+    "baseline": ["每一对接触面停住时 → 间隙 0.73–0.99 倍 d̂，不贴死",
+                 "接触越重 → 间隙越小（方块–地面 0.8 倍 d̂ < 软球–地面 0.85 < 布–地面 0.97）"],
+    "d_hat": ["d̂ ↓ → 间隙 ↓（始终约 0.6–1 倍 d̂）",
+              "d̂ ↓ → Newton 次数 ↑（每帧最多：10 mm 7 次 → 5 mm 9 次 → 2 mm 11 次）",
+              "d̂ > 软球表面边长（约 12 mm）→ 球被自接触撑开（边长被撑到约 d̂：15 mm 时 15 mm，30 mm 时 26 mm）"],
+    "dt": ["dt ↓ → κ 下限 ↑ → 接触更硬 → 间隙更接近 d̂（0.04 s 时 6.7–9.2 mm → 0.002 s 时 9.4–9.6 mm）",
+           "dt ↓ → 总步数 ↑ → 耗时 ↑（0.04 s 16 s → 0.002 s 152 s），每帧 Newton 次数基本不变"],
+    "resistance": ["区间内 κ ↑ → 接触更硬 → 间隙 ↑（软球–地面：2e5 时 4.6 mm → 1e7 时 8.2 mm）",
+                   "κ 在区间外 → 被夹到边界 → 结果不再变（1e4 ≈ 2e5，默认 1e9 ≈ 1e7）"],
+    "init_penetration": ["一开始就穿插 → libuipc 拒绝开跑（0.1R、0.5R 都一样）"],
+    "mesh_res": ["网格越密 → 顶点平均质量 ↓ → κ ↓（粗 4.9e7 → 细 3.4e6）",
+                 "κ ↓ → 网格没变的物体接触变软 → 方块–地面间隙 ↓（粗 8.1–8.5 mm → 细 4.1 mm）",
+                 "网格越密 → 耗时 ↑（粗 12.1 s → 细 31.7 s）"],
 }
 # Each experiment's conclusion in one or two sentences (the numbers are in the table right above it; the verified
 # data behind each sentence is in Neural-IPC docs/claude_todo.md and the meeting outline section 4)
@@ -984,6 +1001,7 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
                  for r in rows if (r["sweep"], r["level"]) in videos]
         parts.append('<div class="grid">' + "".join(cards) + "</div>")
     parts.append(tbl)
+    parts.append('<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in OBSERVATIONS[sweep]) + "</ul>")
     parts.append(f'<p class="concl"><b>结论：</b>{esc(FINDINGS[sweep])}</p>')
     return "\n".join(parts)
 
