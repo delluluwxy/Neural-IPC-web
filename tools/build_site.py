@@ -470,7 +470,7 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 header.top { padding: 28px 0 8px; }
 h1 { font-size: 1.55rem; margin: 0 0 8px; font-weight: 650; letter-spacing: 0.01em; }
-.summary { margin: 8px 0 0; max-width: 72ch; }
+.summary { margin: 8px 0 0; }
 nav.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.9rem; margin: 14px 0 0;
           padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 h2 { font-size: 1.2rem; margin: 36px 0 10px; font-weight: 650; }
@@ -482,8 +482,8 @@ pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
           max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 details.repro { margin: 10px 0 26px; }
 details.repro summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
-p.concl { max-width: 80ch; font-size: 1.05rem; color: var(--good); }
-p.expect { max-width: 80ch; font-size: 1.08rem; color: var(--accent); }
+p.concl { font-size: 1.05rem; color: var(--good); }
+p.expect { font-size: 1.08rem; color: var(--accent); }
 p.setting { font-size: 0.8rem; color: var(--fg); }
 section { scroll-margin-top: 12px; }
 p { margin: 6px 0; }
@@ -508,13 +508,13 @@ th { font-weight: 600; color: var(--muted); font-size: 0.82rem; border-bottom-co
 td { font-variant-numeric: tabular-nums; }
 td.good { color: var(--good); }
 td.warn { color: var(--warn); }
-ul.obs { max-width: 90ch; font-size: 1.02rem; font-weight: 600; margin: 8px 0; padding-left: 22px; } ul.obs li { margin: 3px 0; }
+ul.obs { font-size: 1.02rem; font-weight: 600; margin: 8px 0; padding-left: 22px; } ul.obs li { margin: 3px 0; }
 main.wrap { counter-reset: sec; } main.wrap section > h2 { counter-increment: sec; counter-reset: sub; } main.wrap section > h2::before { content: counter(sec) ". "; } main.wrap section > h3 { counter-increment: sub; } main.wrap section > h3::before { content: counter(sec) "." counter(sub) " "; }
 img.initframe { display: block; max-width: 640px; width: 100%; margin: 6px 0; }
 mjx-container { max-width: 100%; } mjx-container svg { max-width: 100%; height: auto; }
-ul.findings { padding-left: 20px; max-width: 80ch; }
+ul.findings { padding-left: 20px; }
 ul.findings li { margin: 8px 0; }
-.next { max-width: 80ch; }
+.next { }
 footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border);
               margin-top: 40px; padding: 12px 16px 28px; }
 @media (max-width: 480px) {
