@@ -587,16 +587,16 @@ def rows_of(sweeps, name):
 # GENESIS_SWEEPS 上方注释：contact_resistance 默认 1e9，FEM friction_mu 默认 0.1；ball_subdiv 不给 = 官方
 # gs.morphs.Sphere(radius=0.08)，见 run_genesis_ipc_example.py soft_ball_morph）
 # Official / Genesis / libuipc default of every override key (ipc_objects_falling.py, materials/rigid.py coup_friction,
-# libuipc scene_default_config.cpp contact/eps_velocity and contact/constitution)
+# libuipc scene_default_config.cpp contact/eps_velocity)
 GENESIS_DEFAULTS = {"friction_mu": 0.1, "contact_resistance": 1e9, "overlap_balls": 0.0, "ball_subdiv": None,
                     "ball_E": 1.0e3, "box_coup_friction": 0.1, "ground_coup_friction": 0.1,
-                    "contact_eps_velocity": 0.01, "contact_constitution": "ipc", "ball_nu": 0.3, "ball_rho": 1000.0,
+                    "contact_eps_velocity": 0.01, "ball_nu": 0.3, "ball_rho": 1000.0,
                     "box_rho": 500.0, "cloth_E": 1e5, "cloth_thickness": 0.001, "cloth_bending": 50.0,
                     "cloth_rho": 200.0}
 GENESIS_KEYS = {"friction": "friction_mu", "resistance": "contact_resistance", "init_penetration": "overlap_balls",
                 "mesh_res": "ball_subdiv", "inversion_vs_E": "ball_E", "box_friction": "box_coup_friction",
                 "ground_friction": "ground_coup_friction", "eps_velocity": "contact_eps_velocity",
-                "constitution": "contact_constitution", "ball_nu": "ball_nu", "ball_rho": "ball_rho",
+                "ball_nu": "ball_nu", "ball_rho": "ball_rho",
                 "box_rho": "box_rho", "cloth_E": "cloth_E", "cloth_thickness": "cloth_thickness",
                 "cloth_bending": "cloth_bending", "cloth_rho": "cloth_rho"}  # sweep -> override key in configs
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
@@ -676,8 +676,6 @@ def gen_label(r, sweep, cfg):
         size = {"coarse": "粗", "medium": "中", "fine": "细"}.get(r["level"], r["level"])
         # trimesh.creation.icosphere(subdivisions=k)：表面 10·4^k + 2 个顶点（soft_ball_morph docstring）
         return size + (f"：icosphere 细分 {v} 次（表面 {10 * 4 ** v + 2} 个顶点）" if isinstance(v, int) else "")
-    if isinstance(v, str):
-        return v + dflt
     if not is_num(v):
         return r["level"] + dflt
     if sweep == "cloth_thickness":
@@ -734,8 +732,6 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "ε_v（m/s）",
      "ε_v 越大，越慢的滑动都被当成“粘住”，物体更容易停住、不容易慢慢滑走；ε_v 越小越接近真实的库仑摩擦，"
      "静止的物体可能还在缓慢滑移。不影响法向间隙。"),
-    ("constitution", "接触能量模型", "改 contact_constitution（libuipc 默认 ipc），换成 isometric。", "接触模型",
-     "两种模型的 barrier 形式不同，同样的 d̂ 下物体停住的间隙和求解难度可能不同；都应不穿透。"),
     ("ball_nu", "软球泊松比 ν", "改软球的泊松比（官方 0.3）。", "软球 ν",
      "ν 越接近 0.5 球越难压缩体积：受压时横向鼓得更多。对接触间隙影响应很小。"),
     ("ball_rho", "软球密度 ρ", "改软球的密度（官方 1000 kg/m³）。", "软球 ρ（kg/m³）",
@@ -766,7 +762,6 @@ OBSERVE = {
     "box_friction": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙（法向有没有受影响）。",
     "ground_friction": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙。",
     "eps_velocity": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙。",
-    "constitution": "各接触面之间的间隙、每帧 Newton 迭代几次。",
     "ball_nu": "各接触面之间的间隙、四面体有没有翻转。",
     "ball_rho": "各接触面之间的间隙（软球那几类接触是否变小）。",
     "box_rho": "各接触面之间的间隙（方块那几类接触是否变小）。",
@@ -905,7 +900,7 @@ SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, FLIPP
                  "friction": [TOP, WALL], "resistance": [KAPPA, CONTACT], "init_penetration": [],
                  "mesh_res": [FLIPPED, SECONDS], "inversion_vs_E": [FLIPPED],
                  "box_friction": [TOP, WALL, CONTACT], "ground_friction": [TOP, WALL, CONTACT],
-                 "eps_velocity": [TOP, WALL, CONTACT], "constitution": [CONTACT, NEWTON],
+                 "eps_velocity": [TOP, WALL, CONTACT],
                  "ball_nu": [CONTACT, FLIPPED], "ball_rho": [CONTACT], "box_rho": [CONTACT], "cloth_E": [CONTACT],
                  "cloth_thickness": [CONTACT], "cloth_bending": [CONTACT], "cloth_rho": [CONTACT]}
 
