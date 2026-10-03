@@ -684,7 +684,7 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
     ("baseline", "官方参数：一堆物体扔进盒子",
      "对照档：下面各节要扫的参数在这里都取官方本例的值和 Genesis 默认（软球 E 是否改过见下一句）。", "配置",
      "物体落下、互相碰撞后堆在盒子里。IPC 的 barrier 让任意两个表面之间始终留着一点小于 d̂ 的间隙，"
-     "所以全程不该有穿透，静止后物体离地面也只差不到 d̂ 的一小段。"),
+     "所以全程不该有穿透。"),
     ("d_hat", "d̂（barrier 作用距离）", "改 contact_d_hat。官方本例取 1 cm，Genesis 注释说应按网格分辨率取。", "d̂（mm）",
      "d̂ 是 barrier 开始起作用的距离。d̂ 变小，物体之间、物体与地面停住时的间隙跟着变小，接触更“硬”，"
      "Newton 迭代一般会变多；d̂ 变大，物体隔得更远就被推开。不论 d̂ 取多少，都不该出现穿透。"),
@@ -715,11 +715,11 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
 
 # What each experiment looks at (its SWEEP_COLUMNS) and why
 OBSERVE = {
-    "baseline": "每个物体最低点离地多高（应小于 d̂），每帧 Newton 迭代几次（好不好解）。",
-    "d_hat": "每个物体最低点离地多高、每帧 Newton 迭代几次、四面体有没有翻转。",
+    "baseline": "有没有穿透，每帧 Newton 迭代几次（好不好解）。",
+    "d_hat": "每帧 Newton 迭代几次、四面体有没有翻转。",
     "dt": "每帧 Newton 迭代几次、总耗时。",
     "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
-    "resistance": "每个物体最低点离地多高：刚度真的生效的话，刚度越大间隙越大。",
+    "resistance": "libuipc 日志里设的刚度有没有被夹住。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
     "mesh_res": "四面体有没有翻转、总耗时。",
     "inversion_vs_E": "四面体翻转的比例。",
@@ -727,14 +727,14 @@ OBSERVE = {
 # Each experiment's conclusion in one or two sentences (the numbers are in the table right above it; the verified
 # data behind each sentence is in Neural-IPC docs/claude_todo.md and the meeting outline section 4)
 FINDINGS = {
-    "baseline": "与期待一致：全程没有穿透；软球和方块的最低点都离地一小段、小于 d̂，停在 barrier 起作用的那一层里，"
-                "而不是贴着地面（只测了和地面的接触）。",
-    "d_hat": "与期待一致：d̂ 越小，物体停得越贴地，但每帧 Newton 迭代越多。d̂ 不能大于软体表面网格的边长："
-             "d̂ = 30 mm 时自接触把球从里面撑开，出现翻转。",
+    "baseline": "与期待一致：全程没有穿透。",
+    "d_hat": "d̂ 越小，每帧 Newton 迭代越多（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面"
+             "撑开，出现翻转。",
     "dt": "每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加：dt 主要影响代价。",
     "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
-    "resistance": "设成 1e8 及以上的几档结果几乎一样，因为都被 libuipc 夹到同一个上限；只有 1e6 落在允许区间内。"
-                  "在 Genesis 里调 contact_resistance 基本调不动接触刚度。",
+    "resistance": "libuipc 日志显示这个场景允许的刚度区间是 [1.57e5, 1.57e7] Pa：Genesis 默认的 1e9 和 1e11 都被夹到"
+                  "上限 1.57e7，实际是同一个刚度；1e6 在区间内照用（1e8 也高于上限，没单独看日志）。在 Genesis 里调 "
+                  "contact_resistance 基本调不动接触刚度。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
     "mesh_res": "三种网格都没有穿透；最细那档表面边长已小于 d̂，自接触把球撑开、出现翻转。网格越细越慢。",
     "inversion_vs_E": "与期待一致：E 越大翻转越少，E = 1e5 时没有翻转。翻转是软球太软造成的，生成数据要用足够硬的材料。",
@@ -768,15 +768,6 @@ def gen_split(d):
             "g_dt2": abs(gz) * dt * dt if is_num(gz) and is_num(dt) else MISSING}
 
 
-def col_gap(d):
-    """Range over the soft balls and rigid boxes of each one's lowest point at the last frame, mm. Balls: lowest surface
-    vertex. Boxes: lowest vertex as Genesis reads it, shifted by the IPC-minus-Genesis centre height (Genesis's rigid
-    solver adds one gravity step after IPC writes the pose back), so a tilted box is measured at its lowest corner."""
-    lows = [o["surface_min_z"] if is_num(o.get("surface_min_z")) else o["min_z"] + o["ipc_pos_z"] - o["genesis_pos_z"]
-            for o in (d.get("objects_final") or {}).values()
-            if isinstance(o, dict) and (is_num(o.get("surface_min_z")) or is_num(o.get("ipc_pos_z")))]
-    return f"{g3(min(lows) * 1000)}–{g3(max(lows) * 1000)}" if lows else "—"
-
 
 def col_newton(d):
     s = d.get("summary") or {}
@@ -809,15 +800,14 @@ def col_wall_gap(d):
     return f"{g3(min(gaps) * 1000)}–{g3(max(gaps) * 1000)}" if gaps else "—"
 
 
-GAP, NEWTON, SECONDS = ("各物体最低点离地（mm，最小–最大）", col_gap), ("每帧 Newton 迭代（中位 / 最多）", col_newton), \
-    ("仿真总耗时（s）", col_wall_seconds)
+NEWTON, SECONDS = ("每帧 Newton 迭代（中位 / 最多）", col_newton), ("仿真总耗时（s）", col_wall_seconds)
 FLIPPED, TOP, WALL = ("翻转的四面体", col_flipped), ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
-# GAP is the lowest soft-ball surface point: a ball-ground gap only where the balls rest on the ground (they do in the
-# baseline, d_hat and resistance levels: centroids at about one radius), so it is shown only there.
-SWEEP_COLUMNS = {"baseline": [GAP, NEWTON], "d_hat": [GAP, NEWTON, FLIPPED], "dt": [NEWTON, SECONDS],
-                 "friction": [TOP, WALL], "resistance": [GAP], "init_penetration": [],
+# The gap between resting surfaces is not shown: it has to be measured to the surface each object actually touches
+# (cloth, another object or the ground), and the sweep results record no final surface meshes to do that.
+SWEEP_COLUMNS = {"baseline": [NEWTON], "d_hat": [NEWTON, FLIPPED], "dt": [NEWTON, SECONDS],
+                 "friction": [TOP, WALL], "resistance": [], "init_penetration": [],
                  "mesh_res": [FLIPPED, SECONDS], "inversion_vs_E": [FLIPPED]}
 
 
@@ -1060,7 +1050,7 @@ def build_page(demos, tests, gsweeps, cfg, facts, videos, commit):
                f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
                f"然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 {n_gsweeps} 个 IPC 参数"
                f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
-               "d̂ 决定物体停在离地多远，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
+               "d̂ 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
                "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")
     nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
