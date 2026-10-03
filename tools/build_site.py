@@ -79,14 +79,27 @@ DEMOS = [
 OFFICIAL_TESTS = [
     ("genesis_test_test_ground_clearance_0", "tests/ipc/test_rigid.py::test_ground_clearance[0]",
      "离地间隙随接触刚度变（官方测试）",
-     "5 个方块的 contact_resistance 从 1e2 到 1e6；官方断言：刚度越大，离地间隙越大，并且会停住。"),
+     "5 个方块落地，contact_resistance 从 1e2 到 1e6；官方断言：不横向漂移、会停住、刚度越大离地间隙越大"
+     "（test_rigid.py 257-264 行）。"),
     ("genesis_test_test_ground_sliding_0", "tests/ipc/test_rigid.py::test_ground_sliding[0]",
-     "地面滑动与摩擦（官方测试）", "方块在地面上滑动；官方断言见测试源码 test_ground_sliding。"),
+     "斜向重力下的地面滑动（官方测试）",
+     "重力带水平分量，5 个方块摩擦系数 0–0.16；官方断言：不穿地、离地高度与摩擦无关、摩擦越小滑得越远"
+     "（test_rigid.py 316-329 行）。"),
     ("genesis_test_test_objects_colliding_0", "tests/ipc/test_rigid.py::test_objects_colliding[0]",
-     "物体相撞（官方测试）", "物体互相碰撞；官方断言见测试源码 test_objects_colliding。"),
+     "布料盖在物体上（官方测试）",
+     "物体和布料落地；官方断言：全部落到地面且不穿地、没有飞走、最终静止、布料盖在所有物体上面（test_rigid.py 540-555 行）。"),
     ("genesis_test_test_cloth_corner_drag_0", "tests/ipc/test_deformable.py::test_cloth_corner_drag[0]",
-     "拽布料一角（官方测试）", "布料被拽住一角；官方断言见测试源码 test_cloth_corner_drag。"),
+     "夹住布料一角拖动（官方测试）",
+     "两个方块夹住布料一角，先静置再拖着画一圈；官方断言：布料没掉、被夹的角始终跟着夹子走（test_deformable.py 253-271 行）。"),
 ]
+# What the server run found for the tests whose assertions failed (2026-10-02; Genesis's own assertion text in
+# official_test.json), shown on the card next to the outcome.
+OFFICIAL_TEST_NOTES = {
+    "genesis_test_test_ground_clearance_0": "实测 5 个方块离地间隙全是 8.18 mm：这版 libuipc 把超出允许区间的接触刚度夹到区间端点"
+                                            "（见下方「接触刚度 κ」），几档实际是同一个刚度。",
+    "genesis_test_test_ground_sliding_0": "没过的是「离地高度与摩擦无关」：有一个方块比相邻的高 9.3 mm；"
+                                          "不挂录像、原样用 pytest 跑结果逐位相同，所以不是录像造成的，原因未查。",
+}
 
 PAGE_TITLE = "Neural-IPC 周汇报"
 NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("sweep", "盒子实验与参数扫描")]  # 锚点只用字母
@@ -212,7 +225,8 @@ def collect_official_test(key, nodeid, title, line):
         return r
     r["state"], r["outcome"] = "ok", rec.get("outcome")
     r["line"] = (f"{line} 官方断言：" + {"passed": "通过", "failed": "未通过", "skipped": "跳过"}.get(
-        rec.get("outcome"), f"无结果（pytest 退出码 {rec.get('pytest_exit_code')}）") + "。")
+        rec.get("outcome"), f"无结果（pytest 退出码 {rec.get('pytest_exit_code')}）") + "。"
+                 + (OFFICIAL_TEST_NOTES.get(key, "") if rec.get("outcome") == "failed" else ""))
     scenes = rec.get("scenes") or []
     vp = Path(scenes[0]["video"]) if scenes else None
     if vp and vp.is_file() and vp.stat().st_size > 0:
