@@ -1091,7 +1091,7 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
 
 
 def sweep_section(gsweeps, cfg, videos):
-    """盒子实验：set_variant 选的那套（主结果）的每个参数扫描，然后是方案 3（官方软球不被压）一节。"""
+    """盒子实验：set_variant 选的那套（主结果）的每个参数扫描。"""
     gb = rows_of(gsweeps, "baseline")
     gd = gb[0]["data"] if gb and gb[0]["data"] else {}
     gscene = ("Genesis 没有「一堆物体扔进盒子」的官方例子，这里用官方 ipc_objects_falling 场景加一个盒子和更多同款物体。"
@@ -1117,7 +1117,6 @@ DATA_IMPLICATIONS = [
     ("初始状态必须无穿透，生成初始条件时先检查。", "初始穿插实验：一开始就互相穿插时 libuipc 拒绝开跑。"),
     ("关掉 libuipc 的半隐式提前终止，或者逐帧检查是否真的收敛。",
      "官方测试「地面滑动」：它默认开着，Newton 没算到收敛就停，误差积累成方块翻倒；关掉后断言通过。"),
-    ("软体材料要足够硬，并检查四面体有没有被压翻。", "方案 3：官方软球 E = 1 kPa 只靠自重就被压到一半高。"),
     ("位置从 libuipc 那一侧读，不用 Genesis 的读数。",
      "Genesis 在 libuipc 写回位置后又多走一步重力，刚体读数比 IPC 里低 \\(g\\,\\Delta t^{2}\\)（\\(\\Delta t=0.02\\) s 时约 3.9 mm，和 d̂ 同一量级）。"),
     ("同一个初始条件在 GPU 上跑两次结果不逐位相同，不能假设可重复。",
