@@ -118,7 +118,7 @@ OFFICIAL_TEST_NOTES = {
 }
 
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("sweep", "盒子实验与参数扫描")]  # 锚点只用字母
+NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("sweep", "盒子实验与参数扫描"), ("data", "对生成数据的意义")]  # 锚点只用字母
 
 
 # ==========================================================================
@@ -745,7 +745,7 @@ FINDINGS = {
                  "软球网格越密，顶点越多、平均质量越小，κ 区间整体往下移（默认 1e9 被夹到的上限从粗网格的 4.9e7 降到细网格的 "
                  "3.4e6）。每对接触的 barrier 不按面积加权，所以加密的软球自己多了接触点、大致抵消（软球–地面间隙 8.4–8.7 → "
                  "6.4 mm）；而网格没变的方块、布没有抵消，接触明显变软（方块–地面 8.1–8.5 → 4.1 mm）。也就是说加密一个物体"
-                 "会让场景里其他物体的接触变软，生成数据时要显式固定 κ。另外最细那档表面边长已小于 d̂，自接触把球撑开；网格越细越慢。"),
+                 "会让场景里其他物体的接触变软。另外最细那档表面边长已小于 d̂，自接触把球撑开；网格越细越慢。"),
 }
 
 
@@ -969,9 +969,36 @@ def sweep_section(gsweeps, cfg, videos):
     for sweep, title, one, expect, rows, tbl in genesis_sweep_tables(gsweeps, cfg):
         parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd))
     parts.append(officialball_block())
-    parts.append(f'<p class="next">{NEXT_STEPS}</p>')
     parts.append("</section>")
     return "\n".join(parts)
+
+
+# What the experiments above mean for generating training data: (what to do, which result above it rests on)
+DATA_IMPLICATIONS = [
+    ("接触刚度 κ 要显式设定，并从 libuipc 日志确认没被夹。",
+     "κ 实验：Genesis 的 contact_resistance 只有落在 libuipc 按场景算出的区间里才生效，区间外一律被夹到边界。"),
+    ("同一批数据里每个样本用同一个显式 κ，不能交给 libuipc 自动选。",
+     "网格实验：κ 区间按全场景所有顶点的平均质量定，加密一个物体会让其他物体的接触变软（方块–地面间隙 8.1–8.5 → "
+     "4.1 mm）；dt 实验：区间下限随 1/dt² 变，dt 越小接触越硬。"),
+    ("d̂ 是数据里接触的尺度：要记录下来，且不能大于物体最短的表面边长。",
+     "d̂ 实验：每一对接触都停在 0.65–1 倍 d̂ 的地方；d̂ 越小越贴近、但每帧 Newton 迭代越多；d̂ = 30 mm 大于软球表面边长时，"
+     "自接触把球从里面撑开。"),
+    ("初始状态必须无穿透，生成初始条件时先检查。", "初始穿插实验：一开始就互相穿插时 libuipc 拒绝开跑。"),
+    ("关掉 libuipc 的半隐式提前终止，或者逐帧检查是否真的收敛。",
+     "官方测试「地面滑动」：它默认开着，Newton 没算到收敛就停，误差积累成方块翻倒；关掉后断言通过。"),
+    ("软体材料要足够硬，并检查四面体有没有被压翻。", "方案 3：官方软球 E = 1 kPa 只靠自重就被压到一半高。"),
+    ("位置从 libuipc 那一侧读，不用 Genesis 的读数。",
+     "Genesis 在 libuipc 写回位置后又多走一步重力，刚体读数比 IPC 里低 g·dt²（dt = 0.02 s 时约 3.9 mm，和 d̂ 同一量级）。"),
+    ("同一个初始条件在 GPU 上跑两次结果不逐位相同，不能假设可重复。",
+     "同参数的两次运行，物体最后的水平落点能差 80 mm。"),
+]
+
+
+def data_section():
+    """The training-data implications of the experiments, one item per DATA_IMPLICATIONS entry (what to do + basis)."""
+    items = "".join(f"<li><b>{esc(what)}</b><br><span class=\"small\">依据：{esc(why)}</span></li>"
+                    for what, why in DATA_IMPLICATIONS)
+    return f'<section id="data"><h2>对生成训练数据的意义</h2><ol>{items}</ol></section>'
 
 
 def officialball_block():
@@ -1064,8 +1091,6 @@ def compute_facts(demos):
     return {"momentum_err": dig(mom[0]["info"], "run", "final_rel_momentum_error") if mom else MISSING}
 
 
-NEXT_STEPS = ("<b>下一步：</b>生成数据时显式固定 κ（落在 libuipc 区间内并从日志核对没被夹）、软体用更大的 E 并检查四面体翻转；"
-              "加能反映堆积形态的指标。")
 
 
 def build_page(demos, tests, gsweeps, cfg, facts, videos, commit):
@@ -1085,7 +1110,7 @@ def build_page(demos, tests, gsweeps, cfg, facts, videos, commit):
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
             + videos_section(demos, tests, facts) + "\n"
-            + sweep_section(gsweeps, cfg, videos))
+            + sweep_section(gsweeps, cfg, videos) + "\n" + data_section())
     return page(body)
 
 
