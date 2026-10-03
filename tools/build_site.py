@@ -590,7 +590,7 @@ def rows_of(sweeps, name):
 GENESIS_DEFAULTS = {"friction_mu": 0.1, "contact_resistance": 1e9, "overlap_balls": 0.0, "ball_subdiv": None,
                     "ball_E": 1.0e3, "contact_eps_velocity": 0.01}
 GENESIS_KEYS = {"friction": "friction_mu", "resistance": "contact_resistance", "init_penetration": "overlap_balls",
-                "mesh_res": "ball_subdiv", "inversion_vs_E": "ball_E",
+                "mesh_res": "ball_subdiv",
                 "eps_velocity": "contact_eps_velocity"}  # sweep -> override key in configs
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 # genesis fem_entity.py:542 打印 (n_elements, n_vertices)；软球是 Sphere（官方）或 Mesh（icosphere），材料都是 FEM.Elastic
@@ -671,8 +671,6 @@ def gen_label(r, sweep, cfg):
         return size + (f"：icosphere 细分 {v} 次（表面 {10 * 4 ** v + 2} 个顶点）" if isinstance(v, int) else "")
     if not is_num(v):
         return r["level"] + dflt
-    if sweep == "inversion_vs_E":
-        return f"软球 E = {sci(v)} Pa" + ("（官方 E，即 d̂ 扫描的 2 mm 档）" if r["sweep"] == "d_hat" else "")
     if sweep == "d_hat":
         return g3(v * 1000) + dflt
     if sweep == "resistance":
@@ -708,10 +706,6 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "软球网格",
      "网格越细，球面越接近真球，接触时参与的顶点越多，每步要解的未知数越多、越慢。"
      "只要初始无穿插，网格粗细都不该影响会不会穿透，物体落地后的大致位置应该接近。"),
-    ("inversion_vs_E", "软球硬度 E（查四面体翻转）", "d̂ 固定 2 mm（翻转最多的一档），只把软球的杨氏模量 E 从官方的 1e3 Pa 换成 1e4、1e5 Pa。",
-     "软球 E",
-     "官方软球 E = 1 kPa，自重压力 ρ·g·2R ≈ 1000 × 9.8 × 0.16 ≈ 1.6 kPa 已超过 E，球会被压到大应变；"
-     "Stable Neo-Hookean 在四面体翻转后能量仍有限，所以不会阻止翻转。若翻转是材料太软造成的，E 越大翻转应越少。"),
     ("eps_velocity", "静摩擦判定速度 ε_v", "改 contact_eps_velocity（libuipc 默认 0.01 m/s）：相对滑动速度低于它按静摩擦处理。",
      "ε_v（m/s）",
      "ε_v 越大，越慢的滑动都被当成“粘住”，物体更容易停住、不容易慢慢滑走；ε_v 越小越接近真实的库仑摩擦，"
@@ -722,13 +716,12 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
 # What each experiment looks at (its SWEEP_COLUMNS) and why
 OBSERVE = {
     "baseline": "停住时每一对接触面（球–地、球–布、布–方块……）之间的最短距离，每帧 Newton 迭代几次（好不好解）。",
-    "d_hat": "每一对接触面之间的最短距离（是否跟着 d̂ 变）、每帧 Newton 迭代几次、四面体有没有翻转。",
+    "d_hat": "每一对接触面之间的最短距离（是否跟着 d̂ 变）、每帧 Newton 迭代几次。",
     "dt": "每帧 Newton 迭代几次、总耗时，以及停住时各接触面之间的间隙（接触变硬没有）。",
     "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
     "resistance": "每一对接触面之间的最短距离：刚度真的变了，间隙就该跟着变。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
     "mesh_res": "libuipc 实际用的 κ（日志原文）、停住时各接触面之间的间隙、总耗时。",
-    "inversion_vs_E": "四面体翻转的比例。",
     "eps_velocity": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙。",
 }
 # Each experiment's conclusion in one or two sentences (the numbers are in the table right above it; the verified
@@ -738,7 +731,7 @@ FINDINGS = {
                 "0.7–1 倍 d̂ 的缝，物体停在 barrier 起作用的那一层里。越重的接触缝越小：方块压地约 0.8 d̂，"
                 "软球约 0.85 d̂，很轻的布只陷到约 0.97 d̂——barrier 的推力随间隙变小急剧增大，越重越要陷得深才托得住。",
     "d_hat": "与期待一致：所有接触的间隙都跟着 d̂ 走（始终约 0.65–1 倍 d̂），d̂ 越小物体靠得越近，但每帧 Newton 迭代越多"
-             "（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面撑开，出现翻转。",
+             "（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面撑开（表面的边被拉长到约 2 倍）。",
     "dt": "与期待一致：每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加；dt 越小，接触间隙越接近 d̂（libuipc 按 1/dt² 抬高接触刚度下限，接触更硬、物体陷得更浅）。",
     "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
     "resistance": "与期待一致：libuipc 只认这个场景允许的区间 [1.57e5, 1.57e7] Pa。区间内（2e5 → 1e6 → 3e6 → 1e7）"
@@ -749,7 +742,6 @@ FINDINGS = {
                     "停住了，ε_v 只管很慢的滑动算不算粘住，要看出它的作用需要有持续慢速滑动的场景（比如斜面），这里没有。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
     "mesh_res": "网格越密，libuipc 自动定的 κ 越小：它按每个顶点的平均质量定 κ 区间，网格越密每个顶点越轻，区间整体往下移（默认 1e9 被夹到的上限从粗网格的 4.9e7 降到细网格的 3.4e6）。κ 小接触就软，物体陷进 barrier 更深，细网格的间隙最小到 0.41 倍 d̂。所以同一个物体换了网格，IPC 实际用的接触刚度就变了，生成数据时要显式固定 κ 并确认它在区间内。另外最细那档表面边长已小于 d̂，自接触把球撑开；网格越细越慢。",
-    "inversion_vs_E": "与期待一致：E 越大翻转越少，E = 1e5 时没有翻转。翻转是软球太软造成的，生成数据要用足够硬的材料。",
 }
 
 
@@ -763,24 +755,6 @@ def gen_defaults_text(gd):
             + ("（官方是 1e3）" if ball_e != GENESIS_DEFAULTS["ball_E"] else "（官方值）"))
 
 
-def gen_split(d):
-    """结果文件 objects_final 里新增的分项读数（只有重跑过的档才有，没有就返回 None，不补不猜）：
-    FEM 软球 surface_min_z / interior_min_z / n_inverted_tets / n_tets，刚体 ipc_pos_z / genesis_pos_z。
-    返回 {"balls": [(名, 表面最低, 内部最低, 翻转数, 四面体数)], "rigids": [(名, IPC 高度, Genesis 高度)],
-          "g_dt2": |g_z|·dt²（g 取 libuipc_config.gravity，dt 取结果文件）}。"""
-    objs = d.get("objects_final") or {}
-    balls = [(k, o["surface_min_z"], o.get("interior_min_z"), o.get("n_inverted_tets"), o.get("n_tets"))
-             for k, o in objs.items() if isinstance(o, dict) and is_num(o.get("surface_min_z"))]
-    rigids = [(k, o["ipc_pos_z"], o.get("genesis_pos_z")) for k, o in objs.items()
-              if isinstance(o, dict) and is_num(o.get("ipc_pos_z")) and is_num(o.get("genesis_pos_z"))]
-    if not balls and not rigids:
-        return None
-    gz, dt = dig(d, "libuipc_config", "gravity", 2, 0), d.get("dt", MISSING)  # gravity 存成 [[0.0], [0.0], [-9.81]]
-    return {"balls": balls, "rigids": rigids,
-            "g_dt2": abs(gz) * dt * dt if is_num(gz) and is_num(dt) else MISSING}
-
-
-
 def col_newton(d):
     s = d.get("summary") or {}
     return f"{g3(s.get('newton_iter_frame_stats_median'))} / {g3(s.get('newton_iter_frame_stats_max'))}"
@@ -788,14 +762,6 @@ def col_newton(d):
 
 def col_wall_seconds(d):
     return g3(dig(d, "summary", "wall_seconds_total"))
-
-
-def col_flipped(d):
-    """Share of flipped tetrahedra over all soft balls at the last frame."""
-    sp = gen_split(d) or {"balls": []}
-    ni = sum(b[3] for b in sp["balls"] if is_num(b[3]))
-    nt = sum(b[4] for b in sp["balls"] if is_num(b[4]))
-    return pct(ni / nt) if nt else "—"
 
 
 def col_top(d):
@@ -861,13 +827,13 @@ def col_kappa(d):
 NEWTON, SECONDS = ("每帧 Newton 迭代（中位 / 最多）", col_newton), ("仿真总耗时（s）", col_wall_seconds)
 KAPPA = ("libuipc 实际用的 κ（Pa，日志原文）", col_kappa)
 CONTACT = ("停住时各接触面之间的间隙（mm，只列小于 d̂ 的）", col_contact)
-FLIPPED, TOP, WALL = ("翻转的四面体", col_flipped), ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
+TOP, WALL = ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
 # CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
-SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, FLIPPED], "dt": [CONTACT, NEWTON, SECONDS],
+SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON], "dt": [CONTACT, NEWTON, SECONDS],
                  "friction": [TOP, WALL], "resistance": [KAPPA, CONTACT], "init_penetration": [],
-                 "mesh_res": [KAPPA, CONTACT, SECONDS], "inversion_vs_E": [FLIPPED],
+                 "mesh_res": [KAPPA, CONTACT, SECONDS],
                  "eps_velocity": [TOP, WALL, CONTACT]}
 
 
@@ -884,8 +850,7 @@ def genesis_sweep_tables(sweeps, cfg):
     base = rows_of(sweeps, "baseline")
     out = []
     for sweep, title, one, head, expect in GENESIS_TABLES:
-        # inversion_vs_E keeps d̂ = 2 mm, so its reference row is the d̂ = 2 mm level (official E), not the baseline
-        ref = [r for r in rows_of(sweeps, "d_hat") if r["level"] == "0p002"] if sweep == "inversion_vs_E" else base
+        ref = base
         rows = list(base) if sweep == "baseline" else list(rows_of(sweeps, sweep)) + list(ref)
 
         def key(r):
