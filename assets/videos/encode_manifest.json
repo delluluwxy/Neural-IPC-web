@@ -2110,5 +2110,37 @@
   ],
   "out_size": 75163,
   "encoded_at": "2026-10-03 09:06:41"
+ },
+ "box_stiffball_init_penetration_overlap_0p5R_bypass.mp4": {
+  "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/init_penetration_overlap_0p5R_bypass/genesis_ipc_objects_in_box.mp4",
+  "src_size": 1482584,
+  "src_mtime": 1791051062.5767248,
+  "crf": 26,
+  "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
+  "args": [
+   "-hide_banner",
+   "-loglevel",
+   "error",
+   "-nostdin",
+   "-y",
+   "-i",
+   "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/init_penetration_overlap_0p5R_bypass/genesis_ipc_objects_in_box.mp4",
+   "-vf",
+   "scale=-2:'min(720,ih)'",
+   "-c:v",
+   "libx264",
+   "-preset",
+   "slow",
+   "-crf",
+   "26",
+   "-pix_fmt",
+   "yuv420p",
+   "-movflags",
+   "+faststart",
+   "-an",
+   "<out>"
+  ],
+  "out_size": 85086,
+  "encoded_at": "2026-10-03 11:12:01"
  }
 }

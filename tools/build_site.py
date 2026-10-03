@@ -25,9 +25,11 @@ index.html 按 Artifact 页面规范写：开头直接是 <title> 和 <style>，
 import argparse
 import ast
 import datetime
+import functools
 import html
 import importlib.util
 import json
+import math
 import os
 import re
 import shlex
@@ -736,7 +738,8 @@ OBSERVATIONS = {
            "dt ↓ → 总步数 ↑ → 耗时 ↑（0.04 s 16 s → 0.002 s 152 s），每帧 Newton 次数基本不变"],
     "resistance": ["区间内 κ ↑ → 接触更硬 → 间隙 ↑（软球–地面：2e5 时 4.6 mm → 1e7 时 8.2 mm）",
                    "κ 在区间外 → 被夹到边界 → 结果不再变（1e4 ≈ 2e5，默认 1e9 ≈ 1e7）"],
-    "init_penetration": ["一开始就穿插 → libuipc 拒绝开跑（0.1R、0.5R 都一样）"],
+    "init_penetration": ["一开始就穿插 → libuipc 开跑前的检查报相交 → 拒绝开跑",
+                         "关掉检查硬跑 → 能跑完、不报错，但两个球一直嵌在一起（球心距离始终约 120–136 mm，不穿插至少要 160 mm）"],
     "mesh_res": ["网格越密 → 顶点平均质量 ↓ → κ ↓（粗 4.9e7 → 细 3.4e6）",
                  "κ ↓ → 网格没变的物体接触变软 → 方块–地面间隙 ↓（粗 8.1–8.5 mm → 细 4.1 mm）",
                  "网格越密 → 耗时 ↑（粗 12.1 s → 细 31.7 s）"],
@@ -756,7 +759,9 @@ FINDINGS = {
                   "κ 越大接触越硬、物体陷得越浅，各接触面的间隙一路变大（软球–地面 4.6 → 6.5 → 7.4 → 8.2 mm，d̂ = 10 mm）；"
                   "区间外被夹到边界：1e4 被夹到下限、结果和 2e5 差不多，默认 1e9 被夹到上限、结果和 1e7 差不多。"
                   "所以在 Genesis 里设 contact_resistance 只有落在这个区间里才有用。",
-    "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
+    "init_penetration": ("与期待一致：一开始就穿插时 libuipc 直接拒绝开跑。即使关掉检查硬跑，IPC 也分不开已经穿进去的两个物体："
+                         "barrier 和 CCD 只能阻止「没穿 → 穿进去」，管不了一开始就穿着的部分，结果两个球一直粘在一起、"
+                         "互相挤变形——程序不报错但物理上是错的。所以 IPC 必须从无穿透的状态开始。"),
     "mesh_res": ("libuipc 整个场景只用一个 κ，按全场景所有顶点的平均质量定区间（\\(\\kappa_{\\min}\\propto\\bar m\\)，见本节开头的式子）："
                  "软球网格越密，顶点越多、平均质量越小，κ 区间整体往下移（默认 1e9 被夹到的上限从粗网格的 4.9e7 降到细网格的 "
                  "3.4e6）。每对接触的 barrier 不按面积加权，所以加密的软球自己多了接触点、大致抵消（软球–地面间隙 8.4–8.7 → "
@@ -983,6 +988,33 @@ INIT_LOG_GLOSSARY = [
 ]
 
 
+@functools.lru_cache(maxsize=None)  # one record object: plan_videos sets its video_web, the page reads it
+def bypass_video_record(level):
+    """Video record (collect_demo fields) of an initial-penetration level run with libuipc's start check turned off
+    (sanity_check_enable = false; GEN_VIDEO_ROOT/init_penetration_<level>_bypass/), or None when not recorded."""
+    d = GEN_VIDEO_ROOT / f"init_penetration_{level}_bypass"
+    mp4, ex = d / "genesis_ipc_objects_in_box.mp4", d / "job.exit"
+    if not (ex.is_file() and ex.read_text().strip() in ("0", "3", "4") and mp4.is_file() and mp4.stat().st_size > 0):
+        return None
+    return {"key": f"box{GEN_TAG and '_' + GEN_TAG or ''}_init_penetration_{level}_bypass", "expects_video": True,
+            "title": "关掉开跑前检查、硬跑", "line": "", "dir": d, "state": "ok", "reason": None, "images": [],
+            "video_src": mp4, "video_note": None}
+
+
+def bypass_distance_table(level):
+    """Centre distance of the two interpenetrating soft balls (the official one, entity 3, and the extra one, the last
+    soft ball) at a few frames of the start-check-off run (genesis_<set>_bypass/init_penetration/<level>.json,
+    frames[*].objects centroids), as a table; "" when that run is missing."""
+    d, _ = load_json(SWEEP_ROOT / f"genesis_{GEN_TAG}_bypass" / "init_penetration" / f"{level}.json")
+    if not (isinstance(d, dict) and d.get("status") == "ok" and d.get("frames")):
+        return ""
+    balls = [n for n in d["frames"][0]["objects"] if "Sphere" in n]
+    a, b = next(n for n in balls if n.startswith("3_")), balls[-1]
+    pick = [f for f in d["frames"] if f["frame"] in (1, 5, 10, 25, 50, len(d["frames"]))]
+    dist = [math.dist(f["objects"][a][:3], f["objects"][b][:3]) * 1000 for f in pick]
+    return table(["帧"] + [str(f["frame"]) for f in pick], [["两球球心距离（mm）"] + [g3(x) for x in dist]])
+
+
 def init_frame_image(level):
     """(source png, published name) of the frame-0 picture of an initial-penetration level (run_genesis_ipc_example.py
     --initial-frame, written next to that level's video), or None when it was not rendered."""
@@ -1049,6 +1081,12 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
             parts.append((f'<img class="plot initframe" src="assets/images/{img[1]}" alt="初始状态：两个软球互相穿插" '
                           'loading="lazy">' if img else "") + log)
             parts.append(table(["日志里的句子", "是什么意思"], [list(g) for g in INIT_LOG_GLOSSARY]))
+            rec = bypass_video_record(r["level"])
+            if rec:
+                parts.append('<p class="small"><b>关掉开跑前的相交检查（sanity_check_enable = false）硬跑：</b>'
+                             "同一场景、同样的穿插，跑满 2 s。两个半径 80 mm 的球不穿插时球心至少相距 160 mm。</p>")
+                parts.append('<div class="grid">' + demo_card(dict(rec, key=rec["key"]), {}) + "</div>")
+                parts.append(bypass_distance_table(r["level"]))
     else:
         cards = [demo_card(dict(videos[(r["sweep"], r["level"])], title=gen_label(r, sweep, cfg)), {})
                  for r in rows if (r["sweep"], r["level"]) in videos]
@@ -1154,7 +1192,8 @@ def main():
     cfg, gsweeps = collect_sweeps()
     all_demos = demos + tests
     videos = gen_level_videos(gsweeps)   # 盒子扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
-    vjobs, manifest = plan_videos(all_demos + list(videos.values()),
+    bypass = [x for x in (bypass_video_record(r["level"]) for r in rows_of(gsweeps, "init_penetration")) if x]
+    vjobs, manifest = plan_videos(all_demos + list(videos.values()) + bypass,
                                   args.crf, args.force_videos)
     ijobs = plan_images(all_demos) + [{"src": src, "dst": IMAGE_DIR / name, "size": src.stat().st_size}
                                       for src, name in filter(None, (init_frame_image(r["level"])
