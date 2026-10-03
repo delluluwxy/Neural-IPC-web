@@ -727,7 +727,7 @@ OBSERVE = {
     "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
     "resistance": "每一对接触面之间的最短距离：刚度真的变了，间隙就该跟着变。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
-    "mesh_res": "四面体有没有翻转、总耗时。",
+    "mesh_res": "libuipc 实际用的 κ（日志原文）、停住时各接触面之间的间隙、总耗时。",
     "inversion_vs_E": "四面体翻转的比例。",
     "eps_velocity": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙。",
 }
@@ -748,7 +748,7 @@ FINDINGS = {
     "eps_velocity": "ε_v 从 0.001 到 0.1 m/s，接触间隙、最高物体高度和物体离墙距离都没有明显变化：这个场景里物体最后都"
                     "停住了，ε_v 只管很慢的滑动算不算粘住，要看出它的作用需要有持续慢速滑动的场景（比如斜面），这里没有。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
-    "mesh_res": "三种网格都没有穿透；最细那档表面边长已小于 d̂，自接触把球撑开、出现翻转。网格越细越慢。",
+    "mesh_res": "网格越密，libuipc 自动定的 κ 越小：它按每个顶点的平均质量定 κ 区间，网格越密每个顶点越轻，区间整体往下移（默认 1e9 被夹到的上限从粗网格的 4.9e7 降到细网格的 3.4e6）。κ 小接触就软，物体陷进 barrier 更深，细网格的间隙最小到 0.41 倍 d̂。所以同一个物体换了网格，IPC 实际用的接触刚度就变了，生成数据时要显式固定 κ 并确认它在区间内。另外最细那档表面边长已小于 d̂，自接触把球撑开；网格越细越慢。",
     "inversion_vs_E": "与期待一致：E 越大翻转越少，E = 1e5 时没有翻转。翻转是软球太软造成的，生成数据要用足够硬的材料。",
 }
 
@@ -867,7 +867,7 @@ FLIPPED, TOP, WALL = ("翻转的四面体", col_flipped), ("最高物体的高�
 # CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
 SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, FLIPPED], "dt": [CONTACT, NEWTON, SECONDS],
                  "friction": [TOP, WALL], "resistance": [KAPPA, CONTACT], "init_penetration": [],
-                 "mesh_res": [FLIPPED, SECONDS], "inversion_vs_E": [FLIPPED],
+                 "mesh_res": [KAPPA, CONTACT, SECONDS], "inversion_vs_E": [FLIPPED],
                  "eps_velocity": [TOP, WALL, CONTACT]}
 
 
