@@ -60,41 +60,36 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024         # 单张图上限
 # demo 清单：(NAS 目录名, 是否应出视频, 页面标题, 一句话说明)
 # 说明里的 {momentum} 由 run_info.json 的 run.final_rel_momentum_error 填入。
 # --------------------------------------------------------------------------
+# Genesis + lib IPC only (2026-10-02 user: libuipc-only demos and sweep are off the page). Official Genesis IPC
+# examples (examples/ipc/; ipc_robot_cloth_teleop needs a keyboard), recorded at the official viewer camera.
 DEMOS = [
-    ("1_hello_libuipc", True, "两个 ABD 四面体下落接触",
-     "最小例子，Scene / World / advance 的基本骨架。"),
-    ("10_ramp_sliding", True, "斜坡滑块",
-     "8 个 ABD 方块在斜坡上滑，摩擦系数从 0 到 1 共八档。"),
-    ("13_init_velocity", True, "带初速度的 ABD + FEM 方块",
-     "刚体（ABD）和软体（FEM）方块带初速度运动、接触。"),
-    ("20_contact_system_feature", True, "导出接触能量 / 梯度 / Hessian",
-     "对我们最重要：ContactSystemFeature 能按接触基元类型（PT / EE / PE / PP / PH，法向和摩擦分开）"
-     "导出能量、梯度、Hessian，是以后生成训练数据的入口。"),
-    ("27_compute_mesh_d_hat", True, "按网格自动算 d̂",
-     "上方块用按网格分辨率自动算出的 d̂，下方块用手设的 d̂，两者对比。"),
-    ("89_mas_bunny", True, "FEM bunny + MAS 预条件",
-     "软体 bunny 落地，线性求解用 MAS 预条件。"),
-    ("90_abd_fem_cube_stack", True, "ABD / FEM 交替叠放",
-     "同一场景里低自由度（ABD）和高自由度（FEM）混合，最接近我们的设定。"),
-    ("genesis_ipc_objects_in_box", True, "Genesis：一堆物体扔进盒子（官方 objects_falling 场景 + 盒子）",
-     "官方 ipc_objects_falling 场景（布料 + 刚体方块 + FEM 软球）原样，外加一个开口盒子和更多同款物体。"
-     "实验设置、按原理期待的结果、原始数字和结论见下方「官方参数：一堆物体扔进盒子」。"),
-    ("genesis_ipc_objects_falling", True, "Genesis：布料 + 刚体 + 软球",
-     "Genesis 调 libuipc，布料、刚体、FEM 软球一起落地。"),
-    ("genesis_ipc_momentum", True, "Genesis：动量守恒检验",
-     "零重力下刚体撞 FEM 球，末步相对动量误差 {momentum}。"),
-    ("genesis_ipc_robot_grasp_cube", True, "Genesis：机械臂抓软方块",
-     "two-way 耦合；Genesis 的刚体在 libuipc 里是 κ = 100 MPa 的 ABD。"),
-    # 两个 benchmark 的官方 GUI 版（benchmarks/<name>/main.py）；计时版 run.py 不出画面，不上页面。
-    # 0_check_libuipc 是环境自检，不算 demo，不上页面（2026-09-30 用户）。
-    ("abd_bunny_grid_drop", True, "100 个 ABD bunny 下落",
-     "10×10 个 ABD bunny 同时下落堆积，大规模 ABD 接触。"),
-    ("wrecking_balls", True, "Wrecking balls",
-     "ABD 方块墙、摆锤球和链节组成的大场景，大规模 ABD 接触。"),
+    ("genesis_ipc_objects_falling", True, "布料 + 刚体 + 软球落地（官方例子）",
+     "Genesis 官方 examples/ipc/ipc_objects_falling.py，原样；相机 = 官方 viewer 位置。"),
+    ("genesis_ipc_momentum", True, "动量守恒检验（官方例子）",
+     "官方 ipc_momentum.py：零重力下刚体撞 FEM 球，末步相对动量误差 {momentum}。"),
+    ("genesis_ipc_robot_grasp_cube", True, "机械臂抓软方块（官方例子）",
+     "官方 ipc_robot_grasp_cube.py：two-way 耦合；Genesis 的刚体在 libuipc 里是 κ = 100 MPa 的 ABD。"),
+    ("genesis_ipc_objects_in_box", True, "一堆物体扔进盒子（官方场景 + 我们加的盒子）",
+     "Genesis 没有「扔进盒子」的官方例子：这是官方 ipc_objects_falling 场景原样，外加一个开口盒子和更多同款物体。"
+     "参数扫描见下方。"),
+]
+
+# Genesis's own IPC tests (tests/ipc/), recorded by run_genesis_ipc_example.py --official-test at the test's own
+# viewer camera, with the test's own physics assertions: (NAS dir, pytest node, title, what it checks)
+OFFICIAL_TESTS = [
+    ("genesis_test_test_ground_clearance_0", "tests/ipc/test_rigid.py::test_ground_clearance[0]",
+     "离地间隙随接触刚度变（官方测试）",
+     "5 个方块的 contact_resistance 从 1e2 到 1e6；官方断言：刚度越大，离地间隙越大，并且会停住。"),
+    ("genesis_test_test_ground_sliding_0", "tests/ipc/test_rigid.py::test_ground_sliding[0]",
+     "地面滑动与摩擦（官方测试）", "方块在地面上滑动；官方断言见测试源码 test_ground_sliding。"),
+    ("genesis_test_test_objects_colliding_0", "tests/ipc/test_rigid.py::test_objects_colliding[0]",
+     "物体相撞（官方测试）", "物体互相碰撞；官方断言见测试源码 test_objects_colliding。"),
+    ("genesis_test_test_cloth_corner_drag_0", "tests/ipc/test_deformable.py::test_cloth_corner_drag[0]",
+     "拽布料一角（官方测试）", "布料被拽住一角；官方断言见测试源码 test_cloth_corner_drag。"),
 ]
 
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("videos", "Demo 视频"), ("sweep", "参数扫描（经 Genesis）"), ("libuipc", "libuipc 层对照")]  # 锚点只用字母
+NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("sweep", "盒子实验与参数扫描")]  # 锚点只用字母
 
 
 # ==========================================================================
@@ -205,15 +200,40 @@ def collect_demo(key, expects_video, title, line):
     return r
 
 
+def collect_official_test(key, nodeid, title, line):
+    """One recorded Genesis official test (run_genesis_ipc_example.py --official-test): same record shape as
+    collect_demo, plus the pytest outcome of the test's own assertions read from official_test.json."""
+    d = DEMO_ROOT / key
+    r = {"key": key, "expects_video": True, "title": title, "line": line, "dir": d, "info": None, "state": None,
+         "reason": None, "video_src": None, "video_note": None, "images": [], "nodeid": nodeid, "outcome": None}
+    rec, err = load_json(d / "official_test.json")
+    if rec is None or err:
+        r["state"], r["reason"] = "not_run", "还没跑" if rec is None and not err else f"结果文件损坏（{err}）"
+        return r
+    r["state"], r["outcome"] = "ok", rec.get("outcome")
+    r["line"] = (f"{line} 官方断言：" + {"passed": "通过", "failed": "未通过", "skipped": "跳过"}.get(
+        rec.get("outcome"), f"无结果（pytest 退出码 {rec.get('pytest_exit_code')}）") + "。")
+    scenes = rec.get("scenes") or []
+    vp = Path(scenes[0]["video"]) if scenes else None
+    if vp and vp.is_file() and vp.stat().st_size > 0:
+        r["video_src"] = vp
+    else:
+        r["video_note"] = "没有录到视频"
+    return r
+
+
 def collect_demos():
-    """The page shows exactly the DEMOS list. Other directories under DEMO_ROOT (0_check_libuipc, the benchmark
-    timing runs *_run, anything unexpected) are NOT put on the page; main() prints them so nothing is hidden."""
-    known = {k for k, *_ in DEMOS} | {GEN_VIDEO_ROOT.name}  # 扫描各档视频另由 gen_level_videos 收集
+    """The page shows exactly the DEMOS and OFFICIAL_TESTS lists. Other directories under DEMO_ROOT (libuipc-only
+    demos, timing runs, anything unexpected) are NOT put on the page; main() prints them so nothing is hidden.
+    Returns (demos, official tests, unlisted dirs)."""
+    known = {k for k, *_ in DEMOS} | {k for k, *_ in OFFICIAL_TESTS}
     demos = [collect_demo(*spec) for spec in DEMOS]
+    tests = [collect_official_test(*spec) for spec in OFFICIAL_TESTS]
     unlisted = []
     if DEMO_ROOT.is_dir():
-        unlisted = sorted(p.name for p in DEMO_ROOT.iterdir() if p.is_dir() and p.name not in known)
-    return demos, [], unlisted
+        unlisted = sorted(p.name for p in DEMO_ROOT.iterdir() if p.is_dir() and p.name not in known
+                          and not p.name.startswith("genesis_box_levels"))
+    return demos, tests, unlisted
 
 
 # ==========================================================================
@@ -276,16 +296,17 @@ def collect_level(sweep, level, ov_cfg, root=SWEEP_ROOT):
     return r
 
 
-def collect_sweeps(backend="libuipc", cfg=None):
-    """backend = libuipc：SWEEP_ROOT/<扫描>，cfg.SWEEPS；genesis：SWEEP_ROOT/genesis/<扫描>，cfg.GENESIS_SWEEPS。"""
+def collect_sweeps(cfg=None):
+    """Box-scene sweeps of the set chosen by set_variant: GEN_SWEEP_ROOT/<扫描>/<档位>.json for every level of
+    cfg.GENESIS_SWEEPS; each level's overrides = GEN_BASE_OV + the level's own (as sweep.py --base-overrides)."""
     cfg = cfg or load_sweep_configs()
-    root, table = (SWEEP_ROOT, cfg.SWEEPS) if backend == "libuipc" else (SWEEP_ROOT / "genesis", cfg.GENESIS_SWEEPS)
+    root, table, base = GEN_SWEEP_ROOT, cfg.GENESIS_SWEEPS, GEN_BASE_OV
     sweeps = []
     known = set()
     for sweep, spec in table.items():
         rows = []
         for level, ov in spec["levels"].items():
-            rows.append(collect_level(sweep, level, ov, root))
+            rows.append(collect_level(sweep, level, {**base, **ov}, root))
             known.add((sweep, level))
         sd = root / sweep
         if sd.is_dir():  # NAS 上有、configs.py 里没有的档位
@@ -395,58 +416,6 @@ def newton_mean(d):
     vals = [f.get("newton_iter_timer_count") for f in (d.get("frames") or []) if isinstance(f, dict)]
     vals = [v for v in vals if is_num(v)]
     return sum(vals) / len(vals) if vals else MISSING
-
-
-def sec_per_frame(d):
-    tot, done = dig(d, "summary", "wall_seconds_total"), dig(d, "summary", "frames_done")
-    return tot / done if is_num(tot) and is_num(done) and done > 0 else MISSING
-
-
-def sanity_on(d):
-    if d.get("sanity_check_enabled") is False:  # genesis 版直接写了这个字段
-        return False
-    return dig(d, "params", "sanity_check", "enable") != 0
-
-
-def kappa_info(d):
-    """(区间下界, 区间上界, 实际 κ, 设的 κ, 是否被夹)；取不到的是 MISSING。"""
-    lo = to_float(dig(d, "kappa_log", "kappa_corridor", 0, "groups", 0))
-    hi = to_float(dig(d, "kappa_log", "kappa_corridor", 0, "groups", 1))
-    set_k = dig(d, "params", "contact_model_used", "resistance")
-    clamped = d.get("kappa_clamped", MISSING)
-    if clamped is True:
-        actual = to_float(dig(d, "kappa_log", "default_kappa_clamped", 0, "groups", 1))
-    elif clamped is False:
-        actual = set_k if is_num(set_k) else MISSING
-    else:
-        actual = MISSING
-    return lo, hi, actual, set_k, clamped
-
-
-def pen_text(row):
-    """穿透那一格的人话。"""
-    if row["state"] != "ok":
-        return row["reason"]
-    d = row["data"]
-    if not sanity_on(d):
-        return "跑完，但检查已关，无法判断"
-    n_pen, n_chk = dig(d, "summary", "n_checks_with_penetration"), dig(d, "summary", "n_sanity_checks")
-    if n_pen == 0:
-        return "无"
-    if is_num(n_pen):
-        return f"有（{n_pen} / {n_chk} 次检查）"
-    return "结果缺失"
-
-
-def newton_text(row):
-    if row["state"] != "ok":
-        return "—"
-    d = row["data"]
-    s = f"{g3(newton_mean(d))} / {g3(dig(d, 'summary', 'newton_iter_timer_max'))}"
-    hit = dig(d, "summary", "n_frames_hit_max_iter")
-    if is_num(hit) and hit > 0:
-        s += f"（{hit} 帧撞到上限）"
-    return s
 
 
 # ==========================================================================
@@ -559,21 +528,16 @@ def demo_card(r, facts):
     return f'<div class="demo">{head}{media}<p>{esc(line)}</p></div>'
 
 
-def videos_section(demos, extras, facts):
-    cards = [r for r in demos if r["expects_video"]] + extras
-    novid = [r for r in demos if not r["expects_video"]]
-    parts = ['<section id="videos"><h2>Demo 视频</h2>',
-             '<p class="muted small">官方示例一字未改（只有“扔进盒子”是在官方场景上加了盒子和更多同款物体），在服务器上离屏录像（画面用 CPU 软件渲染，物理在 GPU 上算）。</p>',
-             '<div class="grid">', *[demo_card(r, facts) for r in cards], "</div>"]
-    if novid:
-        ok = [r for r in novid if r["state"] == "ok"]
-        bad = [r for r in novid if r["state"] != "ok"]
-        s = (f"另有 {len(novid)} 个 demo 本来就不出视频："
-             + "；".join(f"{r['key']}（{r['title']}，{r['line']}）" for r in novid))
-        s += "。均已跑通。" if not bad else (
-            "。其中 " + "、".join(f"{r['key']} {r['reason']}" for r in bad) + "。")
-        parts.append(f'<p class="muted small" style="margin-top:18px">{esc(s)}</p>')
-    parts.append("</section>")
+def videos_section(demos, tests, facts):
+    """Official Genesis IPC examples, then Genesis's own IPC test scenes (each with its assertion outcome)."""
+    parts = ['<section id="videos"><h2>Demo 视频（Genesis + lib IPC）</h2>',
+             '<p class="muted small">Genesis 官方 IPC 例子一字未改，相机用官方代码里给的 viewer 位置；物理由 Genesis 底层的 '
+             "libuipc 在 GPU 上算，画面在服务器上离屏渲染（CPU 软件渲染）。</p>",
+             '<div class="grid">', *[demo_card(r, facts) for r in demos], "</div></section>",
+             '<section id="tests"><h2>官方测试场景</h2>',
+             '<p class="muted small">Genesis 仓库自带的 IPC 测试（tests/ipc/），场景和断言一字未改，用 pytest 原样运行；'
+             "每个测试自己写好了 viewer 相机位置，录像就用它。卡片里写的是官方断言有没有通过。</p>",
+             '<div class="grid">', *[demo_card(r, facts) for r in tests], "</div></section>"]
     return "\n".join(parts)
 
 
@@ -591,11 +555,6 @@ def table(heads, rows):
         body.append("<tr>" + "".join(tds) + "</tr>")
     return (f'<div class="tablewrap"><table><thead><tr>{th}</tr></thead>'
             f'<tbody>{"".join(body)}</tbody></table></div>')
-
-
-def pen_cell(row):
-    t = pen_text(row)
-    return (t, "good") if t == "无" else ((t, "warn") if row["state"] != "ok" or t.startswith("有") else t)
 
 
 def rows_of(sweeps, name):
@@ -616,7 +575,25 @@ GENESIS_KEYS = {"friction": "friction_mu", "resistance": "contact_resistance", "
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 # genesis fem_entity.py:542 打印 (n_elements, n_vertices)；软球是 Sphere（官方）或 Mesh（icosphere），材料都是 FEM.Elastic
 BALL_SIZE_RE = re.compile(r"morph: (?:Sphere|Mesh), size: \((\d+), (\d+)\), material: <gs\.materials\.FEM\.Elastic>")
+# Box-scene result sets (run_sweep_queue.sh TAG / BASE_OV): tag -> overrides shared by every level + a label.
+VARIANTS = {
+    "stiffball": {"base_ov": {"ball_E": 1.0e5},
+                  "label": "所有软球 E = 1e5 Pa（官方 1e3 太软，在盒子里会被压塌）"},
+    "officialball": {"base_ov": {"pile_layout": "clear"},
+                     "label": "软球保持官方 E = 1e3 Pa，额外物体落在远离官方软球的四角"},
+}
+# set by set_variant(): where the box-scene sweep jsons and per-level videos of the chosen set live
+GEN_TAG, GEN_BASE_OV = None, {}
+GEN_SWEEP_ROOT = SWEEP_ROOT / "genesis"
 GEN_VIDEO_ROOT = DEMO_ROOT / "genesis_box_levels"   # 每档视频：<扫描>_<档位>/genesis_ipc_objects_in_box.mp4
+
+
+def set_variant(tag):
+    """Point the box-scene readers at result set `tag` (VARIANTS): genesis_<tag>/ and genesis_box_levels_<tag>/."""
+    global GEN_TAG, GEN_BASE_OV, GEN_SWEEP_ROOT, GEN_VIDEO_ROOT
+    GEN_TAG, GEN_BASE_OV = tag, dict(VARIANTS[tag]["base_ov"])
+    GEN_SWEEP_ROOT = SWEEP_ROOT / f"genesis_{tag}"
+    GEN_VIDEO_ROOT = DEMO_ROOT / f"genesis_box_levels_{tag}"
 GEN_PY = PROJECT / ".conda" / "genesis" / "bin" / "python"
 GEN_ENV = "CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=6 HF_HOME=/nas/xiaoyingwang/Neural-IPC/checkpoints/hf_home"
 
@@ -720,8 +697,11 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
 def gen_defaults_text(gd):
     """官方默认参数一句话（dt、d̂ 读官方默认档的结果文件，κ、μ 是 Genesis 默认值）。"""
     dh = dig(gd, "libuipc_config", "contact", "d_hat")
+    ball_e = (gd.get("overrides") or {}).get("ball_E", GENESIS_DEFAULTS["ball_E"])
     return (f"dt = {g3(gd.get('dt', MISSING))} s、d̂ = {g3(dh * 100) if is_num(dh) else '—'} cm、"
-            f"κ = {sci(GENESIS_DEFAULTS['contact_resistance'])} Pa、μ = {g3(GENESIS_DEFAULTS['friction_mu'])}、软球用官方 Sphere 网格")
+            f"κ = {sci(GENESIS_DEFAULTS['contact_resistance'])} Pa、μ = {g3(GENESIS_DEFAULTS['friction_mu'])}、"
+            f"软球用官方 Sphere 网格、软球 E = {sci(ball_e)} Pa"
+            + ("（官方是 1e3）" if ball_e != GENESIS_DEFAULTS["ball_E"] else "（官方值）"))
 
 
 def gen_scene_text(gd, cfg):
@@ -729,7 +709,9 @@ def gen_scene_text(gd, cfg):
     a = gd.get("box_inner_half", MISSING)
     return (f"官方 ipc_objects_falling.py（一块布、一个刚体方块、一个 FEM 软球）原样照搬，外加一个开口盒子"
             f"（4 面固定墙，内宽 {g3(a * 2) if is_num(a) else '—'} m）和从约 2 m 高落下的 {len(gd.get('pile_boxes') or [])} 个刚体方块、"
-            f"{len(gd.get('pile_balls') or [])} 个软球，共 {len(gd.get('objects_at_init') or [])} 个物体，"
+            f"{len(gd.get('pile_balls') or [])} 个软球"
+            + ("（落在远离官方软球的四角，不压在它上面）" if (gd.get("overrides") or {}).get("pile_layout") == "clear" else "")
+            + f"，共 {len(gd.get('objects_at_init') or [])} 个物体，"
             f"仿真 {g3(getattr(cfg, 'GENESIS_SIM_TIME', MISSING))} s")
 
 
@@ -803,106 +785,11 @@ def genesis_sweep_tables(sweeps, cfg):
     return out
 
 
-def sweep_tables(sweeps, backend="libuipc", cfg=None):
-    if backend == "genesis":
-        return genesis_sweep_tables(sweeps, cfg)
-    base = rows_of(sweeps, "baseline")
-    out = []
-
-    # d̂：把 baseline（默认 d̂）也放进来，按 d̂ 从小到大
-    rows = list(rows_of(sweeps, "d_hat")) + [dict(r, is_default=True) for r in base]
-    rows.sort(key=lambda r: dig(r["data"], "params", "d_hat") if r["data"] and is_num(
-        dig(r["data"], "params", "d_hat")) else float("inf"))
-    trs = []
-    for r in rows:
-        d = r["data"] or {}
-        dh = dig(d, "params", "d_hat")
-        lbl = (g3(dh * 1000) if is_num(dh) else r["level"]) + ("（默认）" if r.get("is_default") else "")
-        trs.append([lbl, g3(dig(d, "params", "d_hat_over_L")), pen_cell(r), newton_text(r)])
-    out.append(("d̂（barrier 作用距离）",
-                "d̂ 以球表面平均边长为单位，从 0.01 倍取到 1 倍；libuipc 默认的 0.01 m 约为 0.66 倍边长。",
-                table(["d̂（mm）", "d̂ / 平均边长", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
-
-    trs = []
-    for r in rows_of(sweeps, "dt"):
-        d = r["data"] or {}
-        dt = dig(d, "params", "dt")
-        trs.append([g3(dt) + ("（默认）" if dt == 0.01 else "") if is_num(dt) else r["level"],
-                    pen_cell(r), newton_text(r)])
-    out.append(("时间步长 dt",
-                "从 0.001（Genesis 默认）取到 0.04，物理时间固定 2 s，帧数随 dt 变。",
-                table(["dt（s）", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
-
-    trs = []
-    for r in rows_of(sweeps, "friction"):
-        d = r["data"] or {}
-        mu = dig(d, "params", "contact_model_used", "friction_rate")
-        trs.append([(g3(mu) + ("（默认）" if mu == 0.5 else "")) if is_num(mu) else r["level"],
-                    pen_cell(r), newton_text(r)])
-    out.append(("摩擦系数 μ", "0 为无摩擦，0.2 / 0.5 是 libuipc 示例里最常用的值，1.0 为高摩擦。",
-                table(["μ", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
-
-    trs = []
-    for r in rows_of(sweeps, "resistance"):
-        d = r["data"] or {}
-        lo, hi, act, set_k, cl = kappa_info(d)
-        if cl is True and is_num(act) and is_num(lo) and is_num(hi):
-            note = "（被抬到下界）" if abs(act - lo) <= 1e-6 * hi else ("（被压到上界）" if abs(act - hi) <= 1e-6 * hi
-                                                                    else "（被夹）")
-        elif cl is False:
-            note = "（照用）"
-        else:
-            note = ""
-        trs.append([sci(set_k) if is_num(set_k) else r["level"], sci(act) + note, pen_cell(r), newton_text(r)])
-    lo, hi, *_ = kappa_info(base[0]["data"]) if base and base[0]["data"] else (MISSING, MISSING)
-    out.append(("接触刚度 κ",
-                f"libuipc 会把 κ 夹进一个按场景算出的区间，本场景是 [{sci(lo)}, {sci(hi)}] Pa；"
-                "区间内取 4 档，两端外各取 1 档看它怎么被夹（1e9 是 libuipc 默认表项）。",
-                table(["设的 κ（Pa）", "实际用的 κ（Pa）", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
-
-    trs = []
-    for r in rows_of(sweeps, "init_penetration"):
-        d = r["data"] or {}
-        gap = dig(d, "params", "pair_center_distance", "nominal_sphere_gap")
-        dh = dig(d, "params", "d_hat")
-        if is_num(gap) and gap > 0:
-            lbl = f"间隙 {g3(gap * 1000)} mm" + (f"（{g3(gap / dh)} d̂）" if is_num(dh) and dh > 0 else "")
-        elif is_num(gap):
-            lbl = f"穿插 {g3(-gap * 100)} cm"
-        else:
-            lbl = r["level"]
-        if r["data"] and not sanity_on(d):
-            lbl += "，关掉检查"
-        if r["state"] == "ok" and not sanity_on(d):
-            res = ("跑完，但无法判断穿透", "warn")
-        elif r["state"] == "ok":
-            res = ("正常跑完，无穿透", "good") if pen_text(r) == "无" else (pen_text(r), "warn")
-        else:
-            res = (r["reason"], "warn")
-        trs.append([lbl, res, newton_text(r)])
-    out.append(("初始穿插",
-                "把相邻两个球的距离改成一开始就贴得很近或互相穿进去。",
-                table(["两球初始状态", "结果", "每帧 Newton 迭代（平均 / 最多）"], trs)))
-
-    trs = []
-    names = {"coarse": "粗", "medium": "中（默认）", "fine": "细"}
-    for r in rows_of(sweeps, "mesh_res"):
-        d = r["data"] or {}
-        L = dig(d, "mesh", "edge_len_mean")
-        trs.append([names.get(r["level"], r["level"]), str(dig(d, "mesh", "n_vertices")) if d else "—",
-                    g3(L * 1000) if is_num(L) else "—", g3(dig(d, "params", "d_hat_over_L")),
-                    pen_cell(r), newton_text(r)])
-    out.append(("网格分辨率", "同一个球用 tetgen 四面体化成粗 / 中 / 细三档，d̂ 保持默认 0.01 m。",
-                table(["网格", "每球顶点数", "平均边长（mm）", "d̂ / 边长", "穿透", "每帧 Newton 迭代（平均 / 最多）"], trs)))
-    return out
-
-
 def gen_level_videos(gsweeps):
     """{(扫描, 档位): 视频记录}，记录格式同 collect_demo（plan_videos / demo_card 直接复用）。
-    只认 GEN_VIDEO_ROOT/<扫描>_<档位>/ 下 mp4 非空、且 job.exit 为 0 或 4 的
-    （run_genesis_ipc_example.py：3 = 有帧出画面，4 = 第二遍重新仿真的范围超出第一遍，即 GPU 运行不逐位一致，
-    视频和 camera_fit.json 照常写出）；否则写"视频未生成"，不拿别的视频顶替。
-    视频旁的数字只取该目录自己的 camera_fit.json（视频那次运行），与扫描 json（另一次运行）分开。
+    认 GEN_VIDEO_ROOT/<扫描>_<档位>/ 下 mp4 非空、且 job.exit 为 0 / 3 / 4 的（run_genesis_ipc_example.py：
+    3 = 官方相机下有帧部分出画面，4 = 第二遍重新仿真的范围超出第一遍，即 GPU 运行不逐位一致；两种情况视频和
+    camera_fit.json 都照常写出，卡片里写明）；否则写"视频未生成"，不拿别的视频顶替。
     初始穿插那组开跑前就被拒，没有视频，不建记录。"""
     out = {}
     for s in gsweeps:
@@ -913,23 +800,19 @@ def gen_level_videos(gsweeps):
             ex = d / "job.exit"
             code = ex.read_text().strip() if ex.is_file() else None
             mp4 = d / "genesis_ipc_objects_in_box.mp4"
-            done = code in ("0", "4") and mp4.is_file() and mp4.stat().st_size > 0
+            done = code in ("0", "3", "4") and mp4.is_file() and mp4.stat().st_size > 0
             cf, _ = load_json(d / "camera_fit.json")
-            vmin = to_float(dig(cf, "bbox_pass2", "min", 2)) if cf else MISSING
             line = ""
             if done and cf:
-                exceeds = cf.get("pass2_bbox_exceeds_pass1")
-                nout = dig(cf, "verify", "n_frames_out")
-                nout = nout if nout is not MISSING else "—"
-                line = (f"视频这次运行：整段可见表面最低点 {g3(vmin * 1000) if is_num(vmin) else '—'} mm"
-                        "（刚体用的是 Genesis 读数，比 IPC 里低 g·dt²）；"
-                        f"出画面的帧数 {nout}；第二遍范围超出第一遍："
-                        + ("是（两遍 GPU 仿真不逐位一致，不是出框）" if exceeds else "否" if exceeds is False else "—"))
+                nout, nchk = dig(cf, "verify", "n_frames_out"), dig(cf, "verify", "n_frames_checked")
+                line = (f"视频这次运行（相机：{cf.get('camera_mode', '—')}）："
+                        + (f"{nchk} 帧里 {nout} 帧有部分画面在视野外" if is_num(nout) and nout else "没有一帧出画面")
+                        + ("；两遍 GPU 仿真不逐位一致" if cf.get("pass2_bbox_exceeds_pass1") else "") + "。")
             out[(r["sweep"], r["level"])] = {
-                "key": f"box_{r['sweep']}_{r['level']}", "expects_video": True, "title": "", "line": line,
-                "dir": d, "state": "ok", "reason": None, "images": [], "video_min_z": vmin,
+                "key": f"box{GEN_TAG and '_' + GEN_TAG or ''}_{r['sweep']}_{r['level']}", "expects_video": True,
+                "title": "", "line": line, "dir": d, "state": "ok", "reason": None, "images": [],
                 "video_src": mp4 if done else None,
-                "video_note": None if done else ("视频未生成" if code in (None, "0", "4") else f"视频未生成（录像退出码 {code}）")}
+                "video_note": None if done else ("视频未生成" if code is None else f"视频未生成（录像退出码 {code}）")}
     return out
 
 
@@ -966,8 +849,9 @@ def genesis_commit():
 
 def repro_block(sweep, rows, cfg, commit):
     """「一步一步复现」：每档跑扫描 + 录视频的完整命令（绝对路径、无占位）。
-    扫描命令用结果文件里记录的原始 argv（没有结果的档按 configs.py 拼）；视频命令与
-    Neural-IPC tools/ipc_sweep/run_sweep_queue.sh 的 VIDEO=1 分支一致，overrides 取 configs.GENESIS_SWEEPS 该档原样。"""
+    扫描命令用结果文件里记录的原始 argv（没有结果的档按 configs.py + 本套共用参数拼）；视频命令与
+    Neural-IPC tools/ipc_sweep/run_sweep_queue.sh 的 VIDEO=1 CAMERA_MODE=official 分支一致，
+    overrides = 本套共用参数（GEN_BASE_OV）加 configs.GENESIS_SWEEPS 该档原样。"""
     head = f"cd {PROJECT} && {GEN_ENV} {GEN_PY}"
     out = [f"# 代码版本：Neural-IPC commit {commit}（git -C {PROJECT} log -1 --format=%h，生成本页时读取）"]
     own = [r for r in rows if sweep == "baseline" or r["sweep"] != "baseline"]  # 官方默认档只在它自己的实验里给命令
@@ -975,18 +859,19 @@ def repro_block(sweep, rows, cfg, commit):
         argv = (r["data"] or {}).get("argv")
         if not (isinstance(argv, list) and argv):
             argv = [str(PROJECT / "tools" / "ipc_sweep" / "sweep.py"), "--backend", "genesis",
-                    "--sweep", r["sweep"], "--level", r["level"]]
+                    "--sweep", r["sweep"], "--level", r["level"], "--log-level", "Info",
+                    "--base-overrides", json.dumps(GEN_BASE_OV), "--out-root", str(GEN_SWEEP_ROOT)]
         lbl = gen_label(r, sweep, cfg)
         out += ["", f"# {n}. {lbl}",
-                f"# {n}a. 跑这一档，结果写到 {SWEEP_ROOT / 'genesis' / r['sweep'] / (r['level'] + '.json')}",
+                f"# {n}a. 跑这一档，结果写到 {GEN_SWEEP_ROOT / r['sweep'] / (r['level'] + '.json')}",
                 f"{head} {' '.join(shlex.quote(str(a)) for a in argv)}"]
         if sweep != "init_penetration":
-            ov = cfg.GENESIS_SWEEPS[r["sweep"]]["levels"][r["level"]]
+            ov = {**GEN_BASE_OV, **cfg.GENESIS_SWEEPS[r["sweep"]]["levels"][r["level"]]}
             vd = GEN_VIDEO_ROOT / f"{r['sweep']}_{r['level']}"
-            out += [f"# {n}b. 录这一档的视频，写到 {vd / 'genesis_ipc_objects_in_box.mp4'}",
+            out += [f"# {n}b. 录这一档的视频（官方相机），写到 {vd / 'genesis_ipc_objects_in_box.mp4'}",
                     f"{head} {PROJECT / 'tools' / 'ipc_demos' / 'run_genesis_ipc_example.py'} --example ipc_objects_in_box "
                     f"--overrides {shlex.quote(json.dumps(ov))} --out-dir {vd} "
-                    "--egl-device-index 16 --software-render --fit-camera"]
+                    "--egl-device-index 16 --software-render --fit-camera --camera-mode official"]
     return ('<details class="repro"><summary>一步一步复现</summary>'
             f'<pre class="log">{esc(chr(10).join(out))}</pre></details>')
 
@@ -1008,7 +893,7 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, concl,
             if r["sweep"] == "baseline":
                 continue
             lines, n_inter = init_log_excerpt((r["data"] or {}).get("log_path")
-                                              or SWEEP_ROOT / "genesis" / sweep / f"{r['level']}.log")
+                                              or GEN_SWEEP_ROOT / sweep / f"{r['level']}.log")
             parts.append(f'<p class="small"><b>{esc(gen_label(r, sweep, cfg))}</b>：开跑前就被拒，没有视频；'
                          "下面是日志原文摘录。</p>")
             if lines is None:
@@ -1035,96 +920,82 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, concl,
     return "\n".join(parts)
 
 
-def sweep_section(gsweeps, sweeps, cfg, videos, facts, commit):
-    """先放 Genesis 扫描（主结果），再放 libuipc 层对照（直接调 libuipc，不经过 Genesis）。"""
+def sweep_section(gsweeps, cfg, videos, facts, commit):
+    """盒子实验：set_variant 选的那套（主结果）的每个参数扫描，然后是方案 3（官方软球不被压）一节。"""
     gb = rows_of(gsweeps, "baseline")
     gd = gb[0]["data"] if gb and gb[0]["data"] else {}
-    gscene = ("所有实验都在同一个 Genesis 场景里做，每次只改一个参数。每一档跑两次：一次是扫描（记录穿透检查、"
-              "Newton 迭代、末帧各物体位置），一次是录视频；两次是独立的 GPU 运行，结果不逐位相同，"
-              "所以视频旁的数字和表里的数字分开写。穿透用 libuipc 的 sanity check 每 10 帧查一次。")
-    parts = ['<section id="sweep"><h2>IPC 参数扫描（经 Genesis）</h2>', f"<p>{esc(gscene)}</p>"]
+    gscene = ("Genesis 没有「一堆物体扔进盒子」的官方例子，这里用官方 ipc_objects_falling 场景加一个盒子和更多同款物体。"
+              f"这一套：{VARIANTS[GEN_TAG]['label']}。所有实验每次只改一个参数。每一档跑两次：一次是扫描"
+              "（记录穿透检查、Newton 迭代、末帧各物体位置和软球形状），一次是录视频（官方相机）；两次是独立的 GPU 运行，"
+              "结果不逐位相同，所以视频旁的数字和表里的数字分开写。穿透用 libuipc 的 sanity check 每 10 帧查一次。")
+    parts = ['<section id="sweep"><h2>盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>"]
     concl = genesis_conclusions(facts, videos)
-    for sweep, title, one, expect, rows, tbl in sweep_tables(gsweeps, "genesis", cfg):
+    for sweep, title, one, expect, rows, tbl in genesis_sweep_tables(gsweeps, cfg):
         parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, concl, commit, gd))
+    parts.append(officialball_block())
     parts.append(f'<p class="next">{NEXT_STEPS}</p>')
     parts.append("</section>")
-    parts.append('<section id="libuipc">' + libuipc_sweep_block(sweeps, cfg) + "</section>")
     return "\n".join(parts)
 
 
-def libuipc_sweep_block(sweeps, cfg):
-    sc = getattr(cfg, "SCENE", {})
-    R = sc.get("ball_radius", MISSING)
-    base = rows_of(sweeps, "baseline")
-    bd = base[0]["data"] if base and base[0]["data"] else {}
-    nv = dig(bd, "mesh", "n_vertices")
-    T = sc.get("sim_time", MISSING)
-    scene = (f"场景：8 个 FEM 软球（半径 {g3(R)} m，每球约 {nv} 个顶点，StableNeoHookean，E = 120 kPa）"
-             f"从静止落进开口盒子，仿真 {g3(T)} s；每次只改一个参数，其余用 libuipc 默认"
-             f"（dt = {g3(dig(bd, 'params', 'dt'))} s，d̂ = {g3(dig(bd, 'params', 'd_hat'))} m），"
-             "穿透用 libuipc 的 sanity check 每 10 帧查一次。")
-    parts = ['<h3 class="sub">libuipc 层对照（直接调 libuipc，不经过 Genesis）</h3>', f"<p>{esc(scene)}</p>"]
-    for title, one, tbl in sweep_tables(sweeps):
-        parts.append(f"<h4>{esc(title)}</h4><p class=\"muted small\">{esc(one)}</p>{tbl}")
-    return "\n".join(parts)
+def officialball_block():
+    """方案 3：软球保持官方 E = 1e3、额外物体落在远离官方软球的四角（genesis_officialball/）。每档列官方软球
+    （第一个软球实体，名字以 3_ 开头）的结束质心高度、形状比、翻转数，以及有没有别的物体的质心在它上方 0.3 m 以内。"""
+    root, vroot = SWEEP_ROOT / "genesis_officialball", DEMO_ROOT / "genesis_box_levels_officialball"
+    rows, video = [], None
+    for jp in sorted(root.glob("*/*.json")):
+        d, _ = load_json(jp)
+        if not isinstance(d, dict) or d.get("status") != "ok":
+            continue
+        fin = d.get("objects_final") or {}
+        ob = next(((n, o) for n, o in fin.items() if n.startswith("3_") and "n_tets" in o), None)
+        if ob is None:
+            continue
+        c = ob[1]["centroid"]
+        above = [n for n, o in fin.items() if n != ob[0] and "Cloth" not in n and o.get("centroid")
+                 and ((o["centroid"][0] - c[0]) ** 2 + (o["centroid"][1] - c[1]) ** 2) ** 0.5 < 0.3
+                 and o["centroid"][2] > c[2]]
+        rows.append([f"{d['sweep']} / {d['level']}", g3(c[2] * 1000), g3(ob[1].get("surface_radius_ratio")),
+                     f"{ob[1].get('n_inverted_tets')} / {ob[1].get('n_tets')}", "、".join(above) or "没有"])
+    rec = officialball_video_record()
+    if rec["video_src"] is not None:
+        video = f"assets/videos/{rec['key']}.mp4"  # encoded and uploaded with the others (main: plan_videos)
+    if not rows:
+        return '<h3>方案 3：保留官方软球（E = 1e3）、不在它上面压东西</h3><div class="novideo">还没跑完</div>'
+    cz = [float(r[1]) for r in rows if r[1] not in ("—", "")]
+    free_cz = [float(r[1]) for r in rows if r[4] == "没有" and r[1] not in ("—", "")]
+    flat = bool(free_cz) and max(free_cz) < 70  # every unloaded level clearly below an intact ~80 mm
+    concl = (f"官方软球结束时质心高度 {g3(min(cz))}–{g3(max(cz))} mm（完好约 80 mm）；上方没有别的物体的档里是 "
+             f"{g3(min(free_cz)) if free_cz else '—'}–{g3(max(free_cz)) if free_cz else '—'} mm。"
+             + ("<b>不被压也明显变扁：官方软球 E = 1 kPa 太软，光自重就压扁</b>，所以盒子实验的主结果用 E = 1e5 那一套。"
+                if flat else "上方没有物体时没有明显变扁，和期待不一致，要再查。"))
+    return ("<h3>方案 3：保留官方软球（E = 1e3）、不在它上面压东西</h3>"
+            "<h4>实验设置</h4><p>同一个盒子场景，软球保持官方材料 E = 1e3 Pa，额外的 2 个方块和 3 个软球落在离官方软球"
+            "水平 0.69 m 以上的四角和边上，官方布料照常落下。其余参数按各扫描档位变化。</p>"
+            "<h4>按原理期待的结果</h4><p>官方软球上面不压东西，它只受自重和布料；E = 1 kPa 远小于自重压力"
+            "（ρ·g·2R ≈ 1.6 kPa），所以即使不被压，也会被自重压扁一部分。</p><h4>原始输出</h4>"
+            + (f'<div class="grid"><div class="demo"><h3>官方参数那档的视频（官方相机）</h3><video controls muted playsinline '
+               f'preload="metadata" src="{video}"></video></div></div>' if video else "")
+            + table(["档位", "官方软球结束时质心高度（mm，完好约 80）", "形状比（表面点到球心最远 / 最近）",
+                     "翻转四面体 / 总数", "质心在它上方 0.3 m 以内的物体"], rows)
+            + f'<h4>解释与结论</h4><p class="concl">{concl}</p>')
+
+
+def officialball_video_record():
+    """方案 3 官方参数那档的视频（genesis_box_levels_officialball/baseline_default），记录格式同 collect_demo；
+    job.exit 0 / 3 / 4 且 mp4 非空才收（含义见 gen_level_videos）。"""
+    d = DEMO_ROOT / "genesis_box_levels_officialball" / "baseline_default"
+    mp4, ex = d / "genesis_ipc_objects_in_box.mp4", d / "job.exit"
+    ok = ex.is_file() and ex.read_text().strip() in ("0", "3", "4") and mp4.is_file() and mp4.stat().st_size > 0
+    return {"key": "box_officialball_baseline_default", "expects_video": True, "title": "", "line": "", "dir": d,
+            "state": "ok", "reason": None, "images": [], "video_src": mp4 if ok else None, "video_note": None}
 
 
 # ---------------- 关键数字（发现 / 结论里用，dry-run 时也打印出来核对） ----------------
-def compute_facts(demos, sweeps):
-    f = {}
-    by = {(r["sweep"], r["level"]): r for s in sweeps for r in s["rows"]}
-    allrows = list(by.values())
-
+def compute_facts(demos):
+    """Numbers the demo cards quote: the momentum example's final relative momentum error (run_info.json)."""
     mom = [r for r in demos if r["key"] == "genesis_ipc_momentum" and r["state"] == "ok"]
-    f["momentum_err"] = dig(mom[0]["info"], "run", "final_rel_momentum_error") if mom else MISSING
-
-    ok_checked = [r for r in allrows if r["state"] == "ok" and sanity_on(r["data"])]
-    f["n_ok_checked"] = len(ok_checked)
-    f["n_rows"] = len(allrows)
-    f["n_with_pen"] = sum(1 for r in ok_checked if dig(r["data"], "summary", "n_checks_with_penetration") != 0)
-    f["n_hit_max"] = sum(1 for r in ok_checked if dig(r["data"], "summary", "n_frames_hit_max_iter") != 0)
-    f["max_iter"] = dig(ok_checked[0]["data"], "params", "newton_max_iter") if ok_checked else MISSING
-    f["n_not_ok"] = sum(1 for r in allrows if r["state"] in ("failed", "unfinished", "not_run"))
-    f["rejected"] = [r["level"] for r in allrows if r["state"] == "rejected"]
-
-    ns = by.get(("init_penetration", "overlap_0p5R_nosanity"))
-    if ns and ns["state"] == "ok":
-        f["nosanity_mean"] = newton_mean(ns["data"])
-        f["nosanity_hit"] = dig(ns["data"], "summary", "n_frames_hit_max_iter")
-        f["nosanity_max"] = dig(ns["data"], "summary", "newton_iter_timer_max")
-    means = [newton_mean(r["data"]) for r in ok_checked]
-    means = [m for m in means if is_num(m)]
-    f["other_mean_lo"], f["other_mean_hi"] = (min(means), max(means)) if means else (MISSING, MISSING)
-    meds = [dig(r["data"], "summary", "newton_iter_timer_median") for r in ok_checked]
-    maxs = [dig(r["data"], "summary", "newton_iter_timer_max") for r in ok_checked]
-    f["n_median2"] = sum(1 for m in meds if m == 2)
-    f["n_max7"] = sum(1 for m in maxs if m == 7)
-
-    b = by.get(("baseline", "default"))
-    if b and b["data"]:
-        f["corr_lo"], f["corr_hi"], *_ = kappa_info(b["data"])
-        f["base_spf"] = sec_per_frame(b["data"])
-    for lvl, key in (("1e4", "k1e4"), ("1e9", "k1e9")):
-        r = by.get(("resistance", lvl))
-        if r and r["data"]:
-            f[key] = kappa_info(r["data"])[2]
-    f["n_res_unclamped"] = sum(1 for r in rows_of(sweeps, "resistance")
-                               if r["data"] and r["data"].get("kappa_clamped") is False)
-    for lvl, key in (("0p001", "dt001_mean"), ("0p01", "dt01_mean")):
-        r = by.get(("dt", lvl))
-        if r and r["state"] == "ok":
-            f[key] = newton_mean(r["data"])
-    r = by.get(("d_hat", "rel0p01"))
-    if r and r["state"] == "ok":
-        f["dhat001_max"] = dig(r["data"], "summary", "newton_iter_timer_max")
-        f["dhat001_corr_lo"] = kappa_info(r["data"])[0]
-    r = by.get(("d_hat", "rel1p0"))
-    if r and r["state"] == "ok":
-        f["dhat1_corr_lo"] = kappa_info(r["data"])[0]
-    r = by.get(("mesh_res", "medium"))
-    if r and r["state"] == "ok":
-        f["med_spf"] = sec_per_frame(r["data"])
-    return f
+    return {"momentum_err": dig(mom[0]["info"], "run", "final_rel_momentum_error") if mom else MISSING}
 
 
 def compute_genesis_facts(gsweeps):
@@ -1141,19 +1012,31 @@ def compute_genesis_facts(gsweeps):
             # 官方默认档同时是每个扫描维度的默认值，按维度各存一份
             value = ({sw: gen_value(d, sw) for sw, *_ in GENESIS_TABLES if sw != "baseline"} if r["sweep"] == "baseline"
                      else gen_value(d, r["sweep"]))
+            fin, ini = d.get("objects_final") or {}, d.get("objects_at_init") or {}
+            # per soft ball: (name, surface edge median at start / end [m], end r_max / r_min, inverted, tets,
+            # end centroid z [m]); only levels run with the shape fields (sweep.py a39f438) have them
+            shape = [(n, dig(ini, n, "surface_edge_median_m"), o.get("surface_edge_median_m"),
+                      o.get("surface_radius_ratio"), o.get("n_inverted_tets"), o.get("n_tets"), o["centroid"][2])
+                     for n, o in fin.items() if isinstance(o, dict) and "n_tets" in o and o.get("centroid")]
+            # end centroid height of every rigid box and soft ball (not the cloth, not the fixed walls)
+            heights = [o["centroid"][2] for n, o in fin.items() if isinstance(o, dict) and o.get("centroid")
+                       and "Cloth" not in n]
             f[k] = {"state": "ok", "value": value, "pen_checks": dig(d, "summary", "n_checks_with_penetration"),
                     "lowest_mm": low * 1000 if is_num(low) else MISSING, "below": below, "out_wall": outw,
                     "newton_mean": newton_mean(d), "newton_max": dig(d, "summary", "newton_iter_timer_max"),
-                    "hit_max": dig(d, "summary", "n_frames_hit_max_iter"), "split": gen_split(d)}
+                    "newton_median": dig(d, "summary", "newton_iter_frame_stats_median"),
+                    "hit_max": dig(d, "summary", "n_frames_hit_max_iter"), "split": gen_split(d),
+                    "shape": shape, "heights": heights, "n_out_box": d.get("n_objects_outside_box"),
+                    "wall_s": dig(d, "summary", "wall_seconds_total")}
             if r["sweep"] == "mesh_res" or r["sweep"] == "baseline":
                 f[k]["ball_verts"] = gen_ball_verts(d)
     return f
 
 
 def genesis_conclusions(f, videos):
-    """每个 Genesis 实验的「解释与结论」，返回 {扫描: html}。κ 一条引用 libuipc 层对照里实测的夹取区间。
-    定性的话是 2026-10-02 读完全部 genesis json 后写的；数字全部来自 facts（结果文件）。
-    mesh_res 一条只陈列新数据的数字（ball_subdiv 重跑后），定性结论要等主会话看过新数据再补。"""
+    """每个盒子实验的「解释与结论」，返回 {扫描: html}，针对 set_variant 选的那套结果。
+    每句定性结论都由数据判断后才写（例如只有数据单调才写「越大越……」），数字全部来自 facts（结果文件）；
+    κ 区间读打开 libuipc 日志的重跑（genesis_kappa_debug），E = 1e3 的对照读最早那套（genesis/）。"""
     def g(sweep, level):
         return f.get(f"g/{sweep}/{level}", {})
 
@@ -1168,43 +1051,46 @@ def genesis_conclusions(f, videos):
         vals = [v for v in vals if is_num(v)]
         return f"{g3(min(vals))}–{g3(max(vals))}" if vals else "—"
 
-    def vmm(sweep, level):  # 视频那次运行的整段可见表面最低点（mm），来自该档视频目录的 camera_fit.json
-        rec = videos.get((sweep, level)) or {}
-        v = rec.get("video_min_z", MISSING) if rec.get("video_src") else MISSING
-        return f"{g3(v * 1000)} mm" if is_num(v) else "—（视频未生成）"
+    def monotone(vals):  # +1 non-decreasing, -1 non-increasing, 0 neither (MISSING entries break it)
+        if not vals or not all(is_num(v) for v in vals):
+            return 0
+        up = all(b >= a for a, b in zip(vals, vals[1:]))
+        down = all(b <= a for a, b in zip(vals, vals[1:]))
+        return 1 if up and not down else -1 if down and not up else 0
 
-    def vrng(r):
-        vs = r.get("ball_verts") or []
-        return f"{min(vs)}–{max(vs)}" if vs else "—"
+    def balls(r):  # shape tuples of the soft balls: (name, edge0, edge1, ratio, inverted, tets, centroid z)
+        return r.get("shape") or []
 
-    def mesh_text():
-        lv = [("coarse", "粗"), ("medium", "中"), ("fine", "细")]
-        ms = [(name, g("mesh_res", k)) for k, name in lv]
-        if any(m.get("state") != "ok" for _, m in ms):
-            return "这一组改用 icosphere 细分 2 / 3 / 4 次的软球重跑，新结果出来前不下结论。"
-        return ("三档软球四面体化后每球顶点数分别为 "
-                + "、".join(f"{name} {vrng(m)}" for name, m in ms)
-                + "；软球表面最低点分别为 " + "、".join(f"{surf_txt(m)}" for _, m in ms)
-                + "（都在地面以上，穿透检查都没报）；每帧 Newton 迭代平均分别为 "
-                + "、".join(f"{g3(m.get('newton_mean'))} 次" for _, m in ms)
-                + "。<b>在这个场景里，网格粗细不影响是否穿地，迭代次数也相近。</b>"
-                  "翻转四面体在粗网格和细网格档都较多（" + "、".join(
-                    f"{name} {min(ni for *_, ni, _ in m['split']['balls'])}–"
-                    f"{max(ni for *_, ni, _ in m['split']['balls'])} 个" if m.get("split") else f"{name} —"
-                    for name, m in ms)
-                + "），原因见「软球硬度 E」一节（官方软球太软）；同一配置两次运行的翻转数也会不同（GPU 上不逐位一致）。")
+    def inflated(r):  # largest end/start surface-edge ratio over the soft balls (> 1 = the ball was stretched)
+        q = [e1 / e0 for _, e0, e1, *_ in balls(r) if is_num(e0) and is_num(e1) and e0 > 0]
+        return max(q) if q else MISSING
+
+    def inv_frac(r):
+        bs = balls(r)
+        n, t = sum(x[4] for x in bs if is_num(x[4])), sum(x[5] for x in bs if is_num(x[5]))
+        return n / t if t else MISSING
+
+    def edge_mm(r):  # median start surface edge of the soft balls (mm)
+        e = [e0 for _, e0, *_ in balls(r) if is_num(e0)]
+        return sorted(e)[len(e) // 2] * 1000 if e else MISSING
+
+    def shape_txt(r):
+        q, inv = inflated(r), inv_frac(r)
+        return (f"边长 {g3(edge_mm(r))} mm → 结束时最多拉长到 {g3(q)} 倍、翻转四面体 {g3(100 * inv)}%"
+                if is_num(q) and is_num(inv) else "没有形状读数")
+
+    def ball_cz(r):  # end centroid heights of the soft balls (mm); an intact ball resting on the floor is ~ R
+        return [cz * 1000 for *_, cz in balls(r)]
 
     b = g("baseline", "default")
     ok_all = [v for k, v in f.items() if k.startswith("g/") and v.get("state") == "ok"]
     n_pen = sum(1 for v in ok_all if v.get("pen_checks") != 0)
     init = [v for k, v in f.items() if k.startswith("g/init_penetration/")]
     n_rej = sum(1 for v in init if v.get("state") == "rejected")
-    d2, d5, d30 = g("d_hat", "0p002"), g("d_hat", "0p005"), g("d_hat", "0p03")
     dt_rows = sorted(rows("dt"), key=lambda v: v.get("value", 0))
-    dt_below = [g3(v["value"]) for v in dt_rows if v.get("below")]
-    dt_clean = [g3(v["value"]) for v in dt_rows if not v.get("below")]
-    dts = g("dt", "0p002")
-    fr, kr = rows("friction"), rows("resistance")
+    fr = sorted(rows("friction"), key=lambda v: v.get("value", 0))
+    kr = sorted(rows("resistance"), key=lambda v: v.get("value", 0))
+    mesh = [(name, g("mesh_res", k)) for k, name in (("coarse", "粗"), ("medium", "中"), ("fine", "细"))]
 
     def split(r):
         """分项读数的文字片段；该档没有新字段返回 None。"""
@@ -1262,35 +1148,48 @@ def genesis_conclusions(f, videos):
                 f"{sci(float(corr[1]))}] Pa；" + "；".join(parts) + "。")
 
     def inversion_text():
-        """软球四面体翻转：同帧 Genesis 读数与 libuipc 内部位置的对比（genesis_inversion_debug，Neural-IPC
-        run_commands 第 13 条），加 d̂ = 2 mm 下 E = 1e3 / 1e4 / 1e5 三档翻转占比。"""
+        """软球被压塌 / 四面体翻转：同帧 Genesis 读数与 libuipc 内部位置的对比（genesis_inversion_debug，Neural-IPC
+        run_commands 第 13 条），加 d̂ = 2 mm 下 E = 1e3（最早那套 genesis/，官方 E）/ 1e4 / 1e5 的翻转占比与软球质心高度。"""
         dbg = debug_json("genesis_inversion_debug", "d_hat", "0p002").get("objects_final") or {}
         bs = [o for o in dbg.values() if isinstance(o, dict) and "uipc_n_inverted_tets" in o]
         same = all(o["uipc_n_inverted_tets"] == o["n_inverted_tets"] for o in bs)
         gap = max((o["genesis_vs_uipc_max_abs_m"] for o in bs), default=MISSING)
+        e3_d = debug_json("genesis", "d_hat", "0p002")
+        e3 = {"split": gen_split(e3_d) if e3_d else None}
+        e3_cz = [o["centroid"][2] * 1000 for o in (e3_d.get("objects_final") or {}).values()
+                 if isinstance(o, dict) and "n_tets" in o and o.get("centroid")]
         e4, e5 = g("inversion_vs_E", "dhat2mm_E1e4"), g("inversion_vs_E", "dhat2mm_E1e5")
-        if not bs or e4.get("state") != "ok" or e5.get("state") != "ok":
+        if not bs or not e3_d or e4.get("state") != "ok" or e5.get("state") != "ok":
             return "这一组还没跑完，先不下结论。"
+        fr = [inv_frac(e4), inv_frac(e5)]
         return (("<b>翻转是 libuipc 的 FEM 解里真有的，不是读数问题：</b>" if same else "<b>两边读数的翻转数不一致：</b>")
                 + f"同一帧里 Genesis 读到的软球顶点和 libuipc 内部位置最多差 {sci(gap)} m，两边数出的翻转四面体"
                 + ("完全一样。" if same else "不同，要再查。")
-                + f"<b>与期待一致：E 越大翻转越少。</b>d̂ = 2 mm 下软球 E = 1e3 / 1e4 / 1e5 Pa 时翻转占比分别为 "
-                f"{inv_pct(d2)}、{inv_pct(e4)}、{inv_pct(e5)}；E ≥ 1e4 后软球内部顶点也不再低于地面"
-                f"（内部最低 {split(e4)['interior'] if split(e4) else '—'}、{split(e5)['interior'] if split(e5) else '—'}）。"
-                "所以翻转和“内部顶点低于地面”都来自官方软球太软（E = 1 kPa）；表面全程没有穿透。用作训练数据的软体要用更大的 E，并检查四面体翻转。")
+                + f"d̂ = 2 mm 下软球 E = 1e3（官方）/ 1e4 / 1e5 Pa 时，翻转占比 {inv_pct(e3)} / {inv_pct(e4)} / {inv_pct(e5)}，"
+                f"软球结束时质心高度 {rng(e3_cz)} / {rng(ball_cz(e4))} / {rng(ball_cz(e5))} mm（球半径 80 mm，完好的球约 80 mm）。"
+                + ("<b>E 越大越不塌、翻转越少</b>：官方 E = 1 kPa 时球被压塌（自重压力 ρ·g·2R ≈ 1.6 kPa 已超过 E），"
+                   "所以盒子实验的主结果改用 E = 1e5。" if is_num(fr[0]) and is_num(fr[1]) and fr[1] <= fr[0] else
+                   "E 增大后翻转没有减少，和期待不一致，要再查。")
+                + "表面全程没有穿透。")
 
     dhat_rows = sorted(rows("d_hat"), key=lambda v: v.get("value", 0))
-    sb, s2 = split(b), split(d2)
+    sb = split(b)
     rigid_note = ("刚体方块在 IPC 里的中心高度比 Genesis 读出的高 {off}{each}，正好等于 g·dt²（{g}）："
                   "Genesis 的刚体求解器在 IPC 把位置写回之后，又自己多走了一步重力，所以 Genesis 读出的刚体位置偏低，"
-                  "IPC 里的方块并没有穿地。视频旁的“可见表面最低点”里刚体用的也是 Genesis 读数，同样含这段偏移。")
+                  "IPC 里的方块并没有穿地。")
+    gaps = [(v.get("value"), surf_mm(v)) for v in dhat_rows]
+    gap_ratio = [s / (d * 1000) for d, s in gaps if is_num(d) and is_num(s) and d > 0]
+    nmax = [v.get("newton_max") for v in dhat_rows]
+    big = [v for v in dhat_rows if is_num(inflated(v)) and inflated(v) > 1.3]  # surface edges stretched > 30 %
+    dt_med, dt_max = [v.get("newton_median") for v in dt_rows], [v.get("newton_max") for v in dt_rows]
+    fr_top = [max(v.get("heights") or [MISSING], key=lambda z: z if is_num(z) else -1) for v in fr]
     items = [  # 顺序与下面 zip 的扫描名一一对应
         ("<b>无穿透这一点与期待一致</b>：libuipc 每 10 帧一次的穿透检查 "
          f"{b.get('pen_checks', '—')} 次报了穿透"
-         + (f"；软球表面最低点 {sb['surf']}，软球里翻转的四面体分别为 {sb['inv']}（翻转 / 总数）。"
+         + (f"；软球表面最低点 {sb['surf']}，软球结束时质心高度 {rng(ball_cz(b))} mm（球半径 80 mm），"
+            f"翻转四面体 {sb['inv']}（翻转 / 总数）。"
             + rigid_note.format(off=sb["off"], each="（每个都一样）" if sb["off_same"] else "", g=sb["g_dt2"])
-            if sb else "。")
-         + f"视频那次运行整段可见表面最低点 {vmm('baseline', 'default')}。"),
+            if sb else "。")),
 
         (f"<b>与期待一致：初始状态必须无穿插。</b>让两个软球一开始互相穿进 0.1 R 或 0.5 R，{len(init)} 档里 {n_rej} 档"
          "在建场景时就被 libuipc 判定相交（日志里报 Intersection detected），仿真没有开始。"
@@ -1298,37 +1197,53 @@ def genesis_conclusions(f, videos):
          f"正常开跑的 {len(ok_all)} 个配置，libuipc 的穿透检查（每 10 帧一次）"
          + ("一次都没报。" if n_pen == 0 else f"有 {n_pen} 个报了穿透。")),
 
-        ("<b>与期待一致：d̂ 越大，物体停得离地越远；d̂ 越小，Newton 迭代越多。</b>软球表面离地的最低点："
-         + "、".join(f"d̂ = {g3(v.get('value') * 1000)} mm 时 {surf_txt(v)}" for v in dhat_rows)
-         + "——间隙大约是 d̂ 的 0.7–0.9 倍，因为 barrier 在距离小于 d̂ 时才开始推，物体停在斥力和重力平衡处；"
-         f"单帧 Newton 最多：d̂ = 2 mm 时 {g3(d2.get('newton_max'))} 次，1 cm 时 {g3(b.get('newton_max'))} 次，"
-         f"3 cm 时 {g3(d30.get('newton_max'))} 次（d̂ 小，barrier 更陡、更难解）。"
-         + (f"<b>表面从未穿地</b>：各档 libuipc 每 10 帧穿透检查都没报；表里的负读数是软球内部顶点"
-            f"（d̂ = 2 mm 时内部最低 {s2['interior']}）和 Genesis 刚体读数偏移。"
-            + rigid_note.format(off=s2["off"], each="（每个都一样）" if s2["off_same"] else "", g=s2["g_dt2"])
-            + f"d̂ 小时软球大量四面体翻转（d̂ = 2 mm：{s2['inv']}，翻转 / 总数），原因见「软球硬度 E」一节：官方软球太软。"
-            if s2 else "")),
+        ("软球表面离地的最低点："
+         + "、".join(f"d̂ = {g3(d * 1000)} mm 时 {g3(s)} mm" for d, s in gaps if is_num(d) and is_num(s))
+         + (f"，约为 d̂ 的 {rng(gap_ratio)} 倍。<b>与期待一致：d̂ 越大，物体停得离地越远</b>——barrier 在距离小于 d̂ "
+            "时才开始推，物体停在斥力和重力平衡处。" if monotone([s for _, s in gaps]) == 1
+            else "，和 d̂ 不是单调关系，与期待不一致。")
+         + "单帧 Newton 最多：" + "、".join(f"d̂ = {g3(v.get('value') * 1000)} mm 时 {g3(v.get('newton_max'))} 次"
+                                            for v in dhat_rows)
+         + ("（d̂ 越小越难解）。" if monotone(nmax) == -1 else "。")
+         + ("<b>d̂ 不能大于软球表面网格的边长：</b>" + "；".join(
+             f"d̂ = {g3(v.get('value') * 1000)} mm 时{shape_txt(v)}" for v in big)
+            + "——同一个软球上不相邻的面片距离已小于 d̂，FEM 默认开着自接触，barrier 把球从里面撑开、扭曲（边长被拉到接近 d̂），"
+              "四面体随之翻转。libuipc 的 compute_mesh_d_hat 正是取最短表面边长作 d̂；官方 d̂ = 1 cm 也略小于这个软球约 1.2 cm 的边长。"
+            if big else "")),
 
-        (f"<b>迭代次数与期待一致：dt 越小，每帧 Newton 迭代越多。</b>dt ={g3(dts.get('value'))} s 时平均 {g3(dts.get('newton_mean'))}、"
-         f"最多 {g3(dts.get('newton_max'))} 次；官方的 {g3((b.get('value') or {}).get('dt'))} s 时平均 {g3(b.get('newton_mean'))}、"
-         f"最多 {g3(b.get('newton_max'))} 次。各档软球表面最低点都在地面以上（{rng([surf_mm(v) for v in dt_rows])} mm），"
-         "穿透检查都没报。刚体在 IPC 与 Genesis 里的高度差逐档为 "
+        ("各档每帧 Newton 迭代中位数 / 最多："
+         + "、".join(f"dt = {g3(v.get('value'))} s：{g3(v.get('newton_median'))} / {g3(v.get('newton_max'))}"
+                    for v in dt_rows)
+         + ("。<b>在这个场景里 dt 对每帧迭代次数影响不大</b>（换算成同样 2 s 物理时间，总步数随 dt 成倍变化，"
+            "所以总耗时主要由步数决定："
+            + "、".join(f"{g3(v.get('value'))} s 用 {g3(v.get('wall_s'))} s" for v in dt_rows) + "）。"
+            if max(x for x in dt_max if is_num(x)) - min(x for x in dt_max if is_num(x)) <= 5 else "。")
+         + f"各档软球表面最低点都在地面以上（{rng([surf_mm(v) for v in dt_rows])} mm），穿透检查都没报。"
+           "刚体在 IPC 与 Genesis 里的高度差逐档为 "
          + "、".join(f"dt = {g3(v.get('value'))} s：{off_txt(v)}" for v in dt_rows)
-         + "，每档都正好等于 g·dt²——这直接证实了偏移来自 Genesis 刚体求解器写回后多走的一步重力，不是穿地。"),
+         + "，每档都等于 g·dt²——偏移来自 Genesis 刚体求解器写回后多走的一步重力，不是穿地。"),
 
-        (f"<b>与期待一致：摩擦不影响穿透和迭代。</b>μ 取 {'、'.join(g3(v.get('value')) for v in sorted(fr, key=lambda v: v.get('value', 0)))} 共 {len(fr)} 档，"
-         + ("扫描读数里都没有物体低于地面，" if not any(v.get("below") for v in fr) else "")
-         + f"迭代次数平均 {rng([v.get('newton_mean') for v in fr])} 次，没有明显规律；"
-           "“越大越不容易滑、堆得越陡”这一点，现有数据里没有对应的量，无法判断。"),
+        ("方块和软球结束时质心最高处："
+         + "、".join(f"μ = {g3(v.get('value'))} 时 {g3(z * 1000) if is_num(z) else '—'} mm" for v, z in zip(fr, fr_top))
+         + ("。<b>与期待一致：μ 越大越不容易滑、堆得越高</b>——摩擦小时额外物体从布料堆上滑到墙边落地，摩擦大时停在中间的堆上"
+            "（视频里可以看到）。" if monotone(fr_top) == 1 else "。和摩擦不是单调关系。")
+         + f"穿透检查各档都没报；迭代次数平均 {rng([v.get('newton_mean') for v in fr])} 次。"),
 
-        (f"<b>与期待一致：区间外的 κ 被夹到边界。</b>contact_resistance 从 "
-         f"{sci(min((v.get('value') for v in kr), default=MISSING))} 到 {sci(max((v.get('value') for v in kr), default=MISSING))} Pa "
-         f"共 {len(kr)} 档，软球表面最低点 {rng([surf_mm(v) for v in kr])} mm，迭代平均 {rng([v.get('newton_mean') for v in kr])} 次。"
+        (f"contact_resistance 从 {sci(min((v.get('value') for v in kr), default=MISSING))} 到 "
+         f"{sci(max((v.get('value') for v in kr), default=MISSING))} Pa 共 {len(kr)} 档，软球表面离地最低点逐档为 "
+         + "、".join(f"{sci(v.get('value'))}：{surf_txt(v)}" for v in kr) + "。"
          + kappa_text()
-         + "所以官方默认 1e9 和更大的值实际是同一个 κ（区间上界），结果几乎一样；只有区间内的值才真正改变接触刚度。"
-           "Genesis 默认把 libuipc 日志设成只输出 error（genesis ipc_coupler/coupler.py:272-276），这些夹取警告平时看不到。"),
+         + "<b>与期待一致：区间外的 κ 被夹到边界</b>，所以 Genesis 默认 1e9 和更大的值实际是同一个 κ（区间上界），"
+           "结果几乎一样；只有区间内的值才真正改变接触刚度。Genesis 默认把 libuipc 日志设成只输出 error"
+           "（genesis ipc_coupler/coupler.py:272-276），这些夹取警告平时看不到。κ 区间只由场景质量、尺寸、d̂、dt 决定，与软球 E 无关。"),
 
-        mesh_text(),
+        (None if any(m.get("state") != "ok" for _, m in mesh) else
+         "三档软球表面边长与结束时形状：" + "；".join(f"{name}：{shape_txt(m)}" for name, m in mesh)
+         + "。穿透检查都没报；每帧 Newton 迭代平均 " + "、".join(f"{name} {g3(m.get('newton_mean'))}" for name, m in mesh)
+         + " 次；总耗时 " + "、".join(f"{name} {g3(m.get('wall_s'))} s" for name, m in mesh) + "。"
+         + ("<b>网格越细越要注意 d̂</b>：边长小于 d̂（1 cm）的那档软球被自接触撑开、四面体翻转，原因同 d̂ 一节；"
+            "边长大于 d̂ 的档没有这个问题。" if any(is_num(inflated(m)) and inflated(m) > 1.3 for _, m in mesh)
+            else "")) or "这一组还没跑完。",
 
         inversion_text(),
     ]
@@ -1341,27 +1256,24 @@ NEXT_STEPS = ("<b>下一步：</b>生成数据时显式固定 κ（落在 libuip
               "加能反映堆积形态的指标。")
 
 
-def build_page(demos, extras, gsweeps, sweeps, cfg, facts, videos, commit):
-    n_video = sum(1 for r in demos + extras if r.get("video_web"))
-    n_demo_ok = sum(1 for r in demos + extras if r["state"] == "ok")
-    n_demo = len(demos + extras)
+def build_page(demos, tests, gsweeps, cfg, facts, videos, commit):
+    n_video = sum(1 for r in demos + tests if r.get("video_web"))
+    n_pass = sum(1 for r in tests if r.get("outcome") == "passed")
+    n_ran = sum(1 for r in tests if r.get("outcome") in ("passed", "failed"))
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
-    ran = f"{n_demo} 个 demo 全部跑完" if n_demo_ok == n_demo else f"{n_demo} 个 demo 跑完了 {n_demo_ok} 个"
-    summary = (f"这周把 libuipc（Genesis 的 IPC 耦合底层也是它，在 H100 上需从源码编译）和 Genesis 在服务器上跑通了，"
-               f"{ran}，其中 {n_video} 个录了视频。"
-               f"然后用 Genesis 做了“一堆物体扔进盒子”（官方 ipc_objects_falling 场景加一个盒子），"
-               f"在上面对 {n_gsweeps} 个 IPC 参数做了单变量扫描，共 {n_grows} 个配置；之前直接调 libuipc 的那套扫描留作对照。"
-               "主要发现：初始穿插会被拒绝开跑；之前看到的“物体低于地面”是读法造成的（软球内部顶点、"
-               "Genesis 刚体多走一步重力），表面没有穿地；软球四面体翻转是官方软球太软（E = 1 kPa）造成的，E 加大到 1e5 后消失；"
-               "dt 越小迭代越多；摩擦看不出差别；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
-               + ("网格粗细这组正在用新网格重跑。" if any(r["state"] == "stale" for r in rows_of(gsweeps, "mesh_res"))
-                  else "网格粗细见对应小节。"))
+    summary = (f"这周在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
+               f"{len(demos)} 个 Genesis IPC 例子和 {len(tests)} 个 Genesis 官方 IPC 测试场景，共 {n_video} 段视频"
+               f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
+               f"然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 {n_gsweeps} 个 IPC 参数"
+               f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
+               "d̂ 决定物体停在离地多远，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
+               "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")
     nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
-            + videos_section(demos, extras, facts) + "\n"
-            + sweep_section(gsweeps, sweeps, cfg, videos, facts, commit))
+            + videos_section(demos, tests, facts) + "\n"
+            + sweep_section(gsweeps, cfg, videos, facts, commit))
     return page(body)
 
 
@@ -1377,22 +1289,25 @@ def main():
     ap.add_argument("--execute", action="store_true", help="真正写文件、压视频（默认只打印计划）")
     ap.add_argument("--crf", type=int, default=26, help="libx264 CRF（默认 26；数字越大文件越小）")
     ap.add_argument("--force-videos", action="store_true", help="忽略 encode_manifest.json，全部重新压缩")
+    ap.add_argument("--variant", choices=sorted(VARIANTS), default="stiffball",
+                    help="盒子实验主结果用哪一套（VARIANTS；run_sweep_queue.sh 的 TAG）")
     args = ap.parse_args()
+    set_variant(args.variant)
 
-    demos, extras, unlisted = collect_demos()
+    demos, tests, unlisted = collect_demos()
     if unlisted:
-        print(f"[build_site] 注意：NAS 上这些 demo 目录不在 DEMOS 清单里，不上页面：{unlisted}")
-    cfg, sweeps = collect_sweeps()
-    _, gsweeps = collect_sweeps("genesis", cfg)
-    all_demos = demos + extras
-    videos = gen_level_videos(gsweeps)   # Genesis 扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
-    vjobs, manifest = plan_videos(all_demos + list(videos.values()), args.crf, args.force_videos)
+        print(f"[build_site] 注意：NAS 上这些 demo 目录不在 DEMOS / OFFICIAL_TESTS 清单里，不上页面：{unlisted}")
+    cfg, gsweeps = collect_sweeps()
+    all_demos = demos + tests
+    videos = gen_level_videos(gsweeps)   # 盒子扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
+    vjobs, manifest = plan_videos(all_demos + list(videos.values()) + [officialball_video_record()],
+                                  args.crf, args.force_videos)
     ijobs = plan_images(all_demos)
-    facts = compute_facts(demos, sweeps)
+    facts = compute_facts(demos)
     facts.update(compute_genesis_facts(gsweeps))
     commit = genesis_commit()
 
-    pages = {WEB / "index.html": build_page(demos, extras, gsweeps, sweeps, cfg, facts, videos, commit)}
+    pages = {WEB / "index.html": build_page(demos, tests, gsweeps, cfg, facts, videos, commit)}
 
     # ---------------- 打印计划 ----------------
     mode = "EXECUTE" if args.execute else "DRY-RUN（只演练，不写任何文件；加 --execute 才真正写）"
@@ -1402,11 +1317,12 @@ def main():
         extra = "" if r["state"] == "ok" else f"  {r['reason']}"
         vid = f"  视频: {r['video_src']}" if r["video_src"] else (f"  {r['video_note']}" if r["video_note"] else "")
         print(f"  - {r['key']:<32} {STATE_LABEL[r['state']]}{extra}{vid}")
-    print(f"[build_site] Genesis 每档视频：{GEN_VIDEO_ROOT}（Neural-IPC commit {commit}）")
+    print(f"[build_site] 盒子实验这一套：{GEN_TAG}（{VARIANTS[GEN_TAG]['label']}），每档视频：{GEN_VIDEO_ROOT}"
+          f"（Neural-IPC commit {commit}）")
     for (sw, lv), r in videos.items():
         print(f"  - {sw}/{lv:<14} " + (f"视频: {r['video_src']}  {r['line']}" if r["video_src"] else r["video_note"]))
-    print(f"[build_site] 扫描结果：{SWEEP_ROOT}（genesis 版在其下 genesis/，先列）")
-    for s in [dict(s, name="genesis/" + s["name"]) for s in gsweeps] + sweeps:
+    print(f"[build_site] 扫描结果：{GEN_SWEEP_ROOT}")
+    for s in gsweeps:
         states = {}
         for r in s["rows"]:
             states[r["state"]] = states.get(r["state"], 0) + 1
