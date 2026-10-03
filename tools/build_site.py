@@ -872,6 +872,10 @@ def repro_block(sweep, rows, cfg, commit):
     own = [r for r in rows if sweep == "baseline" or r["sweep"] != "baseline"]  # 官方默认档只在它自己的实验里给命令
     for n, r in enumerate(own, 1):
         argv = (r["data"] or {}).get("argv")
+        if isinstance(argv, list):
+            # --export-obj only ever affected the removed libuipc backend (no-op for genesis) and was dropped from
+            # sweep.py on 2026-10-03, so a recorded argv that still has it would no longer parse
+            argv = [a for a in argv if a != "--export-obj"]
         if not (isinstance(argv, list) and argv):
             argv = [str(PROJECT / "tools" / "ipc_sweep" / "sweep.py"), "--backend", "genesis",
                     "--sweep", r["sweep"], "--level", r["level"], "--log-level", "Info",
