@@ -321,8 +321,8 @@
  },
  "genesis_ipc_objects_in_box.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_ipc_objects_in_box/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1384938,
-  "src_mtime": 1790967520.6211827,
+  "src_size": 1221463,
+  "src_mtime": 1791037902.4699664,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -348,8 +348,8 @@
    "-an",
    "<out>"
   ],
-  "out_size": 69706,
-  "encoded_at": "2026-10-02 23:41:41"
+  "out_size": 64470,
+  "encoded_at": "2026-10-03 07:32:43"
  },
  "abd_bunny_grid_drop.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/abd_bunny_grid_drop/abd_bunny_grid_drop.mp4",
@@ -1153,8 +1153,8 @@
  },
  "box_stiffball_baseline_default.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/baseline_default/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1471193,
-  "src_mtime": 1790971356.7098017,
+  "src_size": 1504794,
+  "src_mtime": 1791036660.7221713,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1180,13 +1180,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 91117,
-  "encoded_at": "2026-10-02 23:41:43"
+  "out_size": 93118,
+  "encoded_at": "2026-10-03 07:32:43"
  },
  "box_stiffball_d_hat_0p002.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/d_hat_0p002/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1447891,
-  "src_mtime": 1790971436.9335687,
+  "src_size": 1506634,
+  "src_mtime": 1791036853.3510978,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1212,13 +1212,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 82032,
-  "encoded_at": "2026-10-02 23:41:43"
+  "out_size": 84652,
+  "encoded_at": "2026-10-03 07:32:44"
  },
  "box_stiffball_d_hat_0p005.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/d_hat_0p005/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1458034,
-  "src_mtime": 1790971534.0209665,
+  "src_size": 1515542,
+  "src_mtime": 1791037080.7744493,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1244,13 +1244,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 87675,
-  "encoded_at": "2026-10-02 23:41:43"
+  "out_size": 88446,
+  "encoded_at": "2026-10-03 07:32:44"
  },
  "box_stiffball_d_hat_0p03.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/d_hat_0p03/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1660256,
-  "src_mtime": 1790971669.0607855,
+  "src_size": 1684075,
+  "src_mtime": 1791037325.7021484,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1276,13 +1276,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 100660,
-  "encoded_at": "2026-10-02 23:41:43"
+  "out_size": 105323,
+  "encoded_at": "2026-10-03 07:32:44"
  },
  "box_stiffball_dt_0p002.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/dt_0p002/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1526519,
-  "src_mtime": 1790971996.3888714,
+  "src_size": 1555872,
+  "src_mtime": 1791036993.6065485,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1308,13 +1308,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 104861,
-  "encoded_at": "2026-10-02 23:41:44"
+  "out_size": 111031,
+  "encoded_at": "2026-10-03 07:32:45"
  },
  "box_stiffball_dt_0p005.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/dt_0p005/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1513805,
-  "src_mtime": 1790972166.0202012,
+  "src_size": 1511821,
+  "src_mtime": 1791037396.582522,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1340,13 +1340,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 105342,
-  "encoded_at": "2026-10-02 23:41:44"
+  "out_size": 105101,
+  "encoded_at": "2026-10-03 07:32:45"
  },
  "box_stiffball_dt_0p01.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/dt_0p01/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1502945,
-  "src_mtime": 1790972300.3556156,
+  "src_size": 1526836,
+  "src_mtime": 1791037625.094372,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1372,13 +1372,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 100725,
-  "encoded_at": "2026-10-02 23:41:44"
+  "out_size": 104602,
+  "encoded_at": "2026-10-03 07:32:45"
  },
  "box_stiffball_dt_0p04.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/dt_0p04/genesis_ipc_objects_in_box.mp4",
-  "src_size": 855594,
-  "src_mtime": 1790972371.810944,
+  "src_size": 895488,
+  "src_mtime": 1791037803.6860032,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1404,13 +1404,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 68480,
-  "encoded_at": "2026-10-02 23:41:45"
+  "out_size": 72339,
+  "encoded_at": "2026-10-03 07:32:46"
  },
  "box_stiffball_friction_0p0.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/friction_0p0/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1425629,
-  "src_mtime": 1790972456.1308906,
+  "src_size": 1482813,
+  "src_mtime": 1791036650.551361,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1436,13 +1436,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 87580,
-  "encoded_at": "2026-10-02 23:41:45"
+  "out_size": 92259,
+  "encoded_at": "2026-10-03 07:32:46"
  },
  "box_stiffball_friction_0p5.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/friction_0p5/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1261408,
-  "src_mtime": 1790972531.4905498,
+  "src_size": 1245038,
+  "src_mtime": 1791036820.8711073,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1468,13 +1468,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 75196,
-  "encoded_at": "2026-10-02 23:41:45"
+  "out_size": 74098,
+  "encoded_at": "2026-10-03 07:32:46"
  },
  "box_stiffball_friction_1p0.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/friction_1p0/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1151304,
-  "src_mtime": 1790972613.6987636,
+  "src_size": 1140277,
+  "src_mtime": 1791036986.5351813,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1500,13 +1500,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 67185,
-  "encoded_at": "2026-10-02 23:41:46"
+  "out_size": 65136,
+  "encoded_at": "2026-10-03 07:32:47"
  },
  "box_stiffball_resistance_1e6.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/resistance_1e6/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1475116,
-  "src_mtime": 1790972713.410421,
+  "src_size": 1533979,
+  "src_mtime": 1791037223.3662663,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1532,13 +1532,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 92270,
-  "encoded_at": "2026-10-02 23:41:46"
+  "out_size": 95536,
+  "encoded_at": "2026-10-03 07:32:47"
  },
  "box_stiffball_resistance_1e8.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/resistance_1e8/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1460688,
-  "src_mtime": 1790972808.9944072,
+  "src_size": 1497067,
+  "src_mtime": 1791037447.5263884,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1564,13 +1564,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 88169,
-  "encoded_at": "2026-10-02 23:41:46"
+  "out_size": 92295,
+  "encoded_at": "2026-10-03 07:32:47"
  },
  "box_stiffball_resistance_1e11.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/resistance_1e11/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1435640,
-  "src_mtime": 1790972899.617596,
+  "src_size": 1510764,
+  "src_mtime": 1791037689.0304484,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1596,13 +1596,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 87757,
-  "encoded_at": "2026-10-02 23:41:46"
+  "out_size": 93007,
+  "encoded_at": "2026-10-03 07:32:48"
  },
  "box_stiffball_mesh_res_coarse.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/mesh_res_coarse/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1432599,
-  "src_mtime": 1790973025.82573,
+  "src_size": 1514457,
+  "src_mtime": 1791036649.159417,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1628,13 +1628,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 84472,
-  "encoded_at": "2026-10-02 23:41:47"
+  "out_size": 89753,
+  "encoded_at": "2026-10-03 07:32:48"
  },
  "box_stiffball_mesh_res_medium.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/mesh_res_medium/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1429338,
-  "src_mtime": 1790973113.4410617,
+  "src_size": 1452979,
+  "src_mtime": 1791036851.2431433,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1660,13 +1660,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 87165,
-  "encoded_at": "2026-10-02 23:41:47"
+  "out_size": 88898,
+  "encoded_at": "2026-10-03 07:32:48"
  },
  "box_stiffball_mesh_res_fine.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/mesh_res_fine/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1569063,
-  "src_mtime": 1790973253.5052915,
+  "src_size": 1517911,
+  "src_mtime": 1791037114.1509013,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1692,13 +1692,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 85669,
-  "encoded_at": "2026-10-02 23:41:47"
+  "out_size": 86196,
+  "encoded_at": "2026-10-03 07:32:49"
  },
  "box_stiffball_inversion_vs_E_dhat2mm_E1e4.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/inversion_vs_E_dhat2mm_E1e4/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1322191,
-  "src_mtime": 1790973342.04864,
+  "src_size": 1356509,
+  "src_mtime": 1791037361.0940695,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1724,13 +1724,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 74701,
-  "encoded_at": "2026-10-02 23:41:48"
+  "out_size": 75160,
+  "encoded_at": "2026-10-03 07:32:49"
  },
  "box_stiffball_inversion_vs_E_dhat2mm_E1e5.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_stiffball/inversion_vs_E_dhat2mm_E1e5/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1438720,
-  "src_mtime": 1790973419.264501,
+  "src_size": 1507099,
+  "src_mtime": 1791037518.597908,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1756,13 +1756,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 81968,
-  "encoded_at": "2026-10-02 23:41:48"
+  "out_size": 85043,
+  "encoded_at": "2026-10-03 07:32:49"
  },
  "box_officialball_baseline_default.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_officialball/baseline_default/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1244072,
-  "src_mtime": 1791010359.7530212,
+  "src_size": 1338205,
+  "src_mtime": 1791037726.8864305,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1788,8 +1788,8 @@
    "-an",
    "<out>"
   ],
-  "out_size": 72870,
-  "encoded_at": "2026-10-03 00:00:28"
+  "out_size": 77595,
+  "encoded_at": "2026-10-03 07:32:50"
  },
  "genesis_ipc_robot_cloth_teleop_descend0p08.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_ipc_robot_cloth_teleop_descend0p08/genesis_ipc_robot_cloth_teleop.mp4",
