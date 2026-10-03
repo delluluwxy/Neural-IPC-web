@@ -800,14 +800,40 @@ def col_wall_gap(d):
     return f"{g3(min(gaps) * 1000)}–{g3(max(gaps) * 1000)}" if gaps else "—"
 
 
+def contact_kind(name):
+    """Readable kind of a contact_gaps_final name (sweep.py: "<i>_Sphere_Elastic", "<i>_Box_Rigid", "<i>_Mesh_Cloth",
+    "<i>_wall", "ground")."""
+    for key, kind in (("Sphere", "软球"), ("Box", "方块"), ("Cloth", "布"), ("wall", "墙"), ("ground", "地面")):
+        if key in name:
+            return kind
+    return name
+
+
+def col_contact(d):
+    """Gaps of the surface pairs in contact at the last frame (shortest surface-to-surface distance below d_hat, where
+    libuipc's barrier acts), grouped by the kinds of the two surfaces, from the rerun of the same level that records
+    them (sweep.py contact_gaps_final, under genesis_<set>_contact/)."""
+    c, _ = load_json(SWEEP_ROOT / f"genesis_{GEN_TAG}_contact" / d["sweep"] / f"{d['level']}.json")
+    dh = dig(c, "libuipc_config", "contact", "d_hat") if isinstance(c, dict) else MISSING
+    if not (isinstance(c, dict) and c.get("status") == "ok" and "contact_gaps_final" in c and is_num(dh)):
+        return "—"
+    groups = {}
+    for g in c["contact_gaps_final"]:
+        if g["distance_m"] < dh:
+            key = "–".join(sorted((contact_kind(g["a"]), contact_kind(g["b"])), key="软球方块布墙地面".find))
+            groups.setdefault(key, []).append(g["distance_m"] * 1000)
+    return "；".join(f"{k} {g3(min(v))}" + (f"–{g3(max(v))}" if len(v) > 1 else "") + f"（{len(v)} 处）"
+                    for k, v in sorted(groups.items())) or "没有"
+
+
 NEWTON, SECONDS = ("每帧 Newton 迭代（中位 / 最多）", col_newton), ("仿真总耗时（s）", col_wall_seconds)
+CONTACT = ("停住时各接触面之间的间隙（mm，只列小于 d̂ 的）", col_contact)
 FLIPPED, TOP, WALL = ("翻转的四面体", col_flipped), ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
-# The gap between resting surfaces is not shown: it has to be measured to the surface each object actually touches
-# (cloth, another object or the ground), and the sweep results record no final surface meshes to do that.
-SWEEP_COLUMNS = {"baseline": [NEWTON], "d_hat": [NEWTON, FLIPPED], "dt": [NEWTON, SECONDS],
-                 "friction": [TOP, WALL], "resistance": [], "init_penetration": [],
+# CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
+SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, FLIPPED], "dt": [NEWTON, SECONDS],
+                 "friction": [TOP, WALL], "resistance": [CONTACT], "init_penetration": [],
                  "mesh_res": [FLIPPED, SECONDS], "inversion_vs_E": [FLIPPED]}
 
 
