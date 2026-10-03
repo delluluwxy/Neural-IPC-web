@@ -698,8 +698,8 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "μ 只管物体互相滑动时的切向阻力：μ 越大越不容易滑，堆得越陡。它不改变法向的 barrier，"
      "所以不该影响会不会穿透，对 Newton 次数的影响也应该很小。"),
     ("resistance", "接触刚度 κ", "改 Genesis 的 contact_resistance，默认 1e9 Pa。", "设的 κ（Pa）",
-     "κ 是 barrier 的刚度。libuipc 会把它夹进一个按场景算出的区间：在区间内变化时，间隙和迭代次数会略有变化；"
-     "区间外的值会被夹到边界，结果应该和边界值一样。"),
+     "κ 是 barrier 的刚度。libuipc 会把它夹进一个按场景算出的区间：在区间内，κ 越大接触越硬，物体陷进 barrier 越浅，"
+     "间隙越接近 d̂；区间外的值会被夹到边界，结果应该和边界值一样。"),
     ("init_penetration", "初始穿插", "多放一个软球，让它和官方软球一开始就互相穿进去一部分（R 为球半径）。",
      "初始状态",
      "IPC 的 barrier 只在两个表面距离为正时才有定义，一开始就穿插的话能量没有意义，"
@@ -741,9 +741,12 @@ FINDINGS = {
              "（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面撑开，出现翻转。",
     "dt": "与期待一致：每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加；dt 越小，接触间隙越接近 d̂（libuipc 按 1/dt² 抬高接触刚度下限，接触更硬、物体陷得更浅）。",
     "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
-    "resistance": "1e8、1e9（默认）、1e11 三档的接触间隙几乎一模一样：libuipc 把它们都夹到了这个场景允许的上限 "
-                  "1.57e7 Pa（日志原文可查 1e9、1e11 两档），实际是同一个刚度。只有 1e6 落在允许区间 [1.57e5, 1.57e7] 内，"
-                  "刚度更软，物体陷得更深（间隙约 0.5–0.8 d̂）。在 Genesis 里调 contact_resistance 基本调不动接触刚度。",
+    "resistance": "与期待一致：libuipc 只认这个场景允许的区间 [1.57e5, 1.57e7] Pa。区间内（2e5 → 1e6 → 3e6 → 1e7）"
+                  "κ 越大接触越硬、物体陷得越浅，各接触面的间隙一路变大（软球–地面 4.6 → 6.5 → 7.4 → 8.2 mm，d̂ = 10 mm）；"
+                  "区间外被夹到边界：1e4 被夹到下限、结果和 2e5 差不多，默认 1e9 被夹到上限、结果和 1e7 差不多。"
+                  "所以在 Genesis 里设 contact_resistance 只有落在这个区间里才有用。",
+    "eps_velocity": "ε_v 从 0.001 到 0.1 m/s，接触间隙、最高物体高度和物体离墙距离都没有明显变化：这个场景里物体最后都"
+                    "停住了，ε_v 只管很慢的滑动算不算粘住，要看出它的作用需要有持续慢速滑动的场景（比如斜面），这里没有。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
     "mesh_res": "三种网格都没有穿透；最细那档表面边长已小于 d̂，自接触把球撑开、出现翻转。网格越细越慢。",
     "inversion_vs_E": "与期待一致：E 越大翻转越少，E = 1e5 时没有翻转。翻转是软球太软造成的，生成数据要用足够硬的材料。",
@@ -838,10 +841,15 @@ def col_contact(d):
 
 def col_kappa(d):
     """The contact stiffness libuipc actually used, from its own log lines (sweep.py kappa_log, needs --log-level
-    Debug): the clamped value when the set kappa fell outside the scene's corridor, else the set value."""
+    Debug; a level run without it is read from its Debug rerun under genesis_<set>_kdebug/): the clamped value when
+    the set kappa fell outside the scene's corridor, else the set value. Pairs logged with kappa 0 are Genesis's
+    disabled pairs (its no-collision element, coupler.py:717-720) and are skipped."""
     kl = d.get("kappa_log") or {}
+    if not kl.get("kappa_corridor"):
+        kl = (load_json(SWEEP_ROOT / f"genesis_{GEN_TAG}_kdebug" / d["sweep"] / f"{d['level']}.json")[0] or {}) \
+            .get("kappa_log") or {}
     corr = [h["groups"] for h in kl.get("kappa_corridor", [])]
-    clamped = sorted({float(h["groups"][3]) for h in kl.get("model_kappa_clamped", [])})
+    clamped = sorted({float(h["groups"][3]) for h in kl.get("model_kappa_clamped", []) if float(h["groups"][0]) > 0})
     if not corr:
         return "—（这次没开 libuipc 日志）"
     lo, hi = sci(float(corr[0][0])), sci(float(corr[0][1]))
