@@ -463,7 +463,7 @@ PAGE_CSS = """
 html, body { overflow-x: hidden; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
        font-size: 15px; line-height: 1.65; }
-.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 header.top { padding: 28px 0 8px; }
@@ -506,6 +506,7 @@ th { font-weight: 600; color: var(--muted); font-size: 0.82rem; border-bottom-co
 td { font-variant-numeric: tabular-nums; }
 td.good { color: var(--good); }
 td.warn { color: var(--warn); }
+img.initframe { display: block; max-width: 640px; width: 100%; margin: 6px 0; }
 mjx-container { max-width: 100%; } mjx-container svg { max-width: 100%; height: auto; }
 ul.findings { padding-left: 20px; max-width: 80ch; }
 ul.findings li { margin: 8px 0; }
@@ -785,58 +786,81 @@ def contact_kind(name):
     return name
 
 
-def col_contact(d):
-    """Gaps of the surface pairs in contact at the last frame (shortest surface-to-surface distance below d_hat, where
-    libuipc's barrier acts), grouped by the kinds of the two surfaces (sweep.py contact_gaps_final). Levels run before
-    sweep.py recorded them are read from their rerun under genesis_<set>_contact/."""
+CONTACT_KINDS = ("软球", "方块", "布", "墙", "地面")  # column order of the contact-gap columns
+
+
+def contact_groups(d):
+    """{"<kind>–<kind>": [gap mm, ...]} of the surface pairs in contact at the last frame (shortest surface-to-surface
+    distance below d_hat, where libuipc's barrier acts; sweep.py contact_gaps_final), or None without that record.
+    Levels run before sweep.py recorded it are read from their rerun under genesis_<set>_contact/."""
     c = d if "contact_gaps_final" in d else load_json(
         SWEEP_ROOT / f"genesis_{GEN_TAG}_contact" / d["sweep"] / f"{d['level']}.json")[0]
     dh = dig(c, "libuipc_config", "contact", "d_hat") if isinstance(c, dict) else MISSING
     if not (isinstance(c, dict) and c.get("status") == "ok" and "contact_gaps_final" in c and is_num(dh)):
-        return "—"
+        return None
     groups = {}
     for g in c["contact_gaps_final"]:
         if g["distance_m"] < dh:
-            key = "–".join(sorted((contact_kind(g["a"]), contact_kind(g["b"])), key="软球方块布墙地面".find))
+            key = "–".join(sorted((contact_kind(g["a"]), contact_kind(g["b"])), key=CONTACT_KINDS.index))
             groups.setdefault(key, []).append(g["distance_m"] * 1000)
-    return "；".join(f"{k} {g3(min(v))}" + (f"–{g3(max(v))}" if len(v) > 1 else "") + f"（{len(v)} 处）"
-                    for k, v in sorted(groups.items())) or "没有"
+    return groups
 
 
-def col_kappa(d):
-    """The contact stiffness libuipc actually used, from its own log lines (sweep.py kappa_log, needs --log-level
-    Debug; a level run without it is read from its Debug rerun under genesis_<set>_kdebug/): the clamped value when
-    the set kappa fell outside the scene's corridor, else the set value. Pairs logged with kappa 0 are Genesis's
-    disabled pairs (its no-collision element, coupler.py:717-720) and are skipped."""
+def contact_columns(rows):
+    """One (header, fn) column per contact kind seen in any of the rows; each cell is that kind's gap range in mm."""
+    kinds = sorted({k for r in rows if r["state"] == "ok" for k in (contact_groups(r["data"]) or {})},
+                   key=lambda k: [CONTACT_KINDS.index(p) for p in k.split("–")])
+
+    def cell(d, k):
+        v = (contact_groups(d) or {}).get(k)
+        return (g3(min(v)) + (f"–{g3(max(v))}" if len(v) > 1 else "")) if v else "—"
+    return [(f"{k} 间隙（mm）", lambda d, k=k: cell(d, k)) for k in kinds]
+
+
+def kappa_used(d):
+    """(kappa libuipc actually used in Pa, "否" / "夹到下限" / "夹到上限") from its own log lines (sweep.py kappa_log,
+    needs --log-level Debug; a level run without it is read from its Debug rerun under genesis_<set>_kdebug/), or
+    None without a logged corridor. Pairs logged with kappa 0 are Genesis's disabled pairs (its no-collision element,
+    coupler.py:717-720) and are skipped."""
     kl = d.get("kappa_log") or {}
     if not kl.get("kappa_corridor"):
         kl = (load_json(SWEEP_ROOT / f"genesis_{GEN_TAG}_kdebug" / d["sweep"] / f"{d['level']}.json")[0] or {}) \
             .get("kappa_log") or {}
     corr = [h["groups"] for h in kl.get("kappa_corridor", [])]
-    clamped = sorted({float(h["groups"][3]) for h in kl.get("model_kappa_clamped", []) if float(h["groups"][0]) > 0})
     if not corr:
-        return "—（这次没开 libuipc 日志）"
-    lo, hi = sci(float(corr[0][0])), sci(float(corr[0][1]))
+        return None
+    lo, hi = float(corr[0][0]), float(corr[0][1])
+    clamped = sorted({float(h["groups"][3]) for h in kl.get("model_kappa_clamped", []) if float(h["groups"][0]) > 0})
     if clamped:
-        return f"被夹到 {'、'.join(sci(k) for k in clamped)}（允许区间 [{lo}, {hi}]）"
-    return f"没被夹，用设的值（允许区间 [{lo}, {hi}]）"
+        return clamped[0], ("夹到下限" if abs(clamped[0] - lo) < 1e-3 * lo else "夹到上限")
+    return (d.get("overrides") or {}).get("contact_resistance", GENESIS_DEFAULTS["contact_resistance"]), "否"
 
 
-NEWTON, SECONDS = ("每帧 Newton 迭代（中位 / 最多）", col_newton), ("仿真总耗时（s）", col_wall_seconds)
-KAPPA = ("libuipc 实际用的 κ（Pa，日志原文）", col_kappa)
-CONTACT = ("停住时各接触面之间的间隙（mm，只列小于 d̂ 的）", col_contact)
-EDGE = ("软球表面边长（mm，中位；静止时 12.1）", col_edge)
+def col_kappa(d):
+    k = kappa_used(d)
+    return sci(k[0]) if k else "—"
+
+
+def col_clamped(d):
+    k = kappa_used(d)
+    return k[1] if k else "—"
+
+
+NEWTON, SECONDS = ("Newton 次数（中位 / 最多）", col_newton), ("仿真总耗时（s）", col_wall_seconds)
+KAPPA = ("libuipc 实际用的 κ（Pa）", col_kappa)
+CLAMPED = ("被夹", col_clamped)
+CONTACT = ("CONTACT", None)  # expanded by contact_columns into one column per contact kind
+EDGE = ("软球表面边长（mm，静止 12.1）", col_edge)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
 # CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
 SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, EDGE], "dt": [CONTACT, NEWTON, SECONDS],
-                 "resistance": [KAPPA, CONTACT], "init_penetration": [],
-                 "mesh_res": [KAPPA, CONTACT, SECONDS]}
+                 "resistance": [KAPPA, CLAMPED, CONTACT], "init_penetration": [],
+                 "mesh_res": [KAPPA, CLAMPED, CONTACT, SECONDS]}
 
 
-def gen_raw_cells(r, sweep):
-    """One level's row: SWEEP_COLUMNS[sweep] read from its result file."""
-    cols = SWEEP_COLUMNS[sweep]
+def gen_raw_cells(r, cols):
+    """One level's row: the (header, fn) columns read from its result file."""
     if r["state"] != "ok":
         return [r["reason"]] + ["—"] * (len(cols) - 1)
     return [fn(r["data"]) for _, fn in cols]
@@ -858,8 +882,8 @@ def genesis_sweep_tables(sweeps, cfg):
             v = gen_level_value(r, sweep, cfg)
             return v if is_num(v) else float("inf")
         rows.sort(key=key)
-        cols = SWEEP_COLUMNS[sweep]
-        trs = [[gen_label(r, sweep, cfg)] + gen_raw_cells(r, sweep) for r in rows]
+        cols = [c for col in SWEEP_COLUMNS[sweep] for c in (contact_columns(rows) if col is CONTACT else [col])]
+        trs = [[gen_label(r, sweep, cfg)] + gen_raw_cells(r, cols) for r in rows]
         out.append((sweep, title, one, expect, rows,
                     table([head] + [h for h, _ in cols], trs) if cols else ""))
     return out
@@ -947,14 +971,13 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
             lines, n_inter = init_log_excerpt((r["data"] or {}).get("log_path")
                                               or GEN_SWEEP_ROOT / sweep / f"{r['level']}.log")
             parts.append(f'<p class="small"><b>{esc(gen_label(r, sweep, cfg))}</b>：开跑前就被拒，没有视频。'
-                         "左边是这个初始状态（同一场景只关掉开跑前的相交检查、只渲染第 0 帧，侧面看两个软球；球心相距 2R 减去穿插量，不穿插时至少 2R），"
-                         "右边是被拒那次的日志原文摘录。</p>")
+                         "上面是这个初始状态（同一场景只关掉开跑前的相交检查、只渲染第 0 帧，侧面看两个软球；球心相距 2R 减去穿插量，不穿插时至少 2R），"
+                         "下面是被拒那次的日志原文摘录。</p>")
             img = init_frame_image(r["level"])
             log = (f'<pre class="log">{esc(chr(10).join(lines))}</pre>' if lines is not None
                    else '<div class="novideo">日志文件不存在</div>')
-            parts.append('<div class="grid">' + (f'<div class="demo"><img class="plot" src="assets/images/{img[1]}" '
-                                                 'alt="初始状态：两个软球互相穿插" loading="lazy"></div>' if img else "")
-                         + f'<div class="demo">{log}</div></div>')
+            parts.append((f'<img class="plot initframe" src="assets/images/{img[1]}" alt="初始状态：两个软球互相穿插" '
+                          'loading="lazy">' if img else "") + log)
     else:
         cards = [demo_card(dict(videos[(r["sweep"], r["level"])], title=gen_label(r, sweep, cfg)), {})
                  for r in rows if (r["sweep"], r["level"]) in videos]
