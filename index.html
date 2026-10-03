@@ -83,7 +83,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <main class="wrap">
-<header class="top"><h1>Neural-IPC 周汇报</h1><p class="summary">这周在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）：5 个 Genesis IPC 例子和 4 个 Genesis 官方 IPC 测试场景，共 9 段视频（官方测试 4 个跑完，其中官方断言通过 2 个）。然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 8 个 IPC 参数做了单变量扫描，共 26 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；\(\hat d\) 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。</p><nav class="toc"><a href="#videos">Demo 视频</a><a href="#tests">官方测试场景</a><a href="#sweep">盒子实验与参数扫描</a><a href="#data">对生成数据的意义</a></nav></header>
+<header class="top"><h1>Neural-IPC 周汇报</h1><p class="summary">这周在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）：5 个 Genesis IPC 例子和 4 个 Genesis 官方 IPC 测试场景，共 9 段视频（官方测试 4 个跑完，其中官方断言通过 2 个）。然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 8 个 IPC 参数做了单变量扫描，共 25 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；\(\hat d\) 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。</p><nav class="toc"><a href="#videos">Demo 视频</a><a href="#tests">官方测试场景</a><a href="#sweep">盒子实验与参数扫描</a><a href="#data">对生成数据的意义</a></nav></header>
 <section id="videos"><h2>Demo 视频（Genesis + lib IPC）</h2>
 <p class="muted small">Genesis 官方 IPC 例子一字未改，相机用官方代码里给的 viewer 位置；物理由 Genesis 底层的 libuipc 在 GPU 上算，画面在服务器上离屏渲染（CPU 软件渲染）。</p>
 <div class="grid">
@@ -139,23 +139,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h3>初始穿插</h3>
 <p class="expect"><b>按原理期待：</b>IPC 的 barrier 只在两个表面距离为正时才有定义，一开始就穿插的话能量没有意义，所以 libuipc 的初始化检查应该直接拒绝开跑。</p>
 
-<p class="setting">多放一个软球，让它和官方软球一开始就互相穿进去一部分（R 为球半径）。取值：两个软球互相穿进 0.1 R、两个软球互相穿进 0.5 R；其余参数保持官方默认（dt = 0.02 s、\(\hat d\) = 1 cm、κ = 1e9 Pa、μ = 0.1、软球用官方 Sphere 网格、软球 E = 1e5 Pa（官方是 1e3）），表里也放了官方默认那一档对照。看：libuipc 开跑前检查的日志原文。</p>
-<p class="small"><b>两个软球互相穿进 0.1 R</b>：开跑前就被拒，没有视频。上面是这个初始状态（同一场景只关掉开跑前的相交检查、只渲染第 0 帧，侧面看两个软球；球心相距 2R 减去穿插量，不穿插时至少 2R），下面是被拒那次的日志原文摘录。</p>
-<img class="plot initframe" src="assets/images/box_stiffball_init_penetration_overlap_0p1R.png" alt="初始状态：两个软球互相穿插" loading="lazy"><pre class="log">[2026-10-02 12:55:27.448] [error] Intersection detected between Edge(1032,1034) in Geometry(1) Instance(1) Object[1] and Triangle(3406,3420,3422) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
-[2026-10-02 12:55:27.448] [error] Intersection detected between Edge(1015,1029) in Geometry(1) Instance(1) Object[1] and Triangle(3403,3415,3417) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
-[2026-10-02 12:55:27.448] [error] Intersection detected between Edge(3403,3417) in Geometry(5) Instance(5) Object[5] and Triangle(1015,1027,1029) in Geometry(1) Instance(1) Object[1], SelfColl(1,1)
-[2026-10-02 12:55:27.453] [error] [uipc::backend::cuda::SimplicialSurfaceIntersectionCheck(1)]:
-Geometry(1) in Object[fem_1_0(1)] intersects with Geometry(5) in Object[fem_5_0(5)]
-Intersected mesh has 60 vertices, 58 edges, and 56 triangles.
-Intersected mesh is saved at /nas/xiaoyingwang/Neural-IPC/outputs/ipc_sweep/genesis_stiffball/init_penetration/genesis_ipc_88a1ed2-6f5f646aaaa4623e204709c35/sanity_check/1/intersected_mesh.obj.
-Create mesh [intersected_mesh&lt;SimplicialComplex&gt;] for post-processing.
-Geometries:
-  - intersected_mesh: &lt;SimplicialComplex&gt;
-[2026-10-02 12:55:27.453] [error] World is not valid, skipping init.
-[2026-10-02 12:55:27.453] [error] World is not valid, skipping dump.
-[Genesis] [12:55:27] [INFO] IPC world initialized successfully
-AttributeError: &#x27;NoneType&#x27; object has no attribute &#x27;body_count&#x27;</pre>
-<div class="tablewrap"><table><thead><tr><th>日志里的句子</th><th>是什么意思</th></tr></thead><tbody><tr><td>Intersection detected between Edge(a,b) in Geometry(1) … and Triangle(c,d,e) in Geometry(5) …, SelfColl(1,1)</td><td>libuipc 开跑前的相交检查：1 号几何体（官方软球）表面上顶点 a、b 连成的边，穿过了 5 号几何体（加的软球）表面上顶点 c、d、e 组成的三角形，即两个表面互相穿进去了；SelfColl(1,1) 表示两个物体都开着自碰撞。每一对相交的边和三角形报一条，这次共 157 条。</td></tr><tr><td>Geometry(1) in Object[fem_1_0(1)] intersects with Geometry(5) in Object[fem_5_0(5)]</td><td>汇总：相交的是哪两个物体（fem_1_0 = 官方软球，fem_5_0 = 加的软球）。</td></tr><tr><td>Intersected mesh has 118 vertices, 108 edges, and 104 triangles.</td><td>相交区域有多大：两个球互相穿进去的那一圈表面。</td></tr><tr><td>World is not valid, skipping init.</td><td>libuipc 因此把整个世界标成无效，不做初始化，之后每一步也都跳过——这就是「拒绝开跑」。</td></tr><tr><td>[Genesis] IPC world initialized successfully</td><td>Genesis 没有检查 libuipc 的有效标志，照样打印「初始化成功」，这一句是误导。</td></tr><tr><td>AttributeError: &#x27;NoneType&#x27; object has no attribute &#x27;body_count&#x27;</td><td>因为 libuipc 没初始化，Genesis 去取它内部的数据时拿到空对象而崩溃。真正的原因要看上面 libuipc 的报错。</td></tr></tbody></table></div>
+<p class="setting">多放一个软球，让它和官方软球一开始就互相穿进去一部分（R 为球半径）。取值：两个软球互相穿进 0.5 R；其余参数保持官方默认（dt = 0.02 s、\(\hat d\) = 1 cm、κ = 1e9 Pa、μ = 0.1、软球用官方 Sphere 网格、软球 E = 1e5 Pa（官方是 1e3）），表里也放了官方默认那一档对照。看：libuipc 开跑前检查的日志原文。</p>
 <p class="small"><b>两个软球互相穿进 0.5 R</b>：开跑前就被拒，没有视频。上面是这个初始状态（同一场景只关掉开跑前的相交检查、只渲染第 0 帧，侧面看两个软球；球心相距 2R 减去穿插量，不穿插时至少 2R），下面是被拒那次的日志原文摘录。</p>
 <img class="plot initframe" src="assets/images/box_stiffball_init_penetration_overlap_0p5R.png" alt="初始状态：两个软球互相穿插" loading="lazy"><pre class="log">[2026-10-02 12:55:45.845] [error] Intersection detected between Edge(933,941) in Geometry(1) Instance(1) Object[1] and Triangle(3063,3321,3329) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
 [2026-10-02 12:55:45.845] [error] Intersection detected between Edge(933,941) in Geometry(1) Instance(1) Object[1] and Triangle(3321,3327,3329) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
