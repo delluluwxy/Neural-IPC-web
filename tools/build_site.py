@@ -1204,7 +1204,7 @@ def genesis_conclusions(f, videos):
 
     def kappa_text():
         """κ 区间与被夹情况：Genesis 把 libuipc 日志设成 error，这里读打开 libuipc Info 日志重跑的三档
-        （genesis_kappa_debug，Neural-IPC run_commands 第 12 条）的 kappa_log。"""
+        （genesis_kappa_debug，Neural-IPC run_commands [IPC 参数扫描命令] 第 4 条）的 kappa_log。"""
         runs = [("baseline", "default"), ("resistance", "1e6"), ("resistance", "1e11")]
         ds = [(s, lv, debug_json("genesis_kappa_debug", s, lv)) for s, lv in runs]
         corr = next((dig(d, "kappa_log", "kappa_corridor", 0, "groups") for *_, d in ds if d), MISSING)
@@ -1220,7 +1220,8 @@ def genesis_conclusions(f, videos):
 
     def inversion_text():
         """软球被压塌 / 四面体翻转：同帧 Genesis 读数与 libuipc 内部位置的对比（genesis_inversion_debug，Neural-IPC
-        run_commands 第 13 条），加 d̂ = 2 mm 下 E = 1e3（最早那套 genesis/，官方 E）/ 1e4 / 1e5 的翻转占比与软球质心高度。"""
+        run_commands [IPC 参数扫描命令] 第 5 条），加 d̂ = 2 mm 下 E = 1e3（最早那套只留下的 genesis/d_hat/0p002，官方 E）/
+        1e4 / 1e5（本套 inversion_vs_E）的翻转占比与软球质心高度。"""
         dbg = debug_json("genesis_inversion_debug", "d_hat", "0p002").get("objects_final") or {}
         bs = [o for o in dbg.values() if isinstance(o, dict) and "uipc_n_inverted_tets" in o]
         same = all(o["uipc_n_inverted_tets"] == o["n_inverted_tets"] for o in bs)
