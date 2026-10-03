@@ -73,6 +73,25 @@ DEMOS = [
     ("genesis_ipc_objects_in_box", True, "一堆物体扔进盒子（官方场景 + 我们加的盒子）",
      "Genesis 没有「扔进盒子」的官方例子：这是官方 ipc_objects_falling 场景原样，外加一个开口盒子和更多同款物体。"
      "参数扫描见下方。"),
+    ("genesis_ipc_robot_cloth_teleop_descend0p08", True, "机械臂遥控抓布：坐标轴压到布的高度（官方例子，脚本按键）",
+     "官方 ipc_robot_cloth_teleop.py 场景和控制循环原样，键盘换成脚本：按住 j 把坐标轴（hand 连杆原点，指尖在它下方约 "
+     "0.1 m）降到 0.08 m，再按住空格合夹子、加 k 上提。实测（teleop_trajectory.npz）：手被方块和布顶住，停在坐标轴上方 "
+     "58–71 mm，不按键时自己在 117–146 mm 间上下跳；手指被撑开到 60–76 mm（关节上限 40 mm）；布没被提起来（最高点始终 "
+     "52 / 55 mm）。"),
+    ("genesis_ipc_robot_cloth_teleop_descend0p15", True, "机械臂遥控抓布：指尖刚碰到布（官方例子，脚本按键）",
+     "同上，只把坐标轴降到 0.15 m（指尖刚碰到布）：手离坐标轴 4–7 mm、不跳，手指正常合上。从布中间垂直往下夹，"
+     "布平铺在方块顶上，两指之间没有布，所以布没被提起来（最高点始终 52 / 55 mm）。"),
+]
+
+# Recordings the user made on their own machine (no run_info.json: nothing was recorded on the server for these runs);
+# (card key, video file on NAS, title, what it shows - in the user's words where the server has no data to check it)
+USER_RECORDINGS = [
+    ("user_local_ipc_robot_cloth_teleop",
+     DEMO_ROOT / "user_local_ipc_robot_cloth_teleop" / "2026-10-03 03-46-59.mkv",
+     "机械臂遥控抓起一块布（官方例子，用户本地键盘操作录屏）",
+     "用户在自己的 Windows 笔记本上运行官方 ipc_robot_cloth_teleop.py（Genesis 1.4.2，带窗口），用键盘遥控录屏，"
+     "抓起了一块布（用户告知；这次运行在服务器上没有数据，以视频为准）。按键以代码为准：方向键水平移动，j / k 下 / 上，"
+     "空格按住才合夹子；官方文件开头的按键说明与代码不一致。"),
 ]
 
 # Genesis's own IPC tests (tests/ipc/), recorded by run_genesis_ipc_example.py --official-test at the test's own
@@ -258,12 +277,21 @@ def collect_official_test(key, nodeid, title, line):
     return r
 
 
+def collect_user_recording(key, video, title, line):
+    """A USER_RECORDINGS entry as a demo record (same fields as collect_demo), with the video file as its source."""
+    ok = video.is_file() and video.stat().st_size > 0
+    return {"key": key, "expects_video": True, "title": title, "line": line, "dir": video.parent,
+            "info_path": None, "info": None, "state": "ok" if ok else "not_run",
+            "reason": None if ok else f"找不到录屏文件 {video}", "video_src": video if ok else None,
+            "video_note": None, "images": []}
+
+
 def collect_demos():
     """The page shows exactly the DEMOS and OFFICIAL_TESTS lists. Other directories under DEMO_ROOT (libuipc-only
     demos, timing runs, anything unexpected) are NOT put on the page; main() prints them so nothing is hidden.
     Returns (demos, official tests, unlisted dirs)."""
-    known = {k for k, *_ in DEMOS} | {k for k, *_ in OFFICIAL_TESTS}
-    demos = [collect_demo(*spec) for spec in DEMOS]
+    known = {k for k, *_ in DEMOS} | {k for k, *_ in OFFICIAL_TESTS} | {k for k, *_ in USER_RECORDINGS}
+    demos = [collect_demo(*spec) for spec in DEMOS] + [collect_user_recording(*spec) for spec in USER_RECORDINGS]
     tests = [collect_official_test(*spec) for spec in OFFICIAL_TESTS]
     unlisted = []
     if DEMO_ROOT.is_dir():
