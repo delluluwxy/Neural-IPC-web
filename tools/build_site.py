@@ -715,11 +715,11 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
 
 # What each experiment looks at (its SWEEP_COLUMNS) and why
 OBSERVE = {
-    "baseline": "有没有穿透，每帧 Newton 迭代几次（好不好解）。",
-    "d_hat": "每帧 Newton 迭代几次、四面体有没有翻转。",
+    "baseline": "停住时每一对接触面（球–地、球–布、布–方块……）之间的最短距离，每帧 Newton 迭代几次（好不好解）。",
+    "d_hat": "每一对接触面之间的最短距离（是否跟着 d̂ 变）、每帧 Newton 迭代几次、四面体有没有翻转。",
     "dt": "每帧 Newton 迭代几次、总耗时。",
     "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
-    "resistance": "libuipc 日志里设的刚度有没有被夹住。",
+    "resistance": "每一对接触面之间的最短距离：刚度真的变了，间隙就该跟着变。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
     "mesh_res": "四面体有没有翻转、总耗时。",
     "inversion_vs_E": "四面体翻转的比例。",
@@ -727,14 +727,16 @@ OBSERVE = {
 # Each experiment's conclusion in one or two sentences (the numbers are in the table right above it; the verified
 # data behind each sentence is in Neural-IPC docs/claude_todo.md and the meeting outline section 4)
 FINDINGS = {
-    "baseline": "与期待一致：全程没有穿透。",
-    "d_hat": "d̂ 越小，每帧 Newton 迭代越多（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面"
-             "撑开，出现翻转。",
+    "baseline": "与期待一致：全程没有穿透；停住时每一对接触面（不只是和地面，也包括球–布、布–方块）之间都留着一条"
+                "0.7–1 倍 d̂ 的缝，物体停在 barrier 起作用的那一层里。越重的接触缝越小：方块压地约 0.8 d̂，"
+                "软球约 0.85 d̂，很轻的布只陷到约 0.97 d̂——barrier 的推力随间隙变小急剧增大，越重越要陷得深才托得住。",
+    "d_hat": "与期待一致：所有接触的间隙都跟着 d̂ 走（始终约 0.65–1 倍 d̂），d̂ 越小物体靠得越近，但每帧 Newton 迭代越多"
+             "（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面撑开，出现翻转。",
     "dt": "每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加：dt 主要影响代价。",
     "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
-    "resistance": "libuipc 日志显示这个场景允许的刚度区间是 [1.57e5, 1.57e7] Pa：Genesis 默认的 1e9 和 1e11 都被夹到"
-                  "上限 1.57e7，实际是同一个刚度；1e6 在区间内照用（1e8 也高于上限，没单独看日志）。在 Genesis 里调 "
-                  "contact_resistance 基本调不动接触刚度。",
+    "resistance": "1e8、1e9（默认）、1e11 三档的接触间隙几乎一模一样：libuipc 把它们都夹到了这个场景允许的上限 "
+                  "1.57e7 Pa（日志原文可查 1e9、1e11 两档），实际是同一个刚度。只有 1e6 落在允许区间 [1.57e5, 1.57e7] 内，"
+                  "刚度更软，物体陷得更深（间隙约 0.5–0.8 d̂）。在 Genesis 里调 contact_resistance 基本调不动接触刚度。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
     "mesh_res": "三种网格都没有穿透；最细那档表面边长已小于 d̂，自接触把球撑开、出现翻转。网格越细越慢。",
     "inversion_vs_E": "与期待一致：E 越大翻转越少，E = 1e5 时没有翻转。翻转是软球太软造成的，生成数据要用足够硬的材料。",
