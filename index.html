@@ -128,8 +128,8 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h3>初始穿插</h3>
 <p>IPC 的 barrier 只在两个表面距离为正时才有定义，一开始就穿插的话能量没有意义，所以 libuipc 的初始化检查应该直接拒绝开跑。</p>
 <p class="small">多放一个软球，让它和官方软球一开始就互相穿进去一部分（R 为球半径）。取值：两个软球互相穿进 0.1 R、两个软球互相穿进 0.5 R；其余参数保持官方默认（dt = 0.02 s、d̂ = 1 cm、κ = 1e9 Pa、μ = 0.1、软球用官方 Sphere 网格、软球 E = 1e5 Pa（官方是 1e3）），表里也放了官方默认那一档对照。看：libuipc 开跑前检查的日志原文。</p>
-<p class="small"><b>两个软球互相穿进 0.1 R</b>：开跑前就被拒，没有视频；下面是日志原文摘录。</p>
-<pre class="log">[2026-10-02 12:55:27.448] [error] Intersection detected between Edge(1032,1034) in Geometry(1) Instance(1) Object[1] and Triangle(3406,3420,3422) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
+<p class="small"><b>两个软球互相穿进 0.1 R</b>：开跑前就被拒，没有视频。左边是这个初始状态（同一场景只关掉开跑前的相交检查、只渲染第 0 帧，侧面看两个软球；球心相距 2R 减去穿插量，不穿插时至少 2R），右边是被拒那次的日志原文摘录。</p>
+<div class="grid"><div class="demo"><img class="plot" src="assets/images/box_stiffball_init_penetration_overlap_0p1R.png" alt="初始状态：两个软球互相穿插" loading="lazy"></div><div class="demo"><pre class="log">[2026-10-02 12:55:27.448] [error] Intersection detected between Edge(1032,1034) in Geometry(1) Instance(1) Object[1] and Triangle(3406,3420,3422) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
 [2026-10-02 12:55:27.448] [error] Intersection detected between Edge(1015,1029) in Geometry(1) Instance(1) Object[1] and Triangle(3403,3415,3417) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
 [2026-10-02 12:55:27.448] [error] Intersection detected between Edge(3403,3417) in Geometry(5) Instance(5) Object[5] and Triangle(1015,1027,1029) in Geometry(1) Instance(1) Object[1], SelfColl(1,1)
 [2026-10-02 12:55:27.453] [error] [uipc::backend::cuda::SimplicialSurfaceIntersectionCheck(1)]:
@@ -142,9 +142,9 @@ Geometries:
 [2026-10-02 12:55:27.453] [error] World is not valid, skipping init.
 [2026-10-02 12:55:27.453] [error] World is not valid, skipping dump.
 [Genesis] [12:55:27] [INFO] IPC world initialized successfully
-AttributeError: &#x27;NoneType&#x27; object has no attribute &#x27;body_count&#x27;</pre>
-<p class="small"><b>两个软球互相穿进 0.5 R</b>：开跑前就被拒，没有视频；下面是日志原文摘录。</p>
-<pre class="log">[2026-10-02 12:55:45.845] [error] Intersection detected between Edge(933,941) in Geometry(1) Instance(1) Object[1] and Triangle(3063,3321,3329) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
+AttributeError: &#x27;NoneType&#x27; object has no attribute &#x27;body_count&#x27;</pre></div></div>
+<p class="small"><b>两个软球互相穿进 0.5 R</b>：开跑前就被拒，没有视频。左边是这个初始状态（同一场景只关掉开跑前的相交检查、只渲染第 0 帧，侧面看两个软球；球心相距 2R 减去穿插量，不穿插时至少 2R），右边是被拒那次的日志原文摘录。</p>
+<div class="grid"><div class="demo"><img class="plot" src="assets/images/box_stiffball_init_penetration_overlap_0p5R.png" alt="初始状态：两个软球互相穿插" loading="lazy"></div><div class="demo"><pre class="log">[2026-10-02 12:55:45.845] [error] Intersection detected between Edge(933,941) in Geometry(1) Instance(1) Object[1] and Triangle(3063,3321,3329) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
 [2026-10-02 12:55:45.845] [error] Intersection detected between Edge(933,941) in Geometry(1) Instance(1) Object[1] and Triangle(3321,3327,3329) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
 [2026-10-02 12:55:45.845] [error] Intersection detected between Edge(976,979) in Geometry(1) Instance(1) Object[1] and Triangle(3341,3364,3367) in Geometry(5) Instance(5) Object[5], SelfColl(1,1)
 [2026-10-02 12:55:45.851] [error] [uipc::backend::cuda::SimplicialSurfaceIntersectionCheck(1)]:
@@ -157,7 +157,7 @@ Geometries:
 [2026-10-02 12:55:45.851] [error] World is not valid, skipping init.
 [2026-10-02 12:55:45.851] [error] World is not valid, skipping dump.
 [Genesis] [12:55:45] [INFO] IPC world initialized successfully
-AttributeError: &#x27;NoneType&#x27; object has no attribute &#x27;body_count&#x27;</pre>
+AttributeError: &#x27;NoneType&#x27; object has no attribute &#x27;body_count&#x27;</pre></div></div>
 
 <p class="concl"><b>结论：</b>与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。</p>
 <h3>网格分辨率</h3>

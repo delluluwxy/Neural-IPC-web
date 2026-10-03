@@ -896,6 +896,13 @@ def gen_level_videos(gsweeps):
     return out
 
 
+def init_frame_image(level):
+    """(source png, published name) of the frame-0 picture of an initial-penetration level (run_genesis_ipc_example.py
+    --initial-frame, written next to that level's video), or None when it was not rendered."""
+    src = GEN_VIDEO_ROOT / f"init_penetration_{level}" / "initial_frame.png"
+    return (src, f"box{GEN_TAG and '_' + GEN_TAG or ''}_init_penetration_{level}.png") if src.is_file() else None
+
+
 def init_log_excerpt(log_path):
     """初始穿插档的 libuipc / Genesis 日志原文摘录（只去掉终端颜色码，不改写）：
     前 3 行 Intersection detected、SimplicialSurfaceIntersectionCheck 那一段（到下一条带 [ 开头的日志为止）、
@@ -943,12 +950,15 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
                 continue
             lines, n_inter = init_log_excerpt((r["data"] or {}).get("log_path")
                                               or GEN_SWEEP_ROOT / sweep / f"{r['level']}.log")
-            parts.append(f'<p class="small"><b>{esc(gen_label(r, sweep, cfg))}</b>：开跑前就被拒，没有视频；'
-                         "下面是日志原文摘录。</p>")
-            if lines is None:
-                parts.append('<div class="novideo">日志文件不存在</div>')
-                continue
-            parts.append(f'<pre class="log">{esc(chr(10).join(lines))}</pre>')
+            parts.append(f'<p class="small"><b>{esc(gen_label(r, sweep, cfg))}</b>：开跑前就被拒，没有视频。'
+                         "左边是这个初始状态（同一场景只关掉开跑前的相交检查、只渲染第 0 帧，侧面看两个软球；球心相距 2R 减去穿插量，不穿插时至少 2R），"
+                         "右边是被拒那次的日志原文摘录。</p>")
+            img = init_frame_image(r["level"])
+            log = (f'<pre class="log">{esc(chr(10).join(lines))}</pre>' if lines is not None
+                   else '<div class="novideo">日志文件不存在</div>')
+            parts.append('<div class="grid">' + (f'<div class="demo"><img class="plot" src="assets/images/{img[1]}" '
+                                                 'alt="初始状态：两个软球互相穿插" loading="lazy"></div>' if img else "")
+                         + f'<div class="demo">{log}</div></div>')
     else:
         cards = [demo_card(dict(videos[(r["sweep"], r["level"])], title=gen_label(r, sweep, cfg)), {})
                  for r in rows if (r["sweep"], r["level"]) in videos]
@@ -1139,7 +1149,9 @@ def main():
     videos = gen_level_videos(gsweeps)   # 盒子扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
     vjobs, manifest = plan_videos(all_demos + list(videos.values()) + [officialball_video_record()],
                                   args.crf, args.force_videos)
-    ijobs = plan_images(all_demos)
+    ijobs = plan_images(all_demos) + [{"src": src, "dst": IMAGE_DIR / name, "size": src.stat().st_size}
+                                      for src, name in filter(None, (init_frame_image(r["level"])
+                                                                     for r in rows_of(gsweeps, "init_penetration")))]
     facts = compute_facts(demos)
     commit = genesis_commit()
 
