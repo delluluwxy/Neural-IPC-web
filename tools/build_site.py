@@ -931,6 +931,25 @@ def gen_level_videos(gsweeps):
     return out
 
 
+# What each kind of line in the initial-penetration log means (libuipc sanity_check/
+# simplicial_surface_intersection_check.cpp:289-336, core/internal/world.cpp:46; Genesis coupler)
+INIT_LOG_GLOSSARY = [
+    ("Intersection detected between Edge(a,b) in Geometry(1) … and Triangle(c,d,e) in Geometry(5) …, SelfColl(1,1)",
+     "libuipc 开跑前的相交检查：1 号几何体（官方软球）表面上顶点 a、b 连成的边，穿过了 5 号几何体（加的软球）表面上"
+     "顶点 c、d、e 组成的三角形，即两个表面互相穿进去了；SelfColl(1,1) 表示两个物体都开着自碰撞。每一对相交的边和"
+     "三角形报一条，这次共 157 条。"),
+    ("Geometry(1) in Object[fem_1_0(1)] intersects with Geometry(5) in Object[fem_5_0(5)]",
+     "汇总：相交的是哪两个物体（fem_1_0 = 官方软球，fem_5_0 = 加的软球）。"),
+    ("Intersected mesh has 118 vertices, 108 edges, and 104 triangles.", "相交区域有多大：两个球互相穿进去的那一圈表面。"),
+    ("World is not valid, skipping init.",
+     "libuipc 因此把整个世界标成无效，不做初始化，之后每一步也都跳过——这就是「拒绝开跑」。"),
+    ("[Genesis] IPC world initialized successfully",
+     "Genesis 没有检查 libuipc 的有效标志，照样打印「初始化成功」，这一句是误导。"),
+    ("AttributeError: 'NoneType' object has no attribute 'body_count'",
+     "因为 libuipc 没初始化，Genesis 去取它内部的数据时拿到空对象而崩溃。真正的原因要看上面 libuipc 的报错。"),
+]
+
+
 def init_frame_image(level):
     """(source png, published name) of the frame-0 picture of an initial-penetration level (run_genesis_ipc_example.py
     --initial-frame, written next to that level's video), or None when it was not rendered."""
@@ -996,6 +1015,7 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
                    else '<div class="novideo">日志文件不存在</div>')
             parts.append((f'<img class="plot initframe" src="assets/images/{img[1]}" alt="初始状态：两个软球互相穿插" '
                           'loading="lazy">' if img else "") + log)
+            parts.append(table(["日志里的句子", "是什么意思"], [list(g) for g in INIT_LOG_GLOSSARY]))
     else:
         cards = [demo_card(dict(videos[(r["sweep"], r["level"])], title=gen_label(r, sweep, cfg)), {})
                  for r in rows if (r["sweep"], r["level"]) in videos]
