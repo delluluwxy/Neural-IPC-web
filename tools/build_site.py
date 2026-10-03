@@ -716,7 +716,7 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
 # What each experiment looks at (its SWEEP_COLUMNS) and why
 OBSERVE = {
     "baseline": "停住时每一对接触面（球–地、球–布、布–方块……）之间的最短距离，每帧 Newton 迭代几次（好不好解）。",
-    "d_hat": "每一对接触面之间的最短距离（是否跟着 d̂ 变）、每帧 Newton 迭代几次。",
+    "d_hat": "每一对接触面之间的最短距离（是否跟着 d̂ 变）、每帧 Newton 迭代几次、软球表面边长（球有没有被自接触撑开）。",
     "dt": "每帧 Newton 迭代几次、总耗时，以及停住时各接触面之间的间隙（接触变硬没有）。",
     "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
     "resistance": "每一对接触面之间的最短距离：刚度真的变了，间隙就该跟着变。",
@@ -730,8 +730,10 @@ FINDINGS = {
     "baseline": "与期待一致：全程没有穿透；停住时每一对接触面（不只是和地面，也包括球–布、布–方块）之间都留着一条"
                 "0.7–1 倍 d̂ 的缝，物体停在 barrier 起作用的那一层里。越重的接触缝越小：方块压地约 0.8 d̂，"
                 "软球约 0.85 d̂，很轻的布只陷到约 0.97 d̂——barrier 的推力随间隙变小急剧增大，越重越要陷得深才托得住。",
-    "d_hat": "与期待一致：所有接触的间隙都跟着 d̂ 走（始终约 0.65–1 倍 d̂），d̂ 越小物体靠得越近，但每帧 Newton 迭代越多"
-             "（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面撑开（表面的边被拉长到约 2 倍）。",
+    "d_hat": "与期待一致：所有接触的间隙都跟着 d̂ 走（始终约 0.6–1 倍 d̂），d̂ 越小物体靠得越近，但每帧 Newton 迭代越多"
+             "（越难解）。d̂ 不能大于软体表面网格的边长（这个软球静止时约 12 mm）：IPC 的 barrier 也作用在同一个球自己的"
+             "不相邻面片之间，d̂ 一旦超过边长，球就被自己从里面撑开，边被撑到和 d̂ 差不多长才停——15 mm 时边长变成约 15 mm、"
+             "球明显变形，30 mm 时边长约 26 mm、球完全变形；2、5、10 mm 时边长不变。",
     "dt": "与期待一致：每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加；dt 越小，接触间隙越接近 d̂（libuipc 按 1/dt² 抬高接触刚度下限，接触更硬、物体陷得更浅）。",
     "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
     "resistance": "与期待一致：libuipc 只认这个场景允许的区间 [1.57e5, 1.57e7] Pa。区间内（2e5 → 1e6 → 3e6 → 1e7）"
@@ -766,6 +768,13 @@ def col_newton(d):
 
 def col_wall_seconds(d):
     return g3(dig(d, "summary", "wall_seconds_total"))
+
+
+def col_edge(d):
+    """Range over the soft balls of the median surface edge length at the last frame, mm (12.1 mm at rest)."""
+    es = [o["surface_edge_median_m"] for o in (d.get("objects_final") or {}).values()
+          if isinstance(o, dict) and is_num(o.get("surface_edge_median_m"))]
+    return f"{g3(min(es) * 1000)}–{g3(max(es) * 1000)}" if es else "—"
 
 
 def col_top(d):
@@ -832,10 +841,11 @@ NEWTON, SECONDS = ("每帧 Newton 迭代（中位 / 最多）", col_newton), ("�
 KAPPA = ("libuipc 实际用的 κ（Pa，日志原文）", col_kappa)
 CONTACT = ("停住时各接触面之间的间隙（mm，只列小于 d̂ 的）", col_contact)
 TOP, WALL = ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
+EDGE = ("软球表面边长（mm，中位；静止时 12.1）", col_edge)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
 # CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
-SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON], "dt": [CONTACT, NEWTON, SECONDS],
+SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, EDGE], "dt": [CONTACT, NEWTON, SECONDS],
                  "friction": [TOP, WALL], "resistance": [KAPPA, CONTACT], "init_penetration": [],
                  "mesh_res": [KAPPA, CONTACT, SECONDS],
                  "eps_velocity": [TOP, WALL, CONTACT]}
@@ -991,7 +1001,7 @@ DATA_IMPLICATIONS = [
      "网格实验：κ 区间按全场景所有顶点的平均质量定，加密一个物体会让其他物体的接触变软（方块–地面间隙 8.1–8.5 → "
      "4.1 mm）；dt 实验：区间下限随 1/dt² 变，dt 越小接触越硬。"),
     ("d̂ 是数据里接触的尺度：要记录下来，且不能大于物体最短的表面边长。",
-     "d̂ 实验：每一对接触都停在 0.65–1 倍 d̂ 的地方；d̂ 越小越贴近、但每帧 Newton 迭代越多；d̂ = 30 mm 大于软球表面边长时，"
+     "d̂ 实验：每一对接触都停在约 0.6–1 倍 d̂ 的地方；d̂ 越小越贴近、但每帧 Newton 迭代越多；d̂ = 30 mm 大于软球表面边长时，"
      "自接触把球从里面撑开。"),
     ("初始状态必须无穿透，生成初始条件时先检查。", "初始穿插实验：一开始就互相穿插时 libuipc 拒绝开跑。"),
     ("关掉 libuipc 的半隐式提前终止，或者逐帧检查是否真的收敛。",
