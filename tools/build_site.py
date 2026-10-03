@@ -1016,7 +1016,6 @@ def sweep_section(gsweeps, cfg, videos):
     parts = ['<section id="sweep"><h2>盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>"]
     for sweep, title, one, expect, rows, tbl in genesis_sweep_tables(gsweeps, cfg):
         parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd))
-    parts.append(officialball_block())
     parts.append("</section>")
     return "\n".join(parts)
 
@@ -1047,89 +1046,6 @@ def data_section():
     items = "".join(f"<li><b>{esc(what)}</b><br><span class=\"small\">依据：{esc(why)}</span></li>"
                     for what, why in DATA_IMPLICATIONS)
     return f'<section id="data"><h2>对生成训练数据的意义</h2><ol>{items}</ol></section>'
-
-
-def officialball_block():
-    """方案 3：软球保持官方 E = 1e3、额外物体落在远离官方软球的四角（genesis_officialball/）。每档列官方软球
-    （第一个软球实体，名字以 3_ 开头）的结束质心高度、形状比、翻转数，以及有没有别的物体的质心在它上方 0.3 m 以内。"""
-    root = SWEEP_ROOT / "genesis_officialball"
-    sweeps = load_sweep_configs().GENESIS_SWEEPS
-    rows, res, video = [], {}, None  # res: (sweep, level) -> (centroid z mm, any object above it)
-    for sweep, spec in sweeps.items():  # configs order
-        for level in spec["levels"]:
-            d, _ = load_json(root / sweep / f"{level}.json")
-            if not isinstance(d, dict) or d.get("status") != "ok":
-                continue
-            fin = d.get("objects_final") or {}
-            ob = next(((n, o) for n, o in fin.items() if n.startswith("3_") and "n_tets" in o), None)
-            if ob is None:
-                continue
-            c = ob[1]["centroid"]
-            above = [n for n, o in fin.items() if n != ob[0] and "Cloth" not in n and o.get("centroid")
-                     and ((o["centroid"][0] - c[0]) ** 2 + (o["centroid"][1] - c[1]) ** 2) ** 0.5 < 0.3
-                     and o["centroid"][2] > c[2]]
-            res[(sweep, level)] = (c[2] * 1000, bool(above))
-            rows.append([f"{sweep} / {level}", g3(c[2] * 1000)])
-    rec = officialball_video_record()
-    if rec["video_src"] is not None:
-        video = f"assets/videos/{rec['key']}.mp4"  # encoded and uploaded with the others (main: plan_videos)
-    if not rows:
-        return '<h3>方案 3：保留官方软球（E = 1e3）、不在它上面压东西</h3><div class="novideo">还没跑完</div>'
-    n_total = sum(len(s["levels"]) for k, s in sweeps.items() if k != "init_penetration")
-
-    def cz(sw, lv):
-        return res.get((sw, lv), (MISSING,))[0]
-
-    # levels whose ball is the official one (E, d_hat, mesh untouched): baseline / dt / friction / resistance
-    same = [(sw, lv) for (sw, lv) in res if not ({"contact_d_hat", "ball_E", "ball_subdiv"} & set(sweeps[sw]["levels"][lv]))]
-    same_cz = [res[k][0] for k in same if not res[k][1]]  # and nothing above it
-    flat = bool(same_cz) and max(same_cz) < 70  # clearly below an intact ~80 mm
-    dh = sorted([(sweeps["d_hat"]["levels"][lv]["contact_d_hat"], cz("d_hat", lv)) for lv in sweeps["d_hat"]["levels"]]
-                + [(0.01, cz("baseline", "default"))])  # official d_hat 1 cm = the baseline level
-    dh = [(v, z) for v, z in dh if is_num(z)]
-    concl = ((f"只改 dt、摩擦或接触刚度的 {len(same_cz)} 档（d̂、E、网格都是官方值，上方也没有别的物体）："
-              f"官方软球结束时质心 {g3(min(same_cz))}–{g3(max(same_cz))} mm，完好时约 80 mm。"
-              + ("<b>与期待一致：不被压也被自重压扁到约一半高度，官方软球 E = 1 kPa 太软</b>，"
-                 "所以盒子实验的主结果用 E = 1e5 那一套。" if flat else "没有明显变扁，和期待不一致，要再查。")
-              if same_cz else "")
-             + "改 d̂（其余官方）：" + "、".join(f"d̂ = {g3(v * 1000)} mm 时 {g3(z)} mm" for v, z in dh)
-             + ("——d̂ 越小塌得越扁（为什么 d̂ 会影响塌陷程度，原因未查）；d̂ = 3 cm 时质心反而高过完好的球，"
-                "是 d̂ 大于表面边长、自接触把球从里面撑开（同方案 1 的 d̂ 一节）。"
-                if monotone([z for _, z in dh]) == 1 else "。")
-             + "只改软球 E（d̂ = 2 mm）：E = 1e4 时 " + g3(cz("inversion_vs_E", "dhat2mm_E1e4"))
-             + " mm、E = 1e5 时 " + g3(cz("inversion_vs_E", "dhat2mm_E1e5")) + " mm（同 d̂ 下 E = 1e3 是 "
-             + g3(cz("d_hat", "0p002")) + " mm）。"
-             + "改网格（粗 / 中 / 细）：" + " / ".join(g3(cz("mesh_res", lv)) for lv in ("coarse", "medium", "fine"))
-             + " mm。")
-    return ("<h3>方案 3：保留官方软球（E = 1e3）、不在它上面压东西</h3>"
-            "<h4>实验设置</h4><p>同一个盒子场景，软球保持官方材料 E = 1e3 Pa（只有 inversion_vs_E 两档按档位改 E），"
-            "额外的 2 个方块和 3 个软球落在离官方软球水平 0.69 m 以上的四角和边上，官方布料照常落下。"
-            "其余参数按各扫描档位变化，和方案 1 是同一套档位。</p>"
-            "<h4>按原理期待的结果</h4><p>官方软球上面不压东西，它只受自重和布料；E = 1 kPa 远小于自重压力"
-            "（ρ·g·2R ≈ 1.6 kPa），所以即使不被压，也会被自重压扁一部分。</p><h4>原始输出</h4>"
-            + (f'<div class="grid"><div class="demo"><h3>官方参数那档的视频（官方相机）</h3><video controls muted playsinline '
-               f'preload="metadata" src="{video}"></video></div></div>' if video else "")
-            + table(["档位", "官方软球结束时质心高度（mm，完好约 80）"], rows)
-            + f'<p class="concl"><b>结论：</b>{concl}</p>')
-
-
-def monotone(vals):
-    """+1 if vals never decrease, -1 if they never increase, 0 otherwise (a non-number entry gives 0)."""
-    if not vals or not all(is_num(v) for v in vals):
-        return 0
-    up = all(b >= a for a, b in zip(vals, vals[1:]))
-    down = all(b <= a for a, b in zip(vals, vals[1:]))
-    return 1 if up and not down else -1 if down and not up else 0
-
-
-def officialball_video_record():
-    """方案 3 官方参数那档的视频（genesis_box_levels_officialball/baseline_default），记录格式同 collect_demo；
-    job.exit 0 / 3 / 4 且 mp4 非空才收（含义见 gen_level_videos）。"""
-    d = DEMO_ROOT / "genesis_box_levels_officialball" / "baseline_default"
-    mp4, ex = d / "genesis_ipc_objects_in_box.mp4", d / "job.exit"
-    ok = ex.is_file() and ex.read_text().strip() in ("0", "3", "4") and mp4.is_file() and mp4.stat().st_size > 0
-    return {"key": "box_officialball_baseline_default", "expects_video": True, "title": "", "line": "", "dir": d,
-            "state": "ok", "reason": None, "images": [], "video_src": mp4 if ok else None, "video_note": None}
 
 
 # ---------------- 关键数字（发现 / 结论里用，dry-run 时也打印出来核对） ----------------
@@ -1185,7 +1101,7 @@ def main():
     cfg, gsweeps = collect_sweeps()
     all_demos = demos + tests
     videos = gen_level_videos(gsweeps)   # 盒子扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
-    vjobs, manifest = plan_videos(all_demos + list(videos.values()) + [officialball_video_record()],
+    vjobs, manifest = plan_videos(all_demos + list(videos.values()),
                                   args.crf, args.force_videos)
     ijobs = plan_images(all_demos) + [{"src": src, "dst": IMAGE_DIR / name, "size": src.stat().st_size}
                                       for src, name in filter(None, (init_frame_image(r["level"])
