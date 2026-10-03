@@ -676,7 +676,8 @@ def gen_label(r, sweep, cfg):
     dflt = "（官方默认）" if r["sweep"] == "baseline" else ""
     if sweep == "mesh_res":
         if r["sweep"] == "baseline":
-            return "官方 Sphere 网格（官方默认）"
+            # gs.morphs.Sphere -> mu.create_sphere(radius) 默认 subdivisions=3（genesis/engine/mesh.py:527, utils/mesh.py:1110）
+            return "官方 Sphere（官方默认）：icosphere 细分 3 次（表面 642 个顶点）"
         size = {"coarse": "粗", "medium": "中", "fine": "细"}.get(r["level"], r["level"])
         # trimesh.creation.icosphere(subdivisions=k)：表面 10·4^k + 2 个顶点（soft_ball_morph docstring）
         return size + (f"：icosphere 细分 {v} 次（表面 {10 * 4 ** v + 2} 个顶点）" if isinstance(v, int) else "")
@@ -711,7 +712,8 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "初始状态",
      "IPC 的 barrier 只在两个表面距离为正时才有定义，一开始就穿插的话能量没有意义，"
      "所以 libuipc 的初始化检查应该直接拒绝开跑。"),
-    ("mesh_res", "网格分辨率", "把软球换成同样大小、表面细分 2 / 3 / 4 次的 icosphere，由 Genesis 自己四面体化。",
+    ("mesh_res", "网格分辨率", "官方 Sphere 本身就是表面细分 3 次的 icosphere；把软球换成同样大小、表面细分 2 / 3 / 4 次的 icosphere，"
+     "由 Genesis 自己四面体化。",
      "软球网格",
      "网格越细，球面越接近真球，接触时参与的顶点越多，每步要解的未知数越多、越慢。"
      "只要初始无穿插，网格粗细都不该影响会不会穿透，物体落地后的大致位置应该接近。"),
@@ -896,8 +898,8 @@ def genesis_sweep_tables(sweeps, cfg):
         def key(r):
             if sweep == "baseline":
                 return 0
-            if r["sweep"] == "baseline" and sweep == "mesh_res":  # 官方网格放最前，其余按细分次数
-                return -float("inf")
+            if r["sweep"] == "baseline" and sweep == "mesh_res":  # 官方 Sphere 也是细分 3 次，排在「中」前面
+                return 2.5
             v = gen_level_value(r, sweep, cfg)
             return v if is_num(v) else float("inf")
         rows.sort(key=key)
