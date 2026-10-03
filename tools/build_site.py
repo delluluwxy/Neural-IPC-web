@@ -79,7 +79,7 @@ DEMOS = [
 # (card key, video file on NAS, title, what it shows - in the user's words where the server has no data to check it)
 USER_RECORDINGS = [
     ("user_local_ipc_robot_cloth_teleop",
-     DEMO_ROOT / "user_local_ipc_robot_cloth_teleop" / "2026-10-03 03-46-59.mkv",
+     DEMO_ROOT / "user_local_ipc_robot_cloth_teleop" / "demo.mp4",
      "机械臂遥控抓起一块布（官方例子，用户本地键盘操作录屏）",
      "用户在自己的 Windows 笔记本上运行官方 ipc_robot_cloth_teleop.py（Genesis 1.4.2，带窗口），用键盘遥控录屏，"
      "抓起了一块布（用户告知；这次运行在服务器上没有数据，以视频为准）。按键以代码为准：方向键水平移动，j / k 下 / 上，"
