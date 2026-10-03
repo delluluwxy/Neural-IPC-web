@@ -588,12 +588,10 @@ def rows_of(sweeps, name):
 # overrides 里没写的键取官方 ipc_objects_falling.py / Genesis 默认值（出处见 Neural-IPC tools/ipc_sweep/configs.py
 # GENESIS_SWEEPS 上方注释：contact_resistance 默认 1e9，FEM friction_mu 默认 0.1；ball_subdiv 不给 = 官方
 # gs.morphs.Sphere(radius=0.08)，见 run_genesis_ipc_example.py soft_ball_morph）
-# contact_eps_velocity default: libuipc scene_default_config.cpp contact/eps_velocity
 GENESIS_DEFAULTS = {"friction_mu": 0.1, "contact_resistance": 1e9, "overlap_balls": 0.0, "ball_subdiv": None,
-                    "ball_E": 1.0e3, "contact_eps_velocity": 0.01}
-GENESIS_KEYS = {"friction": "friction_mu", "resistance": "contact_resistance", "init_penetration": "overlap_balls",
-                "mesh_res": "ball_subdiv",
-                "eps_velocity": "contact_eps_velocity"}  # sweep -> override key in configs
+                    "ball_E": 1.0e3}
+GENESIS_KEYS = {"resistance": "contact_resistance", "init_penetration": "overlap_balls",
+                "mesh_res": "ball_subdiv"}  # sweep -> override key in configs
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 # genesis fem_entity.py:542 打印 (n_elements, n_vertices)；软球是 Sphere（官方）或 Mesh（icosphere），材料都是 FEM.Elastic
 BALL_SIZE_RE = re.compile(r"morph: (?:Sphere|Mesh), size: \((\d+), (\d+)\), material: <gs\.materials\.FEM\.Elastic>")
@@ -693,10 +691,6 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
     ("dt", "时间步长 dt", "改 SimOptions.dt。官方本例 0.02 s；物理时长固定 2 s，帧数随 dt 变。", "dt（s）",
      "dt 变小，每一步物体移动得更少；但 κ 下限 ∝ 1 ∕ dt²（见下面「接触刚度 κ」的式子，dt 缩小 10 倍、κ 区间抬高 100 倍），"
      "所以每步的 Newton 次数不一定减少，总步数则成倍增加。不论 dt 多大都不该穿透。"),
-    ("friction", "摩擦系数 μ", "改所有 FEM 物体（布料和软球）的 friction_mu，与接触对象按几何平均组合；Genesis 默认 0.1。",
-     "μ",
-     "μ 只管物体互相滑动时的切向阻力：μ 越大越不容易滑，堆得越陡。它不改变法向的 barrier，"
-     "所以不该影响会不会穿透，对 Newton 次数的影响也应该很小。"),
     ("resistance", "接触刚度 κ", "改 Genesis 的 contact_resistance，默认 1e9 Pa。", "设的 κ（Pa）",
      "κ 是 barrier 的刚度。libuipc 会把它夹进一个按场景算出的区间：在区间内，κ 越大接触越硬，物体陷进 barrier 越浅，"
      "间隙越接近 d̂；区间外的值会被夹到边界，结果应该和边界值一样。libuipc 的区间是："
@@ -711,10 +705,6 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "软球网格",
      "网格越细，球面越接近真球，接触时参与的顶点越多，每步要解的未知数越多、越慢。"
      "只要初始无穿插，网格粗细都不该影响会不会穿透，物体落地后的大致位置应该接近。"),
-    ("eps_velocity", "静摩擦判定速度 ε_v", "改 contact_eps_velocity（libuipc 默认 0.01 m/s）：相对滑动速度低于它按静摩擦处理。",
-     "ε_v（m/s）",
-     "ε_v 越大，越慢的滑动都被当成“粘住”，物体更容易停住、不容易慢慢滑走；ε_v 越小越接近真实的库仑摩擦，"
-     "静止的物体可能还在缓慢滑移。不影响法向间隙。"),
 ]
 
 
@@ -723,11 +713,9 @@ OBSERVE = {
     "baseline": "停住时每一对接触面（球–地、球–布、布–方块……）之间的最短距离，每帧 Newton 迭代几次（好不好解）。",
     "d_hat": "每一对接触面之间的最短距离（是否跟着 d̂ 变）、每帧 Newton 迭代几次、软球表面边长（球有没有被自接触撑开）。",
     "dt": "每帧 Newton 迭代几次、总耗时，以及停住时各接触面之间的间隙（接触变硬没有）。",
-    "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
     "resistance": "每一对接触面之间的最短距离：刚度真的变了，间隙就该跟着变。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
     "mesh_res": "libuipc 实际用的 κ（日志原文）、停住时各接触面之间的间隙、总耗时。",
-    "eps_velocity": "最高物体有多高、物体离墙多远（滑没滑散），以及各接触面之间的间隙。",
 }
 # Each experiment's conclusion in one or two sentences (the numbers are in the table right above it; the verified
 # data behind each sentence is in Neural-IPC docs/claude_todo.md and the meeting outline section 4)
@@ -740,13 +728,10 @@ FINDINGS = {
              "不相邻面片之间，d̂ 一旦超过边长，球就被自己从里面撑开，边被撑到和 d̂ 差不多长才停——15 mm 时边长变成约 15 mm、"
              "球明显变形，30 mm 时边长约 26 mm、球完全变形；2、5、10 mm 时边长不变。",
     "dt": "与期待一致：每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加；dt 越小，接触间隙越接近 d̂（libuipc 按 1/dt² 抬高接触刚度下限，接触更硬、物体陷得更浅）。",
-    "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
     "resistance": "与期待一致：libuipc 只认这个场景允许的区间 [1.57e5, 1.57e7] Pa。区间内（2e5 → 1e6 → 3e6 → 1e7）"
                   "κ 越大接触越硬、物体陷得越浅，各接触面的间隙一路变大（软球–地面 4.6 → 6.5 → 7.4 → 8.2 mm，d̂ = 10 mm）；"
                   "区间外被夹到边界：1e4 被夹到下限、结果和 2e5 差不多，默认 1e9 被夹到上限、结果和 1e7 差不多。"
                   "所以在 Genesis 里设 contact_resistance 只有落在这个区间里才有用。",
-    "eps_velocity": "ε_v 从 0.001 到 0.1 m/s，接触间隙、最高物体高度和物体离墙距离都没有明显变化：这个场景里物体最后都"
-                    "停住了，ε_v 只管很慢的滑动算不算粘住，要看出它的作用需要有持续慢速滑动的场景（比如斜面），这里没有。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
     "mesh_res": ("libuipc 整个场景只用一个 κ，按全场景所有顶点的平均质量定区间（κ 下限 ∝ m̄，见「接触刚度 κ」的式子）："
                  "软球网格越密，顶点越多、平均质量越小，κ 区间整体往下移（默认 1e9 被夹到的上限从粗网格的 4.9e7 降到细网格的 "
@@ -780,20 +765,6 @@ def col_edge(d):
     es = [o["surface_edge_median_m"] for o in (d.get("objects_final") or {}).values()
           if isinstance(o, dict) and is_num(o.get("surface_edge_median_m"))]
     return f"{g3(min(es) * 1000)}–{g3(max(es) * 1000)}" if es else "—"
-
-
-def col_top(d):
-    """Highest centroid among the boxes and soft balls (cloth excluded) at the last frame, mm (piled up or spread)."""
-    zs = [o["centroid"][2] for n, o in (d.get("objects_final") or {}).items() if "Cloth" not in n and o.get("centroid")]
-    return g3(max(zs) * 1000) if zs else "—"
-
-
-def col_wall_gap(d):
-    """Range of the boxes' and soft balls' centroid distances to the nearest wall at the last frame, mm."""
-    a = d.get("box_inner_half")
-    gaps = [a - max(abs(o["centroid"][0]), abs(o["centroid"][1])) for n, o in (d.get("objects_final") or {}).items()
-            if "Cloth" not in n and o.get("centroid")] if is_num(a) else []
-    return f"{g3(min(gaps) * 1000)}–{g3(max(gaps) * 1000)}" if gaps else "—"
 
 
 def contact_kind(name):
@@ -845,15 +816,13 @@ def col_kappa(d):
 NEWTON, SECONDS = ("每帧 Newton 迭代（中位 / 最多）", col_newton), ("仿真总耗时（s）", col_wall_seconds)
 KAPPA = ("libuipc 实际用的 κ（Pa，日志原文）", col_kappa)
 CONTACT = ("停住时各接触面之间的间隙（mm，只列小于 d̂ 的）", col_contact)
-TOP, WALL = ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
 EDGE = ("软球表面边长（mm，中位；静止时 12.1）", col_edge)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
 # CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
 SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, EDGE], "dt": [CONTACT, NEWTON, SECONDS],
-                 "friction": [TOP, WALL], "resistance": [KAPPA, CONTACT], "init_penetration": [],
-                 "mesh_res": [KAPPA, CONTACT, SECONDS],
-                 "eps_velocity": [TOP, WALL, CONTACT]}
+                 "resistance": [KAPPA, CONTACT], "init_penetration": [],
+                 "mesh_res": [KAPPA, CONTACT, SECONDS]}
 
 
 def gen_raw_cells(r, sweep):
