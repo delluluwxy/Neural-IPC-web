@@ -717,7 +717,7 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
 OBSERVE = {
     "baseline": "停住时每一对接触面（球–地、球–布、布–方块……）之间的最短距离，每帧 Newton 迭代几次（好不好解）。",
     "d_hat": "每一对接触面之间的最短距离（是否跟着 d̂ 变）、每帧 Newton 迭代几次、四面体有没有翻转。",
-    "dt": "每帧 Newton 迭代几次、总耗时。",
+    "dt": "每帧 Newton 迭代几次、总耗时，以及停住时各接触面之间的间隙（接触变硬没有）。",
     "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
     "resistance": "每一对接触面之间的最短距离：刚度真的变了，间隙就该跟着变。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
@@ -732,7 +732,7 @@ FINDINGS = {
                 "软球约 0.85 d̂，很轻的布只陷到约 0.97 d̂——barrier 的推力随间隙变小急剧增大，越重越要陷得深才托得住。",
     "d_hat": "与期待一致：所有接触的间隙都跟着 d̂ 走（始终约 0.65–1 倍 d̂），d̂ 越小物体靠得越近，但每帧 Newton 迭代越多"
              "（越难解）。d̂ 不能大于软体表面网格的边长：d̂ = 30 mm 时自接触把球从里面撑开，出现翻转。",
-    "dt": "每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加：dt 主要影响代价。",
+    "dt": "与期待一致：每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加；dt 越小，接触间隙越接近 d̂（libuipc 按 1/dt² 抬高接触刚度下限，接触更硬、物体陷得更浅）。",
     "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
     "resistance": "1e8、1e9（默认）、1e11 三档的接触间隙几乎一模一样：libuipc 把它们都夹到了这个场景允许的上限 "
                   "1.57e7 Pa（日志原文可查 1e9、1e11 两档），实际是同一个刚度。只有 1e6 落在允许区间 [1.57e5, 1.57e7] 内，"
@@ -834,7 +834,7 @@ FLIPPED, TOP, WALL = ("翻转的四面体", col_flipped), ("最高物体的高�
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
 # glance. Penetration is the same for every level (none found) and is stated once in the section text instead.
 # CONTACT measures each gap to the surface an object actually touches (cloth, another object, a wall or the ground).
-SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, FLIPPED], "dt": [NEWTON, SECONDS],
+SWEEP_COLUMNS = {"baseline": [CONTACT, NEWTON], "d_hat": [CONTACT, NEWTON, FLIPPED], "dt": [CONTACT, NEWTON, SECONDS],
                  "friction": [TOP, WALL], "resistance": [CONTACT], "init_penetration": [],
                  "mesh_res": [FLIPPED, SECONDS], "inversion_vs_E": [FLIPPED]}
 
