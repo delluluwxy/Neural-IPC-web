@@ -520,8 +520,13 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 
 def page(body):
     """Artifact 页面：开头直接是 <title> 和 <style>，不写 doctype / html / head / body。"""
+    # math: MathJax (SVG output, no font files) renders \( \) inline and \[ \] display LaTeX; the d̂ symbol in prose
+    # becomes \hat d as well
+    body = body.replace("d̂", r"\(\hat d\)")
     return f"""<title>{esc(PAGE_TITLE)}</title>
 <style>{PAGE_CSS}</style>
+<script>window.MathJax = {{tex: {{inlineMath: [["\\\\(", "\\\\)"]], displayMath: [["\\\\[", "\\\\]"]]}}, svg: {{fontCache: "global"}}}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <main class="wrap">
 {body}
 </main>
@@ -686,17 +691,20 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "物体落下、互相碰撞后堆在盒子里。IPC 的 barrier 让任意两个表面之间始终留着一点小于 d̂ 的间隙，"
      "所以全程不该有穿透。"),
     ("d_hat", "d̂（barrier 作用距离）", "改 contact_d_hat。官方本例取 1 cm，Genesis 注释说应按网格分辨率取。", "d̂（mm）",
-     "d̂ 是 barrier 开始起作用的距离。d̂ 变小，停住时每一对接触面之间的间隙跟着变小；κ 下限 ∝ 1 ∕ d̂⁴（见下面「接触刚度 κ」的式子），接触更硬，"
+     "d̂ 是 barrier 开始起作用的距离。d̂ 变小，停住时每一对接触面之间的间隙跟着变小；\\(\\kappa_{\\min}\\propto 1/\\hat d^{4}\\)（见下面「接触刚度 κ」的式子），接触更硬，"
      "Newton 迭代一般会变多；d̂ 变大，物体隔得更远就被推开。不论 d̂ 取多少，都不该出现穿透。"),
     ("dt", "时间步长 dt", "改 SimOptions.dt。官方本例 0.02 s；物理时长固定 2 s，帧数随 dt 变。", "dt（s）",
-     "dt 变小，每一步物体移动得更少；但 κ 下限 ∝ 1 ∕ dt²（见下面「接触刚度 κ」的式子，dt 缩小 10 倍、κ 区间抬高 100 倍），"
+     "dt 变小，每一步物体移动得更少；但 \\(\\kappa_{\\min}\\propto 1/\\Delta t^{2}\\)（见下面「接触刚度 κ」的式子，dt 缩小 10 倍、κ 区间抬高 100 倍），"
      "所以每步的 Newton 次数不一定减少，总步数则成倍增加。不论 dt 多大都不该穿透。"),
     ("resistance", "接触刚度 κ", "改 Genesis 的 contact_resistance，默认 1e9 Pa。", "设的 κ（Pa）",
      "κ 是 barrier 的刚度。libuipc 会把它夹进一个按场景算出的区间：在区间内，κ 越大接触越硬，物体陷进 barrier 越浅，"
      "间隙越接近 d̂；区间外的值会被夹到边界，结果应该和边界值一样。libuipc 的区间是："
-     "κ 下限 ≈ 10¹¹ · s · L² · m̄ ∕ (4 · d̂⁴ · dt²)，上限 = 100 × 下限（s = 1e-16 是缩放系数，L = 场景包围盒对角线 3.69 m，"
-     "m̄ = 全场景顶点的平均质量）。直观上：每个顶点的惯性刚度是 m̄ ∕ dt²，barrier 必须比它硬才能在一步内挡住物体，"
-     "所以 κ 跟着 m̄ 变大、跟着 dt 和 d̂ 变小而急剧变大。本场景代入得 [1.57e5, 1.57e7] Pa，和日志打印的一致。"),
+     "\\[\\kappa_{\\min}\\approx\\frac{10^{11}\\,s\\,L^{2}\\,\\bar m}{4\\,\\hat d^{4}\\,\\Delta t^{2}},\\qquad"
+     "\\kappa_{\\max}=100\\,\\kappa_{\\min}\\]"
+     "其中 \\(s=10^{-16}\\) 是缩放系数，\\(L\\) = 场景包围盒对角线 3.69 m，\\(\\bar m\\) = 全场景顶点的平均质量。"
+     "直观上：每个顶点的惯性刚度是 \\(\\bar m/\\Delta t^{2}\\)，barrier 必须比它硬才能在一步内挡住物体，"
+     "所以 κ 跟着 \\(\\bar m\\) 变大、跟着 \\(\\Delta t\\) 和 \\(\\hat d\\) 变小而急剧变大。"
+     "§本场景代入得 \\([1.57\\times10^{5},\\,1.57\\times10^{7}]\\) Pa，和日志打印的一致。"),
     ("init_penetration", "初始穿插", "多放一个软球，让它和官方软球一开始就互相穿进去一部分（R 为球半径）。",
      "初始状态",
      "IPC 的 barrier 只在两个表面距离为正时才有定义，一开始就穿插的话能量没有意义，"
@@ -727,13 +735,13 @@ FINDINGS = {
              "（越难解）。d̂ 不能大于软体表面网格的边长（这个软球静止时约 12 mm）：IPC 的 barrier 也作用在同一个球自己的"
              "不相邻面片之间，d̂ 一旦超过边长，球就被自己从里面撑开，边被撑到和 d̂ 差不多长才停——15 mm 时边长变成约 15 mm、"
              "球明显变形，30 mm 时边长约 26 mm、球完全变形；2、5、10 mm 时边长不变。",
-    "dt": "与期待一致：每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加；dt 越小，接触间隙越接近 d̂（libuipc 按 1/dt² 抬高接触刚度下限，接触更硬、物体陷得更浅）。",
+    "dt": "与期待一致：每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加；dt 越小，接触间隙越接近 d̂（libuipc 的 \\(\\kappa_{\\min}\\propto 1/\\Delta t^{2}\\)，接触更硬、物体陷得更浅）。",
     "resistance": "与期待一致：libuipc 只认这个场景允许的区间 [1.57e5, 1.57e7] Pa。区间内（2e5 → 1e6 → 3e6 → 1e7）"
                   "κ 越大接触越硬、物体陷得越浅，各接触面的间隙一路变大（软球–地面 4.6 → 6.5 → 7.4 → 8.2 mm，d̂ = 10 mm）；"
                   "区间外被夹到边界：1e4 被夹到下限、结果和 2e5 差不多，默认 1e9 被夹到上限、结果和 1e7 差不多。"
                   "所以在 Genesis 里设 contact_resistance 只有落在这个区间里才有用。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
-    "mesh_res": ("libuipc 整个场景只用一个 κ，按全场景所有顶点的平均质量定区间（κ 下限 ∝ m̄，见「接触刚度 κ」的式子）："
+    "mesh_res": ("libuipc 整个场景只用一个 κ，按全场景所有顶点的平均质量定区间（\\(\\kappa_{\\min}\\propto\\bar m\\)，见「接触刚度 κ」的式子）："
                  "软球网格越密，顶点越多、平均质量越小，κ 区间整体往下移（默认 1e9 被夹到的上限从粗网格的 4.9e7 降到细网格的 "
                  "3.4e6）。每对接触的 barrier 不按面积加权，所以加密的软球自己多了接触点、大致抵消（软球–地面间隙 8.4–8.7 → "
                  "6.4 mm）；而网格没变的方块、布没有抵消，接触明显变软（方块–地面 8.1–8.5 → 4.1 mm）。也就是说加密一个物体"
@@ -926,7 +934,10 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
     else:
         vals = "、".join(gen_label(r, sweep, cfg) for r in rows if r["sweep"] != "baseline")
         setting = f"{one}取值：{vals}；其余参数保持官方默认（{gen_defaults_text(gd)}），表里也放了官方默认那一档对照。"
-    parts = [f"<h3>{esc(title)}</h3>", f'<p class="expect"><b>按原理期待：</b>{esc(expect)}</p>',
+    # an expectation may carry a small-print note after "§" (numbers plugged in, cross-checks)
+    principle, _, note = expect.partition("§")
+    parts = [f"<h3>{esc(title)}</h3>", f'<p class="expect"><b>按原理期待：</b>{esc(principle)}</p>',
+             f'<p class="setting">{esc(note)}</p>' if note else "",
              f'<p class="setting">{esc(setting)}看：{esc(OBSERVE[sweep])}</p>']
     if sweep == "init_penetration":
         for r in rows:
@@ -973,7 +984,7 @@ DATA_IMPLICATIONS = [
      "κ 实验：Genesis 的 contact_resistance 只有落在 libuipc 按场景算出的区间里才生效，区间外一律被夹到边界。"),
     ("同一批数据里每个样本用同一个显式 κ，不能交给 libuipc 自动选。",
      "网格实验：κ 区间按全场景所有顶点的平均质量定，加密一个物体会让其他物体的接触变软（方块–地面间隙 8.1–8.5 → "
-     "4.1 mm）；dt 实验：区间下限随 1/dt² 变，dt 越小接触越硬。"),
+     "4.1 mm）；dt 实验：\\(\\kappa_{\\min}\\propto 1/\\Delta t^{2}\\)，dt 越小接触越硬。"),
     ("d̂ 是数据里接触的尺度：要记录下来，且不能大于物体最短的表面边长。",
      "d̂ 实验：每一对接触都停在约 0.6–1 倍 d̂ 的地方；d̂ 越小越贴近、但每帧 Newton 迭代越多；d̂ = 30 mm 大于软球表面边长时，"
      "自接触把球从里面撑开。"),
@@ -982,7 +993,7 @@ DATA_IMPLICATIONS = [
      "官方测试「地面滑动」：它默认开着，Newton 没算到收敛就停，误差积累成方块翻倒；关掉后断言通过。"),
     ("软体材料要足够硬，并检查四面体有没有被压翻。", "方案 3：官方软球 E = 1 kPa 只靠自重就被压到一半高。"),
     ("位置从 libuipc 那一侧读，不用 Genesis 的读数。",
-     "Genesis 在 libuipc 写回位置后又多走一步重力，刚体读数比 IPC 里低 g·dt²（dt = 0.02 s 时约 3.9 mm，和 d̂ 同一量级）。"),
+     "Genesis 在 libuipc 写回位置后又多走一步重力，刚体读数比 IPC 里低 \\(g\\,\\Delta t^{2}\\)（\\(\\Delta t=0.02\\) s 时约 3.9 mm，和 d̂ 同一量级）。"),
     ("同一个初始条件在 GPU 上跑两次结果不逐位相同，不能假设可重复。",
      "同参数的两次运行，物体最后的水平落点能差 80 mm。"),
 ]
