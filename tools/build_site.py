@@ -23,6 +23,7 @@ index.html 按 Artifact 页面规范写：开头直接是 <title> 和 <style>，
 """
 
 import argparse
+import ast
 import datetime
 import html
 import importlib.util
@@ -983,7 +984,8 @@ def officialball_block():
     concl = (f"官方软球结束时质心高度 {g3(min(cz))}–{g3(max(cz))} mm（完好约 80 mm）；上方没有别的物体的档里是 "
              f"{g3(min(free_cz)) if free_cz else '—'}–{g3(max(free_cz)) if free_cz else '—'} mm。"
              + ("<b>不被压也明显变扁：官方软球 E = 1 kPa 太软，光自重就压扁</b>，所以盒子实验的主结果用 E = 1e5 那一套。"
-                if flat else "上方没有物体时没有明显变扁，和期待不一致，要再查。"))
+                if flat else "上方没有物体时没有明显变扁，和期待不一致，要再查。")
+             + escape_text())
     return ("<h3>方案 3：保留官方软球（E = 1e3）、不在它上面压东西</h3>"
             "<h4>实验设置</h4><p>同一个盒子场景，软球保持官方材料 E = 1e3 Pa，额外的 2 个方块和 3 个软球落在离官方软球"
             "水平 0.69 m 以上的四角和边上，官方布料照常落下。其余参数按各扫描档位变化。</p>"
@@ -995,6 +997,55 @@ def officialball_block():
             + table(["档位", "官方软球结束时质心高度（mm，完好约 80）", "形状比（表面点到球心最远 / 最近）",
                      "翻转四面体 / 总数", "质心在它上方 0.3 m 以内的物体"], rows)
             + f'<h4>解释与结论</h4><p class="concl">{concl}</p>')
+
+
+def box_const(name):
+    """A box constant (e.g. BOX_WALL_TOP, BOX_WALL_THICKNESS, in m) read from run_genesis_ipc_example.py's source
+    with ast, where they are assigned as tuples (no import: that module imports Genesis / EGL helpers)."""
+    src = (PROJECT / "tools" / "ipc_demos" / "run_genesis_ipc_example.py").read_text()
+    for node in ast.parse(src).body:
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Tuple):
+            names = [t.id for t in node.targets[0].elts if isinstance(t, ast.Name)]
+            if name in names:
+                return ast.literal_eval(node.value)[names.index(name)]
+    return MISSING
+
+
+def escape_text():
+    """方案 3 官方参数档有物体最后不在盒内：读带逐帧轨迹的重跑（genesis_escape_debug/baseline/default.json，
+    sweep.py frames[*].objects = [质心 x, y, z, 最低点 z, 最大 |x|,|y|]），对每个出盒的方块 / 软球找它第一次越过
+    墙内侧面（最大 |x|,|y| > 盒内半宽）的那几帧，比较那时的最低点和墙顶高度：高于墙顶 = 从墙上方飞出去，不是穿墙。"""
+    d, _ = load_json(SWEEP_ROOT / "genesis_escape_debug" / "baseline" / "default.json")
+    if not isinstance(d, dict) or d.get("status") != "ok" or not (d.get("frames") or [{}])[0].get("objects"):
+        return ""
+    a, top, t = d.get("box_inner_half"), box_const("BOX_WALL_TOP"), box_const("BOX_WALL_THICKNESS")
+    if not (is_num(a) and is_num(top) and is_num(t)):
+        return ""
+    out = [n for n, o in (d.get("objects_final") or {}).items() if not o.get("inside_box") and "Cloth" not in n]
+    parts = []
+    for n in out:
+        # frames where the object's horizontal extent overlaps the wall (a .. a + t); its inner extent is estimated
+        # as 2 * centroid - outer (exact for a ball, symmetric about its centroid)
+        cross = []
+        for f in d["frames"]:
+            o = f["objects"].get(n)
+            if o:
+                outer, c = o[4], max(abs(o[0]), abs(o[1]))
+                if outer > a and 2 * c - outer < a + t:
+                    cross.append((f["frame"], o[3]))
+        if not cross:
+            continue
+        lo = min(z for _, z in cross)
+        parts.append(f"{n} 在第 {cross[0][0]}–{cross[-1][0]} 帧水平方向和墙重叠（墙在离中心 {g3(a)}–{g3(a + t)} m），"
+                     f"那时它的最低点在 {g3(lo)}–{g3(max(z for _, z in cross))} m，"
+                     + ("高于墙顶 " + g3(top) + " m：<b>是从墙上方飞出去的，不是穿墙</b>" if lo > top
+                        else "不高于墙顶 " + g3(top) + " m，要再查是否穿墙"))
+    if not parts:
+        return ""
+    return ("有物体最后停在盒子外面。为了弄清它怎么出去的，用逐帧记录各物体位置的版本把官方参数那档重跑了一次"
+            f"（{SWEEP_ROOT / 'genesis_escape_debug'}，同参数、另一次 GPU 运行）："
+            + "；".join(parts) + f"。这次重跑穿透检查 {dig(d, 'summary', 'n_checks_with_penetration')} 次报穿透。"
+            "另外「不在盒内」也会算上布料：布料有一部分搭在墙顶外侧。")
 
 
 def officialball_video_record():
