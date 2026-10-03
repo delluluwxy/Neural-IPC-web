@@ -1761,8 +1761,8 @@
  },
  "box_officialball_baseline_default.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_box_levels_officialball/baseline_default/genesis_ipc_objects_in_box.mp4",
-  "src_size": 1251718,
-  "src_mtime": 1791008809.285212,
+  "src_size": 1244072,
+  "src_mtime": 1791010359.7530212,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1788,7 +1788,7 @@
    "-an",
    "<out>"
   ],
-  "out_size": 73780,
-  "encoded_at": "2026-10-02 23:41:48"
+  "out_size": 72870,
+  "encoded_at": "2026-10-03 00:00:28"
  }
 }
