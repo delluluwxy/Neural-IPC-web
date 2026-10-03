@@ -964,6 +964,7 @@ def sweep_section(gsweeps, cfg, videos, facts, commit):
     concl = genesis_conclusions(facts, videos)
     for sweep, title, one, expect, rows, tbl in genesis_sweep_tables(gsweeps, cfg):
         parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, concl, commit, gd))
+    parts.append(nosemi_block())
     parts.append(officialball_block())
     parts.append(f'<p class="next">{NEXT_STEPS}</p>')
     parts.append("</section>")
@@ -1035,6 +1036,61 @@ def officialball_block():
                f'preload="metadata" src="{video}"></video></div></div>' if video else "")
             + table(["档位", "官方软球结束时质心高度（mm，完好约 80）", "形状比（表面点到球心最远 / 最近）",
                      "翻转四面体 / 总数", "质心在它上方 0.3 m 以内的物体"], rows)
+            + f'<h4>解释与结论</h4><p class="concl">{concl}</p>')
+
+
+NOSEMI_RUNS = (("genesis_stiffball", "主结果（半隐式开，Genesis 默认）"),
+               ("genesis_stiffball_kdebug", "同参数再跑一次（半隐式开，只多开了 libuipc 日志）"),
+               ("genesis_stiffball_nosemi", "关掉半隐式提前终止"))
+
+
+def nosemi_block():
+    """盒子 baseline（E = 1e5）关掉 libuipc 半隐式提前终止（newton_semi_implicit_enable = False）和两次默认运行对照：
+    每次列每帧 Newton 次数（中位 / 最多 / 恰好 7 次的帧数）、仿真总耗时、各软球结束质心高度与最低点；
+    两次默认运行之间的水平差 = 同设置下 GPU 运行之间的差别，用来判断关半隐式后的水平差算不算它造成的。"""
+    runs = []
+    for tag, label in NOSEMI_RUNS:
+        d, _ = load_json(SWEEP_ROOT / tag / "baseline" / "default.json")
+        if not isinstance(d, dict) or d.get("status") != "ok":
+            return ""
+        runs.append((label, d))
+    balls = [n for n, o in runs[0][1]["objects_final"].items() if "n_tets" in o]
+    rows = []
+    for label, d in runs:
+        its = [dig(f, "frame_stats", "newton_iterations") for f in d["frames"]]
+        fin = d["objects_final"]
+        rows.append([label, f"{g3(dig(d, 'summary', 'newton_iter_frame_stats_median'))} / "
+                            f"{g3(dig(d, 'summary', 'newton_iter_frame_stats_max'))}",
+                     f"{sum(1 for i in its if i == 7)} / {len(its)}", g3(dig(d, "summary", "wall_seconds_total")),
+                     "、".join(g3(fin[b]["centroid"][2] * 1000) for b in balls),
+                     "、".join(g3(fin[b]["min_z"] * 1000) for b in balls)])
+
+    def spread(i, j, axis):  # largest |difference| over all non-cloth objects between runs i and j, mm
+        fi, fj = runs[i][1]["objects_final"], runs[j][1]["objects_final"]
+        return max(abs(fi[n]["centroid"][axis] - fj[n]["centroid"][axis]) * 1000 for n in fi if "Cloth" not in n)
+
+    noise_xy = max(spread(0, 1, 0), spread(0, 1, 1))
+    semi_xy = max(spread(0, 2, 0), spread(0, 2, 1), spread(1, 2, 0), spread(1, 2, 1))
+    zs = [abs(a["centroid"][2] - b["centroid"][2]) * 1000 for _, d in runs[1:]
+          for a, b in [(runs[0][1]["objects_final"][n], d["objects_final"][n]) for n in balls]]
+    concl = (f"软球结束高度和最低点三次几乎一样（软球质心高度最大差 {g3(max(zs))} mm），"
+             "<b>关掉半隐式不改变软球被压多少、离地多远</b>。Newton 次数变了：默认设置下大量帧恰好停在第 7 轮"
+             "（半隐式从第 7 轮起允许提前收工），关掉后分布拉开、最多到 "
+             f"{g3(dig(runs[2][1], 'summary', 'newton_iter_frame_stats_max'))} 轮，仿真总耗时多约 "
+             f"{g3((dig(runs[2][1], 'summary', 'wall_seconds_total') / dig(runs[0][1], 'summary', 'wall_seconds_total') - 1) * 100)}%。"
+             f"物体最后停在哪（水平位置）三次都不同：同设置的两次之间就差到 {g3(noise_xy)} mm，"
+             f"关半隐式那次和它们最多差 {g3(semi_xy)} mm。同设置两次运行之间水平位置也会差几厘米，"
+             "所以单靠这一次不能说水平位置的差别是关半隐式造成的（每种设置各一两次运行，没做多次统计）。"
+             "libuipc 每帧报告的 converged 两种设置下都是全部帧 True。")
+    return ("<h3>盒子场景：关掉半隐式提前终止有没有影响</h3>"
+            "<h4>实验设置</h4><p>官方测试「物体沿地面滑动」翻倒的根因是 libuipc 的半隐式提前终止（见官方测试那节）。"
+            "盒子主结果（软球 E = 1e5、其余官方参数）用的也是默认设置，所以把 baseline 那档只改 "
+            "IPCCouplerOptions.newton_semi_implicit_enable = False 重跑一次，和默认设置的两次运行对照。</p>"
+            "<h4>原始输出</h4>"
+            + table(["运行", "每帧 Newton 迭代（中位 / 最多）", "恰好 7 轮的帧 / 总帧", "仿真总耗时（s）",
+                     "各软球结束质心高度（mm）", "各软球最低点（mm）"], rows)
+            + f'<p class="muted small">软球顺序：{"、".join(balls)}。结果文件 '
+            + "、".join(str(SWEEP_ROOT / t / "baseline" / "default.json") for t, _ in NOSEMI_RUNS) + "</p>"
             + f'<h4>解释与结论</h4><p class="concl">{concl}</p>')
 
 
