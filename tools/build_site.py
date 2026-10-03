@@ -93,9 +93,14 @@ OFFICIAL_TESTS = [
      "夹住布料一角拖动（官方测试）",
      "两个方块夹住布料一角，先静置再拖着画一圈；官方断言：布料没掉、被夹的角始终跟着夹子走（test_deformable.py 253-271 行）。"),
 ]
-# What the server run found for the tests whose assertions failed (2026-10-02; Genesis's own assertion text in
-# official_test.json), shown on the card next to the outcome.
+# What the server runs found for a test (why an assertion failed, or what the data shows; 2026-10-02/03, from
+# official_test.json and the --rigid-trajectory / diagnostic reruns), shown on the card next to the outcome.
 OFFICIAL_TEST_NOTES = {
+    "genesis_test_test_objects_colliding_0": "蓝色的是布料（FEM.Cloth，E = 1e5 Pa、弯曲刚度 50，和官方 ipc_objects_falling 例子"
+                                             "同一组参数），官方相机离地只有 10 cm、几乎平视，所以看起来像一块板。逐步记下布料 400 个"
+                                             "顶点的位置（--rigid-trajectory）：第一步高度差 0.1 mm（平的），最后一步最低 33.3 mm、最高 "
+                                             "160.6 mm，高度差 127 mm——中间被方块和球顶起、四周垂下。同一测试里的绿色软球（E = 1 kPa）"
+                                             "最后整体高度只有 64 mm（完好 160 mm），和盒子实验里的官方软球一样被自重压扁。",
     "genesis_test_test_ground_clearance_0": "实测 5 个方块离地间隙依次是 6.39、6.39、6.39、7.00、8.18 mm，前 3 个完全相同，"
                                             "所以「逐个严格变大」没过。原因：开着 libuipc 日志重跑（--test-log-level "
                                             "DEBUG）读到这个场景的 κ 允许区间是 [9.85e4, 9.85e6] Pa；方块与地面的接触刚度"
@@ -111,8 +116,11 @@ OFFICIAL_TEST_NOTES = {
                                           "查下去：① libuipc 里这个方块（ABD）的倾角和 Genesis 读数逐步相同，翻转是 IPC 求解"
                                           "出来的；② 测试代码不动、只把每步拆成 2 个子步（SimOptions.substeps = 2，每步 0.005 s），"
                                           "最大倾角降到 0.31°，官方断言通过；拆 4 步时 0.87°（高度差 0.057 mm，略超容差 0.05 mm）。"
-                                          "所以原因是这个场景用 dt = 0.01 s 时间步太大；μ = 0 的方块从不晃，说明要有摩擦才会出现。"
-                                          "（推断：与 libuipc 的摩擦按每步开头的接触状态计算、步长越大误差越大一致，未单独验证。）",
+                                          "③ dt 保持 0.01 s、只关掉 libuipc 的半隐式提前终止（IPCCouplerOptions."
+                                          "newton_semi_implicit_enable = False，让 Newton 迭代到真正收敛），最大倾角 0.24°，"
+                                          "官方断言通过。所以根因是半隐式提前终止：从第 7 轮起只要一步走满就收工、此时不一定已"
+                                          "收敛，dt = 0.01 s 下这个方块每步都没算到收敛，误差累积成翻转；拆小时间步也能解决，"
+                                          "是因为小步在 7 轮内就收敛了。μ = 0 的方块从不晃，说明还要有摩擦才会出现。",
 }
 
 PAGE_TITLE = "Neural-IPC 周汇报"
@@ -240,7 +248,7 @@ def collect_official_test(key, nodeid, title, line):
     r["state"], r["outcome"] = "ok", rec.get("outcome")
     r["line"] = (f"{line} 官方断言：" + {"passed": "通过", "failed": "未通过", "skipped": "跳过"}.get(
         rec.get("outcome"), f"无结果（pytest 退出码 {rec.get('pytest_exit_code')}）") + "。"
-                 + (OFFICIAL_TEST_NOTES.get(key, "") if rec.get("outcome") == "failed" else ""))
+                 + OFFICIAL_TEST_NOTES.get(key, ""))
     scenes = rec.get("scenes") or []
     vp = Path(scenes[0]["video"]) if scenes else None
     if vp and vp.is_file() and vp.stat().st_size > 0:
