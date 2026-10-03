@@ -695,19 +695,15 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
      "物体落下、互相碰撞后堆在盒子里。IPC 的 barrier 让任意两个表面之间始终留着一点小于 d̂ 的间隙，"
      "所以全程不该有穿透。"),
     ("d_hat", "d̂（barrier 作用距离）", "改 contact_d_hat。官方本例取 1 cm，Genesis 注释说应按网格分辨率取。", "d̂（mm）",
-     "d̂ 是 barrier 开始起作用的距离。d̂ 变小，停住时每一对接触面之间的间隙跟着变小；\\(\\kappa_{\\min}\\propto 1/\\hat d^{4}\\)（见下面「接触刚度 κ」的式子），接触更硬，"
+     "d̂ 是 barrier 开始起作用的距离。d̂ 变小，停住时每一对接触面之间的间隙跟着变小；\\(\\kappa_{\\min}\\propto 1/\\hat d^{4}\\)（见本节开头的式子），接触更硬，"
      "Newton 迭代一般会变多；d̂ 变大，物体隔得更远就被推开。不论 d̂ 取多少，都不该出现穿透。"),
     ("dt", "时间步长 dt", "改 SimOptions.dt。官方本例 0.02 s；物理时长固定 2 s，帧数随 dt 变。", "dt（s）",
-     "dt 变小，每一步物体移动得更少；但 \\(\\kappa_{\\min}\\propto 1/\\Delta t^{2}\\)（见下面「接触刚度 κ」的式子，dt 缩小 10 倍、κ 区间抬高 100 倍），"
+     "dt 变小，每一步物体移动得更少；但 \\(\\kappa_{\\min}\\propto 1/\\Delta t^{2}\\)（见本节开头的式子，dt 缩小 10 倍、κ 区间抬高 100 倍），"
      "所以每步的 Newton 次数不一定减少，总步数则成倍增加。不论 dt 多大都不该穿透。"),
     ("resistance", "接触刚度 κ", "改 Genesis 的 contact_resistance，默认 1e9 Pa。", "设的 κ（Pa）",
-     "κ 是 barrier 的刚度。libuipc 会把它夹进一个按场景算出的区间：在区间内，κ 越大接触越硬，物体陷进 barrier 越浅，"
-     "间隙越接近 d̂；区间外的值会被夹到边界，结果应该和边界值一样。libuipc 的区间是："
-     "\\[\\kappa_{\\min}\\approx\\frac{10^{11}\\,s\\,L^{2}\\,\\bar m}{4\\,\\hat d^{4}\\,\\Delta t^{2}},\\qquad"
-     "\\kappa_{\\max}=100\\,\\kappa_{\\min}\\]"
-     "其中 \\(s=10^{-16}\\) 是缩放系数，\\(L\\) = 场景包围盒对角线 3.69 m，\\(\\bar m\\) = 全场景顶点的平均质量。"
-     "直观上：每个顶点的惯性刚度是 \\(\\bar m/\\Delta t^{2}\\)，barrier 必须比它硬才能在一步内挡住物体，"
-     "所以 κ 跟着 \\(\\bar m\\) 变大、跟着 \\(\\Delta t\\) 和 \\(\\hat d\\) 变小而急剧变大。"
+     "κ 是 barrier 的刚度（式子见本节开头）。libuipc 会把它夹进区间 \\([\\kappa_{\\min},\\kappa_{\\max}]\\)："
+     "在区间内，κ 越大 barrier 这堵墙越陡，物体陷进 barrier 越浅，间隙越接近 d̂；区间外的值会被夹到边界，"
+     "结果应该和边界值一样。"
      "§本场景代入得 \\([1.57\\times10^{5},\\,1.57\\times10^{7}]\\) Pa，和日志打印的一致。"),
     ("init_penetration", "初始穿插", "多放一个软球，让它和官方软球一开始就互相穿进去一部分（R 为球半径）。",
      "初始状态",
@@ -761,7 +757,7 @@ FINDINGS = {
                   "区间外被夹到边界：1e4 被夹到下限、结果和 2e5 差不多，默认 1e9 被夹到上限、结果和 1e7 差不多。"
                   "所以在 Genesis 里设 contact_resistance 只有落在这个区间里才有用。",
     "init_penetration": "与期待一致：一开始就穿插时，libuipc 直接拒绝开跑。IPC 必须从无穿透的状态开始。",
-    "mesh_res": ("libuipc 整个场景只用一个 κ，按全场景所有顶点的平均质量定区间（\\(\\kappa_{\\min}\\propto\\bar m\\)，见「接触刚度 κ」的式子）："
+    "mesh_res": ("libuipc 整个场景只用一个 κ，按全场景所有顶点的平均质量定区间（\\(\\kappa_{\\min}\\propto\\bar m\\)，见本节开头的式子）："
                  "软球网格越密，顶点越多、平均质量越小，κ 区间整体往下移（默认 1e9 被夹到的上限从粗网格的 4.9e7 降到细网格的 "
                  "3.4e6）。每对接触的 barrier 不按面积加权，所以加密的软球自己多了接触点、大致抵消（软球–地面间隙 8.4–8.7 → "
                  "6.4 mm）；而网格没变的方块、布没有抵消，接触明显变软（方块–地面 8.1–8.5 → 4.1 mm）。也就是说加密一个物体"
@@ -931,6 +927,43 @@ def gen_level_videos(gsweeps):
     return out
 
 
+# The contact energy every experiment below refers to: the IPC paper's barrier (Li et al. 2020, eq. 5 and the
+# clamped log barrier), libuipc's log^2 barrier (contact_models/sym/codim_ipc_contact.inl KappaBarrierLog2, called with
+# kappa * dt^2 in ipc_simplex_normal_contact.cu), Genesis's per-pair kappa (coupler.py:680-717) and libuipc's kappa
+# corridor (global_contact_manager.cu:265-303; plugged in, it reproduces every logged corridor)
+FORMULA_BLOCK = (
+    '<h3>IPC 的接触能量与 κ 区间（下面各实验都用）</h3>'
+    '<p class="expect"><b>原版 IPC 论文：</b>每一对距离小于 d̂ 的接触（点–三角形、边–边）加一项 barrier 能量，'
+    '距离越近能量越大，距离为 0 时无穷大——这堵「无穷高的墙」保证永远穿不过去：'
+    '\\[ b(d)=\\begin{cases}-(d-\\hat d)^2\\ln\\dfrac{d}{\\hat d}, & 0&lt;d&lt;\\hat d\\\\[2pt] 0, & d\\ge\\hat d\\end{cases}'
+    '\\qquad E_{\\text{contact}}=\\kappa\\sum_{k\\in C} b(d_k) \\]</p>'
+    '<p class="expect"><b>libuipc 实际用的：</b>换成按距离平方 \\(D=d^2\\) 写的 log² 形式（同样 \\(D\\to0\\) 时无穷大、'
+    '\\(D\\ge\\hat d^{2}\\) 时为 0），并且整个能量乘了 \\(\\Delta t^2\\)：'
+    '\\[ B(D)=\\kappa\\,\\Delta t^{2}\\,(D-\\hat d^{2})^{2}\\Big[\\ln\\frac{D}{\\hat d^{2}}\\Big]^{2},\\qquad '
+    '0&lt;D&lt;\\hat d^{2} \\]</p>'
+    '<p class="expect"><b>Genesis：</b>自己不算 barrier。它把每个物体的 contact_resistance 当作 κ，两个物体之间取调和平均'
+    '\\(\\kappa_{ij}=\\dfrac{2\\,r_i r_j}{r_i+r_j}\\)，交给 libuipc；libuipc 再把它夹进按场景算出的区间：'
+    '\\[ \\kappa_{\\min}\\approx\\frac{10^{11}\\,s\\,L^{2}\\,\\bar m}{4\\,\\hat d^{4}\\,\\Delta t^{2}},\\qquad '
+    '\\kappa_{\\max}=100\\,\\kappa_{\\min} \\]'
+    '直观上：每个顶点的惯性刚度是 \\(\\bar m/\\Delta t^{2}\\)，barrier 必须比它硬才能在一步内挡住物体，所以 '
+    '\\(\\bar m\\) 越大 → κ 越大，\\(\\Delta t\\)、\\(\\hat d\\) 越小 → κ 急剧变大。</p>'
+    + "<div class=\"tablewrap\"><table><tr><th>符号</th><th>含义</th><th>本场景（官方默认）</th></tr>"
+    + "".join(f"<tr><td>{a}</td><td>{b}</td><td>{c}</td></tr>" for a, b, c in [
+        ("\\(d\\)", "一对接触图元（点–三角形 / 边–边）之间的距离", "—"),
+        ("\\(D=d^2\\)", "距离的平方（libuipc 用它算 barrier）", "—"),
+        ("\\(\\hat d\\)", "barrier 开始起作用的距离", "10 mm"),
+        ("\\(\\kappa\\)", "barrier 的刚度", "设 1e9 Pa，实际被夹到 1.57e7 Pa"),
+        ("\\(C\\)，\\(k\\)", "所有距离小于 \\(\\hat d\\) 的接触对，\\(k\\) 是其中一对", "—"),
+        ("\\(b(d)\\)，\\(B(D)\\)", "一对接触的 barrier 能量（论文 / libuipc）", "—"),
+        ("\\(\\Delta t\\)", "时间步长", "0.02 s"),
+        ("\\(r_i\\)", "物体 \\(i\\) 的 contact_resistance", "1e9 Pa"),
+        ("\\(s\\)", "libuipc 的缩放系数 kappa_eval_scale", "1e-16"),
+        ("\\(L\\)", "整个场景包围盒的对角线长度", "3.69 m"),
+        ("\\(\\bar m\\)", "全场景所有顶点的平均质量", "0.0184 kg"),
+        ("\\(\\kappa_{\\min}\\)，\\(\\kappa_{\\max}\\)", "libuipc 允许的 κ 下限 / 上限", "1.57e5 / 1.57e7 Pa"),
+    ]) + "</table></div>")
+
+
 # What each kind of line in the initial-penetration log means (libuipc sanity_check/
 # simplicial_surface_intersection_check.cpp:289-336, core/internal/world.cpp:46; Genesis coupler)
 INIT_LOG_GLOSSARY = [
@@ -1033,7 +1066,7 @@ def sweep_section(gsweeps, cfg, videos):
     gscene = ("Genesis 没有「一堆物体扔进盒子」的官方例子，这里用官方 ipc_objects_falling 场景加一个盒子和更多同款物体。"
               f"这一套：{VARIANTS[GEN_TAG]['label']}。所有实验每次只改一个参数。盒子墙画成半透明，盒内物体不透明。"
               "除了一开始就穿插的两档（开跑前被拒），所有档位 libuipc 的穿透检查都没有报穿透。")
-    parts = ['<section id="sweep"><h2>盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>"]
+    parts = ['<section id="sweep"><h2>盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>", FORMULA_BLOCK]
     for sweep, title, one, expect, rows, tbl in genesis_sweep_tables(gsweeps, cfg):
         parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd))
     parts.append("</section>")
