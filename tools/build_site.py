@@ -477,7 +477,7 @@ h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1p
 h4 { font-size: 0.95rem; margin: 18px 0 4px; font-weight: 600; }
 pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.76rem;
           line-height: 1.45; background: var(--soft); border-radius: 4px; padding: 10px 12px; margin: 6px 0;
-          max-width: 100%; overflow-x: auto; white-space: pre; }
+          max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 details.repro { margin: 10px 0 26px; }
 details.repro summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
 p.concl { max-width: 80ch; font-size: 1.05rem; color: var(--good); }
@@ -498,14 +498,15 @@ video, img { display: block; width: 100%; height: auto; border-radius: 4px; back
 img.plot { margin-top: 8px; }
 .novideo { padding: 22px 12px; background: var(--soft); color: var(--muted); border-radius: 4px;
            font-size: 0.86rem; }
-.tablewrap { overflow-x: auto; max-width: 100%; margin: 6px 0 4px; }
-table { border-collapse: collapse; font-size: 0.88rem; min-width: 60%; }
+.tablewrap { max-width: 100%; margin: 6px 0 4px; }
+table { border-collapse: collapse; font-size: 0.88rem; width: 100%; table-layout: auto; }
 th, td { text-align: left; padding: 5px 14px 5px 0; border-bottom: 1px solid var(--border);
-         white-space: nowrap; }
+         white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
 th { font-weight: 600; color: var(--muted); font-size: 0.82rem; border-bottom-color: var(--fg); }
 td { font-variant-numeric: tabular-nums; }
 td.good { color: var(--good); }
 td.warn { color: var(--warn); }
+mjx-container { max-width: 100%; } mjx-container svg { max-width: 100%; height: auto; }
 ul.findings { padding-left: 20px; max-width: 80ch; }
 ul.findings li { margin: 8px 0; }
 .next { max-width: 80ch; }
