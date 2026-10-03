@@ -27,11 +27,11 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--fo
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 header.top { padding: 28px 0 8px; }
-h1 { font-size: 1.55rem; margin: 0 0 8px; font-weight: 650; letter-spacing: 0.01em; }
+h1 { font-size: 1.85rem; margin: 0 0 8px; font-weight: 650; letter-spacing: 0.01em; }
 .summary { margin: 8px 0 0; }
 nav.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.9rem; margin: 14px 0 0;
           padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-h2 { font-size: 1.2rem; margin: 36px 0 10px; font-weight: 650; }
+h2 { font-size: 1.6rem; margin: 64px 0 14px; font-weight: 650; }
 h3 { font-size: 1rem; margin: 22px 0 4px; font-weight: 600; }
 h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--border); }
 h4 { font-size: 0.95rem; margin: 18px 0 4px; font-weight: 600; }
@@ -68,6 +68,7 @@ td.good { color: var(--good); }
 td.warn { color: var(--warn); }
 ul.obs { font-size: 1.02rem; font-weight: 600; margin: 8px 0; padding-left: 22px; } ul.obs li { margin: 3px 0; }
 main.wrap { counter-reset: sec; } main.wrap section > h2 { counter-increment: sec; counter-reset: sub; } main.wrap section > h2::before { content: counter(sec) ". "; } main.wrap section > h3 { counter-increment: sub; } main.wrap section > h3::before { content: counter(sec) "." counter(sub) " "; }
+main.wrap section > h3 { font-size: 1.3rem; margin: 56px 0 10px; padding-top: 20px; border-top: 1px solid var(--border); }
 img.initframe { display: block; max-width: 640px; width: 100%; margin: 6px 0; }
 mjx-container { max-width: 100%; } mjx-container svg { max-width: 100%; height: auto; }
 ul.findings { padding-left: 20px; }
