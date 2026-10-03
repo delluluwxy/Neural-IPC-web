@@ -715,11 +715,11 @@ GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC �
 
 # What each experiment looks at (its SWEEP_COLUMNS) and why
 OBSERVE = {
-    "baseline": "落在地上的软球和地面的间隙（应小于 d̂），每帧 Newton 迭代几次（好不好解）。",
-    "d_hat": "落在地上的软球和地面的间隙、每帧 Newton 迭代几次、四面体有没有翻转。",
+    "baseline": "每个物体最低点离地多高（应小于 d̂），每帧 Newton 迭代几次（好不好解）。",
+    "d_hat": "每个物体最低点离地多高、每帧 Newton 迭代几次、四面体有没有翻转。",
     "dt": "每帧 Newton 迭代几次、总耗时。",
     "friction": "最高物体有多高（堆起来还是摊开）、物体离墙多远（有没有滑散）。",
-    "resistance": "落在地上的软球和地面的间隙：刚度真的生效的话，刚度越大间隙越大。",
+    "resistance": "每个物体最低点离地多高：刚度真的生效的话，刚度越大间隙越大。",
     "init_penetration": "libuipc 开跑前检查的日志原文。",
     "mesh_res": "四面体有没有翻转、总耗时。",
     "inversion_vs_E": "四面体翻转的比例。",
@@ -727,9 +727,9 @@ OBSERVE = {
 # Each experiment's conclusion in one or two sentences (the numbers are in the table right above it; the verified
 # data behind each sentence is in Neural-IPC docs/claude_todo.md and the meeting outline section 4)
 FINDINGS = {
-    "baseline": "与期待一致：全程没有穿透；落在地上的软球和地面之间留着一条小于 d̂ 的缝，停在 barrier 起作用的那一层里，"
+    "baseline": "与期待一致：全程没有穿透；软球和方块的最低点都离地一小段、小于 d̂，停在 barrier 起作用的那一层里，"
                 "而不是贴着地面（只测了和地面的接触）。",
-    "d_hat": "与期待一致：d̂ 越小，落地的软球停得越贴地，但每帧 Newton 迭代越多。d̂ 不能大于软体表面网格的边长："
+    "d_hat": "与期待一致：d̂ 越小，物体停得越贴地，但每帧 Newton 迭代越多。d̂ 不能大于软体表面网格的边长："
              "d̂ = 30 mm 时自接触把球从里面撑开，出现翻转。",
     "dt": "每帧迭代次数基本不随 dt 变，总耗时随步数成倍增加：dt 主要影响代价。",
     "friction": "与期待一致：μ 小时物体滑散到墙边，μ 大时堆在中间；μ 不影响会不会穿透。",
@@ -769,9 +769,13 @@ def gen_split(d):
 
 
 def col_gap(d):
-    """Soft balls' lowest surface point at the last frame, mm (how far above the ground they come to rest)."""
-    sp = gen_split(d) or {"balls": []}
-    return g3(min(b[1] for b in sp["balls"]) * 1000) if sp["balls"] else "—"
+    """Range over the soft balls and rigid boxes of each one's lowest point at the last frame, mm. Balls: lowest surface
+    vertex. Boxes: lowest vertex as Genesis reads it, shifted by the IPC-minus-Genesis centre height (Genesis's rigid
+    solver adds one gravity step after IPC writes the pose back), so a tilted box is measured at its lowest corner."""
+    lows = [o["surface_min_z"] if is_num(o.get("surface_min_z")) else o["min_z"] + o["ipc_pos_z"] - o["genesis_pos_z"]
+            for o in (d.get("objects_final") or {}).values()
+            if isinstance(o, dict) and (is_num(o.get("surface_min_z")) or is_num(o.get("ipc_pos_z")))]
+    return f"{g3(min(lows) * 1000)}–{g3(max(lows) * 1000)}" if lows else "—"
 
 
 def col_newton(d):
@@ -805,7 +809,7 @@ def col_wall_gap(d):
     return f"{g3(min(gaps) * 1000)}–{g3(max(gaps) * 1000)}" if gaps else "—"
 
 
-GAP, NEWTON, SECONDS = ("软球与地面的间隙（mm）", col_gap), ("每帧 Newton 迭代（中位 / 最多）", col_newton), \
+GAP, NEWTON, SECONDS = ("各物体最低点离地（mm，最小–最大）", col_gap), ("每帧 Newton 迭代（中位 / 最多）", col_newton), \
     ("仿真总耗时（s）", col_wall_seconds)
 FLIPPED, TOP, WALL = ("翻转的四面体", col_flipped), ("最高物体的高度（mm）", col_top), ("物体离墙（mm）", col_wall_gap)
 # The columns each experiment's table shows: only the quantities its conclusion is about, so the trend reads at a
