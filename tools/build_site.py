@@ -95,8 +95,12 @@ OFFICIAL_TESTS = [
 # What the server run found for the tests whose assertions failed (2026-10-02; Genesis's own assertion text in
 # official_test.json), shown on the card next to the outcome.
 OFFICIAL_TEST_NOTES = {
-    "genesis_test_test_ground_clearance_0": "实测 5 个方块离地间隙全是 8.18 mm：这版 libuipc 把超出允许区间的接触刚度夹到区间端点"
-                                            "（见下方「接触刚度 κ」），几档实际是同一个刚度。",
+    "genesis_test_test_ground_clearance_0": "实测 5 个方块离地间隙依次是 6.39、6.39、6.39、7.00、8.18 mm，前 3 个完全相同，"
+                                            "所以「逐个严格变大」没过。原因：开着 libuipc 日志重跑（--test-log-level "
+                                            "DEBUG）读到这个场景的 κ 允许区间是 [9.85e4, 9.85e6] Pa；方块与地面的接触刚度"
+                                            "取两者 resistance 的调和平均（像两根弹簧串联，genesis ipc_coupler/coupler.py:"
+                                            "717），前 3 个（199.98、1998、19802）低于下界，被夹成"
+                                            "同一个 9.85e4，后 2 个（1.82e5、1e6）在区间内照用（见下方「接触刚度 κ」）。",
     "genesis_test_test_ground_sliding_0": "没过的是「离地高度与摩擦无关」：有一个方块比相邻的高 9.3 mm；"
                                           "不挂录像、原样用 pytest 跑结果逐位相同，所以不是录像造成的，原因未查。",
 }
@@ -422,15 +426,6 @@ def encode_video(exe, job, crf, manifest):
     print(f"[build_site]   -> {file_size_str(size)}", flush=True)
 
 
-# ==========================================================================
-# 扫描结果的派生量（都只从 json 读，唯一的计算是逐帧均值和"总耗时 / 帧数"）
-# ==========================================================================
-def newton_mean(d):
-    """每帧 Newton 迭代的平均：frames[*].newton_iter_timer_count 的算术平均。"""
-    vals = [f.get("newton_iter_timer_count") for f in (d.get("frames") or []) if isinstance(f, dict)]
-    vals = [v for v in vals if is_num(v)]
-    return sum(vals) / len(vals) if vals else MISSING
-
 
 # ==========================================================================
 # HTML
@@ -677,7 +672,8 @@ def gen_label(r, sweep, cfg):
 
 
 GENESIS_TABLES = [  # (扫描, 标题, 改了什么, 第一列表头, 按 IPC 原理期待的结果)；baseline = 官方参数的盒子 demo
-    ("baseline", "官方参数：一堆物体扔进盒子", "不改任何参数，全部用官方本例的值和 Genesis 默认。", "配置",
+    ("baseline", "官方参数：一堆物体扔进盒子",
+     "对照档：下面各节要扫的参数在这里都取官方本例的值和 Genesis 默认（软球 E 是否改过见下一句）。", "配置",
      "物体落下、互相碰撞后堆在盒子里。IPC 的 barrier 让任意两个表面之间始终留着一点小于 d̂ 的间隙，"
      "所以全程不该有穿透，静止后物体离地面也只差不到 d̂ 的一小段。"),
     ("d_hat", "d̂（barrier 作用距离）", "改 contact_d_hat。官方本例取 1 cm，Genesis 注释说应按网格分辨率取。", "d̂（mm）",
@@ -769,7 +765,7 @@ def gen_raw_cells(r):
     n_obj = len(d.get("objects_final") or {})
     return [f"跑完 {s.get('frames_done', '—')} 帧",
             f"{s.get('n_checks_with_penetration', '—')} / {s.get('n_sanity_checks', '—')}",
-            f"{g3(s.get('newton_iter_timer_median'))} / {g3(s.get('newton_iter_timer_max'))}",
+            f"{g3(s.get('newton_iter_frame_stats_median'))} / {g3(s.get('newton_iter_frame_stats_max'))}",
             str(s.get("n_frames_hit_max_iter", "—")),
             g3(low * 1000) if is_num(low) else "—",
             f"{d.get('n_objects_outside_box', '—')} / {n_obj}"]
@@ -976,8 +972,9 @@ def officialball_block():
         video = f"assets/videos/{rec['key']}.mp4"  # encoded and uploaded with the others (main: plan_videos)
     if not rows:
         return '<h3>方案 3：保留官方软球（E = 1e3）、不在它上面压东西</h3><div class="novideo">还没跑完</div>'
+    n_total = sum(len(s["levels"]) for k, s in load_sweep_configs().GENESIS_SWEEPS.items() if k != "init_penetration")
     cz = [float(r[1]) for r in rows if r[1] not in ("—", "")]
-    free_cz = [float(r[1]) for r in rows if r[4] == "没有" and r[1] not in ("—", "")]
+    free_cz =[float(r[1]) for r in rows if r[4] == "没有" and r[1] not in ("—", "")]
     flat = bool(free_cz) and max(free_cz) < 70  # every unloaded level clearly below an intact ~80 mm
     concl = (f"官方软球结束时质心高度 {g3(min(cz))}–{g3(max(cz))} mm（完好约 80 mm）；上方没有别的物体的档里是 "
              f"{g3(min(free_cz)) if free_cz else '—'}–{g3(max(free_cz)) if free_cz else '—'} mm。"
@@ -988,6 +985,7 @@ def officialball_block():
             "水平 0.69 m 以上的四角和边上，官方布料照常落下。其余参数按各扫描档位变化。</p>"
             "<h4>按原理期待的结果</h4><p>官方软球上面不压东西，它只受自重和布料；E = 1 kPa 远小于自重压力"
             "（ρ·g·2R ≈ 1.6 kPa），所以即使不被压，也会被自重压扁一部分。</p><h4>原始输出</h4>"
+            f'<p class="muted small">已跑完 {len(rows)} / {n_total} 档（初始穿插那两档开跑前就被拒，不计）；其余还在跑，跑完更新本页。</p>'
             + (f'<div class="grid"><div class="demo"><h3>官方参数那档的视频（官方相机）</h3><video controls muted playsinline '
                f'preload="metadata" src="{video}"></video></div></div>' if video else "")
             + table(["档位", "官方软球结束时质心高度（mm，完好约 80）", "形状比（表面点到球心最远 / 最近）",
@@ -1035,12 +1033,16 @@ def compute_genesis_facts(gsweeps):
             # end centroid height of every rigid box and soft ball (not the cloth, not the fixed walls)
             heights = [o["centroid"][2] for n, o in fin.items() if isinstance(o, dict) and o.get("centroid")
                        and "Cloth" not in n]
+            # same objects: end centroid distance to the nearest box wall [m] (box_inner_half - max(|x|, |y|))
+            a = d.get("box_inner_half")
+            wall_gaps = [a - max(abs(o["centroid"][0]), abs(o["centroid"][1])) for n, o in fin.items()
+                         if is_num(a) and isinstance(o, dict) and o.get("centroid") and "Cloth" not in n]
             f[k] = {"state": "ok", "value": value, "pen_checks": dig(d, "summary", "n_checks_with_penetration"),
                     "lowest_mm": low * 1000 if is_num(low) else MISSING, "below": below, "out_wall": outw,
-                    "newton_mean": newton_mean(d), "newton_max": dig(d, "summary", "newton_iter_timer_max"),
+                    "newton_max": dig(d, "summary", "newton_iter_frame_stats_max"),
                     "newton_median": dig(d, "summary", "newton_iter_frame_stats_median"),
                     "hit_max": dig(d, "summary", "n_frames_hit_max_iter"), "split": gen_split(d),
-                    "shape": shape, "heights": heights, "n_out_box": d.get("n_objects_outside_box"),
+                    "shape": shape, "heights": heights, "wall_gaps": wall_gaps, "n_out_box": d.get("n_objects_outside_box"),
                     "wall_s": dig(d, "summary", "wall_seconds_total")}
             if r["sweep"] == "mesh_res" or r["sweep"] == "baseline":
                 f[k]["ball_verts"] = gen_ball_verts(d)
@@ -1175,14 +1177,14 @@ def genesis_conclusions(f, videos):
         e4, e5 = g("inversion_vs_E", "dhat2mm_E1e4"), g("inversion_vs_E", "dhat2mm_E1e5")
         if not bs or not e3_d or e4.get("state") != "ok" or e5.get("state") != "ok":
             return "这一组还没跑完，先不下结论。"
-        fr = [inv_frac(e4), inv_frac(e5)]
+        inv_e = [inv_frac(e4), inv_frac(e5)]
         return (("<b>翻转是 libuipc 的 FEM 解里真有的，不是读数问题：</b>" if same else "<b>两边读数的翻转数不一致：</b>")
                 + f"同一帧里 Genesis 读到的软球顶点和 libuipc 内部位置最多差 {sci(gap)} m，两边数出的翻转四面体"
                 + ("完全一样。" if same else "不同，要再查。")
                 + f"d̂ = 2 mm 下软球 E = 1e3（官方）/ 1e4 / 1e5 Pa 时，翻转占比 {inv_pct(e3)} / {inv_pct(e4)} / {inv_pct(e5)}，"
                 f"软球结束时质心高度 {rng(e3_cz)} / {rng(ball_cz(e4))} / {rng(ball_cz(e5))} mm（球半径 80 mm，完好的球约 80 mm）。"
                 + ("<b>E 越大越不塌、翻转越少</b>：官方 E = 1 kPa 时球被压塌（自重压力 ρ·g·2R ≈ 1.6 kPa 已超过 E），"
-                   "所以盒子实验的主结果改用 E = 1e5。" if is_num(fr[0]) and is_num(fr[1]) and fr[1] <= fr[0] else
+                   "所以盒子实验的主结果改用 E = 1e5。" if is_num(inv_e[0]) and is_num(inv_e[1]) and inv_e[1] <= inv_e[0] else
                    "E 增大后翻转没有减少，和期待不一致，要再查。")
                 + "表面全程没有穿透。")
 
@@ -1239,9 +1241,16 @@ def genesis_conclusions(f, videos):
 
         ("方块和软球结束时质心最高处："
          + "、".join(f"μ = {g3(v.get('value'))} 时 {g3(z * 1000) if is_num(z) else '—'} mm" for v, z in zip(fr, fr_top))
-         + ("。<b>与期待一致：μ 越大越不容易滑、堆得越高</b>——摩擦小时额外物体从布料堆上滑到墙边落地，摩擦大时停在中间的堆上"
-            "（视频里可以看到）。" if monotone(fr_top) == 1 else "。和摩擦不是单调关系。")
-         + f"穿透检查各档都没报；迭代次数平均 {rng([v.get('newton_mean') for v in fr])} 次。"),
+         + ("。<b>与期待一致：μ 越大越不容易滑、堆得越高。</b>" if monotone(fr_top) == 1 else "。和摩擦不是单调关系。")
+         + "同一批物体结束时质心离最近一面墙的距离（最近–最远）："
+         + "、".join(f"μ = {g3(v.get('value'))} 时 {rng([g * 1000 for g in v.get('wall_gaps') or []])} mm" for v in fr)
+         + ("——摩擦最小那档所有物体都比摩擦最大那档的任何物体离墙更近：摩擦小时物体滑散到四周墙边，"
+            "摩擦大时停在盒子中间的堆上。"
+            if fr and fr[0].get("wall_gaps") and fr[-1].get("wall_gaps")
+            and max(fr[0]["wall_gaps"]) < min(fr[-1]["wall_gaps"]) else "。")
+         + "穿透检查各档都没报；每帧 Newton 迭代中位数 / 最多："
+         + "、".join(f"μ = {g3(v.get('value'))}：{g3(v.get('newton_median'))} / {g3(v.get('newton_max'))}" for v in fr)
+         + "。"),
 
         (f"contact_resistance 从 {sci(min((v.get('value') for v in kr), default=MISSING))} 到 "
          f"{sci(max((v.get('value') for v in kr), default=MISSING))} Pa 共 {len(kr)} 档，软球表面离地最低点逐档为 "
@@ -1253,8 +1262,9 @@ def genesis_conclusions(f, videos):
 
         (None if any(m.get("state") != "ok" for _, m in mesh) else
          "三档软球表面边长与结束时形状：" + "；".join(f"{name}：{shape_txt(m)}" for name, m in mesh)
-         + "。穿透检查都没报；每帧 Newton 迭代平均 " + "、".join(f"{name} {g3(m.get('newton_mean'))}" for name, m in mesh)
-         + " 次；总耗时 " + "、".join(f"{name} {g3(m.get('wall_s'))} s" for name, m in mesh) + "。"
+         + "。穿透检查都没报；每帧 Newton 迭代中位数 / 最多 "
+         + "、".join(f"{name} {g3(m.get('newton_median'))} / {g3(m.get('newton_max'))}" for name, m in mesh)
+         + "；总耗时 " + "、".join(f"{name} {g3(m.get('wall_s'))} s" for name, m in mesh) + "。"
          + ("<b>网格越细越要注意 d̂</b>：边长小于 d̂（1 cm）的那档软球被自接触撑开、四面体翻转，原因同 d̂ 一节；"
             "边长大于 d̂ 的档没有这个问题。" if any(is_num(inflated(m)) and inflated(m) > 1.3 for _, m in mesh)
             else "")) or "这一组还没跑完。",
