@@ -480,7 +480,9 @@ pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
           max-width: 100%; overflow-x: auto; white-space: pre; }
 details.repro { margin: 10px 0 26px; }
 details.repro summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
-p.concl { max-width: 80ch; }
+p.concl { max-width: 80ch; font-size: 1.05rem; color: var(--good); }
+p.expect { max-width: 80ch; font-size: 1.08rem; color: var(--accent); }
+p.setting { font-size: 0.8rem; color: var(--fg); }
 section { scroll-margin-top: 12px; }
 p { margin: 6px 0; }
 .muted { color: var(--muted); }
@@ -952,8 +954,8 @@ def genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd):
     else:
         vals = "、".join(gen_label(r, sweep, cfg) for r in rows if r["sweep"] != "baseline")
         setting = f"{one}取值：{vals}；其余参数保持官方默认（{gen_defaults_text(gd)}），表里也放了官方默认那一档对照。"
-    parts = [f"<h3>{esc(title)}</h3>", f"<p>{esc(expect)}</p>",
-             f"<p class=\"small\">{esc(setting)}看：{esc(OBSERVE[sweep])}</p>"]
+    parts = [f"<h3>{esc(title)}</h3>", f'<p class="expect"><b>按原理期待：</b>{esc(expect)}</p>',
+             f'<p class="setting">{esc(setting)}看：{esc(OBSERVE[sweep])}</p>']
     if sweep == "init_penetration":
         for r in rows:
             if r["sweep"] == "baseline":
