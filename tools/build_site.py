@@ -10,7 +10,7 @@
     python tools/build_site.py --execute [--crf 26] [--force-videos]
 
 必须用 Neural-IPC 的 genesis 环境跑（要用它自带的 imageio-ffmpeg 二进制）：
-    /data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/bin/python tools/build_site.py
+    /data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/bin/python tools/build_site.py
 
 数据来源（只读，不修改）：
   demo : /nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/<目录>/run_info.json、*.mp4、momentum_plot.png

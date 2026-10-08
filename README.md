@@ -27,10 +27,10 @@ Neural-IPC 项目每周 demo 的汇总网页：IPC 官方 demo 的视频画廊 +
 
 ```
 # 1. 演练（默认）：打印每个 demo / 扫描档位的状态、将写哪些文件、将压哪些视频，不写任何文件
-/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/bin/python /data/xiaoyingwang/projects/Neural-IPC-web/tools/build_site.py
+/data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/bin/python /data/xiaoyingwang/projects/Neural-IPC-web/tools/build_site.py
 
 # 2. 真正生成
-/data/xiaoyingwang/projects/Neural-IPC/.conda/genesis/bin/python /data/xiaoyingwang/projects/Neural-IPC-web/tools/build_site.py --execute
+/data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/bin/python /data/xiaoyingwang/projects/Neural-IPC-web/tools/build_site.py --execute
 ```
 
 可选参数：`--crf N`（默认 26，数字越大文件越小）、`--force-videos`（忽略 manifest 全部重压）。
