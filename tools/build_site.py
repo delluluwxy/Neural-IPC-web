@@ -110,12 +110,12 @@ OFFICIAL_TESTS = [
 # What the server runs found for a test (why an assertion failed, or what the data shows; 2026-10-02/03, from
 # official_test.json and the --rigid-trajectory / diagnostic reruns), shown on the card next to the outcome.
 OFFICIAL_TEST_NOTES = {
-    "genesis_test_test_objects_colliding_0": "蓝色的是布料。官方相机几乎平视，所以看起来像一块板；实测布料开始是平的，"
-                                             "最后高低差 127 mm：中间被方块和球顶起、四周垂下，确实是软布。",
-    "genesis_test_test_ground_clearance_0": "期待：接触刚度越大，方块离地越高。实测 5 个方块离地 6.39 / 6.39 / 6.39 / 7.00 / "
+    "genesis_test_test_objects_colliding_0_fit": "蓝色的是布料。实测布料开始是平的，"
+                                                 "最后高低差 127 mm：中间被方块和球顶起、四周垂下，确实是软布。",
+    "genesis_test_test_ground_clearance_0_fit": "期待：接触刚度越大，方块离地越高。实测 5 个方块离地 6.39 / 6.39 / 6.39 / 7.00 / "
                                             "8.18 mm，前 3 个一样，所以没过。原因：libuipc 会把接触刚度夹进按场景算出的区间，"
                                             "前 3 个方块的刚度低于下限，被夹成同一个值（同下方「接触刚度 κ」实验）。",
-    "genesis_test_test_ground_sliding_0": "期待：离地高度与摩擦无关。实测 μ = 0.04 的方块比其他的高 9.3 mm：它从第 66 步起"
+    "genesis_test_test_ground_sliding_0_fit": "期待：离地高度与摩擦无关。实测 μ = 0.04 的方块比其他的高 9.3 mm：它从第 66 步起"
                                           "往前翻，最后倾斜 16°。原因：libuipc 默认的半隐式提前终止让 Newton 没算到收敛就停，"
                                           "误差积累成翻倒；只关掉它，最大倾角 0.24°，断言通过（把步长减半也能通过，0.31°）。",
 }
