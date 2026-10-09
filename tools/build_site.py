@@ -17,7 +17,8 @@
   扫描 : /nas/xiaoyingwang/Neural-IPC/outputs/ipc_sweep/<扫描>/<档位>.json（由 Neural-IPC/tools/ipc_sweep/sweep.py 写出）
   档位清单 : Neural-IPC/tools/ipc_sweep/configs.py（纯数据文件，按路径加载，不写 __pycache__）
 
-index.html 按 Artifact 页面规范写：开头直接是 <title> 和 <style>，不写 doctype / html / head / body；
+index.html 发布在 GitHub Pages（https://delluluwxy.github.io/Neural-IPC-web/）：开头是 doctype、charset、viewport，
+然后直接 <title> 和 <style>，省略 html / head / body 标签；
 颜色全是 CSS 变量（亮 / 暗两套）；不引外部资源；视频和图片用相对路径，发布时作为附属文件上传。
 每个压好的视频超过 10 MB、或全部视频加起来超过 60 MB，就报错停止，不写页面。
 """
@@ -564,11 +565,14 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 
 
 def page(body):
-    """Artifact 页面：开头直接是 <title> 和 <style>，不写 doctype / html / head / body。"""
+    """整页 HTML：doctype + charset/viewport + <title>/<style>，省略 html/head/body 标签（HTML5 允许）。"""
     # math: MathJax (SVG output, no font files) renders \( \) inline and \[ \] display LaTeX; the d̂ symbol in prose
     # becomes \hat d as well
     body = body.replace("d̂", r"\(\hat d\)")
-    return f"""<title>{esc(PAGE_TITLE)}</title>
+    return f"""<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{esc(PAGE_TITLE)}</title>
 <style>{PAGE_CSS}</style>
 <script>window.MathJax = {{tex: {{inlineMath: [["\\\\(", "\\\\)"]], displayMath: [["\\\\[", "\\\\]"]]}}, svg: {{fontCache: "global"}}}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
