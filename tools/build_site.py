@@ -1,7 +1,7 @@
 """生成 Neural-IPC 周汇报网页（单页静态 HTML，发布为 claude.ai 私有 Artifact）。
 
 读者是课题组同学：懂 IPC，但没亲手跑过这些东西。页面只放三样：demo 视频、参数扫描小表、发现 / 结论。
-数字全部从 NAS 上的结果文件读，缺失或失败的如实写成人话；数据出处只在页脚用一句话说明。
+数字全部从 NAS 上的结果文件读，缺失或失败的如实写成人话；页面不放 NAS 路径等出处信息。
 
     # 默认只演练：打印每项结果的状态、页面里用到的关键数字、将写哪些文件，什么都不写
     python tools/build_site.py
@@ -91,18 +91,18 @@ USER_RECORDINGS = [
 # Genesis's own IPC tests (tests/ipc/), recorded by run_genesis_ipc_example.py --official-test at the test's own
 # viewer camera, with the test's own physics assertions: (NAS dir, pytest node, title, what it checks)
 OFFICIAL_TESTS = [
-    ("genesis_test_test_ground_clearance_0", "tests/ipc/test_rigid.py::test_ground_clearance[0]",
+    ("genesis_test_test_ground_clearance_0_fit", "tests/ipc/test_rigid.py::test_ground_clearance[0]",
      "离地间隙随接触刚度变（官方测试）",
      "5 个方块落地，contact_resistance 从 1e2 到 1e6；官方断言：不横向漂移、会停住、刚度越大离地间隙越大"
      "（test_rigid.py 257-264 行）。"),
-    ("genesis_test_test_ground_sliding_0", "tests/ipc/test_rigid.py::test_ground_sliding[0]",
+    ("genesis_test_test_ground_sliding_0_fit", "tests/ipc/test_rigid.py::test_ground_sliding[0]",
      "斜向重力下的地面滑动（官方测试）",
      "重力带水平分量，5 个方块摩擦系数 0–0.16；官方断言：不穿地、离地高度与摩擦无关、摩擦越小滑得越远"
      "（test_rigid.py 316-329 行）。"),
-    ("genesis_test_test_objects_colliding_0", "tests/ipc/test_rigid.py::test_objects_colliding[0]",
+    ("genesis_test_test_objects_colliding_0_fit", "tests/ipc/test_rigid.py::test_objects_colliding[0]",
      "布料盖在物体上（官方测试）",
      "物体和布料落地；官方断言：全部落到地面且不穿地、没有飞走、最终静止、布料盖在所有物体上面（test_rigid.py 540-555 行）。"),
-    ("genesis_test_test_cloth_corner_drag_0", "tests/ipc/test_deformable.py::test_cloth_corner_drag[0]",
+    ("genesis_test_test_cloth_corner_drag_0_fit", "tests/ipc/test_deformable.py::test_cloth_corner_drag[0]",
      "夹住布料一角拖动（官方测试）",
      "两个方块夹住布料一角，先静置再拖着画一圈；官方断言：布料没掉、被夹的角始终跟着夹子走（test_deformable.py 253-271 行）。"),
 ]
@@ -575,9 +575,6 @@ def page(body):
 <main class="wrap">
 {body}
 </main>
-<footer class="wrap foot">数据：视频与运行记录在 NAS <code>{esc(DEMO_ROOT)}</code>，参数扫描结果在
-<code>{esc(SWEEP_ROOT)}</code>（由 Neural-IPC 仓库 <code>tools/ipc_sweep/sweep.py</code> 生成）；本页由
-Neural-IPC-web 仓库 <code>tools/build_site.py</code> 读取这些文件生成。</footer>
 """
 
 
