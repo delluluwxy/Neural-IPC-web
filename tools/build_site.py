@@ -119,8 +119,42 @@ OFFICIAL_TEST_NOTES = {
                                           "误差积累成翻倒；只关掉它，最大倾角 0.24°，断言通过（把步长减半也能通过，0.31°）。",
 }
 
+# Genesis's own rigid-rigid hydroelastic test (SAPCoupler, not libuipc), recorded by run_genesis_ipc_example.py
+# --official-test --fit-camera (two-pass camera, every step checked in frame). Page order (2026-10-09 user):
+# setting -> expectation by principle -> video -> conclusions. Sources of every number (not on the page):
+# Neural-IPC-sandbox docs/drafts/T2.4_web_chapter_plan.md section 2.
+HYDRO = {
+    "key": "genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_fit",
+    "nodeid": "tests/coupling/test_hybrid.py::test_sap_rigid_rigid_hydroelastic_contact[64]",
+    "title": "两条关节链落到盒子上（官方 hydroelastic 测试）",
+    "setting": "Genesis 仓库自带的 hydroelastic 测试，场景和断言一字未改：地上放一个 0.5 × 0.5 × 0.2 m 的方盒子，"
+               "两条由球和胶囊（半径 24 mm）连成的关节链从盒子上方落下。接触由 Genesis 自带的 SAP 求解器按 hydroelastic "
+               "模型计算（不是 IPC / libuipc）：刚体对刚体、刚体对地面都用 hydroelastic，刚体求解器自己的碰撞不参与。"
+               "视频慢放约 3.75 倍（1.33 s 的仿真放成 5 s）。",
+    # (quantity, value, what it shows) - source defaults / values set by the test only
+    "params": [("压力场刚度", "1e8 Pa", "物体最深处的压力；越大越「硬」，嵌入越浅"),
+               ("接触类型", "全部 hydroelastic", "刚体–刚体、刚体–地面都按压力场算"),
+               ("阻尼时间尺度 τ_d", "0.1 s", "接触的耗散：越大越不弹"),
+               ("仿真长度", "80 步 = 1.33 s", "视频覆盖的物理时间")],
+    "expect": "hydroelastic 不像 IPC 那样留一条缝，而是允许两个物体互相嵌进去一点：每个物体内部预先指定一个压力场，"
+              "表面为 0、最深处为 1e8 Pa，按「到表面的距离 ÷ 最大距离」线性增长；两物体压力相等的那张面就是接触面，"
+              "接触力 ≈ 面积 × 那里的压力。所以 (1) 物体是靠「嵌进去」托住的，嵌入越深推力越大；(2) 以这个刚度，"
+              "托住盒子和链只需要微米级的嵌入，画面上看不出穿插；(3) SAP 带阻尼，链落下后应很快停住、不明显反弹；"
+              "(4) 压力场只由几何和这一个刚度数决定，和材料的杨氏模量、真实弹性形变无关。",
+    # short observations; None = waiting for the re-recorded data (--rigid-trajectory), not shown until filled in
+    "obs": ["官方断言全部通过 → 80 步后所有物体停住、盒子没被推动（偏离 < 2 mm）、两条链叠在盒子上、第二条在第一条上面",
+            "链落到盒子上 → 被托住、叠放，没有穿过盒子或地面",
+            "刚度 1e8 Pa → 嵌入看不出来，画面上像硬接触",
+            None,  # 待实测：盒子压进地面多深（µm），只有和估计量级一致才写
+            ],
+    "concl": "与期待一致：所有物体都被压力场托住并在 1.33 s 内停住，画面上看不出穿插。",
+    "explain": ["所有支撑力都来自压力场：用 SAP 时刚体求解器自己的碰撞被跳过，地面也只按物体一侧的压力场算（地面当作无限硬）。",
+                "「软硬」只由一个人为指定的刚度数控制，与材料杨氏模量无关。"],
+}
+
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("sweep", "盒子实验与参数扫描"), ("data", "对生成数据的意义")]  # 锚点只用字母
+NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("hydro", "Hydroelastic 接触"), ("sweep", "盒子实验与参数扫描"),
+       ("data", "对生成数据的意义")]  # 锚点只用字母
 
 
 # ==========================================================================
@@ -255,7 +289,8 @@ def collect_demos():
     """The page shows exactly the DEMOS and OFFICIAL_TESTS lists. Other directories under DEMO_ROOT (libuipc-only
     demos, timing runs, anything unexpected) are NOT put on the page; main() prints them so nothing is hidden.
     Returns (demos, official tests, unlisted dirs)."""
-    known = {k for k, *_ in DEMOS} | {k for k, *_ in OFFICIAL_TESTS} | {k for k, *_ in USER_RECORDINGS}
+    known = ({k for k, *_ in DEMOS} | {k for k, *_ in OFFICIAL_TESTS} | {k for k, *_ in USER_RECORDINGS}
+             | {HYDRO["key"]})
     demos = [collect_demo(*spec) for spec in DEMOS] + [collect_user_recording(*spec) for spec in USER_RECORDINGS]
     tests = [collect_official_test(*spec) for spec in OFFICIAL_TESTS]
     unlisted = []
@@ -570,6 +605,27 @@ def videos_section(demos, tests, facts):
              '<p class="muted small">Genesis 仓库自带的 IPC 测试（tests/ipc/），场景和断言一字未改，用 pytest 原样运行；'
              "每个测试自己写好了 viewer 相机位置，录像就用它。卡片里写的是官方断言有没有通过。</p>",
              '<div class="grid">', *[demo_card(r, facts) for r in tests], "</div></section>"]
+    return "\n".join(parts)
+
+
+OUTCOME_LABEL = {"passed": "通过", "failed": "未通过", "skipped": "跳过"}
+
+
+def hydro_section(r):
+    """The hydroelastic test (HYDRO), in the order setting -> parameter table -> expectation -> video ->
+    observations -> conclusion -> explanation. r = collect_official_test(HYDRO ...); its outcome is read live."""
+    outcome = OUTCOME_LABEL.get(r.get("outcome"), "无结果") if r["state"] == "ok" else r["reason"]
+    obs = [o for o in HYDRO["obs"] if o]
+    parts = ['<section id="hydro"><h2>Hydroelastic 接触（Genesis 官方测试）</h2>',
+             f'<p class="setting">{esc(HYDRO["setting"])}</p>',
+             table(["量", "取值", "直观上是什么"], [list(row) for row in HYDRO["params"]]),
+             f'<p class="expect"><b>按原理期待：</b>{esc(HYDRO["expect"])}</p>',
+             '<div class="grid">' + demo_card(dict(r, title=HYDRO["title"], line=f"官方断言：{outcome}。"), {})
+             + "</div>",
+             '<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in obs) + "</ul>",
+             f'<p class="concl"><b>结论：</b>{esc(HYDRO["concl"])}</p>',
+             *[f'<p class="small">{esc(e)}</p>' for e in HYDRO["explain"]],
+             "</section>"]
     return "\n".join(parts)
 
 
@@ -1136,8 +1192,8 @@ def compute_facts(demos):
 
 
 
-def build_page(demos, tests, gsweeps, cfg, facts, videos, commit):
-    n_video = sum(1 for r in demos + tests if r.get("video_web"))
+def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
+    n_video = sum(1 for r in demos + tests + [hydro] if r.get("video_web"))
     n_pass = sum(1 for r in tests if r.get("outcome") == "passed")
     n_ran = sum(1 for r in tests if r.get("outcome") in ("passed", "failed"))
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
@@ -1148,11 +1204,13 @@ def build_page(demos, tests, gsweeps, cfg, facts, videos, commit):
                f"然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 {n_gsweeps} 个 IPC 参数"
                f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
                "d̂ 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
-               "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")
+               "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。"
+               "另外跑了 Genesis 自带的 hydroelastic 接触官方测试（SAP 求解器），官方断言"
+               f"{OUTCOME_LABEL.get(hydro.get('outcome'), '尚无结果')}。")
     nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
-            + videos_section(demos, tests, facts) + "\n"
+            + videos_section(demos, tests, facts) + "\n" + hydro_section(hydro) + "\n"
             + sweep_section(gsweeps, cfg, videos) + "\n" + data_section())
     return page(body)
 
@@ -1178,7 +1236,8 @@ def main():
     if unlisted:
         print(f"[build_site] 注意：NAS 上这些 demo 目录不在 DEMOS / OFFICIAL_TESTS 清单里，不上页面：{unlisted}")
     cfg, gsweeps = collect_sweeps()
-    all_demos = demos + tests
+    hydro = collect_official_test(HYDRO["key"], HYDRO["nodeid"], HYDRO["title"], "")
+    all_demos = demos + tests + [hydro]
     videos = gen_level_videos(gsweeps)   # 盒子扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
     bypass = [x for x in (bypass_video_record(r["level"]) for r in rows_of(gsweeps, "init_penetration")) if x]
     vjobs, manifest = plan_videos(all_demos + list(videos.values()) + bypass,
@@ -1189,7 +1248,7 @@ def main():
     facts = compute_facts(demos)
     commit = genesis_commit()
 
-    pages = {WEB / "index.html": build_page(demos, tests, gsweeps, cfg, facts, videos, commit)}
+    pages = {WEB / "index.html": build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit)}
 
     # ---------------- 打印计划 ----------------
     mode = "EXECUTE" if args.execute else "DRY-RUN（只演练，不写任何文件；加 --execute 才真正写）"
