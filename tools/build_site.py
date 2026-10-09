@@ -157,7 +157,8 @@ HYDRO = {
 }
 
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("hydro", "Hydroelastic 接触"), ("sweep", "盒子实验与参数扫描"),
+NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查"),
+       ("sweep", "盒子实验与参数扫描"),
        ("data", "对生成数据的意义")]  # 锚点只用字母
 
 
@@ -629,6 +630,121 @@ def hydro_section(r):
              '<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in obs) + "</ul>",
              f'<p class="concl"><b>结论：</b>{esc(HYDRO["concl"])}</p>',
              *[f'<p class="small">{esc(e)}</p>' for e in HYDRO["explain"]],
+             "</section>"]
+    return "\n".join(parts)
+
+
+# ---------------- 造 label 的收敛检查（实验方案 E0） ----------------
+# Data: Neural-IPC-sandbox tools/ipc_sweep/uipc_constitution_check.py json files (one per configuration), figures from
+# tools/figs/sphere_facets_vs_contact.py and tools/figs/e0_label_convergence.py. Every number below is read from them.
+E0_ROOT = OUT_ROOT / "e0_label_convergence"
+SPHERE_ROOT = OUT_ROOT / "uipc_constitution_check"   # first check: ipc, h_c 0.0125, d̂ 2.5e-4, sphere 4 / 6 / 7
+SPHERE_RUNS = {4: "uipc090_ipc_fine/ipc_hc0.0125_dhat0.00025.json",
+               6: "uipc090_ipc_fine_sph6/ipc_hc0.0125_dhat0.00025_sph6.json",
+               7: "uipc090_ipc_fine_sph7/ipc_hc0.0125_dhat0.00025_sph7.json"}
+E0_FIGS = [("sphere_facets_vs_contact.png", "从正下方看刚性球的底部：supervisor 的球面细分 4 次时，"
+                                            "压深 0.004 的接触圆里只有一圈三角形"),
+           ("e0_label_convergence.png", "块的弹性能 ÷ Hertz 能量，随 d̂（横轴）和网格（颜色）的变化；"
+                                        "实线 = 压深 0.004，虚线 = 压深 0.024；纵轴 1 = 与解析解一致")]
+SUPERVISOR_RECORDED = 1.418   # supervisor results/hertz_results.txt:18（libuipc 0.0.25 al-ipc，压深 0.004 的 U/U_H）
+LABEL = {
+    "setting": "supervisor 造 label 用的 Hertz 算例原样照搬：一个刚性球（半径 1）竖直压进一块底面固定的软块"
+               "（宽 2.4、高 1.2，E = 1e5，ν = 0.3），无摩擦、无重力，每个压深静置到平衡后算块里存的弹性能 U，"
+               "这就是训练网络用的 label。和 Hertz 解析解 U_Hertz = (8/15)·E*·√R·δ^2.5 比。"
+               "压深照 supervisor 的 6 个，另外只改 d̂、网格、球面细分、接触模型这四样，看 label 会不会变。",
+    "params": [("压深 δ", "0.004 – 0.024（6 个）", "球最低点压到块顶以下多深；supervisor 的主扫描"),
+               ("d̂", "1e-3（supervisor）、5e-4、2.5e-4", "barrier 开始推的距离：两表面离得比 d̂ 近就开始互相推"),
+               ("接触区网格尺寸 h_c", "0.025（supervisor）、0.0125、0.00625", "块在接触区的四面体大小；最细一档 265 万个四面体"),
+               ("球面细分次数", "4（supervisor）、6、7", "球面三角形的大小；次数每加 1，边长减半"),
+               ("接触模型", "al-ipc（supervisor）、原版 IPC", "al-ipc 不用 barrier、用增广拉格朗日防穿透")],
+    "expect": "如果 label 是对的，四样东西都加密以后，U ÷ U_Hertz 应该不再变化，而且接近 1"
+              "（块不是无限大，会比 1 略高几个百分点）。",
+    "concl": "label 目前主要被 d̂ 拉高：supervisor 用的 d̂ = 1e-3 在小压深下多算了约 80% 的能量；"
+             "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。造数据要用细分 ≥ 6 次的球、"
+             "尽量小的 d̂（或按 d̂ 外推到 0），网格 0.0125 已基本够用。",
+    "explain": ["为什么 d̂ 会把能量拉高：barrier 在两表面还隔着不到 d̂ 时就开始推，所以球还没真正碰到，"
+                "块就已经在比真实接触圈更大的一片区域上被压下去，存的能量更多。这部分多出来的能量大致和 d̂ ÷ δ 成正比，"
+                "所以压得越浅越严重。把实测间隙从压深里扣掉补不回来：扣了以后比值反而更偏离 1。",
+                "为什么球面粗会把能量压低：细分 4 次时三角形边长约 0.076，比压深 0.004 时的 Hertz 接触半径 0.063 还大，"
+                "球底在这个尺度上是个多面体的尖顶，不是光滑球面，接触区的形状和受力都不对。",
+                "外推到 d̂ = 0 后大压深仍高约 17%：这部分和接触模型无关，可能来自块有限大或大变形，还没拆开量。"],
+}
+
+
+def _load_e0():
+    """{(constitution, h_c, d_hat, sph_sub): json} under E0_ROOT; per configuration the copy with the most depths."""
+    best = {}
+    for p in E0_ROOT.glob("*/*.json"):
+        if p.name == "gpu_job_result.json":
+            continue
+        d, err = load_json(p)
+        if err:
+            raise SystemExit(f"[build_site] {p} 读不了：{err}")
+        if "rows" not in d:
+            continue
+        key = (d["constitution"], d["h_c"], d["d_hat"], d["sph_sub"])
+        if key not in best or len(d["rows"]) > len(best[key]["rows"]):
+            best[key] = d
+    return best
+
+
+def label_facts():
+    """The numbers the label section quotes, all read from the result json files."""
+    e0 = _load_e0()
+    sph = {k: load_json(SPHERE_ROOT / v)[0] for k, v in SPHERE_RUNS.items()}
+    missing = [str(SPHERE_ROOT / v) for k, v in SPHERE_RUNS.items() if sph[k] is None]
+    if missing:
+        raise SystemExit(f"[build_site] 球面细分检查的结果文件不在：{missing}")
+    first = lambda d: d["rows"][0]["U_over_UH"]      # depth 0.004
+    last = lambda d: d["rows"][-1]["U_over_UH"]      # depth 0.024
+    fine = {dh: e0[("ipc", 0.00625, dh, 7)] for dh in (0.001, 0.0005, 0.00025)}
+    al_fine = {dh: e0[("al-ipc", 0.00625, dh, 7)] for dh in (0.001, 0.0005, 0.00025)}
+    mesh = {h: e0[("ipc", h, 0.00025, 7)] for h in (0.025, 0.0125, 0.00625)}
+
+    def extrap(k):  # straight line through d̂ = 5e-4 and 2.5e-4 (finest mesh, ipc), evaluated at d̂ = 0
+        y1, y2 = fine[0.0005]["rows"][k]["U_over_UH"], fine[0.00025]["rows"][k]["U_over_UH"]
+        return y2 - (y1 - y2)
+
+    return {
+        "sph": [(n, sph[n]["rows"][0]["U_over_UH"], sph[n]["rows"][1]["U_over_UH"]) for n in (4, 6, 7)],
+        "dhat_small": [first(fine[dh]) for dh in (0.001, 0.0005, 0.00025)],
+        "dhat_large": [last(fine[dh]) for dh in (0.001, 0.0005, 0.00025)],
+        "mesh_small": [first(mesh[h]) for h in (0.025, 0.0125, 0.00625)],
+        "ipc_vs_al": [(first(fine[dh]), first(al_fine[dh])) for dh in (0.001, 0.00025)],
+        "time_ratio": (sum(d["wall_seconds"] for d in al_fine.values()) / sum(d["wall_seconds"] for d in fine.values())),
+        "ref_sph4": first(e0[("al-ipc", 0.025, 0.001, 4)]),
+        "ref_sph7": first(e0[("al-ipc", 0.025, 0.001, 7)]),
+        "extrap": (extrap(0), extrap(-1)),
+    }
+
+
+def label_section(f):
+    """Setting -> parameter table -> expectation -> figures and sphere table -> observations -> conclusion -> explanation."""
+    arrow = lambda xs: " → ".join(f"{x:.2f}" for x in xs)
+    obs = [f"球面细分 4 → 6 → 7 次（网格 0.0125、d̂ 2.5e-4、原版 IPC），压深 0.004 的比值 "
+           f"{arrow([s[1] for s in f['sph']])}：细分 4 次时反常地低于 Hertz，6 → 7 只差 "
+           f"{abs(f['sph'][2][1] / f['sph'][1][1] - 1):.1%}",
+           f"d̂ 1e-3 → 5e-4 → 2.5e-4（最细网格、原版 IPC），压深 0.004 的比值 {arrow(f['dhat_small'])}，"
+           f"压深 0.024 的比值 {arrow(f['dhat_large'])}：d̂ 每减半，多出来的部分大约减半",
+           f"网格 0.025 → 0.0125 → 0.00625（d̂ 2.5e-4），压深 0.004 的比值 {arrow(f['mesh_small'])}：网格的影响比 d̂ 小得多",
+           f"原版 IPC 和 al-ipc 在同网格同 d̂ 下几乎一样（压深 0.004：d̂ 1e-3 时 {f['ipc_vs_al'][0][0]:.2f} 对 "
+           f"{f['ipc_vs_al'][0][1]:.2f}，d̂ 2.5e-4 时 {f['ipc_vs_al'][1][0]:.2f} 对 {f['ipc_vs_al'][1][1]:.2f}），"
+           f"但最细网格上 al-ipc 慢约 {f['time_ratio']:.1f} 倍",
+           f"照 supervisor 的设置（al-ipc、网格 0.025、d̂ 1e-3、球面细分 4）复现出压深 0.004 的比值 {f['ref_sph4']:.2f}"
+           f"（supervisor 记录 {SUPERVISOR_RECORDED:.2f}）；只把球面换成细分 7 次，变成 {f['ref_sph7']:.2f}",
+           f"把最细网格的结果按 d̂ 线性外推到 0：压深 0.004 约 {f['extrap'][0]:.2f}，压深 0.024 约 {f['extrap'][1]:.2f}"]
+    figs = "".join(f'<figure><img src="assets/images/{name}" alt="{esc(cap)}"><figcaption class="small">{esc(cap)}'
+                   f"</figcaption></figure>" for name, cap in E0_FIGS)
+    sph_table = table(["球面细分次数", "压深 0.004 的 U ÷ U_Hertz", "压深 0.012 的 U ÷ U_Hertz"],
+                      [[str(n), f"{a:.3f}", f"{b:.3f}"] for n, a, b in f["sph"]])
+    parts = ['<section id="label"><h2>造训练数据（label）的收敛检查</h2>',
+             f'<p class="setting">{esc(LABEL["setting"])}</p>',
+             table(["改什么", "取值", "直观上是什么"], [list(r) for r in LABEL["params"]]),
+             f'<p class="expect"><b>按原理期待：</b>{esc(LABEL["expect"])}</p>',
+             figs, sph_table,
+             '<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in obs) + "</ul>",
+             f'<p class="concl"><b>结论：</b>{esc(LABEL["concl"])}</p>',
+             *[f'<p class="small">{esc(e)}</p>' for e in LABEL["explain"]],
              "</section>"]
     return "\n".join(parts)
 
@@ -1215,6 +1331,7 @@ def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
             + videos_section(demos, tests, facts) + "\n" + hydro_section(hydro) + "\n"
+            + label_section(label_facts()) + "\n"
             + sweep_section(gsweeps, cfg, videos) + "\n" + data_section())
     return page(body)
 
@@ -1249,6 +1366,8 @@ def main():
     ijobs = plan_images(all_demos) + [{"src": src, "dst": IMAGE_DIR / name, "size": src.stat().st_size}
                                       for src, name in filter(None, (init_frame_image(r["level"])
                                                                      for r in rows_of(gsweeps, "init_penetration")))]
+    ijobs += [{"src": OUT_ROOT / "figs" / name, "dst": IMAGE_DIR / name, "size": (OUT_ROOT / "figs" / name).stat().st_size}
+              for name, _cap in E0_FIGS]
     facts = compute_facts(demos)
     commit = genesis_commit()
 
