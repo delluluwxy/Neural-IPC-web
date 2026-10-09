@@ -638,10 +638,8 @@ def hydro_section(r):
 # Data: Neural-IPC-sandbox tools/ipc_sweep/uipc_constitution_check.py json files (one per configuration), figures from
 # tools/figs/sphere_facets_vs_contact.py and tools/figs/e0_label_convergence.py. Every number below is read from them.
 E0_ROOT = OUT_ROOT / "e0_label_convergence"
-SPHERE_ROOT = OUT_ROOT / "uipc_constitution_check"   # first check: ipc, h_c 0.0125, d̂ 2.5e-4, sphere 4 / 6 / 7
-SPHERE_RUNS = {4: "uipc090_ipc_fine/ipc_hc0.0125_dhat0.00025.json",
-               6: "uipc090_ipc_fine_sph6/ipc_hc0.0125_dhat0.00025_sph6.json",
-               7: "uipc090_ipc_fine_sph7/ipc_hc0.0125_dhat0.00025_sph7.json"}
+SPHERE_ROOT = E0_ROOT   # sphere check: ipc, h_c 0.0125, d̂ 2.5e-4, depths 0.004 / 0.012, sphere 4 / 6 / 7
+SPHERE_RUNS = {n: f"sphere_{n}/ipc_hc0.0125_dhat0.00025_sph{n}.json" for n in (4, 6, 7)}
 E0_FIGS = [("sphere_facets_vs_contact.png", "从正下方看刚性球的底部：supervisor 的球面细分 4 次时，"
                                             "压深 0.004 的接触圆里只有一圈三角形"),
            ("e0_label_convergence.png", "块的弹性能 ÷ Hertz 能量，随 d̂（横轴）和网格（颜色）的变化；"
