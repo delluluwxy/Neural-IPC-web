@@ -129,38 +129,13 @@ HYDRO = {
     "key": "genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_fit",
     "nodeid": "tests/coupling/test_hybrid.py::test_sap_rigid_rigid_hydroelastic_contact[64]",
     "title": "两条关节链落到盒子上（官方 hydroelastic 测试）",
-    "setting": "Genesis 仓库自带的 hydroelastic 测试，场景和断言一字未改：地上放一个 0.5 × 0.5 × 0.2 m 的方盒子，"
-               "两条由球和胶囊（半径 24 mm）连成的关节链从盒子上方落下。接触由 Genesis 自带的 SAP 求解器按 hydroelastic "
-               "模型计算（不是 IPC / libuipc）：刚体对刚体、刚体对地面都用 hydroelastic，刚体求解器自己的碰撞不参与。"
-               "视频慢放约 3.75 倍（1.33 s 的仿真放成 5 s）。",
-    # (quantity, value, what it shows) - source defaults / values set by the test only
-    "params": [("压力场刚度", "1e8 Pa", "物体最深处的压力；越大越「硬」，嵌入越浅"),
-               ("接触类型", "全部 hydroelastic", "刚体–刚体、刚体–地面都按压力场算"),
-               ("阻尼时间尺度 τ_d", "0.1 s", "接触的耗散：越大越不弹"),
-               ("仿真长度", "80 步 = 1.33 s", "视频覆盖的物理时间")],
-    "expect": "hydroelastic 不像 IPC 那样留一条缝，而是允许两个物体互相嵌进去一点：每个物体内部预先指定一个压力场，"
-              "表面为 0、最深处为 1e8 Pa，按「到表面的距离 ÷ 最大距离」线性增长；两物体压力相等的那张面就是接触面，"
-              "接触力 ≈ 面积 × 那里的压力。所以 (1) 物体是靠「嵌进去」托住的，嵌入越深推力越大；(2) 以这个刚度，"
-              "托住盒子和链只需要微米级的嵌入，画面上看不出穿插；(3) SAP 带阻尼，链落下后应很快停住、不明显反弹；"
-              "(4) 压力场只由几何和这一个刚度数决定，和材料的杨氏模量、真实弹性形变无关。",
-    # short observations; None = waiting for the re-recorded data (--rigid-trajectory), not shown until filled in
-    "obs": ["官方断言全部通过：80 步（1.33 s）后各连杆速度 < 0.03 m/s、盒子偏离初始位置 < 2 mm、两条链叠在盒子上、第二条在第一条上面",
-            "链落到盒子上 → 被托住、叠放，没有穿过盒子或地面",
-            "刚度 1e8 Pa → 嵌入看不出来，画面上像硬接触",
-            # measured (rigid_trajectory_scene0.npz of the _fit run): box z final 0.0999920 m, deepest 16.9 µm, no tilt
-            "盒子最终压进地面约 8 µm（链砸下时最深约 17 µm），盒子没有倾斜 → 是靠嵌入产生的推力托住的，"
-            "和期待 (1)(2) 的微米级一致",
-            ],
-    "concl": "与期待一致：物体靠微米级嵌入被托住，画面上看不出穿插；按官方阈值 80 步后已静止，用更严的判据"
-             "（顶点速度 < 2 mm/s 持续 0.3 s）看，1.33 s 时链还有轻微晃动。",
-    "explain": ["所有支撑力都来自压力场：用 SAP 时刚体求解器自己的碰撞被跳过，地面也只按物体一侧的压力场算（地面当作无限硬）。",
-                "「软硬」只由一个人为指定的刚度数控制，与材料杨氏模量无关。"],
 }
 
 PAGE_TITLE = "Neural-IPC 周汇报"
 # 每周一块，新的一周在前；周的分界 = weekly todo/weekN.txt 文件头的日期。锚点只用字母和数字
 WEEKS = [("week2", "Week 2（TODO 2026-10-04）",
-          [("meeting", "组会提纲"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查")]),
+          [("w0", "在做什么"), ("w1", "文献"), ("w2", "公式"), ("w3", "Demo"), ("w4", "实验设计"), ("w5", "结论"),
+           ("w6", "问题")]),
          ("week1", "Week 1（TODO 2026-09-26）",
           [("videos", "IPC demo"), ("tests", "官方测试"), ("sweep", "盒子实验与参数扫描"), ("data", "对生成数据的意义")])]
 
@@ -625,253 +600,31 @@ def videos_section(demos, tests, facts):
 OUTCOME_LABEL = {"passed": "通过", "failed": "未通过", "skipped": "跳过"}
 
 
-def hydro_section(r):
-    """The hydroelastic test (HYDRO), in the order setting -> parameter table -> expectation -> video ->
-    observations -> conclusion -> explanation. r = collect_official_test(HYDRO ...); its outcome is read live."""
-    outcome = OUTCOME_LABEL.get(r.get("outcome"), "无结果") if r["state"] == "ok" else r["reason"]
-    obs = [o for o in HYDRO["obs"] if o]
-    parts = ['<section id="hydro"><h2>Hydroelastic 接触（Genesis 官方测试）</h2>',
-             f'<p class="setting">{esc(HYDRO["setting"])}</p>',
-             table(["量", "取值", "直观上是什么"], [list(row) for row in HYDRO["params"]]),
-             f'<p class="expect"><b>按原理期待：</b>{esc(HYDRO["expect"])}</p>',
-             '<div class="grid">' + demo_card(dict(r, title=HYDRO["title"], line=f"官方断言：{outcome}。"), {})
-             + "</div>",
-             '<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in obs) + "</ul>",
-             f'<p class="concl"><b>结论：</b>{esc(HYDRO["concl"])}</p>',
-             *[f'<p class="small">{esc(e)}</p>' for e in HYDRO["explain"]],
-             "</section>"]
-    return "\n".join(parts)
-
-
-# ---------------- 组会提纲（用户 10-10：看了啥 ref → 公式理论 → 做了什么 demo → 实验设定 → 视频和结论 → 遇到什么问题） ----------------
-# 每部分：(锚点, 标题, 要点列表, 详细内容所在小节的锚点或 None)。第 1、2 部分素材来自 Neural-IPC-sandbox
-# docs/drafts/meeting_refs_theory.md（由已核对的讲义 docs/handouts/ 提炼）；其余部分的数字都出自本页各小节。
-MEETING = [
-    ("m_refs", "1. 这周看了哪些文献", [], None),
-    ("m_theory", "2. 公式和理论", [], None),
-    ("m_demo", "3. 做了哪些 demo（Genesis + hydroelastic）", [
-        "Genesis 官方 hydroelastic 测试原样跑通并录像：两条关节链落到盒子上，接触由 Genesis 自带的 SAP 求解器按压力场计算"
-        "（不经过 IPC）。",
-        "Genesis 自带的 4 个 SAP（hydroelastic）例子原样跑通；另外 5 个用到 SAP 的官方测试也逐个跑过。"], "hydro"),
-    ("m_setup", "4. 实验设定（怎么证明原理上比 hydro 好）", [
-        "思路：和 hydro 比的裁判用独立的弹性力学解析解（Hertz 球压、平底压头、薄层等），不用我们自己的 IPC label 当标准答案。"
-        "每个实验只改一个几何量，看解析解的变化规律和 hydro 公式的变化规律能不能分开。",
-        "E1 换球半径：解析解力 ×√2 ≈ 1.41，hydro ×2。E2 平底压头半径 ×1/×2/×4：解析解 ×1/×2/×4，hydro ×1/×4/×16。"
-        "E3 一个刚体上两个凸台改间距：两凸台互相影响，hydro 各算各的。E4 粘结薄层、接近不可压：hydro 表达不了侧向挤出。"
-        "E5 粗表示从刚体换成软仿射体：hydro 会把柔度算两遍。",
-        "E0 前提：先确认我们造的 label 本身收敛到解析解。做法是用 supervisor 造训练数据的球压算例（刚性球压软块），"
-        "逐样改 d̂、网格、球面细分、接触模型、块大小、材料参数，看 label 收敛到哪里。"], "label"),
-    ("m_result", "5. 视频和结论", [
-        "Hydroelastic 测试（视频见上方）：物体靠微米级的互相嵌入被托住，画面上看不出穿插；它的软硬只由一个人为指定的"
-        "刚度数决定，和材料杨氏模量无关。",
-        "label：supervisor 之前「label 接近 Hertz」是两个误差抵消的结果（d̂ 太大把能量算高、球面太粗把能量算低），"
-        "不能再引用；改对以后小压深在网格外推误差内和 Hertz 一致；大压深离 Hertz 还差多少、原因是什么还在查，"
-        "正在用不经过 IPC 的独立有限元核对。"],
-     "label"),
-    ("m_problems", "6. 遇到的问题", [
-        "IPC 的 d̂ 让能量偏大：两表面还隔着 d̂ 就开始推，小压深时 supervisor 的设置多算约 80%；要用多档 d̂ 外推到 0。",
-        "球面网格太粗：三角形比接触区还大，球底其实是个多面体尖顶；球面细分至少 7 次。",
-        "新版 libuipc 的软体材料参数和设定值对不上：设 E = 1e5、ν = 0.3，拉棒实测是 E ≈ 1.245e5、ν ≈ 0.214。"
-        "原因是 2026-08 换了材料能量公式，但参数换算没跟着改；supervisor 用的旧版不受影响，我们的新版和 Genesis 的软体都受影响。"
-        "改法：换算后直接改写参数，实测回到设定值。",
-        "label 的能量公式要跟着换：supervisor 的脚本按旧公式算能量，在旧版软件下没问题；换到新版后软件内部换了新公式，"
-        "两边对不上，label 要改按新公式算。",
-        "块不够大、接触区网格不够细也会让结果偏高，都要加大、加密或外推。",
-        "这套全改对的设置很贵（每个进程约 20 GB 显存，每档 d̂ 约 8–11 分钟），批量造数据要另定便宜的生产配置，"
-        "再用这套贵的量出它的偏差、列成表。"], "label"),
-]
-
-
-MEETING_MD = PROJECT / "docs" / "drafts" / "meeting_refs_theory.md"   # 第 1、2 部分的唯一来源
-MEETING_MD_PARTS = {"m_refs": "## 第一部分", "m_theory": "## 第二部分"}   # md 里每部分的标题行开头；「## 出处」是内部路径，不上页面
-
-
-def _md_to_html(md_text):
-    """Markdown（表格、列表、粗体）转 HTML；$$…$$ / $…$ 先换成占位符，转完再还原成 MathJax 的 \\[…\\] / \\(…\\)。"""
-    import markdown
-    maths = []
-
-    def stash(m, display):
-        maths.append((display, m.group(1)))
-        return f"@@MATH{len(maths) - 1}@@"
-    t = re.sub(r"\$\$(.+?)\$\$", lambda m: stash(m, True), md_text, flags=re.DOTALL)
-    t = re.sub(r"\$(.+?)\$", lambda m: stash(m, False), t)
-    t = re.sub(r"(?m)^(?![-|\s])(.+)\n(?=[-|] )", r"\1\n\n", t)   # 列表/表格紧跟在文字行后面时补空行，否则不认
-    t = re.sub(r"(?m)^### ", "#### ", t)                          # 稿内小标题降一级，挂在提纲的 h3 下面
-    out = markdown.markdown(t, extensions=["tables"])
-    for i, (display, body) in enumerate(maths):
-        out = out.replace(f"@@MATH{i}@@", (f"\\[{esc(body)}\\]" if display else f"\\({esc(body)}\\)"))
-    return out
-
-
-def _meeting_md_part(anchor):
-    """meeting_refs_theory.md 里某一部分（从它的 ## 标题到下一个 ## 标题），去掉标题行，转成 HTML。"""
-    text = MEETING_MD.read_text(encoding="utf-8")
-    body = text[text.index(MEETING_MD_PARTS[anchor]):].split("\n", 1)[1]
-    nxt = body.find("\n## ")
-    body = body[:nxt] if nxt >= 0 else body
-    return _md_to_html(body.replace("\n---", "\n"))
-
-
-def meeting_section():
-    """The meeting outline: six parts in the order the user presents them, each linking to the detailed section."""
-    parts = ['<section id="meeting"><h2>组会提纲</h2>']
-    for anchor, title, items, detail in MEETING:
-        link = f' <a class="small" href="#{detail}">（详细）</a>' if detail else ""
-        parts.append(f'<h3 id="{anchor}">{esc(title)}{link}</h3>')
-        if anchor in MEETING_MD_PARTS:
-            parts.append(f'<div class="meeting-md">{_meeting_md_part(anchor)}</div>')
-        else:
-            parts.append('<ul>' + "".join(f"<li>{esc(x)}</li>" for x in items) + "</ul>")
-    parts.append("</section>")
-    return "\n".join(parts)
-
-
 # ---------------- 造 label 的收敛检查（实验方案 E0） ----------------
-# Data: Neural-IPC-sandbox tools/ipc_sweep/uipc_constitution_check.py json files (one per configuration), figures from
-# tools/figs/sphere_facets_vs_contact.py and tools/figs/e0_label_convergence.py. Every number below is read from them.
+# Data: Neural-IPC-sandbox tools/ipc_sweep/uipc_constitution_check.py json files (run_commands 19), figure from
+# tools/figs/e0_label_convergence.py. Every number on the page is read from them.
 E0_ROOT = OUT_ROOT / "e0_label_convergence"
-SPHERE_ROOT = E0_ROOT   # sphere check: ipc, h_c 0.0125, d̂ 2.5e-4, depths 0.004 / 0.012, sphere 4 / 6 / 7
-SPHERE_RUNS = {n: f"sphere_{n}/ipc_hc0.0125_dhat0.00025_sph{n}.json" for n in (4, 6, 7)}
-E0_FIGS = [("sphere_facets_vs_contact.png", "从正下方看刚性球的底部：supervisor 的球面细分 4 次时，"
-                                            "压深 0.004 的接触圆里只有一圈三角形"),
-           ("e0_label_convergence.png", "块的弹性能 ÷ Hertz 能量，随 d̂（横轴）和网格（颜色）的变化；"
-                                        "实线 = 压深 0.004，虚线 = 压深 0.024；纵轴 1 = 与解析解一致")]
-SUPERVISOR_RECORDED = 1.418   # supervisor results/hertz_results.txt:18（libuipc 0.0.25 al-ipc，压深 0.004 的 U/U_H）
-LABEL = {
-    "setting": "supervisor 造 label 用的 Hertz 算例原样照搬：一个刚性球（半径 1）竖直压进一块底面固定的软块"
-               "（宽 2.4、高 1.2，E = 1e5，ν = 0.3），无摩擦、无重力，每个压深静置到平衡后算块里存的弹性能 U，"
-               "这就是训练网络用的 label。和 Hertz 解析解 U_Hertz = (8/15)·E*·√R·δ^2.5 比（变形小时它是精确的；压得深时它自己的小变形、抛物面近似也有误差）。"
-               "压深照 supervisor 的 6 个，另外逐样改下表里的设置，看 label 会不会变。",
-    "params": [("压深 δ", "0.004 – 0.024（6 个）", "球最低点压到块顶以下多深；supervisor 的主扫描"),
-               ("d̂", "1e-3（supervisor）、5e-4、2.5e-4", "barrier 开始推的距离：两表面离得比 d̂ 近就开始互相推"),
-               ("接触区网格尺寸 h_c", "0.025（supervisor）、0.0125、0.00625", "块在接触区的四面体大小；最细一档 265 万个四面体"),
-               ("球面细分次数", "4（supervisor）、6、7", "球面三角形的大小；次数每加 1，边长减半"),
-               ("接触模型", "al-ipc（supervisor）、原版 IPC", "al-ipc 不用 barrier、用增广拉格朗日防穿透"),
-               ("块的半宽 = 深度 L", "1.2（supervisor）、2.4、4.8", "块越大越接近 Hertz 假设的无限大半空间"),
-               ("细网格区外的单元放大倍数", "1.4（supervisor）、1.2", "越接近 1，远处的网格越细"),
-               ("材料参数", "照原样传入（supervisor）、直写属性", "见下面「材料参数」一段"),
-               ("label 怎么算", "小应变线弹性公式（supervisor 的球压脚本）、SNK1 公式",
-                "SNK1 = 我们这版求解器真正在最小化的能量")],
-    "expect": "如果 label 是对的，这些设置都加密、放大以后，U ÷ U_Hertz 应该不再变化，而且接近 1。",
-    "concl": "label 目前主要被 d̂ 拉高：supervisor 用的 d̂ = 1e-3 在小压深下多算了约 80% 的能量；"
-             "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。按 d̂ 外推到 0 以后剩下的偏高，"
-             "来自块不够大、libuipc 新版的材料参数错配和网格分辨率：参数改对、label 按 SNK1 算以后，小压深再把网格加密"
-             "就回到 Hertz（外推约 1.00–1.02），大压深离 Hertz 还差多少、原因是什么还在查（块大小和网格两项外推目前各自只用两点、分开做），正在用不经过 IPC 的独立有限元核对。supervisor 之前「label 接近 Hertz」的结论是两个误差抵消的结果，不能再引用。造数据要用细分 ≥ 7 次的球、"
-             "接触区网格足够细（压深 0.004 时 0.0125 还不够）、尽量小的 d̂（至少三档、"
-             "确认和 d̂ 成正比后外推到 0）、足够大的块，并在新版 libuipc 上直写材料参数、按 SNK1 算 label。",
-    "explain": ["为什么 d̂ 会把能量拉高：barrier 在两表面还隔着不到 d̂ 时就开始推，所以球还没真正碰到，"
-                "块就已经在比真实接触圈更大的一片区域上被压下去，存的能量更多。这部分多出来的能量大致和 d̂ ÷ δ 成正比，"
-                "所以压得越浅越严重。把实测间隙从压深里扣掉补不回来：扣了以后比值反而更偏离 1。",
-                "为什么球面粗会把能量压低：细分 4 次时三角形边长约 0.076，比压深 0.004 时的 Hertz 接触半径 0.063 还大，"
-                "球底在这个尺度上是个多面体的尖顶，不是光滑球面，接触区的形状和受力都不对。",
-                "材料参数：libuipc 的 StableNeoHookean 先把输入的 E、ν 按原版 Stable Neo-Hookean 能量需要的公式换算"
-                "（让它在小变形下正好等于输入值），可是 2026-08-23 起它的 GPU 端换成了另一种能量（Stiff-GIPC 的 SNK1），"
-                "换算没跟着改。拉一根细长棒实测（已知拉力 ÷ 量到的伸长，不靠任何能量公式）证实了这一点。"
-                "supervisor 用的 pyuipc 0.0.25 早于这次改动，不受影响；我们源码编译的版本和 Genesis 的 IPC 软体都受影响。"
-                "「直写属性」= 换算之后再把块上的参数直接改成 SNK1 需要的值，实测 E、ν 回到设定值。",
-                "label 为什么要按 SNK1 算：求解器求的是让 SNK1 能量最小的形状；如果 label 用别的公式在这个形状上算能量，"
-                "它就不是任何一个材料模型的最小能量，大变形时连力（能量的梯度）都对不上。",
-                "d̂ 外推要至少三档：块半宽 2.4、4.8 时 d̂ 每减半多出的部分缩小到约 0.46–0.51 倍，和 d̂ 成正比，外推可靠；"
-                "半宽 1.2 时从 5e-4 减到 2.5e-4 只缩小到约 0.26–0.30 倍，再往下（1.25e-4、6.25e-5）又恢复到约 0.5 倍："
-                "只有最大那档 d̂ 偏离正比，用最小两档外推不受影响。之前只用 5e-4、2.5e-4 两档外推，半宽 1.2 的小压深值"
-                "（1.05）偏低，造成「块越大反而越高」的假象；改用最小两档后单调了。",
-                "剩下的偏差怎么拆：小压深时块从半宽 2.4 放到 4.8 只降 0.006，块尺寸不是主因；把网格从 0.0125 加密到 0.00625"
-                "就降了 2.7 个百分点（压深 0.004 时接触半径约 0.063，0.0125 的网格只横跨 5 个单元）。大压深时网格只差 0.7 个"
-                "百分点，块尺寸占大头。两个外推都只用两个点，假设误差分别和 1/L、网格尺寸成正比；若网格误差按尺寸的平方"
-                "减小，小压深外推值约 1.018。"],
-}
-# Block-size / far-mesh / material checks: ipc, h_c 0.0125, sphere 7. Each row = (label, json files in increasing-d̂
-# order (5e-4, 2.5e-4[, 1.25e-4]), which energy); the table shows the straight line through the two smallest d̂ at d̂ = 0.
-BLOCK_RUNS = [("1.2（supervisor 的块）", ["ipc_m/ipc_hc0.0125_dhat0.0005_sph7.json",
-                                         "ipc_m/ipc_hc0.0125_dhat0.00025_sph7.json",
-                                         "dhat125_L1.2/ipc_hc0.0125_dhat0.000125_sph7.json",
-                                         "dhat0625_L1.2/ipc_hc0.0125_dhat6.25e-05_sph7.json"], "U_over_UH"),
-              ("2.4", ["size_L2.4/ipc_hc0.0125_dhat0.0005_sph7_L2.4.json",
-                       "size_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4.json",
-                       "dhat125_L2.4/ipc_hc0.0125_dhat0.000125_sph7_L2.4.json"], "U_over_UH"),
-              ("2.4，远处网格放大倍数 1.2", ["grow_L2.4_g1.2/ipc_hc0.0125_dhat0.0005_sph7_L2.4_g1.2.json",
-                                         "grow_L2.4_g1.2/ipc_hc0.0125_dhat0.00025_sph7_L2.4_g1.2.json"], "U_over_UH"),
-              ("4.8", ["size_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8.json",
-                       "size_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8.json",
-                       "dhat125_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8.json"], "U_over_UH"),
-              ("4.8，材料参数直写", ["direct_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8_snk1_direct.json",
-                                  "direct_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_direct.json",
-                                  "direct_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8_snk1_direct.json"], "U_over_UH"),
-              ("4.8，材料参数直写，label 按 SNK1 算", ["direct_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8_snk1_direct.json",
-                                                  "direct_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_direct.json",
-                                                  "direct_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8_snk1_direct.json"],
-               "U_snk1_over_UH"),
-              ("2.4，材料参数直写，label 按 SNK1 算", ["direct_L2.4/ipc_hc0.0125_dhat0.0005_sph7_L2.4_snk1_direct.json",
-                                                  "direct_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4_snk1_direct.json",
-                                                  "direct_L2.4/ipc_hc0.0125_dhat0.000125_sph7_L2.4_snk1_direct.json"],
-               "U_snk1_over_UH"),
-              ("4.8，网格 0.00625，材料参数直写，label 按 SNK1 算",
-               ["fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.00025_sph7_L4.8_snk1_direct.json",
-                "fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.000125_sph7_L4.8_snk1_direct.json"], "U_snk1_over_UH")]
-# rows of BLOCK_RUNS used for the two final extrapolations (block size → ∞ by 1/L; mesh → 0 assuming error ∝ h)
-FINAL_ROWS = {"L2.4": 6, "L4.8": 5, "L4.8_fine": 7}
-UNIAXIAL = {"as_input": "uniaxial/uniaxial_as_input.json", "snk1_direct": "uniaxial/uniaxial_snk1_direct.json"}
-
-
-def _load_e0():
-    """{(constitution, h_c, d_hat, sph_sub): json} under E0_ROOT; per configuration the copy with the most depths."""
-    best = {}
-    for p in E0_ROOT.glob("*/*.json"):
-        if p.name == "gpu_job_result.json":
-            continue
-        d, err = load_json(p)
-        if err:
-            raise SystemExit(f"[build_site] {p} 读不了：{err}")
-        if "rows" not in d or "constitution" not in d:   # torch_fem/ 等别的工具的 json 不在这张表里
-            continue
-        if d.get("L", 1.2) != 1.2 or d.get("growth", 1.4) != 1.4:   # block-size checks are read by _load_block_size
-            continue
-        key = (d["constitution"], d["h_c"], d["d_hat"], d["sph_sub"])
-        if key not in best or len(d["rows"]) > len(best[key]["rows"]):
-            best[key] = d
-    return best
+E0_FIG = "e0_label_convergence.png"
+# supervisor's setting (al-ipc, contact mesh 0.025, d̂ 1e-3, sphere subdivision 4); depth 0.004 is its first row
+E0_SUPERVISOR = "ref_supervisor/al-ipc_hc0.025_dhat0.001_sph4.json"
+# everything fixed (direct material attributes, SNK1 label, sphere 7), d̂ → 0 through the two smallest d̂;
+# then block → ∞ by 1/L (half-width 2.4 vs 4.8) and mesh → 0 by h (0.0125 vs 0.00625), both two-point estimates
+E0_FIXED = {"L2.4": ["direct_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4_snk1_direct.json",
+                     "direct_L2.4/ipc_hc0.0125_dhat0.000125_sph7_L2.4_snk1_direct.json"],
+            "L4.8": ["direct_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_direct.json",
+                     "direct_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8_snk1_direct.json"],
+            "L4.8_fine": ["fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.00025_sph7_L4.8_snk1_direct.json",
+                          "fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.000125_sph7_L4.8_snk1_direct.json"]}
+UNIAXIAL_AS_INPUT = "uniaxial/uniaxial_as_input.json"   # slender bar pulled with E = 1e5, ν = 0.3 passed as-is
 
 
 def label_facts():
-    """The numbers the label section quotes, all read from the result json files."""
-    e0 = _load_e0()
-    sph = {k: load_json(SPHERE_ROOT / v)[0] for k, v in SPHERE_RUNS.items()}
-    missing = [str(SPHERE_ROOT / v) for k, v in SPHERE_RUNS.items() if sph[k] is None]
-    if missing:
-        raise SystemExit(f"[build_site] 球面细分检查的结果文件不在：{missing}")
-    first = lambda d: d["rows"][0]["U_over_UH"]      # depth 0.004
-    last = lambda d: d["rows"][-1]["U_over_UH"]      # depth 0.024
-    fine = {dh: e0[("ipc", 0.00625, dh, 7)] for dh in (0.001, 0.0005, 0.00025)}
-    al_fine = {dh: e0[("al-ipc", 0.00625, dh, 7)] for dh in (0.001, 0.0005, 0.00025)}
-    mesh = {h: e0[("ipc", h, 0.00025, 7)] for h in (0.025, 0.0125, 0.00625)}
-
-    def extrap(k):  # straight line through d̂ = 5e-4 and 2.5e-4 (finest mesh, ipc), evaluated at d̂ = 0
-        y1, y2 = fine[0.0005]["rows"][k]["U_over_UH"], fine[0.00025]["rows"][k]["U_over_UH"]
-        return y2 - (y1 - y2)
-
-    return {
-        "sph": [(n, sph[n]["rows"][0]["U_over_UH"], sph[n]["rows"][1]["U_over_UH"]) for n in (4, 6, 7)],
-        "dhat_small": [first(fine[dh]) for dh in (0.001, 0.0005, 0.00025)],
-        "dhat_large": [last(fine[dh]) for dh in (0.001, 0.0005, 0.00025)],
-        "mesh_small": [first(mesh[h]) for h in (0.025, 0.0125, 0.00625)],
-        "ipc_vs_al": [(first(fine[dh]), first(al_fine[dh])) for dh in (0.001, 0.00025)],
-        "time_ratio": (sum(d["wall_seconds"] for d in al_fine.values()) / sum(d["wall_seconds"] for d in fine.values())),
-        "ref_sph4": first(e0[("al-ipc", 0.025, 0.001, 4)]),
-        "ref_sph7": first(e0[("al-ipc", 0.025, 0.001, 7)]),
-        "extrap": (extrap(0), extrap(-1)),
-        "block": [(lbl, len(paths), *_extrap_to_zero(paths, key)) for lbl, paths, key in BLOCK_RUNS],
-        "uniaxial": {m: _read_e0(p) for m, p in UNIAXIAL.items()},
-        # SNK1 label, d̂ → 0: block → ∞ assuming the block-size error ∝ 1/L (2·L4.8 − L2.4); mesh → 0 assuming the
-        # mesh error ∝ h (2·h0.00625 − h0.0125); both are estimates from two points
-        "final": {name: _extrap_to_zero(BLOCK_RUNS[i][1], BLOCK_RUNS[i][2]) for name, i in FINAL_ROWS.items()},
-        "sph78": [(a["delta"], a["U_snk1_over_UH"], b["U_snk1_over_UH"]) for a, b in zip(
-            _read_e0("fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.00025_sph7_L4.8_snk1_direct.json")["rows"],
-            _read_e0("fine_direct_L4.8_s8/ipc_hc0.00625_dhat0.00025_sph8_L4.8_snk1_direct.json")["rows"])],
-        # far-mesh check has only d̂ 5e-4 / 2.5e-4, so compare it with the L = 2.4 run extrapolated from the same pair
-        "far_mesh_diff": abs(_extrap_to_zero(BLOCK_RUNS[2][1], "U_over_UH")[1]
-                             - _extrap_to_zero(BLOCK_RUNS[1][1][:2], "U_over_UH")[1]),
-    }
+    """Week 2 页用到的 label 数字：supervisor 设置的比值、全部改对后的比值（压深 0.004 / 0.024）、单轴实测 E。"""
+    fin = {k: _extrap_to_zero(p, "U_snk1_over_UH") for k, p in E0_FIXED.items()}
+    # mesh → 0 at half-width 4.8, plus the block-size correction (block → ∞ minus half-width 4.8 = L4.8 − L2.4)
+    fixed = [2 * fin["L4.8_fine"][k] - fin["L4.8"][k] + (fin["L4.8"][k] - fin["L2.4"][k]) for k in (0, 1)]
+    return {"supervisor": _read_e0(E0_SUPERVISOR)["rows"][0]["U_over_UH"], "fixed": fixed,
+            "E_meas": _read_e0(UNIAXIAL_AS_INPUT)["E_meas"]}
 
 
 def _read_e0(path):
@@ -888,53 +641,109 @@ def _extrap_to_zero(paths, key):
     return tuple(2 * b["rows"][k][key] - a["rows"][k][key] for k in (0, -1))
 
 
-def label_section(f):
-    """Setting -> parameter table -> expectation -> figures and sphere table -> observations -> conclusion -> explanation."""
-    arrow = lambda xs: " → ".join(f"{x:.2f}" for x in xs)
-    obs = [f"球面细分 4 → 6 → 7 次（网格 0.0125、d̂ 2.5e-4、原版 IPC），压深 0.004 的比值 "
-           f"{arrow([s[1] for s in f['sph']])}：细分 4 次时反常地低于 Hertz，6 → 7 只差 "
-           f"{abs(f['sph'][2][1] / f['sph'][1][1] - 1):.1%}",
-           f"d̂ 1e-3 → 5e-4 → 2.5e-4（最细网格、原版 IPC），压深 0.004 的比值 {arrow(f['dhat_small'])}，"
-           f"压深 0.024 的比值 {arrow(f['dhat_large'])}：d̂ 每减半，多出来的部分大约减半",
-           f"网格 0.025 → 0.0125 → 0.00625（d̂ 2.5e-4），压深 0.004 的比值 {arrow(f['mesh_small'])}：网格的影响比 d̂ 小得多",
-           f"原版 IPC 和 al-ipc 在同网格同 d̂ 下几乎一样（压深 0.004：d̂ 1e-3 时 {f['ipc_vs_al'][0][0]:.2f} 对 "
-           f"{f['ipc_vs_al'][0][1]:.2f}，d̂ 2.5e-4 时 {f['ipc_vs_al'][1][0]:.2f} 对 {f['ipc_vs_al'][1][1]:.2f}），"
-           f"但最细网格上 al-ipc 慢约 {f['time_ratio']:.1f} 倍",
-           f"照 supervisor 的设置（al-ipc、网格 0.025、d̂ 1e-3、球面细分 4）复现出压深 0.004 的比值 {f['ref_sph4']:.2f}"
-           f"（supervisor 记录 {SUPERVISOR_RECORDED:.2f}）；只把球面换成细分 7 次，变成 {f['ref_sph7']:.2f}",
-           f"把最细网格的结果按 d̂ 线性外推到 0：压深 0.004 约 {f['extrap'][0]:.2f}，压深 0.024 约 {f['extrap'][1]:.2f}",
-           f"块半宽 1.2 → 2.4 → 4.8（外推到 d̂ = 0，压深 0.024）：{arrow([f['block'][i][3] for i in (0, 1, 3)])}；"
-           f"远处网格加细只差 {f['far_mesh_diff']:.3f}（两者都用 d̂ 5e-4、2.5e-4 外推）；"
-           f"材料参数直写后 {f['block'][3][3]:.2f} → {f['block'][4][3]:.2f}，label 再按 SNK1 算 → {f['block'][5][3]:.2f}",
-           "label 按 SNK1 算、外推到 d̂ = 0 后再拆（都是两点估算）：块按 1/L 外推到无限大，压深 0.004 / 0.024 为 "
-           + " / ".join(f"{2 * f['final']['L4.8'][k] - f['final']['L2.4'][k]:.3f}" for k in (0, 1))
-           + "；块半宽 4.8 时网格从 0.0125 加密到 0.00625，"
-           + " / ".join(f"{f['final']['L4.8'][k]:.3f} → {f['final']['L4.8_fine'][k]:.3f}" for k in (0, 1))
-           + "，按误差和网格尺寸成正比外推到网格 0："
-           + " / ".join(f"{2 * f['final']['L4.8_fine'][k] - f['final']['L4.8'][k]:.3f}" for k in (0, 1)),
-           "最细网格上球面再从细分 7 次加到 8 次（d̂ 2.5e-4、SNK1 label）：压深 0.004 / 0.024 只变 "
-           + " / ".join(f"{100 * (f['sph78'][k][2] / f['sph78'][k][1] - 1):+.1f}%" for k in (0, -1))
-           + "，球面已不是误差来源",
-           "细长棒单轴拉伸实测（设定 E = 1e5、ν = 0.3）：照原样传入 E = "
-           f"{f['uniaxial']['as_input']['E_meas']:.0f}、ν = {f['uniaxial']['as_input']['nu_meas']:.3f}；直写属性后 "
-           f"E = {f['uniaxial']['snk1_direct']['E_meas']:.0f}、ν = {f['uniaxial']['snk1_direct']['nu_meas']:.3f}"]
-    figs = "".join(f'<figure><img src="assets/images/{name}" alt="{esc(cap)}"><figcaption class="small">{esc(cap)}'
-                   f"</figcaption></figure>" for name, cap in E0_FIGS)
-    sph_table = table(["球面细分次数", "压深 0.004 的 U ÷ U_Hertz", "压深 0.012 的 U ÷ U_Hertz"],
-                      [[str(n), f"{a:.3f}", f"{b:.3f}"] for n, a, b in f["sph"]])
-    parts = ['<section id="label"><h2>造训练数据（label）的收敛检查</h2>',
-             f'<p class="setting">{esc(LABEL["setting"])}</p>',
-             table(["改什么", "取值", "直观上是什么"], [list(r) for r in LABEL["params"]]),
-             f'<p class="expect"><b>按原理期待：</b>{esc(LABEL["expect"])}</p>',
-             figs, sph_table,
-             table(["块的半宽 L（网格 0.0125、球面细分 7、原版 IPC）", "d̂ 档数", "外推到 d̂ = 0：压深 0.004",
-                    "压深 0.024"],
-                   [[lbl, str(n), f"{a:.3f}", f"{b:.3f}"] for lbl, n, a, b in f["block"]]),
-             '<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in obs) + "</ul>",
-             f'<p class="concl"><b>结论：</b>{esc(LABEL["concl"])}</p>',
-             *[f'<p class="small">{esc(e)}</p>' for e in LABEL["explain"]],
-             "</section>"]
-    return "\n".join(parts)
+
+
+# ---------------- Week 2 组会稿（40 分钟，给不了解项目的人听；用户 10-10：只讲重点、全部 bullet、页面上的一切都算时间） ----------------
+# 独立有限元（supervisor 轴对称 torch FEM，不经过 IPC）：Neural-IPC-sandbox tools/ipc_sweep/torch_fem_hertz_reference.py，
+# run_commands 19i。线弹性 + 间隙按变形前算 = Hertz 的全部假设（检验裁判）；snk1 + 真球面 = label 实际的材料和压头。
+TORCH_ROOT = E0_ROOT / "torch_fem"
+TORCH_RUNS = {"hertz_assumptions": "linear_parabref_nr192.json", "label_setup": "snk1_sphere_nr192.json"}
+
+
+def _torch_block_limit(name):
+    """每个压深按 1/b 把最大两档圆柱外推到无限大块：{δ: 能量 ÷ Hertz}。"""
+    d, err = load_json(TORCH_ROOT / TORCH_RUNS[name])
+    if d is None:
+        raise SystemExit(f"[build_site] 独立有限元结果读不了：{TORCH_ROOT / TORCH_RUNS[name]} {err}")
+    out = {}
+    for delta in sorted({r["delta"] for r in d["rows"]}):
+        by_b = sorted((r["b"], r["ratio"]) for r in d["rows"] if r["delta"] == delta)
+        out[delta] = 2 * by_b[-1][1] - by_b[-2][1]
+    return out
+
+
+def _ul(items):
+    return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
+
+
+def week2_sections(hydro, f):
+    """Week 2 页：七段，按讲的顺序排，标题带分钟数；文字里的公式是原样 LaTeX（MathJax 渲染），其余经 esc。"""
+    outcome = OUTCOME_LABEL.get(hydro.get("outcome"), "无结果") if hydro["state"] == "ok" else hydro["reason"]
+    fixed = f["fixed"]
+    # 独立有限元：Hertz 的全部假设、label 实际的材料和压头，两种都算，取离 1 最远的那个
+    torch_err = max(abs(v - 1) for name in TORCH_RUNS for v in _torch_block_limit(name).values())
+    e = esc
+    S = []
+
+    S.append(('w0', "0. 我们在做什么（2 分钟）", _ul([
+        e("两个物体相碰时，接触的地方会凹进去一小块，这块变形里存着弹性能量"),
+        e("精细仿真能把它算准，但每个物体要成千上万个自由度，太慢"),
+        e("我们的做法：物体只用很少的自由度来仿真，接触处那份能量交给神经网络学"),
+        e("网络的训练数据（label）= 精细仿真算出来的这份能量")])))
+
+    S.append(('w1', "1. 这周读的文献（7 分钟）", _ul([
+        e("Hydroelastic（Drake、Genesis 里用的接触模型）"),
+        e("· Elandt 2019：每个物体里放一个「压力场」，两物体重叠的地方按压力算接触力"),
+        e("· Masterjohn 2022、Castro 2022：把它做快、做稳，能实时跑；Han 2023：推广到软的物体"),
+        e("神经网络接触模型"),
+        e("· Romero 2021–2023：粗仿真 + 网络学接触处的凹陷形状"),
+        e("· RigidFormer：网络直接预测刚体下一步怎么动"),
+        e("标准答案：Hertz（1882）—— 球压弹性平面的精确公式"),
+        e("区别：hydro 的软硬是人为调的；Romero 学形状；我们学能量，力由能量求导得到")])))
+
+    S.append(('w2', "2. 三个公式（8 分钟）", "".join([
+        "<h3>Hertz：标准答案</h3>",
+        r"<p>\[U=\tfrac{8}{15}\,E^*\sqrt{R}\,\delta^{5/2}\]</p>",
+        _ul([e("δ = 压深，R = 球半径，E* = 材料硬度"),
+             e("压深翻倍，能量变成约 5.7 倍：越压，接触面越大，越难压"),
+             e("材料越硬、球越大，能量越大")]),
+        "<h3>Hydroelastic</h3>",
+        r"<p>\[p=E_h\,\varepsilon,\qquad F=\int p\,dA\]</p>",
+        _ul([e("ε = 这个点在物体里有多深：表面 0，最深处 1"),
+             e("两个物体可以互相嵌进去一点，嵌得越深，推力越大"),
+             e("E_h 是人为填的数，不是材料真实的硬度")]),
+        "<h3>我们：碰撞能量</h3>",
+        r"<p>\[U_c=\Pi(\text{不穿透时的形状})-\Pi(\text{只用少量自由度时的形状})\]</p>",
+        _ul([e("Π = 物体存的弹性能量"),
+             e("U_c = 为了不穿透，接触处额外变形所存的能量，网络学的就是它"),
+             e("label 用 IPC 算：一种保证两物体永远不穿透的精细仿真方法")])])))
+
+    S.append(('w3', "3. Demo：Genesis 的 hydroelastic（4 分钟）", "".join([
+        '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
+        _ul([e("Genesis 自带的 hydroelastic 测试，原样跑通"),
+             e("两条链掉到盒子上，被托住、叠起来"),
+             e("盒子只压进地面约 8 微米：是靠「嵌进去一点」托住的，肉眼看不出")])])))
+
+    S.append(('w4', "4. 实验设计：怎么证明我们原理上比 hydro 对（8 分钟）", "".join([
+        _ul([e("标准答案用弹性力学的精确公式，不用任何一方自己的仿真"),
+             e("每个实验只改一个几何量，看谁的变化跟标准答案一致")]),
+        table(["实验", "改什么", "标准答案", "hydro"],
+              [["E1", "球半径 ×2（同样压深）", "力 ×1.41", "力 ×2"],
+               ["E2", "平底圆柱压头半径 ×2、×4", "力 ×2、×4", "力 ×4、×16"],
+               ["E3", "一个物体上两个凸起，改间距", "两个凸起互相影响", "各算各的"],
+               ["E4", "很薄、几乎压不缩的软层", "变得很硬", "表达不出来"],
+               ["E5", "物体本身也会变形", "变形只算一次", "变形算了两遍"]]),
+        _ul([e("先做 E0：检查我们的训练数据本身对不对（下一部分）")])])))
+
+    S.append(('w5', "5. 结论（8 分钟）", "".join([
+        _ul([e("Hydro：物体靠微米级的嵌入托住；软硬只由一个人为的数决定")]),
+        "<h3>E0：训练数据对不对</h3>",
+        f'<figure><img src="assets/images/{E0_FIG}" alt="label 收敛图">'
+        f'<figcaption class="small">{e("纵轴 = label ÷ 标准答案（1 = 完全一致）；横轴 = IPC 的安全距离，越往左越小")}'
+        f"</figcaption></figure>",
+        _ul([e(f"原来的设置：label ÷ 标准答案 = {f['supervisor']:.2f}，偏差里混着两个方向相反的误差"),
+             e("· IPC 有个「安全距离」，两表面还没碰到就开始推 → 能量偏大"),
+             e("· 球面网格太粗，球底是个尖角 → 能量偏小"),
+             e(f"两项都改对、块够大、网格够细后：小压深 {fixed[0]:.2f}、大压深 {fixed[1]:.2f}，和标准答案一致"),
+             e(f"另用一个完全独立的有限元程序验证：Hertz 公式在这些压深下误差 < {torch_err:.1%}，"
+               "可以当标准答案")])])))
+
+    S.append(('w6', "6. 遇到的问题（3 分钟）", _ul([
+        e("IPC 的「安全距离」让能量偏大 → 取几个不同的安全距离，外推到 0"),
+        e("球面网格太粗 → 加细"),
+        e(f"新版 IPC 库里材料实际的硬度比设定的大 {f['E_meas'] / 1e5 - 1:.0%}（软件更新时漏改了一处换算）→ 已找到改法"),
+        e("全部改对后每个样本很慢（约半小时）→ 要定一个又快又够准的造数据设置")])))
+    return [f'<section id="{a}"><h2>{e(t)}</h2>\n{body}</section>' for a, t, body in S]
 
 
 # ---------------- 参数扫描 ----------------
@@ -1508,10 +1317,7 @@ def build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     summary = {
-        "week2": ("读了 hydroelastic 和神经接触模型的文献；跑通 Genesis 自带的 hydroelastic 接触官方测试"
-                  f"（SAP 求解器，官方断言{OUTCOME_LABEL.get(hydro.get('outcome'), '尚无结果')}）和例子；"
-                  "设计了证明「原理上比 hydro 好」的实验（E1–E5，裁判用弹性力学解析解）；作为前提，检查了造训练数据的 label "
-                  "是否收敛到 Hertz，拆出了几处误差来源（见「组会提纲」）。"),
+        "week2": "组会 40 分钟：文献、公式、hydroelastic demo、实验设计、训练数据检查。",
         "week1": ("在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
                   f"{len(demos)} 个 Genesis IPC 例子和 {len(tests)} 个 Genesis 官方 IPC 测试场景，共 {n_video} 段视频"
                   f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
@@ -1519,7 +1325,7 @@ def build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
                   f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
                   "d̂ 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
                   "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")}
-    sections = {"week2": [meeting_section(), hydro_section(hydro), label_section(label_facts())],
+    sections = {"week2": week2_sections(hydro, label_facts()),
                 "week1": [videos_section(demos, tests, facts), sweep_section(gsweeps, cfg, videos), data_section()]}
     cards = "".join(f'<a class="weekcard" href="{wid}.html"><b>{esc(title)}</b>'
                     f'<span>{esc(" · ".join(n for _, n in items))}</span><p>{esc(summary[wid])}</p></a>'
@@ -1566,7 +1372,7 @@ def main():
                                       for src, name in filter(None, (init_frame_image(r["level"])
                                                                      for r in rows_of(gsweeps, "init_penetration")))]
     ijobs += [{"src": OUT_ROOT / "figs" / name, "dst": IMAGE_DIR / name, "size": (OUT_ROOT / "figs" / name).stat().st_size}
-              for name, _cap in E0_FIGS]
+              for name in (E0_FIG,)]
     facts = compute_facts(demos)
     commit = genesis_commit()
 
