@@ -157,9 +157,9 @@ HYDRO = {
 }
 
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("meeting", "组会提纲"), ("videos", "Demo 视频"), ("tests", "官方测试场景"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查"),
-       ("sweep", "盒子实验与参数扫描"),
-       ("data", "对生成数据的意义")]  # 锚点只用字母
+NAV = [("meeting", "组会提纲"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查"),
+       ("videos", "上周：IPC demo"), ("tests", "上周：官方测试"), ("sweep", "上周：盒子实验与参数扫描"),
+       ("data", "对生成数据的意义")]  # 锚点只用字母；本周（week2）的在前，上周（week1）的在后
 
 
 # ==========================================================================
@@ -602,11 +602,11 @@ def demo_card(r, facts):
 
 def videos_section(demos, tests, facts):
     """Official Genesis IPC examples, then Genesis's own IPC test scenes (each with its assertion outcome)."""
-    parts = ['<section id="videos"><h2>Demo 视频（Genesis + lib IPC）</h2>',
+    parts = ['<section id="videos"><h2>上周：Demo 视频（Genesis + lib IPC）</h2>',
              '<p class="muted small">Genesis 官方 IPC 例子一字未改，相机用官方代码里给的 viewer 位置；物理由 Genesis 底层的 '
              "libuipc 在 GPU 上算，画面在服务器上离屏渲染（CPU 软件渲染）。</p>",
              '<div class="grid">', *[demo_card(r, facts) for r in demos], "</div></section>",
-             '<section id="tests"><h2>官方测试场景</h2>',
+             '<section id="tests"><h2>上周：官方测试场景</h2>',
              '<p class="muted small">Genesis 仓库自带的 IPC 测试（tests/ipc/），场景和断言一字未改，用 pytest 原样运行；'
              "每个测试自己写好了 viewer 相机位置，录像就用它。卡片里写的是官方断言有没有通过。</p>",
              '<div class="grid">', *[demo_card(r, facts) for r in tests], "</div></section>"]
@@ -640,21 +640,22 @@ def hydro_section(r):
 MEETING = [
     ("m_refs", "1. 这周看了哪些文献", [], None),
     ("m_theory", "2. 公式和理论", [], None),
-    ("m_demo", "3. 做了哪些 demo", [
-        "Genesis 官方 IPC 例子 4 个原样跑通并录像：物体落地、动量守恒、机械臂抓软方块、一堆物体扔进盒子；"
-        "另有本地带窗口遥控机械臂抓布。",
-        "Genesis 官方 IPC 测试 4 个按测试自带断言录像（离地间隙、斜向重力滑动、布盖物体、夹布拖动）；"
-        "两个断言没过，原因已查清（见各卡片说明）。",
-        "Genesis 官方 hydroelastic 测试：两条关节链落到盒子上，接触由 SAP 求解器按压力场计算。"], "videos"),
-    ("m_setup", "4. 实验设定", [
-        "盒子实验：官方「物体落地」场景加一个开口盒子，只扫 IPC 自己的参数（d̂、接触刚度 κ、ε_v、时间步、初始穿插、网格），"
-        "每次只改一个。",
-        "造 label 的收敛检查：supervisor 造训练数据的球压算例（刚性球压软块，和 Hertz 解析解比），逐样改 d̂、网格、"
-        "球面细分、接触模型、块大小、材料参数，看 label 收敛到哪里。"], "label"),
+    ("m_demo", "3. 做了哪些 demo（本周：Genesis + hydroelastic）", [
+        "Genesis 官方 hydroelastic 测试原样跑通并录像：两条关节链落到盒子上，接触由 Genesis 自带的 SAP 求解器按压力场计算"
+        "（不经过 IPC）。",
+        "Genesis 自带的 4 个 SAP（hydroelastic）例子原样跑通；另外 5 个用到 SAP 的官方测试也逐个跑过。",
+        "上周的 Genesis + IPC demo 和盒子参数扫描仍在下方，本周没有新增。"], "hydro"),
+    ("m_setup", "4. 实验设定（本周：怎么证明原理上比 hydro 好）", [
+        "思路：和 hydro 比的裁判用独立的弹性力学解析解（Hertz 球压、平底压头、薄层等），不用我们自己的 IPC label 当标准答案。"
+        "每个实验只改一个几何量，看解析解的变化规律和 hydro 公式的变化规律能不能分开。",
+        "E1 换球半径：解析解力 ×√2 ≈ 1.41，hydro ×2。E2 平底压头半径 ×1/×2/×4：解析解 ×1/×2/×4，hydro ×1/×4/×16。"
+        "E3 一个刚体上两个凸台改间距：两凸台互相影响，hydro 各算各的。E4 粘结薄层、接近不可压：hydro 表达不了侧向挤出。"
+        "E5 粗表示从刚体换成软仿射体：hydro 会把柔度算两遍。",
+        "E0 前提：先确认我们造的 label 本身收敛到解析解。做法是用 supervisor 造训练数据的球压算例（刚性球压软块），"
+        "逐样改 d̂、网格、球面细分、接触模型、块大小、材料参数，看 label 收敛到哪里。"], "label"),
     ("m_result", "5. 视频和结论", [
-        "IPC 全程没有穿透；停住时每一对接触面之间都留一条约 0.7–1 倍 d̂ 的缝，越重的物体陷得越深。",
-        "接触刚度 κ 只在 libuipc 按场景算出的区间里生效，区间外会被夹到边界；Genesis 默认值会被夹。",
-        "Hydroelastic：物体靠微米级的互相嵌入被托住，画面上看不出穿插；它的软硬只由一个人为指定的刚度数决定。",
+        "Hydroelastic 测试（视频见上方）：物体靠微米级的互相嵌入被托住，画面上看不出穿插；它的软硬只由一个人为指定的"
+        "刚度数决定，和材料杨氏模量无关。",
         "label：supervisor 之前「label 接近 Hertz」是两个误差抵消的结果（d̂ 太大把能量算高、球面太粗把能量算低），"
         "不能再引用；改对以后小压深在网格外推误差内和 Hertz 一致，大压深剩约 2%，推测是 Hertz 自身的近似，正在验证。"],
      "label"),
@@ -1451,7 +1452,7 @@ def sweep_section(gsweeps, cfg, videos):
     gscene = ("Genesis 没有「一堆物体扔进盒子」的官方例子，这里用官方 ipc_objects_falling 场景加一个盒子和更多同款物体。"
               f"这一套：{VARIANTS[GEN_TAG]['label']}。所有实验每次只改一个参数。盒子墙画成半透明，盒内物体不透明。"
               "除了一开始就穿插的两档（开跑前被拒），所有档位 libuipc 的穿透检查都没有报穿透。")
-    parts = ['<section id="sweep"><h2>盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>", FORMULA_BLOCK]
+    parts = ['<section id="sweep"><h2>上周：盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>", FORMULA_BLOCK]
     for sweep, title, one, expect, rows, tbl in genesis_sweep_tables(gsweeps, cfg):
         parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd))
     parts.append("</section>")
@@ -1509,8 +1510,8 @@ def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
             + meeting_section() + "\n"
-            + videos_section(demos, tests, facts) + "\n" + hydro_section(hydro) + "\n"
-            + label_section(label_facts()) + "\n"
+            + hydro_section(hydro) + "\n" + label_section(label_facts()) + "\n"
+            + videos_section(demos, tests, facts) + "\n"
             + sweep_section(gsweeps, cfg, videos) + "\n" + data_section())
     return page(body)
 
