@@ -319,6 +319,8 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <p><strong>测什么：</strong> 半径 1 的刚球压一块长方体（下称块），\(E=10^5\)、\(\nu=0.3\)，压深 0.004–0.024，看标签弹性能与 Hertz 能量之比，1 为一致。</p>
 <p>\[U_{\text{Hertz}}=\frac{8}{15}E^{*}R^{1/2}\delta^{5/2},\qquad E^{*}=\frac{E}{1-\nu^{2}}\]</p>
 <p>IPC 的作用距离 \(\hat d\)（表面间距小于它即开始推开）越大，能量越高，故外推到 \(\hat d\to0\)；网格和块大小同样外推。</p>
+<figure><video controls muted playsinline preload="metadata" src="assets/videos/e0_press.mp4"></video><figcaption class="small">IPC + FEM 仿真原始输出：半径 1 的刚球压块，压深 0.004–0.024，每个压深停 1.5 s；左为过球心的竖直截面（竖直方向放大），右为俯视块顶面的竖直位移</figcaption></figure>
+<p>块顶面在接触区内贴合球面，球与块的最小间隙为 \(0.9\text{–}1.0\times10^{-4}\)，小于该算例的 \(\hat d=1.25\times10^{-4}\)。</p>
 <p><strong>结果：</strong> 外推后压深 0.004、0.024 处比值为 0.994、1.005。独立的轴对称有限元给出 1.002、1.001、1.000（压深 0.004、0.009、0.024），说明 Hertz 在此范围可当裁判。</p>
 <figure><img src="assets/images/e0_label_convergence.png" alt="标签收敛图"><figcaption class="small">E0 实测（外推前的原始数据）：标签能量 / Hertz 能量（1 表示一致），横轴为 \(\hat d\)，\(\hat d\) 越大能量越偏高，故外推到 0</figcaption></figure>
 <p class="kp">标签经网格与块大小外推（各两点，属估算）后与 Hertz 之比为 0.994 / 1.005，标签可信。</p>
