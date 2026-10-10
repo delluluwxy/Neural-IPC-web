@@ -489,7 +489,8 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h4>6. 和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th>维度</th><th>RigidFormer</th><th>我们</th></tr><tr><td>网络学什么</td><td>锚点加速度，整个求解器换成网络</td><td>保留粗自由度仿真，只补一个额外的碰撞能量项</td></tr><tr><td>碰撞能量</td><td>没有能量概念</td><td>有穿透与无穿透时的能量差</td></tr><tr><td>无穿透、局部形变</td><td>只保证单个物体刚性；物体之间不保证不穿透；没有形变</td><td>物体靠局部形变达到无穿透</td></tr><tr><td>真值</td><td>MOVi 轨迹</td><td>IPC（保证不穿透的接触算法）+ FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>力从哪来</td><td>加速度直接进积分，不经过力</td><td>力由能量求导</td></tr><tr><td>怎么检验</td><td>和真值轨迹比位置、朝向误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div></section>
 <section id="w3"><h2>看代码</h2>
-<h3 id="c_nipc">supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）</h3><h4>1. 要解决什么问题</h4>
+<h3 id="c_nipc">supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）</h3><p>本讲只讲碰撞（法向接触）。</p>
+<h4>1. 要解决什么问题</h4>
 <p>「粗自由度物体」只用很少的参数描述：刚体、仿射体（整块只能做线性变形，3D 有 12 个参数），或只保留几个振动模态的物体。真实弹性体被压时，接触区会出现一层很薄的局部变形，两个表面靠它才不互相穿透；粗物体做不出这层变形。</p>
 <p>这个 repo 要学一个「凝聚接触势」，专门补上粗表示缺掉的这部分柔顺性。</p>
 <ul>
@@ -538,7 +539,14 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <li><strong>「按物体训练」</strong>（一个模型覆盖多种形状、尽量泛化）：一致。代码是一个网络、把形状当输入、测对没见过形状的泛化。</li>
 <li><strong>还没接上的一环</strong>：学习部分还没用 libuipc 生成的数据，标签全部来自 BEM / 有限应变 FEM。</li>
 </ul>
-<details><summary>libuipc 球压块为什么没收敛（10-10 已查清）</summary><p>两个方向相反的误差部分抵消：\(\hat d = 10^{-3}\) 太大使能量偏大，球面细分 4 次太粗使能量偏小；另有块不够大、网格不够细。\(\hat d\) 外推到 0、球面细分 7 次、块和网格外推后，压深 0.004、0.024 为 0.994、1.005，与 Hertz 一致。细节见实验方案 E0。supervisor 用的 pyuipc 0.0.25 没有新版 libuipc 的材料参数错配问题。</p></details><h3 id="c_genesis">Genesis 的 hydroelastic 是怎么实现的</h3><h4>1. 一句话</h4>
+<details><summary>libuipc 球压块为什么没收敛（10-10 已查清）</summary><p>两个方向相反的误差部分抵消：\(\hat d = 10^{-3}\) 太大使能量偏大，球面细分 4 次太粗使能量偏小；另有块不够大、网格不够细。\(\hat d\) 外推到 0、球面细分 7 次、块和网格外推后，压深 0.004、0.024 为 0.994、1.005，与 Hertz 一致。细节见实验方案 E0。supervisor 用的 pyuipc 0.0.25 没有新版 libuipc 的材料参数错配问题。</p></details>
+<h4>6. 组会可能被问的 3 个问题</h4>
+<p><strong>Q1：学习用的标签是 IPC 算出来的吗？</strong></p>
+<p>不是 IPC。标签来自 BEM 或有限应变 FEM。repo 里另有一份自写的经典 IPC barrier \(-\kappa(d-\hat d)^2\ln(d/\hat d)\)（\(\kappa\) barrier 刚度，\(d\) 两表面距离），只在 2D 轴对称 FEM 上和增广拉格朗日做对比。</p>
+<p><strong>Q2：多个接触 patch 为什么不能把能量直接相加？</strong></p>
+<p>它们共享同一块基底，会互相预压、一起变软。直接相加时 2 / 3 个 patch 高估 27.8% / 54.9%；耦合图降到 6.1% / 6.5%，接近单 patch 的误差下限 7.7%。</p>
+<p><strong>Q3：静态势放进动力学靠得住吗？</strong></p>
+<p>慢冲击靠得住（\(v_0/c = 0.015\) 时峰值处只差 0.4%），快冲击不行（\(v_0/c = 0.3\) 时差 212%，漏掉薄层振动能）。补救是 CMS：一维杆保留 20 个模态时恢复系数 e = 0.285，完整 FEM 是 0.281。</p><h3 id="c_genesis">Genesis 的 hydroelastic 是怎么实现的</h3><h4>1. 一句话</h4>
 <p><strong>Genesis 的 hydro = 三篇论文拼起来：</strong></p>
 <div class="tablewrap"><table><tr><th>层</th><th>论文</th><th>管什么</th></tr><tr><td>接触模型</td><td>Elandt 2019，Pressure Field Contact</td><td>力从哪来：每个物体内部一个「虚拟压力场」</td></tr><tr><td>面片离散</td><td>Masterjohn 2022，Velocity Level Approximation of Pressure Field Contact Patches</td><td>每块接触面怎么变成一根弹簧</td></tr><tr><td>求解器</td><td>Castro 2022，SAP</td><td>所有弹簧和约束怎么一起解</td></tr></table></div>
 <p>Genesis 里的 hydro 就是 SAPCoupler（Genesis 里调用 SAP 求解器的接触模块）的四面体（TET）接触类型；另一种 VERT 类型是每个顶点一根弹簧的点接触，不算 hydro。</p>

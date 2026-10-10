@@ -723,7 +723,7 @@ def week2_sections(hydro):
          ("w2", "文献：神经网络接触模型", _lectures(LECTURES_NEURAL)),
          ("w3", "看代码", "".join([
              '<h3 id="c_nipc">supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）</h3>',
-             _notion_md_to_html(_handout_sections("neuralipc_code", (1, 2, 3, 4, 5))),
+             _notion_md_to_html(_handout_sections("neuralipc_code")),
              '<h3 id="c_genesis">Genesis 的 hydroelastic 是怎么实现的</h3>',
              _notion_md_to_html(_handout_sections("genesis_hydro_impl", (1, 3)))])),
          ("w4", "Demo：Genesis + hydroelastic", "".join([
