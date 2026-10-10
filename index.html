@@ -90,9 +90,221 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <header class="top"><h1>Neural-IPC 周汇报</h1><p class="summary">这周在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）：5 个 Genesis IPC 例子和 4 个 Genesis 官方 IPC 测试场景，共 10 段视频（官方测试 4 个跑完，其中官方断言通过 2 个）。然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 8 个 IPC 参数做了单变量扫描，共 25 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；\(\hat d\) 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。另外跑了 Genesis 自带的 hydroelastic 接触官方测试（SAP 求解器），官方断言通过。</p><nav class="toc"><a href="#meeting">组会提纲</a><a href="#videos">Demo 视频</a><a href="#tests">官方测试场景</a><a href="#hydro">Hydroelastic 接触</a><a href="#label">造 label 的收敛检查</a><a href="#sweep">盒子实验与参数扫描</a><a href="#data">对生成数据的意义</a></nav></header>
 <section id="meeting"><h2>组会提纲</h2>
 <h3 id="m_refs">1. 这周看了哪些文献</h3>
-<ul></ul>
+<div class="meeting-md"><h4>① Hydroelastic 一族（压力场接触 + 它所用的求解器）</h4>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>做了什么</th>
+<th>和我们的关系</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Elandt 2019（PFC）</td>
+<td>每个物体内部放一个虚拟压力场，两物体按原形状重叠，在两边压力相等的面上积分得到接触力；有势能，所以保守</td>
+<td>同样是「重叠 → 能量」，但它的能量是人为设计的压力场，只依赖一个刚度参数和几何；我们的能量来自 IPC+FEM 的无穿透真解</td>
+</tr>
+<tr>
+<td>Masterjohn 2022</td>
+<td>每块接触多边形换成形心处一根等效弹簧（\(k=gA_0\)），让 PFC 能塞进速度层求解器、跑到实时</td>
+<td>只规定力、没有势能；刚度 \(E_h\) 用户给定，我们的刚度从数据学</td>
+</tr>
+<tr>
+<td>Castro 2022（SAP）</td>
+<td>把柔性接触写成只含速度、无约束、强凸的最小化问题，用牛顿法求解；\(k\) 太大时改由步长定刚度</td>
+<td>接触项是速度空间里的单边二次惩罚，力对嵌入线性，\(k\) 人给；Genesis 的 hydro 就跑在它上面</td>
+</tr>
+<tr>
+<td>Castro 等 2020（TAMSI，RA-L）</td>
+<td>点接触 + Hunt–Crossley 力律；冻结几何、只对嵌入量做一阶预测，让法向力隐式</td>
+<td>力律对嵌入线性、没有势能；「冻结几何 + 一阶预测」是把我们的能量放进动力学时会遇到的同类近似</td>
+</tr>
+<tr>
+<td>Han 2023</td>
+<td>把 SAP 扩展到大变形可变形体：线性共旋材料保证凸，Schur 补消掉不碰接触的自由度</td>
+<td>\(\Pi\) 为二次型且不考虑接触时，我们的 \(\min_w\) 就是对 \(w\) 做 Schur 补，与它同构；无穿透约束带来的那部分能量它没有对应物</td>
+</tr>
+<tr>
+<td>GPU SDF hydroelastic（Newton 项目）</td>
+<td>压力场改存在 SDF 上，用 marching cubes 抠等压面，GPU 并行 + 接触约简</td>
+<td>更快、没说更准，没和 FEM/IPC/Hertz 定量比；SDF 表示和接触约简可借</td>
+</tr>
+<tr>
+<td>Castro、Han、Masterjohn（ICF）</td>
+<td>给出任意法向力律放进凸优化的条件：穿得越深力越大、合拢越快力越大</td>
+<td>它的接触势和我们的网络能量在求解器里占同一位置，凸性条件可借作网络能量约束；作者把 IPC 归为「刚核外包一层薄软层」</td>
+</tr>
+<tr>
+<td>Genesis hydro 实现（代码阅读）</td>
+<td>Genesis 的 hydro = Elandt 压力场 + Masterjohn 面片弹簧 + SAP 求解器；刚体共用一个全局刚度 \(H\)（默认 1e8）</td>
+<td>和 hydro 比时实际跑的就是它；刚体球压地 \(F\approx\pi H\delta^2\)，与半径无关，和 Hertz 的幂次不同</td>
+</tr>
+</tbody>
+</table>
+<h4>② 神经接触模型（及能量型接触先验）</h4>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>做了什么</th>
+<th>和我们的关系</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Romero 2021</td>
+<td>子空间（把手）带动整体运动，网络学接触压出的局部凹坑位移，标签是全 FEM 准静态解</td>
+<td>同是「粗自由度 + 网络补局部形变」，但它学位移、我们学能量；换物体要重训</td>
+</tr>
+<tr>
+<td>Romero 2022</td>
+<td>换到碰撞体坐标系里学凹坑（contact-centric），样本约为前作的 1/15</td>
+<td>仍学位移，接触项是 SDF 三次方罚函数，不保证无穿透；一个网络绑死一个物体加一个碰撞体</td>
+</tr>
+<tr>
+<td>Romero 2023</td>
+<td>用兴趣点周围的局部 SDF 探针描述碰撞体，换没见过的碰撞体误差 17.0% → 17.8%</td>
+<td>泛化方向和我们相反（它泛化碰撞体，每个被压物体单独训）；局部 SDF 探针可借来做形状泛化</td>
+</tr>
+<tr>
+<td>RigidFormer</td>
+<td>点云 + Transformer，每个物体一个 token、只预测 4 个锚点的加速度，Kabsch 投影保证刚性</td>
+<td>整个求解器换成网络，没有能量、没有形变、不保证物体间不穿透；可借的是「交互放到物体一级」</td>
+</tr>
+<tr>
+<td>Pfrommer、Halm、Posa 2020（ContactNets）</td>
+<td>网络只学光滑的有符号距离和接触 Jacobian，速度跳变交给 LCP 求解器；loss 是内层对冲量的凸优化</td>
+<td>「学光滑量、让结构产生跳变」对应我们学能量、力自动求导；它是刚体硬接触，没有能量</td>
+</tr>
+<tr>
+<td>Zesch、Modi、Sueda、Levin 2023（NCF，SIGGRAPH Asia）</td>
+<td>把两三角形间的「模糊接触面积」积分交给 MLP 背下来，接进 PBD</td>
+<td>名字像，学的是纯几何量，没有材料和弹性能；不能替 IPC 生成标签</td>
+</tr>
+<tr>
+<td>Feng 2021（DEM，CMAME）</td>
+<td>证明：接触力只要是某个接触能量 \(w\) 的负梯度，弹性碰撞就不凭空生能；法向、接触点都从 \(w\) 推出</td>
+<td>结构和我们最像（标量能量 → 求导得力）；它的 \(w\) 是人选的，我们的来自 IPC 局部形变；两球取 \(w=\tfrac{8}{15}E^*R^{1/2}\delta^{5/2}\) 即退化成 Hertz</td>
+</tr>
+<tr>
+<td>Fiber Monte Carlo 接触（FEM，不用网络）</td>
+<td>接触能量 = \(k\times\) 重叠体积，撒线段让体积估计可导；用 Hertz、楔、锥解析解检验</td>
+<td>可当 baseline（粗模型 + \(kV_c\)）；「光滑 + 尖角闭式解」的验证设置可直接借作裁判题</td>
+</tr>
+</tbody>
+</table>
+<h4>③ 刚体与其他</h4>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>做了什么</th>
+<th>和我们的关系</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stewart 2000（SIAM Review 综述）</td>
+<td>刚体 + 互补条件，每步解冲量，反弹靠外加恢复系数 \(\varepsilon\)</td>
+<td>hydro 想绕开的刚体极限；它指出刚体模型丢了「相对刚度」，这正是粗自由度 + 局部形变能要补回的</td>
+</tr>
+<tr>
+<td>Anitescu 2006</td>
+<td>每步解一个凸 QP（离无接触速度最近、且不穿透的速度），证明步长 → 0 收敛</td>
+<td>Anitescu → Todorov → SAP 的源头；接触不储能，不能当裁判</td>
+</tr>
+<tr>
+<td>Todorov、Erez、Tassa 2012（MuJoCo）</td>
+<td>速度步进直接解冲量；「软」的成分 \(R\)、\(q\) 是数值设计变量</td>
+<td>位置上也是「额外接触项」，但没有材料含义；作者自己说接触精度未验证</td>
+</tr>
+<tr>
+<td>Hertz 1882（Johnson 1985 第 4 章推导）</td>
+<td>两弹性球接触的闭式解：接触半径、力–压深、压力分布、能量</td>
+<td>和 hydro 比的独立裁判之一；先让 FEM+IPC 对上 Hertz，再拿它检验网络</td>
+</tr>
+<tr>
+<td>supervisor 代码（neuralipc_code）</td>
+<td>学「凝聚接触势」\(U_c\)；网络 \(U=c\,\delta^p\)（gap footing）+ 多 patch 耦合图；BEM 与 Hertz 误差 &lt; 0.1%，学到的指数中位数 2.47</td>
+<td>我们的直接起点；标签来自 BEM / 有限应变 FEM，还没接上 libuipc 生成的 IPC 数据</td>
+</tr>
+</tbody>
+</table></div>
 <h3 id="m_theory">2. 公式和理论</h3>
-<ul></ul>
+<div class="meeting-md"><h4>(a) Hertz：球压弹性平面</h4>
+<p>\[a=\sqrt{R\,\delta},\qquad U=\frac{8}{15}E^*\sqrt{R}\,\delta^{5/2},\qquad E^*=\frac{E}{1-\nu^2}\]</p>
+<ul>
+<li>\(\delta\)：压深（m），远处两点互相靠近的距离。</li>
+<li>\(R\)：球半径（平面的曲率半径取无穷大，等效半径就是球半径）。</li>
+<li>\(a\)：接触斑半径。</li>
+<li>\(E\)、\(\nu\)：被压物体的杨氏模量（多硬）和泊松比（压扁时往旁边鼓多少）；\(E^*\)：等效模量（压头为刚体时的情形；一般情形两边「软度」相加，像两根弹簧串联）。</li>
+<li>\(U\)：两物体储存的弹性应变能（J）；对应的力 \(F=\tfrac43E^*R^{1/2}\delta^{3/2}\)。</li>
+</ul>
+<p>直观：</p>
+<ul>
+<li><strong>压深变 4 倍 → \(a\) 只变 2 倍</strong>；而且比拿平面直接切球得到的 \(\sqrt{2R\delta}\) 小，因为接触圈外的表面也被带着往下陷。</li>
+<li><strong>\(E^*\) 越大 → \(U\) 越大</strong>，因为材料越硬越难压。</li>
+<li><strong>\(R\) 越大 → \(U\) 越大</strong>，因为接触斑宽，顶着的材料多。</li>
+<li><strong>\(\delta\) 越大 → \(U\) 按 \(\delta^{5/2}\) 涨，比线性弹簧快</strong>，因为刚度 \(dF/d\delta=2E^*a\) 随接触面一起变大，越压越硬。</li>
+</ul>
+<p>适用范围：这是<strong>变形小时精确的解析公式</strong>。它的前提包括小应变（\(a\ll R\)）、半空间（\(a\) 也远小于物体）、表面在接触点附近可用抛物面 \(z\approx r^2/(2R)\) 近似。压得深时这些近似本身也有误差：\(\delta/R\) 超过约 0.1 后，Hertz 低估 \(a\)、高估中心压强；\(F\)–\(\delta\) 曲线却很稳（\(\delta/R\) 到 0.66 误差仍在 3% 以内），因为两种误差大致抵消。所以只看 \(F\)–\(\delta\) 对上不够，要同时比 \(a\)、峰值压强、\(F\)。薄层贴在硬底座上时 \(F\) 比 Hertz 偏大。</p>
+<h4>(b) Hydroelastic（Elandt 2019，PFC）</h4>
+<p>\[p_0=E\,\epsilon,\qquad \text{接触面：}\ p_{0_A}=p_{0_B},\qquad \mathbf f=\int_{\mathcal S}p_0\,\hat{\mathbf n}\,dS\ \ (\text{每块平面多边形：}f_n=A\,p_c)\]</p>
+<ul>
+<li>\(p_0\)：物体内部某点的虚拟压力（Pa），固定在物体上、随物体一起动，离线算一次，不需要满足力学平衡。</li>
+<li>\(\epsilon\)：穿入程度，表面为 0，最深处（中轴，物体内部的「骨架」）为 1。原文用 Laplace 方程生成；Genesis 里取「到表面距离 / 最大距离」。</li>
+<li>\(E\)：刚度参数，决定多硬（措辞见下）。</li>
+<li>\(\mathcal S\)：接触面，重叠区里两边压力相等的点；\(\hat{\mathbf n}\)：接触面单位法向。</li>
+<li>\(A\)、\(p_c\)：一块接触多边形的面积和形心压力。压力在多边形上线性，「面积 × 形心值」正好等于积分。</li>
+</ul>
+<p>直观：</p>
+<ul>
+<li><strong>越往里、\(E\) 越大 → 压力越大</strong>，像一块外软内硬的果冻。</li>
+<li><strong>压得越深 → 合力越大</strong>，因为压力变大、接触面也变大（球压进平面，重叠部分的切口半径约 \(\sqrt{2Rd}\)）。</li>
+<li><strong>一方越软 → 接触面越陷进它那一边</strong>，因为由 \(E_A\epsilon_A=E_B\epsilon_B\)，软的一方要压得更深才顶得住同样的压力。</li>
+</ul>
+<p>刚度从哪来（按讲义原文）：</p>
+<ul>
+<li>Elandt 原文把 \(E\) 称作杨氏模量 / 弹性模量，但模型「不追求精确预测变形」，能量是人为指定的，只有一个参数 \(E\)；唯一的定量对比是二维：贴合接触与 FEM 一致，点接触低估 23%。</li>
+<li>Drake 后续工作里，压力场最深处的值 \(E_h\) 叫 hydroelastic modulus，<strong>用户给定</strong>，相当于「硬度」。</li>
+<li>Genesis 里刚体用一个<strong>全局刚度 \(H\)</strong>（默认 1e8 Pa）；FEM 物体用每种材料的 hydroelastic 模量（默认 1e7），<strong>和材料的弹性模量 \(E\) 互不联动</strong>，两个要分别设、分别报。</li>
+<li>后果：Genesis 刚体球压无限硬地面时 \(F\approx\pi H\delta^2\)，<strong>与半径无关</strong>；Hertz 是 \(F\propto R^{1/2}\delta^{3/2}\)，半径和深度的幂次都不同。</li>
+</ul>
+<h4>(c) IPC barrier（libuipc 实际用的形式）</h4>
+<p>\[B(D)=\kappa\,\big(D-\hat d^{\,2}\big)^2\Big[\ln\frac{D}{\hat d^{\,2}}\Big]^2,\qquad D=d^2\]</p>
+<ul>
+<li>\(d\)：两表面之间的距离；\(D\)：距离的平方。</li>
+<li>\(\hat d\)：barrier 开始起作用的距离，两面距离小于它就被往外推。</li>
+<li>\(\kappa\)：barrier 刚度；libuipc 调用处实际传入的是 \(\kappa\,dt^2\)（\(dt\) 时间步长）。没手动设置时，\(\kappa\) 取场景自适应区间的下界；Genesis 刚体（进入 libuipc 后是 ABD 物体）用 \(\kappa=100\) MPa。</li>
+<li>这是 Stiff-GIPC 的 log² 形式，<strong>不是</strong> IPC 论文的 \(-\kappa(d-\hat d)^2\ln(d/\hat d)\)；网络要匹配 libuipc 的接触能量，以这个形式为准。</li>
+</ul>
+<p>直观：</p>
+<ul>
+<li><strong>\(d\) 越接近 0 → 能量越大，趋于无穷</strong>，因为对数项发散；所以两表面永远推不到相交，这就是 IPC 的无穿透保证。</li>
+<li><strong>\(d\) 到 \(\hat d\) 时能量为 0</strong>，因为 \((D-\hat d^{\,2})\) 这一项为零；距离再远就不起作用。</li>
+<li><strong>\(\hat d\) 越小 → 这层「薄软层」越薄</strong>。ICF 一文把 IPC 归为「刚核外包一层薄软层」。对我们：\(\hat d\) 要远小于压深 \(\delta\)，否则力里多出一段 Hertz 没有的成分；IPC 里两面不真正贴合，「接触斑」只能定义成距离小于 \(\hat d\) 的区域；和 Hertz 比之前，要把 IPC 总能量里的 barrier 能和 FEM 弹性能拆开，Hertz 的 \(U\) 只对应弹性能。</li>
+</ul>
+<h4>(d) 我们的想法</h4>
+<p>\[\text{低自由度}+\text{Neural IPC}=\text{高自由度}+\text{IPC（高保真）}\]</p>
+<p>\[U_c(z)=\min_w\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z)\]</p>
+<ul>
+<li>\(z\)：粗自由度，仿真器真正要解的量（刚体位姿、仿射矩阵、几个模态）。</li>
+<li>\(\Phi z\)：只用粗表示时物体的形状，接触时会和对方穿插。</li>
+<li>\(\Psi w\)：接触区附近粗表示做不出的那层薄的局部变形，\(w\) 是它的系数。</li>
+<li>\(\Pi\)：精细模型的总势能；\(\min_w\)：固定 \(z\)，让薄层在不穿透条件下调到能量最低（静态凝聚）。</li>
+<li>\(U_c\)：碰撞能量，即「为了真正不穿透，薄层额外付出的能量」。</li>
+</ul>
+<p>项目笔记原文的三句：
+1. 碰撞能量是一种涌现，体现为两个物体<strong>有穿透时与无穿透时的能量差</strong>；真实物体经常通过局部形变来达到无穿透（碰撞 → 无穿透 → 局部形变 → 弹性能量）。
+2. label：<strong>IPC 在 FEM 上跑 static simulation</strong> 作为 dataset，记录无穿透形状的弹性能量；网格加密后结果不变（收敛）才算 GT。
+3. 训练：网络学势能差，场景是「已经有穿透，static，软约束」；网络预测的能量和 GT 能量比较算 loss。</p>
+<p>直观：</p>
+<ul>
+<li><strong>粗表示自带的局部柔顺性越多 → \(U_c\) 越小</strong>，因为粗体自己吸收的变形越多，要补的越少；全部模态都带上时 \(U_c\to0\)。</li>
+<li><strong>粗表示不带表面局部模态时，「光滑球压弹性半空间」里 \(U_c\) 就是 (a) 的 Hertz 能量 \(U\)</strong>，这就是 Hertz 能当检验题的原因。</li>
+<li><strong>力 = \(-\partial U_c/\partial z\)</strong>，力是能量的梯度，所以不会凭空生出能量（和 Feng 2021 的结论一致）。</li>
+</ul></div>
 <h3 id="m_demo">3. 做了哪些 demo <a class="small" href="#videos">（详细）</a></h3>
 <ul><li>Genesis 官方 IPC 例子 4 个原样跑通并录像：物体落地、动量守恒、机械臂抓软方块、一堆物体扔进盒子；另有本地带窗口遥控机械臂抓布。</li><li>Genesis 官方 IPC 测试 4 个按测试自带断言录像（离地间隙、斜向重力滑动、布盖物体、夹布拖动）；两个断言没过，原因已查清（见各卡片说明）。</li><li>Genesis 官方 hydroelastic 测试：两条关节链落到盒子上，接触由 SAP 求解器按压力场计算。</li></ul>
 <h3 id="m_setup">4. 实验设定 <a class="small" href="#label">（详细）</a></h3>

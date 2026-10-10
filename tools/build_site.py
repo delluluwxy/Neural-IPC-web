@@ -672,13 +672,47 @@ MEETING = [
 ]
 
 
+MEETING_MD = PROJECT / "docs" / "drafts" / "meeting_refs_theory.md"   # 第 1、2 部分的唯一来源
+MEETING_MD_PARTS = {"m_refs": "## 第一部分", "m_theory": "## 第二部分"}   # md 里每部分的标题行开头；「## 出处」是内部路径，不上页面
+
+
+def _md_to_html(md_text):
+    """Markdown（表格、列表、粗体）转 HTML；$$…$$ / $…$ 先换成占位符，转完再还原成 MathJax 的 \\[…\\] / \\(…\\)。"""
+    import markdown
+    maths = []
+
+    def stash(m, display):
+        maths.append((display, m.group(1)))
+        return f"@@MATH{len(maths) - 1}@@"
+    t = re.sub(r"\$\$(.+?)\$\$", lambda m: stash(m, True), md_text, flags=re.DOTALL)
+    t = re.sub(r"\$(.+?)\$", lambda m: stash(m, False), t)
+    t = re.sub(r"(?m)^(?![-|\s])(.+)\n(?=[-|] )", r"\1\n\n", t)   # 列表/表格紧跟在文字行后面时补空行，否则不认
+    t = re.sub(r"(?m)^### ", "#### ", t)                          # 稿内小标题降一级，挂在提纲的 h3 下面
+    out = markdown.markdown(t, extensions=["tables"])
+    for i, (display, body) in enumerate(maths):
+        out = out.replace(f"@@MATH{i}@@", (f"\\[{esc(body)}\\]" if display else f"\\({esc(body)}\\)"))
+    return out
+
+
+def _meeting_md_part(anchor):
+    """meeting_refs_theory.md 里某一部分（从它的 ## 标题到下一个 ## 标题），去掉标题行，转成 HTML。"""
+    text = MEETING_MD.read_text(encoding="utf-8")
+    body = text[text.index(MEETING_MD_PARTS[anchor]):].split("\n", 1)[1]
+    nxt = body.find("\n## ")
+    body = body[:nxt] if nxt >= 0 else body
+    return _md_to_html(body.replace("\n---", "\n"))
+
+
 def meeting_section():
     """The meeting outline: six parts in the order the user presents them, each linking to the detailed section."""
     parts = ['<section id="meeting"><h2>组会提纲</h2>']
     for anchor, title, items, detail in MEETING:
         link = f' <a class="small" href="#{detail}">（详细）</a>' if detail else ""
         parts.append(f'<h3 id="{anchor}">{esc(title)}{link}</h3>')
-        parts.append('<ul>' + "".join(f"<li>{x if x.startswith('<') else esc(x)}</li>" for x in items) + "</ul>")
+        if anchor in MEETING_MD_PARTS:
+            parts.append(f'<div class="meeting-md">{_meeting_md_part(anchor)}</div>')
+        else:
+            parts.append('<ul>' + "".join(f"<li>{esc(x)}</li>" for x in items) + "</ul>")
     parts.append("</section>")
     return "\n".join(parts)
 
