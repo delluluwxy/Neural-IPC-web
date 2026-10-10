@@ -680,6 +680,8 @@ def _load_e0():
             raise SystemExit(f"[build_site] {p} 读不了：{err}")
         if "rows" not in d:
             continue
+        if d.get("L", 1.2) != 1.2 or d.get("growth", 1.4) != 1.4:   # block-size checks are read by _load_block_size
+            continue
         key = (d["constitution"], d["h_c"], d["d_hat"], d["sph_sub"])
         if key not in best or len(d["rows"]) > len(best[key]["rows"]):
             best[key] = d
