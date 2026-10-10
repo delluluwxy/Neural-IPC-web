@@ -730,7 +730,7 @@ def _load_e0():
         d, err = load_json(p)
         if err:
             raise SystemExit(f"[build_site] {p} 读不了：{err}")
-        if "rows" not in d:
+        if "rows" not in d or "constitution" not in d:   # torch_fem/ 等别的工具的 json 不在这张表里
             continue
         if d.get("L", 1.2) != 1.2 or d.get("growth", 1.4) != 1.4:   # block-size checks are read by _load_block_size
             continue
