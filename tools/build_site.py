@@ -503,7 +503,7 @@ h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1p
 h4 { font-size: 1.15rem; margin: 26px 0 8px; font-weight: 650; }
 h5 { font-size: 1.05rem; margin: 20px 0 6px; font-weight: 650; }
 section h4, section h5 { color: var(--accent); }
-.kp { color: var(--key); font-weight: 600; }
+.kp { color: var(--key); font-weight: 600; margin: 10px 0 14px; }
 pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.76rem;
           line-height: 1.45; background: var(--soft); border-radius: 4px; padding: 10px 12px; margin: 6px 0;
           max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -776,42 +776,82 @@ LECTURES_NEURAL = [
     ("p_rigidformer", "Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers", "rigidformer", (6,))]
 
 
+# 每篇神经网络接触论文讲完时的总结句（组会上直接强调的话），接在该篇末尾
+LECTURE_TAKEAWAYS = {
+    "p_romero21": "Romero 2021 学习的是位移修正，没有定义接触能量；Neural-IPC 学习的是实现无穿透所需的碰撞能量，"
+                  "接触力由能量求导得到。",
+    "p_romero22": "Romero 2022 学习接触凹坑的形状，接触力仍来自人工设计的罚函数，不保证无穿透；"
+                  "每个网络只对应一个物体和一个碰撞体。",
+    "p_romero23": "Romero 2023 为每个被压物体训练一个网络、泛化到不同碰撞体；Neural-IPC 用一个模型覆盖多种被压物体，"
+                  "泛化方向相反。",
+    "p_rigidformer": "RigidFormer 用网络替代整个刚体求解器，没有能量，也不保证物体间无穿透；"
+                     "Neural-IPC 保留物理求解器，只补充一项学习得到的碰撞能量。"}
+
+
+def _takeaway(text):
+    """一节讲完时要强调的总结句：单独一段、醒目色（.kp）。"""
+    return f'<p class="kp">{text}</p>'
+
+
 def _lectures(items):
     return "".join(f'<h3 id="{a}">{esc(title)}</h3>\n{_notion_md_to_html(_handout_sections(name, nums))}'
+                   + (_takeaway(LECTURE_TAKEAWAYS[a]) if a in LECTURE_TAKEAWAYS else "")
                    for a, title, name, nums in items)
 
 
-# 每节真正要讲的重点（核心结论、关键判据），只这些标醒目色；加粗不等于重点（用户 10-10：「不要加粗的都当重点」）。
-# (节锚点, 页面 HTML 里的原文片段)；片段必须原样出现，底稿改了对不上就报错。
-KEY_POINTS = [
-    ("w1", "原文的边界：物体「名义上是刚体」，不追求准确预测形变。"),
-    ("w1", "一步时间积分写成一个无约束凸优化（碗形、只有一个最低点），解唯一。"),
-    ("w1", "随接触面一起变大，越压越硬。"),
-    ("w2", "一个标量碰撞能量：有穿透与无穿透时的能量差"),
-    ("w2", "一个模型覆盖多种被压物体形状，方向相反"),
-    ("w2", "保留粗自由度仿真，只补一个额外的碰撞能量项"),
-    ("w3", "为了真正不穿透，薄层额外付出的能量"),
-    ("w3", "局限：所有学习结果都只在「刚性压头 + 半空间、E* = 1」上做过；两个可变形体、3D 学习模型、用它跑的简化仿真器都还没做。"),
-    ("w4", "hydroelastic 依靠微小的相互穿透产生支撑力"),
-    ("w5", "裁判必须和造 label 的流程分开，否则等于先认定自己是对的。"),
-    ("w5", "比值里 hydro 的刚度和压力映射都约掉了，调参救不回来。"),
-    ("w5", "压深 0.004、0.024 为 0.994、1.005，与 Hertz 一致"),
-    ("w5", "hydro (A) ×2，对任意映射 \\(f\\) 都成立"),
-    ("w5", "解析解 ×1、×2、×4；hydro ×1、×4、×16。"),
-    ("w5", "hydro 不变。"),
-    ("w5", "比值趋近 4，hydro 始终是 2。"),
-    ("w5", "换到仿射体上把这部分柔度算两遍，力算小。"),
-    ("w6", "待决定：标签沿用 supervisor 的 pyuipc 0.0.25 直接生成，还是改用 Genesis（内含新版 libuipc）。")]
+# 每个小节讲完时要强调的总结句（用户 10-10：「meeting 上要跟人家强调的能直接说的原话，要专业，小结论那种」
+# 「章节讲完了要总结和强调的东西单独写出来上色」）。只有这些标醒目色，加粗不上色。
+# (节锚点, 插在哪段之后：页面 HTML 里该段的结尾原文；None = 本节末尾, 总结句)
+TAKEAWAYS = [
+    ("w1", "不追求准确预测形变。</p>",
+     "hydroelastic 的接触压力由预先给定的压力场按穿入深度确定，不来自弹性力学平衡；它针对名义刚体，不预测真实形变。"),
+    ("w1", "约等于软的那侧。</p>",
+     "每块接触多边形等效为形心处的一根线性弹簧，刚度 \\(k=g\\,A_0\\) 与接触面积成正比。"),
+    ("w1", "解唯一。</p>",
+     "hydroelastic 的接触力必须由穿透产生；SAP 把每个时间步写成无约束凸优化，保证解唯一。"),
+    ("w1", "指数比力多 1。</li>",
+     "Hertz：\\(F\\propto\\sqrt R\\,\\delta^{3/2}\\)，\\(U\\propto\\sqrt R\\,\\delta^{5/2}\\)；接触斑随压深扩大，刚度随之增大。"
+     "它是我们与 hydroelastic 比较时独立于双方的解析基准。"),
+    ("w3", "证明它 ≥ 0。</li>",
+     "\\(U_c\\) 是粗表示为实现无穿透所缺失的弹性能，恒非负；粗表示不含表面局部模态时，球压弹性半空间的 \\(U_c\\) 就是 Hertz 能量。"),
+    ("w3", None,
+     "现有学习结果全部在刚性压头压半空间（\\(E^*=1\\)）上得到，标签来自 BEM 与有限应变 FEM；"
+     "libuipc 生成的 IPC 标签尚未用于训练。"),
+    ("w4", None,
+     "hydroelastic 依靠物体间的微小穿透产生支撑力（本例箱体下沉约 8 µm）；IPC 在两表面间始终保持正间隙。"),
+    ("w5", "调参救不回来。</li>",
+     "判据：以独立于双方的弹性解析解为裁判，只改变一个量、比较力的比值；比值中 hydroelastic 的刚度参数完全约去，无法靠调参弥补。"),
+    ("w5", "块大小。</li>",
+     "IPC 标签经网格与块尺寸外推后，与 Hertz 的比值为 0.994 / 1.005，标签可信。"),
+    ("w5", "介于 1 和 2 之间。</p>",
+     "球半径加倍：解析力增大 \\(\\sqrt2\\) 倍，hydroelastic（A）增大 2 倍，且与压力映射的选取无关。"),
+    ("w5", "×1、×4、×16。</p>",
+     "平底压头：解析力与半径成正比，hydroelastic 的力与面积成正比；半径增大 4 倍时两者相差 4 倍。"),
+    ("w5", "降到约 6%。</p>",
+     "相邻接触区通过基底相互卸载，解析力随间距减小而下降；hydroelastic 各接触区独立计算，无法表达这种耦合。"),
+    ("w5", "hydro 始终是 2。</p>",
+     "近不可压薄层中，压力由整个接触区决定而不是局部穿入深度；球半径加倍时解析力趋近 4 倍，hydroelastic 恒为 2 倍。"),
+    ("w5", "7%→17%。</p>",
+     "粗表示本身越柔，正确的接触能量越软；hydroelastic 与粗表示无关，用在仿射体上会重复计入柔度，力偏小，"
+     "且偏差随物体变细长而增大。"),
+    ("w6", None,
+     "待决定：标签用 pyuipc 0.0.25 直接生成，还是改用 Genesis（需改写材料参数）；并确定低成本的批量生成设置。")]
 
 
-def _mark_keys(anchor, body):
-    """把 KEY_POINTS 里属于这一节的片段包成 <span class="kp">。"""
-    for a, frag in KEY_POINTS:
+def _add_takeaways(anchor, body):
+    """把 TAKEAWAYS 里属于这一节的总结句插到对应段落之后（列表项则插到整个列表之后）。"""
+    for a, after, text in TAKEAWAYS:
         if a != anchor:
             continue
-        if frag not in body:
-            raise SystemExit(f"[build_site] 重点片段在 {anchor} 节里找不到（底稿可能改过）：{frag[:40]}")
-        body = body.replace(frag, f'<span class="kp">{frag}</span>', 1)
+        if after is None:
+            body += _takeaway(text)
+            continue
+        if body.count(after) != 1:
+            raise SystemExit(f"[build_site] 总结句的位置在 {anchor} 节里找不到或不唯一（底稿可能改过）：{after}")
+        end = body.index(after) + len(after)
+        if after.endswith("</li>"):
+            end = body.index("</ul>", end) + len("</ul>")
+        body = body[:end] + _takeaway(text) + body[end:]
     return body
 
 
@@ -847,7 +887,7 @@ def week2_sections(hydro):
                  "并用高精度设置量出它的系统偏差。"),
              _pt("待决定：标签沿用 supervisor 的 pyuipc 0.0.25 直接生成，还是改用 Genesis（内含新版 libuipc）。",
                  "新版的软体材料参数换算有误，需改写材料参数（E0「材料参数要先核对」）；Genesis 中所有 IPC 软体同样受影响。")]))]
-    return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{_mark_keys(a, body)}</section>' for a, t, body in S]
+    return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{_add_takeaways(a, body)}</section>' for a, t, body in S]
 
 
 # ---------------- 参数扫描 ----------------
