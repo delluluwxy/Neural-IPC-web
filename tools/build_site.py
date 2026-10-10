@@ -839,10 +839,6 @@ def week2_sections(hydro, f):
         _ul([e("任意压头网格、任意物体和位姿的数据生成器；两个都会变形的物体；3D 的学习模型；用学出来的能量跑的降阶仿真器"),
              e("所有学习实验的 label 都来自边界元和有限元，IPC（libuipc）造的 3D 数据还没接进训练；"
                "要接进来，先要确认 IPC 造的 label 本身是对的，这就是第 6 部分的检查")]),
-        "<h3>上手要注意</h3>",
-        _ul([e("clone 下来 out/ 是空的：文档说「out/*.npz 已经在」，但数据不进 git，分析脚本要先跑对应的 *_gen.py"),
-             e("3D label 的材料能量按 pyuipc 0.0.25 写；换成新版 libuipc（我们源码编译的版本、Genesis 里的）材料参数会对不上，"
-               "要改写参数、能量换成新公式（第 7 部分）")]),
         "<h3>Genesis 的 hydroelastic 怎么实现（读源码）</h3>",
         r"<p>\[p(v)=\frac{|d(v)|}{\max_v|d|}\,H,\qquad g=\frac{1}{1/g_0+1/g_1},\qquad k=A\,g,\qquad "
         r"\phi_0=-\frac{p}{g}\]</p>",
