@@ -107,8 +107,8 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <p>\[p_0 = E\,\epsilon\]</p>
 <ul>
 <li>\(p_0\)：物体内某点的虚拟压力（Pa），固定在物体上，不要求满足力学平衡。</li>
-<li>\(E\)：原文称弹性模量，作用是把穿入程度换算成压力的比例系数。</li>
-<li>\(\epsilon\)：穿入程度，表面为 0，中轴（离表面最远的「骨架」，球为球心）为 1；原文在四面体网格内解 Laplace 方程得到。</li>
+<li>\(E\)：压力场模量（Pa），把穿入程度换算成压力的比例系数。</li>
+<li>\(\epsilon\)：穿入程度，表面为 0，中轴（离表面最远的「骨架」，球为球心）为 1；在四面体网格内解 Laplace 方程得到。</li>
 </ul>
 <p>\[\mathbf f=\int_{\mathcal S}p_0\,\hat{\mathbf n}\;dS,\qquad \mathcal S=\{\,p_{0_A}=p_{0_B}\,\}\]</p>
 <ul>
@@ -119,7 +119,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h4>实现</h4>
 <p>Drake 与 Genesis 都取 \(\epsilon\) = 顶点到表面距离 ÷ 最大距离。Drake 的刚体不带压力场，接触面取刚体表面落在软体内的部分。Genesis 的刚体也剖成四面体、带压力场，全部刚体共用刚度 \(H\)（默认 \(10^8\) Pa）；FEM 软体的压力场模量按材料单独设置（默认 \(10^7\) Pa），与杨氏模量无关。</p>
 <h4>和我们的关系</h4>
-<p>压力只由该点的穿入程度决定，与接触区的整体大小、形状和泊松效应无关。原文对比大变形有限元：贴合接触时力一致，点状接触时偏小 23%，归因于忽略泊松效应。第 5 节 E1、E2、E4 检验的正是这一假设。</p>
+<p>压力只由该点的穿入程度决定，与接触区的整体大小、形状和泊松效应无关。与大变形有限元相比，贴合接触时力一致，点状接触时偏小 23%，归因于忽略泊松效应。第 5 节 E1、E2、E4 检验的正是这一假设。</p>
 <p class="kp">Elandt 2019 以预设压力场的等压面计算接触力，压力只取决于局部穿入程度，不来自弹性力学平衡。</p>
 
 <h3>Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches</h3>
