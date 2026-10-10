@@ -843,7 +843,7 @@ def _takeaway(text):
 DRAFTS = PROJECT / "docs" / "drafts"
 # 主会话逐条核对过出处的网页稿；不在名单里的稿子（agent 还在写或未核对）不上页面
 VERIFIED_DRAFTS = {"romero2021", "romero2022", "romero2023", "rigidformer",
-                   "elandt", "masterjohn", "sap", "hertz", "code"}
+                   "elandt", "masterjohn", "sap", "hertz", "code", "plan"}
 
 
 def _web_draft(name):
@@ -921,7 +921,7 @@ TAKEAWAYS = [
      "粗表示本身越柔，正确的接触能量越软；hydroelastic 与粗表示无关，用在仿射体上会重复计入柔度，力偏小，"
      "且偏差随物体变细长而增大。"),
     ("w6", None,
-     "待决定：标签用 pyuipc 0.0.25 直接生成，还是改用 Genesis（需改写材料参数）；并确定低成本的批量生成设置。")]
+     "待决定：标签用 pyuipc 0.0.25 直接生成，还是改用 Genesis（开启材料参数修正）；并确定低成本的批量生成设置。")]
 
 
 def _add_takeaways(anchor, body):
