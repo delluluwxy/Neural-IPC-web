@@ -802,22 +802,47 @@ def week2_sections(hydro, f):
              e("球压平面时 U_c 就等于 Hertz 的 U，所以可以用 Hertz 检验")])])))
 
     S.append(('wc', "3. 看代码：supervisor 的 NeuralIPC 仓库、Genesis 的 hydroelastic", "".join([
-        _ul([e("目标：学上面的碰撞能量 U_c，给只有少量自由度的物体当接触能量用"),
-             e("造 label 的三个求解器："),
-             e("· 边界元：只离散接触表面，用半空间的解析公式；主力，和 Hertz 误差 < 0.1%"),
-             e("· 有限元 + 增广拉格朗日（用乘子精确保证不穿透）：大变形时的参考"),
-             e("· libuipc（GPU 上的 IPC 库）：刚球压软块，3D 造数据的雏形；我们第 6 部分检查的就是它")]),
-        "<h3>现在的网络：先算间隙，网络只给两个数</h3>",
-        r"<p>\[U=c\,\delta^{\,p},\qquad \delta=\max\big(0,\,-\min\text{gap}\big),\qquad p>2\]</p>",
-        _ul([e("gap：两个表面之间的有向间隙，用几何直接算；δ：最深的穿插量，分开时为 0，所以能量也正好是 0"),
-             e("网络只输出 c 和 p：c 管多硬，p 管随压深涨多快；p > 2 保证刚碰上时力从 0 平滑地长起来"),
-             e("力 = U 对位置求导，所以和能量一致"),
-             e("网络学到的 p 中位数 2.47，接近 Hertz 的 2.5")]),
-        "<h3>多个接触区</h3>",
-        _ul([e("总能量 = 各接触区自己的能量之和 − 相邻两区互相「变软」的修正"),
-             e("两个接触区靠得越近，修正越大：它们互相预压，一起变软")]),
-        _ul([e("现状：训练用的 label 来自边界元和有限元；用 IPC（libuipc）造的 3D 数据还没接进训练。"
+        "<h3>这是什么仓库、怎么跑</h3>",
+        _ul([e("github.com/YumengHe/NeuralIPC，Python 包 nipc；目标是学第 2 部分的碰撞能量 U_c"),
+             e("环境：pip install -e .（numpy、scipy、matplotlib、torch）；造 3D label 的部分另要 pyuipc 0.0.25（CUDA）。"
+               "作者在 Windows 11、Python 3.13、torch 2.6、RTX 4080 上测过"),
+             e("每个脚本都在仓库根目录下用 python -m nipc.<组>.<模块> 跑；文件路径统一写在 nipc/paths.py"),
+             e("生成的数据和图放 out/（不进 git），各实验的参考结果表放 results/，说明文档放 docs/"),
+             e("最快的两条：python -m nipc.analytic.hertz_contact（10 秒，验证 Hertz）；"
+               "python -m nipc.teacher.gen3d_press --deep（GPU 约 4 分钟，造 3D label）")]),
+        "<h3>六组代码各干什么</h3>",
+        table(["组", "做什么", "关键文件"],
+              [["analytic（7 个）", "线性的解析核心：边界元接触求解器（和 Hertz 差 < 0.1%，大多数学习实验的 label 都由它造）、"
+                "轴对称有限元、仿射粗化、多接触区耦合、100 个真实网格的基准", "hertz_contact.py"],
+               ["finite_strain（6 个）", "大变形：Neo-Hookean 有限元 + 增广拉格朗日接触（可信的非线性参考解）；"
+                "torch 自动求导的组装器，和 NumPy 版对到 1e-15", "rung2_step_a…e、rung2_torch_fem.py"],
+               ["learning（32 个）", "网络实验：*_gen.py 造数据，同名脚本训练和评估；全部是合成数据——刚性压头压半空间",
+                "neuralipc_*.py"],
+               ["teacher（7 个）", "用 libuipc 造 3D label：刚球压软块；数据生成器的雏形；网页查看器",
+                "gen3d_press.py、teacher_viz.py"],
+               ["reduced_dynamics（3 个）", "刚体 + 罚函数碰撞；一维弹性杆真解；Craig–Bampton 模态补回静态势漏掉的振动", "dem_*.py"],
+               ["validation（3 个）", "label 的含义：重力不进 U_c；动力学下静态势会漏能量，冲击越快漏得越多",
+                "gravity_projection_check.py"]]),
+        "<h3>现在的模型</h3>",
+        r"<p>\[U=\sum_k U_k(\delta_k)\;-\;\sum_{k<l}\mathrm{softplus}(\mathrm{NN})\,\sqrt{U_kU_l}\,\frac{L}{r_{kl}},"
+        r"\qquad \delta_k=\max\big(0,\,-\min\text{gap}_k\big)\]</p>",
+        _ul([e("流程：物体状态（形状编码、位姿、仿射量）→ 每个接触区用几何算有向间隙 gap → 穿插量 δ → "
+               "每个接触区一个学出来的能量 U_k → 两两之间一条耦合边 → 总能量 U → 力 = U 的梯度"),
+             e("耦合边是负的：两个接触区靠得越近（r 越小），互相预压、一起变软，总能量比各自相加小"),
+             e("δ 只由几何算，从不作为网络的输入或输出，所以不接触时能量严格为 0、刚接触时平滑"),
+             e("loss 只拟合能量；学到的指数中位数 2.47，接近 Hertz 的 2.5")]),
+        "<h3>代码里定死的设计</h3>",
+        _ul([e("label 是准静态的：位移控制地压、关掉重力；动态效果交给降阶模型的振动模态"),
+             e("粗状态用质量加权拟合，所以重力不进 label"),
+             e("3D label 用 libuipc 自己的材料能量算，不用小变形公式")]),
+        "<h3>还没做的（README 原话整理）</h3>",
+        _ul([e("任意压头网格、任意物体和位姿的数据生成器；两个都会变形的物体；3D 的学习模型；用学出来的能量跑的降阶仿真器"),
+             e("所有学习实验的 label 都来自边界元和有限元，IPC（libuipc）造的 3D 数据还没接进训练；"
                "要接进来，先要确认 IPC 造的 label 本身是对的，这就是第 6 部分的检查")]),
+        "<h3>上手要注意</h3>",
+        _ul([e("clone 下来 out/ 是空的：文档说「out/*.npz 已经在」，但数据不进 git，分析脚本要先跑对应的 *_gen.py"),
+             e("3D label 的材料能量按 pyuipc 0.0.25 写；换成新版 libuipc（我们源码编译的版本、Genesis 里的）材料参数会对不上，"
+               "要改写参数、能量换成新公式（第 7 部分）")]),
         "<h3>Genesis 的 hydroelastic 怎么实现（读源码）</h3>",
         r"<p>\[p(v)=\frac{|d(v)|}{\max_v|d|}\,H,\qquad g=\frac{1}{1/g_0+1/g_1},\qquad k=A\,g,\qquad "
         r"\phi_0=-\frac{p}{g}\]</p>",
