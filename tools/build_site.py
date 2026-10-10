@@ -649,24 +649,48 @@ LABEL = {
     "setting": "supervisor 造 label 用的 Hertz 算例原样照搬：一个刚性球（半径 1）竖直压进一块底面固定的软块"
                "（宽 2.4、高 1.2，E = 1e5，ν = 0.3），无摩擦、无重力，每个压深静置到平衡后算块里存的弹性能 U，"
                "这就是训练网络用的 label。和 Hertz 解析解 U_Hertz = (8/15)·E*·√R·δ^2.5 比。"
-               "压深照 supervisor 的 6 个，另外只改 d̂、网格、球面细分、接触模型这四样，看 label 会不会变。",
+               "压深照 supervisor 的 6 个，另外逐样改下表里的设置，看 label 会不会变。",
     "params": [("压深 δ", "0.004 – 0.024（6 个）", "球最低点压到块顶以下多深；supervisor 的主扫描"),
                ("d̂", "1e-3（supervisor）、5e-4、2.5e-4", "barrier 开始推的距离：两表面离得比 d̂ 近就开始互相推"),
                ("接触区网格尺寸 h_c", "0.025（supervisor）、0.0125、0.00625", "块在接触区的四面体大小；最细一档 265 万个四面体"),
                ("球面细分次数", "4（supervisor）、6、7", "球面三角形的大小；次数每加 1，边长减半"),
-               ("接触模型", "al-ipc（supervisor）、原版 IPC", "al-ipc 不用 barrier、用增广拉格朗日防穿透")],
-    "expect": "如果 label 是对的，四样东西都加密以后，U ÷ U_Hertz 应该不再变化，而且接近 1"
-              "（块不是无限大，会比 1 略高几个百分点）。",
+               ("接触模型", "al-ipc（supervisor）、原版 IPC", "al-ipc 不用 barrier、用增广拉格朗日防穿透"),
+               ("块的半宽 = 深度 L", "1.2（supervisor）、2.4、4.8", "块越大越接近 Hertz 假设的无限大半空间"),
+               ("细网格区外的单元放大倍数", "1.4（supervisor）、1.2", "越接近 1，远处的网格越细"),
+               ("材料参数", "照原样传入（supervisor）、反算", "见下面「材料参数」一段")],
+    "expect": "如果 label 是对的，这些设置都加密、放大以后，U ÷ U_Hertz 应该不再变化，而且接近 1。",
     "concl": "label 目前主要被 d̂ 拉高：supervisor 用的 d̂ = 1e-3 在小压深下多算了约 80% 的能量；"
-             "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。造数据要用细分 ≥ 6 次的球、"
-             "尽量小的 d̂（或按 d̂ 外推到 0），网格 0.0125 已基本够用。",
+             "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。按 d̂ 外推到 0 以后剩下的偏高，"
+             "大部分来自块不够大和 libuipc 新版的材料参数错配，两项都改掉后剩约 5–7%。造数据要用细分 ≥ 6 次的球、"
+             "尽量小的 d̂（或按 d̂ 外推到 0）、足够大的块，并在新版 libuipc 上反算材料参数。",
     "explain": ["为什么 d̂ 会把能量拉高：barrier 在两表面还隔着不到 d̂ 时就开始推，所以球还没真正碰到，"
                 "块就已经在比真实接触圈更大的一片区域上被压下去，存的能量更多。这部分多出来的能量大致和 d̂ ÷ δ 成正比，"
                 "所以压得越浅越严重。把实测间隙从压深里扣掉补不回来：扣了以后比值反而更偏离 1。",
                 "为什么球面粗会把能量压低：细分 4 次时三角形边长约 0.076，比压深 0.004 时的 Hertz 接触半径 0.063 还大，"
                 "球底在这个尺度上是个多面体的尖顶，不是光滑球面，接触区的形状和受力都不对。",
-                "外推到 d̂ = 0 后大压深仍高约 17%：这部分和接触模型无关，可能来自块有限大或大变形，还没拆开量。"],
+                "材料参数：libuipc 的 StableNeoHookean 先把输入的 E、ν 按原版 Stable Neo-Hookean 能量需要的公式换算"
+                "（让它在小变形下正好等于输入值），可是 2026-08-23 起它的 GPU 端换成了另一种能量（Stiff-GIPC 的 SNK1），"
+                "换算没跟着改。数值线性化的结果：输入 E = 1e5、ν = 0.3，实际小变形下是 E ≈ 1.245e5、ν ≈ 0.214。"
+                "supervisor 用的 pyuipc 0.0.25 早于这次改动，不受影响；我们源码编译的版本和 Genesis 的 IPC 软体都受影响。"
+                "「反算」= 把传进去的参数先倒推一次，让最后生效的正好是 E = 1e5、ν = 0.3。",
+                "剩下的约 5–7% 还没单独量：块半宽 4.8 时仍有一点有限尺寸影响，网格 0.0125 约 1–2%，"
+                "以及大压深下的有限变形。",
+                "块尺寸表里压深 0.004 那一列不单调（1.2 的块反而比 2.4 的低），原因还没查明；"
+                "这一列靠 d̂ = 5e-4 和 2.5e-4 两点直线外推，小压深下 d̂ 影响大，两点外推可能不够，要补更小的 d̂ 才能确定。"],
 }
+# Block-size / far-mesh / material checks: ipc, h_c 0.0125, sphere 7; each row = (label, d̂ 5e-4 json, d̂ 2.5e-4 json),
+# the table shows the straight-line extrapolation to d̂ = 0 at depths 0.004 and 0.024.
+BLOCK_RUNS = [("1.2（supervisor 的块）", "ipc_m/ipc_hc0.0125_dhat0.0005_sph7.json",
+               "ipc_m/ipc_hc0.0125_dhat0.00025_sph7.json"),
+              ("2.4", "size_L2.4/ipc_hc0.0125_dhat0.0005_sph7_L2.4.json",
+               "size_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4.json"),
+              ("2.4，远处网格放大倍数 1.2", "grow_L2.4_g1.2/ipc_hc0.0125_dhat0.0005_sph7_L2.4_g1.2.json",
+               "grow_L2.4_g1.2/ipc_hc0.0125_dhat0.00025_sph7_L2.4_g1.2.json"),
+              ("4.8", "size_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8.json",
+               "size_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8.json"),
+              ("4.8，材料参数反算", "matched_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8_snk1_matched.json",
+               "matched_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_matched.json")]
+SNH_LINEARIZED = (1.245, 0.214)   # tools/ipc_sweep/snh_linearization.py --E 1e5 --nu 0.3 的 snk1 那一行（E 倍数、ν）
 
 
 def _load_e0():
@@ -715,7 +739,17 @@ def label_facts():
         "ref_sph4": first(e0[("al-ipc", 0.025, 0.001, 4)]),
         "ref_sph7": first(e0[("al-ipc", 0.025, 0.001, 7)]),
         "extrap": (extrap(0), extrap(-1)),
+        "block": [(lbl, *_extrap_pair(a, b)) for lbl, a, b in BLOCK_RUNS],
     }
+
+
+def _extrap_pair(path_5e4, path_25e4):
+    """(depth 0.004, depth 0.024) values of the straight line through d̂ = 5e-4 and 2.5e-4, evaluated at d̂ = 0."""
+    a, err_a = load_json(E0_ROOT / path_5e4)
+    b, err_b = load_json(E0_ROOT / path_25e4)
+    if a is None or b is None:
+        raise SystemExit(f"[build_site] 块尺寸检查的结果文件读不了：{path_5e4} {err_a} / {path_25e4} {err_b}")
+    return tuple(2 * b["rows"][k]["U_over_UH"] - a["rows"][k]["U_over_UH"] for k in (0, -1))
 
 
 def label_section(f):
@@ -732,7 +766,12 @@ def label_section(f):
            f"但最细网格上 al-ipc 慢约 {f['time_ratio']:.1f} 倍",
            f"照 supervisor 的设置（al-ipc、网格 0.025、d̂ 1e-3、球面细分 4）复现出压深 0.004 的比值 {f['ref_sph4']:.2f}"
            f"（supervisor 记录 {SUPERVISOR_RECORDED:.2f}）；只把球面换成细分 7 次，变成 {f['ref_sph7']:.2f}",
-           f"把最细网格的结果按 d̂ 线性外推到 0：压深 0.004 约 {f['extrap'][0]:.2f}，压深 0.024 约 {f['extrap'][1]:.2f}"]
+           f"把最细网格的结果按 d̂ 线性外推到 0：压深 0.004 约 {f['extrap'][0]:.2f}，压深 0.024 约 {f['extrap'][1]:.2f}",
+           f"块半宽 1.2 → 2.4 → 4.8（外推到 d̂ = 0，压深 0.024）：{arrow([f['block'][i][2] for i in (0, 1, 3)])}；"
+           f"远处网格加细只差 {abs(f['block'][2][2] - f['block'][1][2]):.3f}；"
+           f"材料参数反算后 {f['block'][3][2]:.2f} → {f['block'][4][2]:.2f}",
+           f"libuipc 新版 StableNeoHookean 小变形下的实际参数：输入 E = 1e5、ν = 0.3，"
+           f"实际 E ≈ {SNH_LINEARIZED[0]:.3f} 倍、ν ≈ {SNH_LINEARIZED[1]:.3f}"]
     figs = "".join(f'<figure><img src="assets/images/{name}" alt="{esc(cap)}"><figcaption class="small">{esc(cap)}'
                    f"</figcaption></figure>" for name, cap in E0_FIGS)
     sph_table = table(["球面细分次数", "压深 0.004 的 U ÷ U_Hertz", "压深 0.012 的 U ÷ U_Hertz"],
@@ -742,6 +781,8 @@ def label_section(f):
              table(["改什么", "取值", "直观上是什么"], [list(r) for r in LABEL["params"]]),
              f'<p class="expect"><b>按原理期待：</b>{esc(LABEL["expect"])}</p>',
              figs, sph_table,
+             table(["块的半宽 L（网格 0.0125、球面细分 7、原版 IPC）", "外推到 d̂ = 0：压深 0.004", "压深 0.024"],
+                   [[lbl, f"{a:.3f}", f"{b:.3f}"] for lbl, a, b in f["block"]]),
              '<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in obs) + "</ul>",
              f'<p class="concl"><b>结论：</b>{esc(LABEL["concl"])}</p>',
              *[f'<p class="small">{esc(e)}</p>' for e in LABEL["explain"]],
