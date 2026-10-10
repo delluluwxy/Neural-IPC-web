@@ -801,7 +801,7 @@ def week2_sections(hydro, f):
              e("力 = U_c 对 z 求导，由能量得到，所以不会凭空多出能量"),
              e("球压平面时 U_c 就等于 Hertz 的 U，所以可以用 Hertz 检验")])])))
 
-    S.append(('wc', "3. 看代码：supervisor 的 NeuralIPC 仓库", "".join([
+    S.append(('wc', "3. 看代码：supervisor 的 NeuralIPC 仓库、Genesis 的 hydroelastic", "".join([
         _ul([e("目标：学上面的碰撞能量 U_c，给只有少量自由度的物体当接触能量用"),
              e("造 label 的三个求解器："),
              e("· 边界元：只离散接触表面，用半空间的解析公式；主力，和 Hertz 误差 < 0.1%"),
