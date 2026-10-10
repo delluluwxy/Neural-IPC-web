@@ -657,7 +657,8 @@ MEETING = [
         "Hydroelastic 测试（视频见上方）：物体靠微米级的互相嵌入被托住，画面上看不出穿插；它的软硬只由一个人为指定的"
         "刚度数决定，和材料杨氏模量无关。",
         "label：supervisor 之前「label 接近 Hertz」是两个误差抵消的结果（d̂ 太大把能量算高、球面太粗把能量算低），"
-        "不能再引用；改对以后小压深在网格外推误差内和 Hertz 一致，大压深剩约 2%，推测是 Hertz 自身的近似，正在验证。"],
+        "不能再引用；改对以后小压深在网格外推误差内和 Hertz 一致；大压深离 Hertz 还差多少、原因是什么还在查，"
+        "正在用不经过 IPC 的独立有限元核对。"],
      "label"),
     ("m_problems", "6. 遇到的问题", [
         "IPC 的 d̂ 让能量偏大：两表面还隔着 d̂ 就开始推，小压深时 supervisor 的设置多算约 80%；要用多档 d̂ 外推到 0。",
@@ -748,7 +749,7 @@ LABEL = {
     "concl": "label 目前主要被 d̂ 拉高：supervisor 用的 d̂ = 1e-3 在小压深下多算了约 80% 的能量；"
              "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。按 d̂ 外推到 0 以后剩下的偏高，"
              "来自块不够大、libuipc 新版的材料参数错配和网格分辨率：参数改对、label 按 SNK1 算以后，小压深再把网格加密"
-             "就回到 Hertz（外推约 1.00–1.02），大压深再把块按 1/L 外推到无限大还剩约 2%，推测来自 Hertz 公式自身的近似（压深 0.024 时接触半径约 0.155，(a/R)² ≈ 2.4%），正在用不经过 IPC 的独立有限元验证。supervisor 之前「label 接近 Hertz」的结论是两个误差抵消的结果，不能再引用。造数据要用细分 ≥ 7 次的球、"
+             "就回到 Hertz（外推约 1.00–1.02），大压深离 Hertz 还差多少、原因是什么还在查（块大小和网格两项外推目前各自只用两点、分开做），正在用不经过 IPC 的独立有限元核对。supervisor 之前「label 接近 Hertz」的结论是两个误差抵消的结果，不能再引用。造数据要用细分 ≥ 7 次的球、"
              "接触区网格足够细（压深 0.004 时 0.0125 还不够）、尽量小的 d̂（至少三档、"
              "确认和 d̂ 成正比后外推到 0）、足够大的块，并在新版 libuipc 上直写材料参数、按 SNK1 算 label。",
     "explain": ["为什么 d̂ 会把能量拉高：barrier 在两表面还隔着不到 d̂ 时就开始推，所以球还没真正碰到，"
@@ -1492,24 +1493,10 @@ def compute_facts(demos):
 
 
 def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
-    n_video = sum(1 for r in demos + tests + [hydro] if r.get("video_web"))
-    n_pass = sum(1 for r in tests if r.get("outcome") == "passed")
-    n_ran = sum(1 for r in tests if r.get("outcome") in ("passed", "failed"))
-    n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
-    n_grows = sum(len(s["rows"]) for s in gsweeps)
-    summary = ("本周（10-04 起）：读了 hydroelastic 和神经接触模型的文献；跑通 Genesis 的 hydroelastic 官方测试和例子；"
+    summary = ("本周（10-04 起）：读了 hydroelastic 和神经接触模型的文献；跑通 Genesis 自带的 hydroelastic 接触官方测试"
+               f"（SAP 求解器，官方断言{OUTCOME_LABEL.get(hydro.get('outcome'), '尚无结果')}）和例子；"
                "设计了证明「原理上比 hydro 好」的实验（E1–E5，裁判用弹性力学解析解）；作为前提，检查了造训练数据的 label "
-               "是否收敛到 Hertz，发现并拆清了几处误差来源（见「组会提纲」）。"
-               "上周（09-26 起）：")
-    summary += (f"在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
-               f"{len(demos)} 个 Genesis IPC 例子和 {len(tests)} 个 Genesis 官方 IPC 测试场景，共 {n_video} 段视频"
-               f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
-               f"然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 {n_gsweeps} 个 IPC 参数"
-               f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
-               "d̂ 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
-               "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。"
-               "另外跑了 Genesis 自带的 hydroelastic 接触官方测试（SAP 求解器），官方断言"
-               f"{OUTCOME_LABEL.get(hydro.get('outcome'), '尚无结果')}。")
+               "是否收敛到 Hertz，拆出了几处误差来源（见「组会提纲」）。")
     nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
