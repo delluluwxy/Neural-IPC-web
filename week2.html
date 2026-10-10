@@ -160,7 +160,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <div class="tablewrap"><table><tr><th>维度</th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>局部位移修正；能量由仿真器定义</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>不保证，有穿插</td><td>参考解由 IPC（保证不穿透的接触算法）给出</td></tr><tr><td>真值</td><td>全空间仿真；接触怎么处理原文没写</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>泛化方向</td><td>每个被压物体训一个网络，泛化的是碰撞体形状</td><td>一个模型覆盖多种被压物体形状，方向相反</td></tr><tr><td>怎么检验</td><td>对全空间仿真的相对误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">Romero 2023 为每个被压物体训练一个网络、泛化到不同碰撞体；Neural-IPC 用一个模型覆盖多种被压物体，泛化方向相反。</p><h3 id="p_rigidformer">Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>
 <p><b>核心贡献：</b>用 Transformer 直接从点云预测多个刚体的下一步运动，不需要网格连接关系，按物体一级推理；精度与 FIGNet、HopNet 持平或更好，速度分别快 8 倍和 101 倍。</p><h4>和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th>维度</th><th>RigidFormer</th><th>我们</th></tr><tr><td>网络学什么</td><td>锚点加速度，整个求解器换成网络</td><td>保留粗自由度仿真，只补一个额外的碰撞能量项</td></tr><tr><td>碰撞能量</td><td>没有能量概念</td><td>有穿透与无穿透时的能量差</td></tr><tr><td>无穿透、局部形变</td><td>只保证单个物体刚性；物体之间不保证不穿透；没有形变</td><td>物体靠局部形变达到无穿透</td></tr><tr><td>真值</td><td>MOVi 轨迹</td><td>IPC（保证不穿透的接触算法）+ FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>力从哪来</td><td>加速度直接进积分，不经过力</td><td>力由能量求导</td></tr><tr><td>怎么检验</td><td>和真值轨迹比位置、朝向误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">RigidFormer 用网络替代整个刚体求解器，没有能量，也不保证物体间无穿透；Neural-IPC 保留物理求解器，只补充一项学习得到的碰撞能量。</p></section>
-<section id="w3"><h2>看代码：supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）</h2>
+<section id="w3"><h2>看代码：NeuralIPC 仓库（YumengHe/NeuralIPC）</h2>
 <h4>核心公式</h4>
 <p>\[U_c(z)=\min_w \Pi(\Phi z+\Psi w)-\Pi(\Phi z)\]</p>
 <ul>
@@ -216,7 +216,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <ul>
 <li>\(L\)：两凸台中心距。凸台越近，邻居已经把表面压低一些，自己变形更少，力更小。hydro 每块各算各的，公式里没有 \(L\)。</li>
 </ul>
-<p><strong>期待 / 判据</strong>：按上式估计，\(L=4a\) 时每个凸台少约 14%、\(10a\) 时少约 6%；hydro 不变。supervisor 用 BEM 做过类似测试：多接触块「各算各的再相加」，2 块高估约 26%、3 块约 51%，间距越近高估越多；学了块间耦合的网络把误差降到约 6%。</p><p class="kp">相邻接触区通过基底相互卸载，解析力随间距减小而下降；hydroelastic 各接触区独立计算，无法表达这种耦合。</p>
+<p><strong>期待 / 判据</strong>：按上式估计，\(L=4a\) 时每个凸台少约 14%、\(10a\) 时少约 6%；hydro 不变。NeuralIPC 仓库中的 BEM 测试显示：多接触块「各算各的再相加」，2 块高估约 26%、3 块约 51%，间距越近高估越多；学了块间耦合的网络把误差降到约 6%。</p><p class="kp">相邻接触区通过基底相互卸载，解析力随间距减小而下降；hydroelastic 各接触区独立计算，无法表达这种耦合。</p>
 <h5>E4 粘结薄层：ν = 0.3 和接近不可压的 ν</h5>
 <p>一层粘在硬底座上的薄层（像桌面上粘的一层橡胶），被压时材料要么被压缩，要么从侧面挤出去。挤出去取决于整片接触区，一点的压力就不只看这一点的深度。</p>
 <p><strong>E4a 换球</strong>：同一层、同一 \(\delta\)，半径 \(R_1=2R_2\) 的两个球。</p>
@@ -229,7 +229,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h5>E5 粗表示从刚体换成软仿射体</h5>
 <p>仿射体：只能整体平移、旋转、均匀拉伸剪切的物体，自由度比刚体多，自己能承担一部分变形。</p>
 <p><strong>测什么</strong>：同一软物体被刚性压头压，粗表示分别取刚体和仿射体，物体从矮胖扫到细长。Genesis 的 hydro 接不到仿射体上，所以 hydro 对照组按 hydro 公式自己算，用统一拟合好的刚度，不重调。</p>
-<p><strong>期待 / 判据</strong>：仿射体已经承担了一部分柔度，正确的接触能量应相应变软。hydro 只看材料和几何，换到仿射体上把这部分柔度算两遍，力算小。supervisor 的数据显示这个差随物体变细长增大：线弹性下 1%→10%，大变形下 7%→17%。</p><p class="kp">粗表示本身越柔，正确的接触能量越软；hydroelastic 与粗表示无关，用在仿射体上会重复计入柔度，力偏小，且偏差随物体变细长而增大。</p><figure><img src="assets/images/e0_label_convergence.png" alt="标签收敛图"><figcaption class="small">E0 实测：标签能量 / Hertz 能量（1 表示一致），横轴为 IPC 势垒距离 \(\hat d\)</figcaption></figure></section>
+<p><strong>期待 / 判据</strong>：仿射体已经承担了一部分柔度，正确的接触能量应相应变软。hydro 只看材料和几何，换到仿射体上把这部分柔度算两遍，力算小。NeuralIPC 仓库中的数据显示这个差随物体变细长增大：线弹性下 1%→10%，大变形下 7%→17%。</p><p class="kp">粗表示本身越柔，正确的接触能量越软；hydroelastic 与粗表示无关，用在仿射体上会重复计入柔度，力偏小，且偏差随物体变细长而增大。</p><figure><img src="assets/images/e0_label_convergence.png" alt="标签收敛图"><figcaption class="small">E0 实测：标签能量 / Hertz 能量（1 表示一致），横轴为 IPC 势垒距离 \(\hat d\)</figcaption></figure></section>
 <section id="w6"><h2>问题与待决定事项</h2>
-<ul><li><b>完整修正后的标签生成代价高，单样本约 30 分钟：</b>需多档 \(\hat d\) 外推、足够大的块与细网格；需确定一套低成本的批量生成设置，并用高精度设置量出它的系统偏差。</li><li><b>待决定：标签沿用 supervisor 的 pyuipc 0.0.25 直接生成，还是改用 Genesis（内含新版 libuipc）。</b>新版的软体材料参数换算有误，需改写材料参数（E0「材料参数要先核对」）；Genesis 中所有 IPC 软体同样受影响。</li></ul><p class="kp">待决定：标签用 pyuipc 0.0.25 直接生成，还是改用 Genesis（需改写材料参数）；并确定低成本的批量生成设置。</p></section>
+<ul><li><b>完整修正后的标签生成代价高，单样本约 30 分钟：</b>需多档 \(\hat d\) 外推、足够大的块与细网格；需确定一套低成本的批量生成设置，并用高精度设置量出它的系统偏差。</li><li><b>待决定：标签沿用 NeuralIPC 仓库的做法（pyuipc 0.0.25）直接生成，还是改用 Genesis（内含新版 libuipc）。</b>新版的软体材料参数换算有误，需改写材料参数（E0「材料参数要先核对」）；Genesis 中所有 IPC 软体同样受影响。</li></ul><p class="kp">待决定：标签用 pyuipc 0.0.25 直接生成，还是改用 Genesis（需改写材料参数）；并确定低成本的批量生成设置。</p></section>
 </main>

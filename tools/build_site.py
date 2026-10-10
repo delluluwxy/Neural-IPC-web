@@ -676,7 +676,10 @@ CUTS_PLAN = [(r"推荐：E1、E2 用教科书里.*?hydro 类 10 篇都没有。"
              (r"\*\*E4b 大球.*?(?=### E5)", ""),
              (r"这一条依赖「hydro 刚度只拟合一次」.*?随形状变的误差分开。", ""),
              (r"裁判用线弹性有限元的精确解。", ""),
-             (r"块有限大带来的偏差，用 E4 那套不锁死的轴对称有限元核对。", "")]
+             (r"块有限大带来的偏差，用 E4 那套不锁死的轴对称有限元核对。", ""),
+             # 组会页不出现「supervisor」（用户 10-10），改称数据来源 NeuralIPC 仓库
+             (r"supervisor 用 BEM 做过类似测试", "NeuralIPC 仓库中的 BEM 测试显示"),
+             (r"supervisor 的数据显示", "NeuralIPC 仓库中的数据显示")]
 
 
 # 讲稿里的论文简称 → 组会页写「作者 et al. 年份（全名）」（用户 10-10：「paper 要全名」）；全名与年份按 related_work/INDEX.md
@@ -907,7 +910,7 @@ def week2_sections(hydro):
              '<h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper</h3>' + _contribution("p_hertz"),
              _notion_md_to_html(_trim(_handout_sections("hertz", (3,)), CUTS_HERTZ))])),
          ("w2", "文献：神经网络接触模型", _lectures(LECTURES_NEURAL)),
-         ("w3", "看代码：supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）",
+         ("w3", "看代码：NeuralIPC 仓库（YumengHe/NeuralIPC）",
           _notion_md_to_html(_trim(_handout_sections("neuralipc_code", (2, 4)), CUTS_CODE))),
          ("w4", "Demo：Genesis + hydroelastic", "".join([
              '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
@@ -923,7 +926,7 @@ def week2_sections(hydro):
          ("w6", "问题与待决定事项", _ul([
              _pt("完整修正后的标签生成代价高，单样本约 30 分钟：", "需多档 d̂ 外推、足够大的块与细网格；需确定一套低成本的批量生成设置，"
                  "并用高精度设置量出它的系统偏差。"),
-             _pt("待决定：标签沿用 supervisor 的 pyuipc 0.0.25 直接生成，还是改用 Genesis（内含新版 libuipc）。",
+             _pt("待决定：标签沿用 NeuralIPC 仓库的做法（pyuipc 0.0.25）直接生成，还是改用 Genesis（内含新版 libuipc）。",
                  "新版的软体材料参数换算有误，需改写材料参数（E0「材料参数要先核对」）；Genesis 中所有 IPC 软体同样受影响。")]))]
     return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{_add_takeaways(a, body)}</section>' for a, t, body in S]
 
