@@ -151,15 +151,76 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 </ul><p class="kp">Hertz：\(F\propto\sqrt R\,\delta^{3/2}\)，\(U\propto\sqrt R\,\delta^{5/2}\)；接触区随压深扩大，刚度随之增大。它是我们与 hydroelastic 比较时独立于双方的解析基准。</p></section>
 <section id="w2"><h2>文献：神经网络接触模型</h2>
 <h3 id="p_romero21">Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics</h3>
-<p><b>核心贡献：</b>整体运动用少量控制量（handle，把手）带动的子空间计算，接触压出的局部凹坑由神经网络预测的位移修正补上；2D 例子中速度从全 FEM 的 20 fps 提到 140 fps，同时保留凹坑细节。</p><h4>和我们（Neural-IPC）的区别</h4>
-<div class="tablewrap"><table><tr><th>维度</th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>位移修正 \(\mathbf{r}\)；论文没写接触能量或接触力怎么算</td><td>一个标量碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>没讨论</td><td>物体靠局部形变达到无穿透：碰撞 → 无穿透 → 局部形变 → 弹性能量</td></tr><tr><td>参考解</td><td>全 FEM 静力解</td><td>IPC（保证不穿透的接触算法）+ 高精度 FEM</td></tr><tr><td>粗自由度</td><td>BGBC 把手</td><td>刚体 / affine body（可整体线性变形的物体）/ 降阶模型</td></tr><tr><td>训练单位</td><td>输出绑定该物体网格的 PCA 分量，换物体要重训；外部修正还按碰撞体形状分开训</td><td>一个模型覆盖多种形状，尽量泛化到没见过的形状</td></tr><tr><td>怎么检验</td><td>和全 FEM 比 RMSE、峰值力</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">Romero 2021 学习的是位移修正，没有定义接触能量；Neural-IPC 学习的是粗模型穿透时缺失的局部形变弹性能（碰撞能量），接触力由能量求导得到。</p><h3 id="p_romero22">Romero et al. 2022：Contact-Centric Deformation Learning</h3>
-<p><b>核心贡献：</b>在碰撞体（去压物体的那个硬物）的坐标系里学习凹坑形状（contact-centric），不必对物体的各种姿态稠密采样，实时生成高分辨率凹坑。</p><h4>和我们（Neural-IPC）的区别</h4>
-<div class="tablewrap"><table><tr><th></th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>凹坑位移；接触项是人工设计的 SDF 三次方罚函数</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>没有保证</td><td>参考解由 IPC（保证不穿透的接触算法）给出；运行时网络这一项是软约束，允许穿透</td></tr><tr><td>真值</td><td>全空间仿真 − 子空间；原文没说全空间用什么接触模型</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>训练单位</td><td>每个网络绑死一个物体加一个碰撞体（输入维度由该物体的把手数决定），换任何一个都要重训</td><td>一个模型覆盖多种形状，尽量泛化到没见过的形状</td></tr><tr><td>怎么检验</td><td>和全空间仿真、Romero et al. 2021（Learning Contact Corrections for Handle-Based Subspace Dynamics） 比误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div>
-<p>一句话：本文学<strong>坑的形状</strong>，再用普通弹性能和接触势算力；我们学<strong>粗自由度缺掉的那部分碰撞能量</strong>。</p><p class="kp">Romero 2022 学习接触凹坑的形状，接触力仍来自人工设计的罚函数；每个网络只对应一个物体和一个碰撞体。</p><h3 id="p_romero23">Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors</h3>
-<p><b>核心贡献：</b>用通用的碰撞体描述符作为网络输入，在一批碰撞体上训练后，运行时可换成任意形状的刚性碰撞体；速度 9–26 fps，全空间仿真为 1 fps。</p><h4>和我们（Neural-IPC）的区别</h4>
-<div class="tablewrap"><table><tr><th>维度</th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>局部位移修正；能量由仿真器定义</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>不保证，有穿插</td><td>参考解由 IPC（保证不穿透的接触算法）给出</td></tr><tr><td>真值</td><td>全空间仿真；接触怎么处理原文没写</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>泛化方向</td><td>每个被压物体训一个网络，泛化的是碰撞体形状</td><td>一个模型覆盖多种被压物体形状，方向相反</td></tr><tr><td>怎么检验</td><td>对全空间仿真的相对误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">Romero 2023 为每个被压物体训练一个网络、泛化到不同碰撞体；Neural-IPC 用一个模型覆盖多种被压物体，泛化方向相反。</p><h3 id="p_rigidformer">Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>
-<p><b>核心贡献：</b>用 Transformer 直接从点云预测多个刚体的下一步运动，不需要网格连接关系，按物体一级推理；精度与 FIGNet、HopNet 持平或更好，速度分别快 8 倍和 101 倍。</p><h4>和我们（Neural-IPC）的区别</h4>
-<div class="tablewrap"><table><tr><th>维度</th><th>RigidFormer</th><th>我们</th></tr><tr><td>网络学什么</td><td>锚点加速度，整个求解器换成网络</td><td>保留粗自由度仿真，只补一个额外的碰撞能量项</td></tr><tr><td>碰撞能量</td><td>没有能量概念</td><td>有穿透与无穿透时的能量差</td></tr><tr><td>无穿透、局部形变</td><td>只保证单个物体刚性；物体之间不保证不穿透；没有形变</td><td>物体靠局部形变达到无穿透</td></tr><tr><td>真值</td><td>MOVi 轨迹</td><td>IPC（保证不穿透的接触算法）+ FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>力从哪来</td><td>加速度直接进积分，不经过力</td><td>力由能量求导</td></tr><tr><td>怎么检验</td><td>和真值轨迹比位置、朝向误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">RigidFormer 用网络替代整个刚体求解器，直接输出运动、不涉及能量；Neural-IPC 保留物理求解器，只补充一项学习得到的碰撞能量。</p></section>
+<p><strong>核心贡献：</strong> 线性子空间模型（少量控制量带动整张网格）快，但缺接触凹陷。本文用神经网络学习由同一组控制量参数化的位移修正，以接近子空间的速度恢复全空间接触细节。</p>
+<h4>怎么做的</h4>
+<p>把手（handle）是子空间的控制量（一个点或一个刚性坐标架）；BGBC（双调和广义重心坐标）给出每个顶点随各把手运动的固定权重。</p>
+<p>\[\mathbf{x}(\mathbf{q}) = \mathbf{U}\mathbf{q} + \mathbf{F}(\mathbf{q})\left[\mathbf{r}_{\text{int}}(\mathbf{q}) + \mathbf{r}_{\text{ext}}\big(\mathbf{A}(\mathbf{q})^{-1}\mathbf{z}\big)\right]\]</p>
+<ul>
+<li>\(\mathbf{q}\)：把手的位置与朝向；\(\mathbf{U}\mathbf{q}\)：BGBC 线性插值形状。</li>
+<li>\(\mathbf{F}\)：形变梯度，把静止坐标系中的修正转到当前姿态。</li>
+<li>\(\mathbf{r}_{\text{int}}\)：无接触时线性模型的误差修正。</li>
+<li>\(\mathbf{r}_{\text{ext}}\)：碰撞体压出的额外位移。</li>
+<li>\(\mathbf{A}^{-1}\mathbf{z}\)：碰撞体相对把手的位姿。</li>
+</ul>
+<p>碰撞体压入越深 → \(\mathbf{r}_{\text{ext}}\) 越大 → 凹陷越深，因为接触只经由 \(\mathbf{r}_{\text{ext}}\) 改变形状。</p>
+<h4>网络架构</h4>
+<p>内、外修正各一个 2 层全连接网络（tanh），输入分别为 \(\mathbf{q}\) 与 \(\mathbf{A}^{-1}\mathbf{z}\)，输出修正的 PCA 系数（主成分分析：把整网格位移压成 15–120 个分量），解码为逐顶点位移。官方模型由 \(\mathbf{q}\)、\(\mathbf{z}\) 直接输出全部顶点位置。仿真每步只对 \(\mathbf{q}\) 做隐式欧拉最小化，反向传播给出 \(\partial\mathbf{r}/\partial\mathbf{q}\) 以把弹性力投到把手。</p>
+<h4>训练数据</h4>
+<p>标签是精细 Neo-Hookean 有限元的全空间解：固定把手，求无碰撞体与刚性碰撞体以不同深度扫过表面时的准静态平衡，减去 \(\mathbf{U}\mathbf{q}\) 再乘 \(\mathbf{F}^{-1}\) 得修正。每个物体–碰撞体组合单独训练。</p>
+<h4>和我们的关系</h4>
+<p>本文输出位移修正，直接改写形状；我们的粗模型允许穿透，网络把穿透状态折算为碰撞能量作软约束，且一个模型覆盖多种形状。</p><p class="kp">Romero 2021 在把手子空间上叠加学习型位移修正，以少量把手复现全空间接触凹陷、提速约 5–9 倍，但学的是形状而非能量，且每个物体–碰撞体组合需单独训练。</p><h3 id="p_romero22">Romero et al. 2022：Contact-Centric Deformation Learning</h3>
+<p><strong>核心贡献：</strong> 子空间仿真（少量「把手」带动整张网格）快，但缺接触凹坑。本文用网络预测凹坑位移，在碰撞体（压向物体的刚体）坐标系中学习，即 contact-centric：该坐标系下凹坑变化平滑，少量姿态即可泛化。</p>
+<h4>怎么做的</h4>
+<p>位置 = 子空间位置 + 网络预测的凹坑位移：</p>
+<p>\[x(\bar{x}) = \tilde{x}(\bar{x}) + \mathbf{T}(\mathbf{z})\, f\big(\bar{z},\ \mathbf{W}(\bar{x})\,\mathbf{T}(\mathbf{z})^{-1}\mathbf{x}\big), \qquad \bar{z} = \mathbf{T}(\mathbf{z})^{-1}\tilde{x}(\bar{x})\]</p>
+<ul>
+<li>\(\tilde{x}\)：只由把手带动的位置；\(\mathbf{x}\)：全部把手状态。</li>
+<li>\(\mathbf{T}(\mathbf{z})\)：碰撞体的刚体变换；\(\bar{z}\)：该点在碰撞体坐标系的坐标。</li>
+<li>\(f\)：网络，输出碰撞体坐标系下的位移。</li>
+<li>\(\mathbf{W}(\bar{x})\)：该点蒙皮权重构成的对角阵。把手权重越大 → 对此处凹坑影响越大，因为接触形变是局部的。</li>
+</ul>
+<p>每步只优化把手，使惯性能 + 弹性能 + 接触势最小，在含凹坑的形状上积分。接触势为碰撞体 SDF（有符号距离场：到表面的距离，内外异号）上的罚函数：穿入越深 → 能量按三次方增长。</p>
+<h4>网络架构</h4>
+<ul>
+<li>输入：\(\bar{z}\) 与稀疏化后的把手相对状态。</li>
+<li>结构：2 层全连接，tanh，300 或 500 个神经元。</li>
+<li>输出：位移向量，转回世界坐标后叠加；梯度靠反向传播。</li>
+</ul>
+<h4>训练数据</h4>
+<ul>
+<li>采样：物体姿态 × 接触位置 × 碰撞体朝向 × 压入深度；鸭子只用 8 个姿态。</li>
+<li>标签：固定把手状态，在四面体网格上做全空间准静态求解，减去子空间形状。</li>
+<li>损失：节点位移误差 + 表面边上位移差误差。</li>
+</ul>
+<h4>和我们的关系</h4>
+<p>标签构造同构：固定粗自由度求精细解再取差。本文把差存成位移，运行时仍在全部表面点上积分罚函数，每个模型只对应一个物体和一个碰撞体；我们把差存成碰撞能量，以穿透状态为输入，一个模型覆盖多种形状。</p><p class="kp">Romero 等人 2022 在碰撞体局部坐标系中学习连续的接触位移场，以极少的训练姿态为子空间仿真补回实时接触细节；其学习对象为位移，接触能量仍由人工设计的 SDF 三次罚函数给出，且每个模型绑定单一物体与单一碰撞体。</p><h3 id="p_romero23">Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors</h3>
+<p><strong>核心贡献：</strong> 降阶模型缺接触处的局部凹陷，前作学到的修正只适用于训练用的那个碰撞体。本文以局部碰撞体形状为网络条件，泛化到未见过的刚性碰撞体。</p>
+<h4>怎么做的</h4>
+<p><strong>降阶模型</strong>只用十几个<strong>把手</strong>作自由度，顶点按蒙皮权重跟随把手。<strong>碰撞体</strong>是压向物体的刚体，用 SDF（到表面的带符号距离，内负外正）\(\phi\) 表示。网络在降阶位置 \(x\) 上叠加位移：</p>
+<p>$$x_{\text{final}} = x + T\,R\,\mathbb{N}\big(\hat\phi,\; W\,R^{-1}T^{-1}(q-x)\big)$$</p>
+<p>\(q\) 把手状态，\(T\) 碰撞体旋转，\(W\) 蒙皮权重，\(\mathbb{N}\) 网络；\(R\) 为<strong>接触坐标系</strong>，法向取半径 \(d\)（把手平均间距）内平滑的 SDF 梯度。把手权重越小 → 对该点修正影响越小，因为凹陷由附近把手决定。</p>
+<p><strong>碰撞体描述符</strong> = \(R\) + 65 个探针处的 SDF 值：</p>
+<p>$$\hat\phi = {\phi(T^{-1}x + R\,d\,w_i)}_{i=1}^{65}$$</p>
+<p>\(w_i\)：单位球内求积点加球心。压入越深 → 内部探针越多、值越负 → 预测凹陷越深。</p>
+<h4>网络架构</h4>
+<p>输入：65 个 SDF 值 + 转入接触坐标系的加权把手量（果冻例子共 131 维）。网络：6 个隐藏层的全连接网络（150-150-150-150-50-10，ELU）。输出：局部三维位移，转回世界坐标加到降阶位置；仿真每步做 1 次牛顿迭代，梯度经网络反传。</p>
+<h4>训练数据</h4>
+<p>冻结降阶状态，跑约束其上的<strong>全空间仿真</strong>（细网格全部顶点为自由度），设定同 Romero 2022：stable Neo-Hookean 有限元，接触用 SDF 罚函数（穿透量三次方）。标签 = 全空间减降阶位置。果冻：52 个碰撞体（30 训练、22 测试）× 5 个降阶状态 × 105 个接触构型；一致性损失要求不同切向坐标系输出一致。</p>
+<h4>和我们的关系</h4>
+<p>输入相近：降阶状态下碰撞体已压入，网络读压入处局部几何。本文输出位移、换被压物体须重训；我们输出穿透粗状态与无穿透真解的能量差作软约束，一个模型覆盖多种形状。其 SDF 探针可用于编码穿透状态。</p><p class="kp">Romero 等人以「局部接触坐标系 + 球内 SDF 采样」构成碰撞体描述符，把降阶模型缺失的接触细节学成局部位移场，在固定被压物体的前提下泛化到未见过的刚性碰撞体（训练/测试误差 17.0%/17.8%），速度比全空间仿真快 9–26 倍。</p><h3 id="p_rigidformer">Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>
+<p><strong>核心贡献：</strong> 只用点云（无连接关系的三维点）预测多刚体碰撞：物体级 Transformer 计算物体间作用，每个物体只预测 4 个锚点的加速度再投影为刚体运动，精度持平或优于基于网格的方法。</p>
+<h4>怎么做的</h4>
+<p>FIGNet、HopNet 依赖网格连接关系（点如何连成边和面）。本文把每个物体的点云压成一个 token（代表物体的向量），Transformer 的注意力让物体间按相关程度交换信息；每个物体用最远点采样选 4 个锚点（代表点），网络输出锚点加速度，按 Verlet 积分推进：</p>
+<p>\[\hat{\mathbf{q}}_{t+1} = \mathbf{a}_t\,\Delta t^2 + 2\mathbf{q}_t - \mathbf{q}_{t-1}\]</p>
+<p>\(\mathbf{q}_t\)：锚点第 \(t\) 帧位置；\(\mathbf{a}_t\)：网络输出的加速度；\(\Delta t\)：步长。\(\mathbf{a}_t\) 越大，锚点偏离匀速越多，因为 \(\mathbf{a}_t=0\) 即按上一步速度匀速前进。再用 Kabsch 对齐求最贴合候选锚点的旋转 \(\mathbf{R}\)、平移 \(\mathbf{t}\)，移动全部点：</p>
+<p>\[\mathbf{x}_{t+1}^{(v)} = \mathbf{R}\,\mathbf{x}_{\mathrm{ref}}^{(v)} + \mathbf{t}\]</p>
+<p>\(\mathbf{x}_{\mathrm{ref}}^{(v)}\)：点 \(v\) 在第一帧的位置。误差越大位姿偏差越大，但物体内两点距离不变，因为所有点共用同一组 \(\mathbf{R}\)、\(\mathbf{t}\)。</p>
+<h4>网络架构</h4>
+<p>输入前两帧点云与步长。PointNet 编码器（逐点网络加池化）输出物体 token；4 层 Transformer 在物体 token 之间做自注意力，步长经 FiLM（按条件缩放特征）注入；锚点对全部物体 token 做交叉注意力，输出三维加速度，再按上两式逐帧滚动。</p>
+<h4>训练数据</h4>
+<p>MOVi 由 Kubric 生成器调用 PyBullet 刚体引擎仿真：3–10 个物体抛落互撞，物体不变形，接触由冲量求解器推开，反弹由恢复系数决定。共 1200 个场景、每个 480 帧，子集分别为基本体、11 种复杂形状和纯球。</p>
+<h4>和我们的关系</h4>
+<p>它也用少量自由度、一个编码器覆盖多种形状，但直接输出加速度替代求解器，无局部形变，也无可加入仿真的能量项。跨数据集 6 组中 3 组位置误差高于 HopNet，跨形状泛化需单独检验。</p><p class="kp">RigidFormer 以物体级 Transformer 和每物体 4 个锚点直接从点云回归刚体加速度，并用 Kabsch 投影严格保持刚性，在 MOVi 上精度持平或优于基于网格的方法，速度为 FIGNet 的 8 倍、HopNet 的 101 倍；它学习运动本身，不建模局部形变与碰撞能量，其物体级表示与跨形状共享编码器可作为我们网络设计的参考。</p></section>
 <section id="w3"><h2>看代码：NeuralIPC 原代码</h2>
 <h4>核心公式</h4>
 <p>\[U_c(z)=\min_w \Pi(\Phi z+\Psi w)-\Pi(\Phi z)\]</p>

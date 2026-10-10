@@ -836,10 +836,34 @@ def _takeaway(text):
     return f'<p class="kp">{text}</p>'
 
 
+DRAFTS = PROJECT / "docs" / "drafts"
+
+
+def _web_draft(name):
+    """docs/drafts/web_<name>.md 的「A. 网页稿」部分（逐篇讲：核心贡献 → 怎么做的 → 网络架构 → 训练数据 →
+    和我们的关系，用户 10-10「一个一个 paper 讲」「网络架构为啥不写」「去找 repo」）。
+    返回 (正文 Markdown, TAKEAWAY 总结句)；没有这份稿子时返回 None。"""
+    path = DRAFTS / f"web_{name}.md"
+    if not path.is_file():
+        return None
+    part_a = re.search(r"(?ms)^## A\..*?\n(.*?)^## B\.", path.read_text(encoding="utf-8")).group(1)
+    m = re.search(r"(?m)^TAKEAWAY:\s*(.+)$", part_a)
+    return re.sub(r"\n-{3,}\s*$", "", part_a[:m.start()].rstrip()), m.group(1).strip()
+
+
 def _lectures(items):
-    return "".join(f'<h3 id="{a}">{esc(title)}</h3>\n{_contribution(a)}{_notion_md_to_html(_handout_sections(name, nums))}'
-                   + (_takeaway(LECTURE_TAKEAWAYS[a]) if a in LECTURE_TAKEAWAYS else "")
-                   for a, title, name, nums in items)
+    """神经网络接触论文逐篇讲：有核对过的网页稿（_web_draft）就用它，否则用讲稿第 6 节 + 核心贡献 + 总结句。"""
+    out = []
+    for a, title, name, nums in items:
+        draft = _web_draft(name)
+        if draft:
+            body, takeaway = draft
+            out.append(f'<h3 id="{a}">{esc(title)}</h3>\n{_notion_md_to_html(body)}{_takeaway(takeaway)}')
+        else:
+            out.append(f'<h3 id="{a}">{esc(title)}</h3>\n{_contribution(a)}'
+                       f'{_notion_md_to_html(_handout_sections(name, nums))}'
+                       + (_takeaway(LECTURE_TAKEAWAYS[a]) if a in LECTURE_TAKEAWAYS else ""))
+    return "".join(out)
 
 
 # 每个小节讲完时要强调的总结句（用户 10-10：「meeting 上要跟人家强调的能直接说的原话，要专业，小结论那种」
