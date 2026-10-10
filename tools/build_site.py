@@ -643,7 +643,7 @@ def _extrap_to_zero(paths, key):
 
 
 
-# ---------------- Week 2 组会稿（40 分钟，给不了解项目的人听；用户 10-10：只讲重点、全部 bullet、页面上的一切都算时间） ----------------
+# ---------------- Week 2 组会稿（45 分钟，给不了解项目的人听；用户 10-10：只讲重点、全部 bullet、不标分钟；公式讲细；设置小字不读） ----------------
 # 独立有限元（supervisor 轴对称 torch FEM，不经过 IPC）：Neural-IPC-sandbox tools/ipc_sweep/torch_fem_hertz_reference.py，
 # run_commands 19i。线弹性 + 间隙按变形前算 = Hertz 的全部假设（检验裁判）；snk1 + 真球面 = label 实际的材料和压头。
 TORCH_ROOT = E0_ROOT / "torch_fem"
@@ -666,8 +666,13 @@ def _ul(items):
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
+def _setting(text):
+    """实验设置：小号灰字，留给想看细节的人，组会上不读。"""
+    return f'<p class="setting muted">设置：{esc(text)}</p>'
+
+
 def week2_sections(hydro, f):
-    """Week 2 页：七段，按讲的顺序排，标题带分钟数；文字里的公式是原样 LaTeX（MathJax 渲染），其余经 esc。"""
+    """Week 2 页：七段，按讲的顺序排；设置用小字（组会不读）；文字里的公式是原样 LaTeX（MathJax 渲染），其余经 esc。"""
     outcome = OUTCOME_LABEL.get(hydro.get("outcome"), "无结果") if hydro["state"] == "ok" else hydro["reason"]
     fixed = f["fixed"]
     # 独立有限元：Hertz 的全部假设、label 实际的材料和压头，两种都算，取离 1 最远的那个
@@ -675,13 +680,13 @@ def week2_sections(hydro, f):
     e = esc
     S = []
 
-    S.append(('w0', "0. 我们在做什么（2 分钟）", _ul([
+    S.append(('w0', "0. 我们在做什么", _ul([
         e("两个物体相碰时，接触的地方会凹进去一小块，这块变形里存着弹性能量"),
         e("精细仿真能把它算准，但每个物体要成千上万个自由度，太慢"),
         e("我们的做法：物体只用很少的自由度来仿真，接触处那份能量交给神经网络学"),
         e("网络的训练数据（label）= 精细仿真算出来的这份能量")])))
 
-    S.append(('w1', "1. 这周读的文献（7 分钟）", _ul([
+    S.append(('w1', "1. 这周读的文献", _ul([
         e("Hydroelastic（Drake、Genesis 里用的接触模型）"),
         e("· Elandt 2019：每个物体里放一个「压力场」，两物体重叠的地方按压力算接触力"),
         e("· Masterjohn 2022、Castro 2022：把它做快、做稳，能实时跑；Han 2023：推广到软的物体"),
@@ -691,30 +696,56 @@ def week2_sections(hydro, f):
         e("标准答案：Hertz（1882）—— 球压弹性平面的精确公式"),
         e("区别：hydro 的软硬是人为调的；Romero 学形状；我们学能量，力由能量求导得到")])))
 
-    S.append(('w2', "2. 三个公式（8 分钟）", "".join([
-        "<h3>Hertz：标准答案</h3>",
-        r"<p>\[U=\tfrac{8}{15}\,E^*\sqrt{R}\,\delta^{5/2}\]</p>",
-        _ul([e("δ = 压深，R = 球半径，E* = 材料硬度"),
-             e("压深翻倍，能量变成约 5.7 倍：越压，接触面越大，越难压"),
-             e("材料越硬、球越大，能量越大")]),
-        "<h3>Hydroelastic</h3>",
-        r"<p>\[p=E_h\,\varepsilon,\qquad F=\int p\,dA\]</p>",
-        _ul([e("ε = 这个点在物体里有多深：表面 0，最深处 1"),
-             e("两个物体可以互相嵌进去一点，嵌得越深，推力越大"),
-             e("E_h 是人为填的数，不是材料真实的硬度")]),
+    S.append(('w2', "2. 四个公式", "".join([
+        "<h3>Hertz：刚性球压进弹性体（标准答案）</h3>",
+        r"<p>\[a=\sqrt{R\,\delta},\qquad F=\tfrac{4}{3}E^*\sqrt{R}\,\delta^{3/2},\qquad "
+        r"U=\tfrac{8}{15}E^*\sqrt{R}\,\delta^{5/2},\qquad E^*=\frac{E}{1-\nu^2}\]</p>",
+        _ul([e("δ：压深，球压进去多深；R：球半径；a：接触圆的半径；F：压力；U：被压物体里存的弹性能"),
+             e("E：杨氏模量，材料多硬；ν：泊松比，压扁时往旁边鼓多少；E*：两者合成的「有效硬度」"),
+             e("a = √(Rδ)：压深 ×4，接触圆只 ×2"),
+             e("F ∝ δ^1.5，不像普通弹簧那样 F ∝ δ：越压越硬，因为接触圆在跟着变大，顶着的材料越来越多"),
+             e("U 是 F 对压深的积分：压深翻倍，能量约 ×5.7；材料越硬、球越大，能量越大"),
+             e("成立条件：变形小、材料线弹性、无摩擦、物体比接触圆大得多。我们检查 label 的算例正好满足，"
+               "所以拿它当标准答案")]),
+        "<h3>Hydroelastic：压力场接触</h3>",
+        r"<p>\[p_0(\mathbf x)=E_h\,\varepsilon(\mathbf x),\qquad \text{接触面 }S:\ p_{0,A}=p_{0,B},"
+        r"\qquad F=\int_S p_0\,dA\]</p>",
+        _ul([e("每个物体内部预先算好一个「压力场」p₀：表面为 0，越往里越大"),
+             e("ε：这个点离表面有多深，换算到 0–1（表面 0，最深处 1）"),
+             e("E_h：hydroelastic 模量，人为指定的一个数，决定物体多「硬」"),
+             e("两个物体按原来的形状直接重叠，不做变形；重叠区里两边压力相等的那张面就是接触面 S"),
+             e("接触力 = S 上压力的积分：嵌得越深 → 压力越大、接触面越大 → 力越大"),
+             e("软硬全靠 E_h 这一个数，它和材料真实的 E 没有固定关系；所以几何一变，"
+               "力的变化规律可能和真实的弹性体不一样（第 4 部分的实验就是查这个）")]),
+        "<h3>IPC：保证不穿透的接触能量</h3>",
+        r"<p>\[B(d)=\kappa\,\big(d^2-\hat d^{\,2}\big)^2\Big[\ln\frac{d^2}{\hat d^{\,2}}\Big]^2"
+        r"\quad (d<\hat d),\qquad B=0\quad (d\ge\hat d)\]</p>",
+        _ul([e("d：两个表面之间的距离；d̂：「安全距离」；κ：推力强度"),
+             e("距离大于安全距离：不管；小于安全距离：开始互相推"),
+             e("距离 → 0：对数项 → 无穷，能量 → 无穷，所以两个表面永远碰不上，保证不穿透"),
+             e("IPC 把这个能量和物体的弹性能一起求最小，得到「不穿透、能量最低」的变形，这就是我们的 label"),
+             e("代价：两表面还隔着 d̂ 就开始推，相当于接触提前了；d̂ 越大，算出的能量越偏大")]),
         "<h3>我们：碰撞能量</h3>",
-        r"<p>\[U_c=\Pi(\text{不穿透时的形状})-\Pi(\text{只用少量自由度时的形状})\]</p>",
-        _ul([e("Π = 物体存的弹性能量"),
-             e("U_c = 为了不穿透，接触处额外变形所存的能量，网络学的就是它"),
-             e("label 用 IPC 算：一种保证两物体永远不穿透的精细仿真方法")])])))
+        r"<p>\[U_c(z)=\min_{w}\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z)\]</p>",
+        _ul([e("z：粗自由度，比如刚体的位置和朝向、少数几个整体变形模式；仿真器只算这几个数"),
+             e("Φz：只用粗自由度时物体的形状，碰撞时会和对方穿插"),
+             e("Ψw：接触附近一小块局部变形，粗自由度表达不了；w 是它的系数"),
+             e("Π：精细模型里物体的总弹性能"),
+             e("min_w：固定 z，让局部变形自己调整到不穿透、能量最低"),
+             e("U_c：为了不穿透多付出的能量，就是「碰撞能量」；网络输入 z，输出 U_c"),
+             e("力 = U_c 对 z 求导，由能量得到，所以不会凭空多出能量"),
+             e("球压平面时 U_c 就等于 Hertz 的 U，所以可以用 Hertz 检验")])])))
 
-    S.append(('w3', "3. Demo：Genesis 的 hydroelastic（4 分钟）", "".join([
+    S.append(('w3', "3. Demo：Genesis 的 hydroelastic", "".join([
         '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
         _ul([e("Genesis 自带的 hydroelastic 测试，原样跑通"),
              e("两条链掉到盒子上，被托住、叠起来"),
-             e("盒子只压进地面约 8 微米：是靠「嵌进去一点」托住的，肉眼看不出")])])))
+             e("盒子只压进地面约 8 微米：是靠「嵌进去一点」托住的，肉眼看不出")]),
+        _setting("Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 "
+                 "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic"
+                 "（SAP 求解器，不经过 IPC）；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍")])))
 
-    S.append(('w4', "4. 实验设计：怎么证明我们原理上比 hydro 对（8 分钟）", "".join([
+    S.append(('w4', "4. 实验设计：怎么证明我们原理上比 hydro 对", "".join([
         _ul([e("标准答案用弹性力学的精确公式，不用任何一方自己的仿真"),
              e("每个实验只改一个几何量，看谁的变化跟标准答案一致")]),
         table(["实验", "改什么", "标准答案", "hydro"],
@@ -725,9 +756,14 @@ def week2_sections(hydro, f):
                ["E5", "物体本身也会变形", "变形只算一次", "变形算了两遍"]]),
         _ul([e("先做 E0：检查我们的训练数据本身对不对（下一部分）")])])))
 
-    S.append(('w5', "5. 结论（8 分钟）", "".join([
+    S.append(('w5', "5. 结论", "".join([
         _ul([e("Hydro：物体靠微米级的嵌入托住；软硬只由一个人为的数决定")]),
         "<h3>E0：训练数据对不对</h3>",
+        _setting("supervisor 造 label 的球压算例：刚性球（半径 1）竖直压进底面固定的软块（E = 1e5，ν = 0.3），"
+                 "无摩擦、无重力，压深 0.004–0.024，每个压深静置到平衡后算块里的弹性能，除以 Hertz 的 U。"
+                 "原来：块宽 2.4、高 1.2，接触区网格 0.025，安全距离 d̂ = 1e-3，球面细分 4 次。"
+                 "改对后：d̂ 取三档外推到 0，球面细分 7 次，块半宽 2.4 / 4.8 外推到无限大，网格 0.0125 / 0.00625 外推到 0，"
+                 "材料参数改写成软件实际需要的值"),
         f'<figure><img src="assets/images/{E0_FIG}" alt="label 收敛图">'
         f'<figcaption class="small">{e("纵轴 = label ÷ 标准答案（1 = 完全一致）；横轴 = IPC 的安全距离，越往左越小")}'
         f"</figcaption></figure>",
@@ -736,9 +772,11 @@ def week2_sections(hydro, f):
              e("· 球面网格太粗，球底是个尖角 → 能量偏小"),
              e(f"两项都改对、块够大、网格够细后：小压深 {fixed[0]:.2f}、大压深 {fixed[1]:.2f}，和标准答案一致"),
              e(f"另用一个完全独立的有限元程序验证：Hertz 公式在这些压深下误差 < {torch_err:.1%}，"
-               "可以当标准答案")])])))
+               "可以当标准答案")]),
+        _setting("独立有限元：supervisor 的轴对称有限元程序（不经过 IPC，没有安全距离），圆柱块半径 = 高 = 2.4 → 19.2，"
+                 "两种网格；按 Hertz 的全部假设算一遍、按 label 实际的材料和真球面再算一遍，都按块大小外推到无限大")])))
 
-    S.append(('w6', "6. 遇到的问题（3 分钟）", _ul([
+    S.append(('w6', "6. 遇到的问题", _ul([
         e("IPC 的「安全距离」让能量偏大 → 取几个不同的安全距离，外推到 0"),
         e("球面网格太粗 → 加细"),
         e(f"新版 IPC 库里材料实际的硬度比设定的大 {f['E_meas'] / 1e5 - 1:.0%}（软件更新时漏改了一处换算）→ 已找到改法"),
@@ -1317,7 +1355,7 @@ def build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     summary = {
-        "week2": "组会 40 分钟：文献、公式、hydroelastic demo、实验设计、训练数据检查。",
+        "week2": "文献、公式、hydroelastic demo、实验设计、训练数据检查。",
         "week1": ("在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
                   f"{len(demos)} 个 Genesis IPC 例子和 {len(tests)} 个 Genesis 官方 IPC 测试场景，共 {n_video} 段视频"
                   f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
