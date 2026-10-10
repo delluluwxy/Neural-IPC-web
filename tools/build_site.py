@@ -835,8 +835,8 @@ def week2_sections(hydro):
              '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
              _ul([_pt("箱体最终下沉约 8 µm：", "hydroelastic 依靠微小的相互穿透产生支撑力，视觉上不可见；IPC 则在两表面间始终保持正间隙。")]),
              _setting("Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 "
-                      "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic"
-                      "（SAP 求解器，不经过 IPC）；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
+                      "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic；"
+                      "压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
                       "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变")])),
          ("w5", "实验方案：怎么证明我们「原理上」比 hydroelastic 好", "".join([
              _notion_md_to_html(_trim(plan_md, CUTS_PLAN)),
