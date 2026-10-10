@@ -821,13 +821,13 @@ LECTURES_NEURAL = [
 
 # 每篇神经网络接触论文讲完时的总结句（组会上直接强调的话），接在该篇末尾
 LECTURE_TAKEAWAYS = {
-    "p_romero21": "Romero 2021 学习的是位移修正，没有定义接触能量；Neural-IPC 学习的是实现无穿透所需的碰撞能量，"
+    "p_romero21": "Romero 2021 学习的是位移修正，没有定义接触能量；Neural-IPC 学习的是粗模型穿透时缺失的局部形变弹性能（碰撞能量），"
                   "接触力由能量求导得到。",
-    "p_romero22": "Romero 2022 学习接触凹坑的形状，接触力仍来自人工设计的罚函数，不保证无穿透；"
+    "p_romero22": "Romero 2022 学习接触凹坑的形状，接触力仍来自人工设计的罚函数；"
                   "每个网络只对应一个物体和一个碰撞体。",
     "p_romero23": "Romero 2023 为每个被压物体训练一个网络、泛化到不同碰撞体；Neural-IPC 用一个模型覆盖多种被压物体，"
                   "泛化方向相反。",
-    "p_rigidformer": "RigidFormer 用网络替代整个刚体求解器，没有能量，也不保证物体间无穿透；"
+    "p_rigidformer": "RigidFormer 用网络替代整个刚体求解器，直接输出运动、不涉及能量；"
                      "Neural-IPC 保留物理求解器，只补充一项学习得到的碰撞能量。"}
 
 
@@ -856,12 +856,12 @@ TAKEAWAYS = [
      "Hertz：\\(F\\propto\\sqrt R\\,\\delta^{3/2}\\)，\\(U\\propto\\sqrt R\\,\\delta^{5/2}\\)；接触区随压深扩大，刚度随之增大。"
      "它是我们与 hydroelastic 比较时独立于双方的解析基准。"),
     ("w3", "证明它 ≥ 0。</li>",
-     "\\(U_c\\) 是粗表示为实现无穿透所缺失的弹性能，恒非负；粗表示不含表面局部模态时，球压弹性半空间的 \\(U_c\\) 就是 Hertz 能量。"),
+     "粗模型的物体允许互相穿透，\\(U_c\\) 是把这层穿透还原成精细真解中的局部形变所需的弹性能，恒非负；粗表示不含表面局部模态时，球压弹性半空间的 \\(U_c\\) 就是 Hertz 能量。"),
     ("w3", None,
      "现有学习结果全部在刚性压头压半空间（\\(E^*=1\\)）上得到，标签来自 BEM 与有限应变 FEM；"
      "libuipc 生成的 IPC 标签尚未用于训练。"),
     ("w4", None,
-     "hydroelastic 依靠物体间的微小穿透产生支撑力（本例箱体下沉约 8 µm）；IPC 在两表面间始终保持正间隙。"),
+     "hydroelastic 和我们一样允许穿透、由穿透量产生支撑力（本例箱体下沉约 8 µm）；区别在于它的压力来自人工设定的压力场，我们的碰撞能量来自精细仿真的真解。"),
     ("w5", "调参救不回来。</li>",
      "判据：以独立于双方的弹性解析解为裁判，只改变一个量、比较力的比值；比值中 hydroelastic 的刚度参数完全约去，无法靠调参弥补。"),
     ("w5", "块大小。</li>",
@@ -914,7 +914,7 @@ def week2_sections(hydro):
           _notion_md_to_html(_trim(_handout_sections("neuralipc_code", (2, 4)), CUTS_CODE))),
          ("w4", "Demo：Genesis + hydroelastic", "".join([
              '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
-             _ul([_pt("箱体最终下沉约 8 µm：", "hydroelastic 依靠微小的相互穿透产生支撑力，视觉上不可见；IPC 则在两表面间始终保持正间隙。")]),
+             _ul([_pt("箱体最终下沉约 8 µm：", "hydroelastic 依靠微小的相互穿透产生支撑力，穿透量很小、视觉上不可见。")]),
              _setting("Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 "
                       "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic；"
                       "压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
