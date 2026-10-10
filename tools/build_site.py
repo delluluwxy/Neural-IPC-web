@@ -841,6 +841,9 @@ def _takeaway(text):
 
 
 DRAFTS = PROJECT / "docs" / "drafts"
+# 主会话逐条核对过出处的网页稿；不在名单里的稿子（agent 还在写或未核对）不上页面
+VERIFIED_DRAFTS = {"romero2021", "romero2022", "romero2023", "rigidformer",
+                   "elandt", "masterjohn", "sap", "hertz", "code"}
 
 
 def _web_draft(name):
@@ -848,7 +851,7 @@ def _web_draft(name):
     和我们的关系，用户 10-10「一个一个 paper 讲」「网络架构为啥不写」「去找 repo」）。
     返回 (正文 Markdown, TAKEAWAY 总结句)；没有这份稿子时返回 None。"""
     path = DRAFTS / f"web_{name}.md"
-    if not path.is_file():
+    if name not in VERIFIED_DRAFTS or not path.is_file():
         return None
     part_a = re.search(r"(?ms)^## A\..*?\n(.*?)^## B\.", path.read_text(encoding="utf-8")).group(1)
     m = re.search(r"(?m)^TAKEAWAY:\s*(.+)$", part_a)
@@ -859,7 +862,7 @@ def _draft_html(name):
     """docs/drafts/web_<name>.md 的「A. 网页稿」整段转成 HTML，其中每行「TAKEAWAY: …」原地变成醒目色总结句；
     没有这份稿子时返回 None（调用方退回讲稿原文）。"""
     path = DRAFTS / f"web_{name}.md"
-    if not path.is_file():
+    if name not in VERIFIED_DRAFTS or not path.is_file():
         return None
     part_a = re.search(r"(?ms)^## A\..*?\n(.*?)^## B\.", path.read_text(encoding="utf-8")).group(1)
     part_a = re.sub(r"\n-{3,}\s*$", "", part_a.rstrip())
