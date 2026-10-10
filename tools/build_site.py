@@ -683,7 +683,7 @@ CUTS_PLAN = [(r"推荐：E1、E2 用教科书里.*?hydro 类 10 篇都没有。"
 FULL_NAME_ELANDT = ("Elandt et al. 2019（A pressure field model for fast, robust approximation of net contact force and moment "
                     "between nominally rigid objects）")
 FULL_NAME_MASTERJOHN = "Masterjohn et al. 2022（Velocity Level Approximation of Pressure Field Contact Patches）"
-FULL_NAME_SAP = "Castro et al. 2023（SAP：An Unconstrained Convex Formulation of Compliant Contact）"
+FULL_NAME_SAP = "Castro et al. 2023（An Unconstrained Convex Formulation of Compliant Contact；文中求解器名为 SAP，Semi-Analytic Primal solver）"
 FULL_NAME_ROMERO21 = "Romero et al. 2021（Learning Contact Corrections for Handle-Based Subspace Dynamics）"
 PAPER_FULL_NAMES = [("Elandt 2019，Pressure Field Contact", FULL_NAME_ELANDT),
                     ("Masterjohn 2022，Velocity Level Approximation of Pressure Field Contact Patches", FULL_NAME_MASTERJOHN),
@@ -771,7 +771,7 @@ def _notion_image(src):
 HYDRO_PAPERS = [("p_elandt", "Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact "
                              "force and moment between nominally rigid objects"),
                 ("p_masterjohn", "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches"),
-                ("p_sap", "Castro et al. 2023：SAP: An Unconstrained Convex Formulation of Compliant Contact")]
+                ("p_sap", "Castro et al. 2023：An Unconstrained Convex Formulation of Compliant Contact（求解器 SAP = Semi-Analytic Primal solver）")]
 
 
 def _hydro_papers():
