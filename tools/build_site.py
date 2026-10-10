@@ -663,8 +663,9 @@ LABEL = {
     "expect": "如果 label 是对的，这些设置都加密、放大以后，U ÷ U_Hertz 应该不再变化，而且接近 1。",
     "concl": "label 目前主要被 d̂ 拉高：supervisor 用的 d̂ = 1e-3 在小压深下多算了约 80% 的能量；"
              "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。按 d̂ 外推到 0 以后剩下的偏高，"
-             "大部分来自块不够大和 libuipc 新版的材料参数错配；块放大、参数改对、label 按 SNK1 算以后只剩约 4–5%，"
-             "和块半宽 4.8 的残余尺寸效应加网格误差的量级相当。造数据要用细分 ≥ 6 次的球、尽量小的 d̂（至少三档、"
+             "来自块不够大、libuipc 新版的材料参数错配和网格分辨率：参数改对、label 按 SNK1 算以后，小压深再把网格加密"
+             "就回到 Hertz（外推约 1.00–1.02），大压深再把块按 1/L 外推到无限大就只差约 2%。造数据要用细分 ≥ 6 次的球、"
+             "接触区网格足够细（压深 0.004 时 0.0125 还不够）、尽量小的 d̂（至少三档、"
              "确认和 d̂ 成正比后外推到 0）、足够大的块，并在新版 libuipc 上直写材料参数、按 SNK1 算 label。",
     "explain": ["为什么 d̂ 会把能量拉高：barrier 在两表面还隔着不到 d̂ 时就开始推，所以球还没真正碰到，"
                 "块就已经在比真实接触圈更大的一片区域上被压下去，存的能量更多。这部分多出来的能量大致和 d̂ ÷ δ 成正比，"
@@ -681,8 +682,10 @@ LABEL = {
                 "d̂ 外推要至少三档：块半宽 2.4、4.8 时 d̂ 每减半多出的部分缩小到约 0.46–0.51 倍，和 d̂ 成正比，外推可靠；"
                 "半宽 1.2 时只缩小到约 0.26–0.30 倍，不成正比，原因还没查明。之前只用两档外推，半宽 1.2 的小压深值"
                 "（1.05）偏低，造成「块越大反而越高」的假象；三档以后单调了。",
-                "剩下的约 4–5% 还没单独量：块半宽 4.8 时 supervisor 自己的轴对称测试（rung1）给出约 2% 的有限尺寸偏高，"
-                "网格 0.0125 约 1–2%，大压深下还有有限变形。"],
+                "剩下的偏差怎么拆：小压深时块从半宽 2.4 放到 4.8 只降 0.006，块尺寸不是主因；把网格从 0.0125 加密到 0.00625"
+                "就降了 2.7 个百分点（压深 0.004 时接触半径约 0.063，0.0125 的网格只横跨 5 个单元）。大压深时网格只差 0.7 个"
+                "百分点，块尺寸占大头。两个外推都只用两个点，假设误差分别和 1/L、网格尺寸成正比；若网格误差按尺寸的平方"
+                "减小，小压深外推值约 1.018。"],
 }
 # Block-size / far-mesh / material checks: ipc, h_c 0.0125, sphere 7. Each row = (label, json files in increasing-d̂
 # order (5e-4, 2.5e-4[, 1.25e-4]), which energy); the table shows the straight line through the two smallest d̂ at d̂ = 0.
@@ -703,7 +706,16 @@ BLOCK_RUNS = [("1.2（supervisor 的块）", ["ipc_m/ipc_hc0.0125_dhat0.0005_sph
               ("4.8，材料参数直写，label 按 SNK1 算", ["direct_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8_snk1_direct.json",
                                                   "direct_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_direct.json",
                                                   "direct_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8_snk1_direct.json"],
-               "U_snk1_over_UH")]
+               "U_snk1_over_UH"),
+              ("2.4，材料参数直写，label 按 SNK1 算", ["direct_L2.4/ipc_hc0.0125_dhat0.0005_sph7_L2.4_snk1_direct.json",
+                                                  "direct_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4_snk1_direct.json",
+                                                  "direct_L2.4/ipc_hc0.0125_dhat0.000125_sph7_L2.4_snk1_direct.json"],
+               "U_snk1_over_UH"),
+              ("4.8，网格 0.00625，材料参数直写，label 按 SNK1 算",
+               ["fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.00025_sph7_L4.8_snk1_direct.json",
+                "fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.000125_sph7_L4.8_snk1_direct.json"], "U_snk1_over_UH")]
+# rows of BLOCK_RUNS used for the two final extrapolations (block size → ∞ by 1/L; mesh → 0 assuming error ∝ h)
+FINAL_ROWS = {"L2.4": 6, "L4.8": 5, "L4.8_fine": 7}
 UNIAXIAL = {"as_input": "uniaxial/uniaxial_as_input.json", "snk1_direct": "uniaxial/uniaxial_snk1_direct.json"}
 
 
@@ -755,6 +767,9 @@ def label_facts():
         "extrap": (extrap(0), extrap(-1)),
         "block": [(lbl, len(paths), *_extrap_to_zero(paths, key)) for lbl, paths, key in BLOCK_RUNS],
         "uniaxial": {m: _read_e0(p) for m, p in UNIAXIAL.items()},
+        # SNK1 label, d̂ → 0: block → ∞ assuming the block-size error ∝ 1/L (2·L4.8 − L2.4); mesh → 0 assuming the
+        # mesh error ∝ h (2·h0.00625 − h0.0125); both are estimates from two points
+        "final": {name: _extrap_to_zero(BLOCK_RUNS[i][1], BLOCK_RUNS[i][2]) for name, i in FINAL_ROWS.items()},
         # far-mesh check has only d̂ 5e-4 / 2.5e-4, so compare it with the L = 2.4 run extrapolated from the same pair
         "far_mesh_diff": abs(_extrap_to_zero(BLOCK_RUNS[2][1], "U_over_UH")[1]
                              - _extrap_to_zero(BLOCK_RUNS[1][1][:2], "U_over_UH")[1]),
@@ -793,6 +808,12 @@ def label_section(f):
            f"块半宽 1.2 → 2.4 → 4.8（外推到 d̂ = 0，压深 0.024）：{arrow([f['block'][i][3] for i in (0, 1, 3)])}；"
            f"远处网格加细只差 {f['far_mesh_diff']:.3f}（两者都用 d̂ 5e-4、2.5e-4 外推）；"
            f"材料参数直写后 {f['block'][3][3]:.2f} → {f['block'][4][3]:.2f}，label 再按 SNK1 算 → {f['block'][5][3]:.2f}",
+           "label 按 SNK1 算、外推到 d̂ = 0 后再拆（都是两点估算）：块按 1/L 外推到无限大，压深 0.004 / 0.024 为 "
+           + " / ".join(f"{2 * f['final']['L4.8'][k] - f['final']['L2.4'][k]:.3f}" for k in (0, 1))
+           + "；块半宽 4.8 时网格从 0.0125 加密到 0.00625，"
+           + " / ".join(f"{f['final']['L4.8'][k]:.3f} → {f['final']['L4.8_fine'][k]:.3f}" for k in (0, 1))
+           + "，按误差和网格尺寸成正比外推到网格 0："
+           + " / ".join(f"{2 * f['final']['L4.8_fine'][k] - f['final']['L4.8'][k]:.3f}" for k in (0, 1)),
            "细长棒单轴拉伸实测（设定 E = 1e5、ν = 0.3）：照原样传入 E = "
            f"{f['uniaxial']['as_input']['E_meas']:.0f}、ν = {f['uniaxial']['as_input']['nu_meas']:.3f}；直写属性后 "
            f"E = {f['uniaxial']['snk1_direct']['E_meas']:.0f}、ν = {f['uniaxial']['snk1_direct']['nu_meas']:.3f}"]
