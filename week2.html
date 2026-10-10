@@ -99,7 +99,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <header class="top"><a href="index.html">← 所有周</a><h1>Week 2（TODO 2026-10-04）</h1><p class="summary">文献（hydroelastic、神经网络接触模型）、NeuralIPC 代码、Genesis + hydroelastic demo、实验方案、问题与待决定。</p><nav class="toc"><a href="#w1">文献：Hydroelastic</a><a href="#w2">文献：神经网络接触模型</a><a href="#w3">看代码</a><a href="#w4">Demo</a><a href="#w5">实验方案</a><a href="#w6">问题与待决定</a></nav></header>
 <section id="w1"><h2>文献：Hydroelastic + Hertz</h2>
 <h3 id="p_elandt">Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment between nominally rigid objects</h3>
-<p>\[p_0 = E\,\epsilon\]</p>
+<p><b>核心贡献：</b>提出压力场接触模型（Pressure Field Contact，PFC，即 hydroelastic）：每个名义刚体内部离线算好一个压力场，两物体重叠时以两侧压力相等的曲面为接触面，在其上积分得到接触力和力矩。比弹性理论模型快得多，物体非凸、网格很粗时力仍随位置连续变化。</p><p>\[p_0 = E\,\epsilon\]</p>
 <ul>
 <li>\(p_0\)：物体内部某点的虚拟压力（Pa），固定在物体上，离线算一次，不需要满足力学平衡。</li>
 <li>\(E\)：原文称弹性模量，决定多硬。</li>
@@ -115,7 +115,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <p>接触面越大、压力越高 → 合力越大。</p>
 <p><strong>有势能</strong>：\(U_A=\int_{V_A^{\cap}}p_{0_A}\,dV\)，\(V_A^{\cap}\) 是 A 被挤占的体积。重叠越多越深 → 能量越大。</p>
 <p>原文的边界：物体「名义上是刚体」，不追求准确预测形变。</p><p class="kp">hydroelastic 的接触压力由预先给定的压力场按穿入深度确定，不来自弹性力学平衡；它针对名义刚体，不预测真实形变。</p><h3 id="p_masterjohn">Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches</h3>
-<p>\[f_{n}=A\,p_c,\qquad k=g\,A_0,\qquad \phi_0=-\frac{p_{c,0}}{g},\qquad g=\frac{g_A\,g_B}{g_A+g_B}\]</p>
+<p><b>核心贡献：</b>原始 PFC 只能配合加速度层面、自适应步长的积分器。本文把每块接触面在速度层面线性化为一根弹簧，使 PFC 能接入主流机器人仿真引擎的固定步长速度层面求解器，并达到实时。</p><p>\[f_{n}=A\,p_c,\qquad k=g\,A_0,\qquad \phi_0=-\frac{p_{c,0}}{g},\qquad g=\frac{g_A\,g_B}{g_A+g_B}\]</p>
 <ul>
 <li>\(f_n\)：一块平面多边形的法向力；\(A\)：面积；\(p_c\)：形心压力。压力在多边形上线性，「面积 × 形心值」正好是积分，力是精确的；力矩不精确，误差随网格尺寸平方减小。</li>
 <li>\(k\)：等效弹簧刚度；\(A_0\)、\(p_{c,0}\)：步首的面积和形心压力。</li>
@@ -123,17 +123,17 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <li>\(\phi_0\)：把压力换算成的「等效穿透深度」（负值）。</li>
 </ul>
 <p>面积越大、梯度越大 → 弹簧越硬。\(g\) 是两侧串联，一软一硬时约等于软的那侧。</p><p class="kp">每块接触多边形等效为形心处的一根线性弹簧，刚度 \(k=g\,A_0\) 与接触面积成正比。</p><h3 id="p_sap">Castro et al. 2023：An Unconstrained Convex Formulation of Compliant Contact</h3>
-<p>本文提出的求解器叫 SAP（Semi-Analytic Primal solver：接触约束用解析式直接消去，再对速度做牛顿法下降），Genesis 的 SAPCoupler 即由此得名。</p><p>\[\gamma_n/\delta t=\big(-k\phi-\tau_d\,k\,v_n\big)_+\]</p>
+<p><b>核心贡献：</b>传统接触求解要解互补问题（「不接触就没有力、有力就必须贴紧」的二选一条件），难解且不稳定。本文用解析式消去接触约束，把每个时间步写成只含速度的无约束凸优化，并给出求解器 SAP（Semi-Analytic Primal），保证全局收敛、可达交互速率。Genesis 的 hydroelastic 用的就是这个求解器。</p><p>\[\gamma_n/\delta t=\big(-k\phi-\tau_d\,k\,v_n\big)_+\]</p>
 <ul>
 <li>\(\gamma_n\)：一步内法向冲量；\(\delta t\)：步长。</li>
 <li>\(\phi\)：有符号距离，穿透为负；\(v_n\)：法向相对速度。</li>
 <li>\(\tau_d\)：耗散时间尺度（阻尼）；\((\cdot)_+\)：只推不拉。</li>
 </ul>
-<p>穿得越深、\(k\) 越大 → 推力越大。一步时间积分写成一个无约束凸优化（碗形、只有一个最低点），解唯一。</p><p class="kp">hydroelastic 的接触力必须由穿透产生；SAP 把每个时间步写成无约束凸优化，保证解唯一。</p><h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper（和 hydro 比时的裁判）</h3><h4>结论公式</h4>
+<p>穿得越深、\(k\) 越大 → 推力越大。一步时间积分写成一个无约束凸优化（碗形、只有一个最低点），解唯一。</p><p class="kp">hydroelastic 的接触力必须由穿透产生；SAP 把每个时间步写成无约束凸优化，保证解唯一。</p><h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper</h3><p><b>核心贡献：</b>给出两个光滑弹性曲面接触的闭式解析解：接触半径、压力分布、接触力和弹性能随压深的关系。它不依赖任何仿真代码，因此作为比较 hydroelastic 与我们方法的独立裁判。</p><h4>结论公式</h4>
 <p><strong>接触半径</strong></p>
 <p>\[a=\sqrt{R\,\delta}\]</p>
 <ul>
-<li>\(a\) 接触半径（contact radius；接触区 contact area 指两物体压紧后实际贴合的那块面积，球压平面时是一个圆，a 是它的半径），\(R\) 等效半径，\(\delta\) 压深。</li>
+<li>\(a\) 接触半径（两物体压紧后贴合区域的半径，球压平面时贴合区域是一个圆），\(R\) 等效半径，\(\delta\) 压深。</li>
 <li>压深变 4 倍，\(a\) 只变 2 倍。</li>
 </ul>
 <p><strong>力和压深（Hertz 定律的核心）</strong></p>
@@ -151,14 +151,14 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 </ul><p class="kp">Hertz：\(F\propto\sqrt R\,\delta^{3/2}\)，\(U\propto\sqrt R\,\delta^{5/2}\)；接触区随压深扩大，刚度随之增大。它是我们与 hydroelastic 比较时独立于双方的解析基准。</p></section>
 <section id="w2"><h2>文献：神经网络接触模型</h2>
 <h3 id="p_romero21">Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics</h3>
-<h4>和我们（Neural-IPC）的区别</h4>
+<p><b>核心贡献：</b>整体运动用少量控制量（handle，把手）带动的子空间计算，接触压出的局部凹坑由神经网络预测的位移修正补上；2D 例子中速度从全 FEM 的 20 fps 提到 140 fps，同时保留凹坑细节。</p><h4>和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th>维度</th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>位移修正 \(\mathbf{r}\)；论文没写接触能量或接触力怎么算</td><td>一个标量碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>没讨论</td><td>物体靠局部形变达到无穿透：碰撞 → 无穿透 → 局部形变 → 弹性能量</td></tr><tr><td>参考解</td><td>全 FEM 静力解</td><td>IPC（保证不穿透的接触算法）+ 高精度 FEM</td></tr><tr><td>粗自由度</td><td>BGBC 把手</td><td>刚体 / affine body（可整体线性变形的物体）/ 降阶模型</td></tr><tr><td>训练单位</td><td>输出绑定该物体网格的 PCA 分量，换物体要重训；外部修正还按碰撞体形状分开训</td><td>一个模型覆盖多种形状，尽量泛化到没见过的形状</td></tr><tr><td>怎么检验</td><td>和全 FEM 比 RMSE、峰值力</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">Romero 2021 学习的是位移修正，没有定义接触能量；Neural-IPC 学习的是实现无穿透所需的碰撞能量，接触力由能量求导得到。</p><h3 id="p_romero22">Romero et al. 2022：Contact-Centric Deformation Learning</h3>
-<h4>和我们（Neural-IPC）的区别</h4>
+<p><b>核心贡献：</b>在碰撞体（去压物体的那个硬物）的坐标系里学习凹坑形状（contact-centric），不必对物体的各种姿态稠密采样，实时生成高分辨率凹坑。</p><h4>和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th></th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>凹坑位移；接触项是人工设计的 SDF 三次方罚函数</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>没有保证</td><td>参考解由 IPC（保证不穿透的接触算法）给出；运行时网络这一项是软约束，允许穿透</td></tr><tr><td>真值</td><td>全空间仿真 − 子空间；原文没说全空间用什么接触模型</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>训练单位</td><td>每个网络绑死一个物体加一个碰撞体（输入维度由该物体的把手数决定），换任何一个都要重训</td><td>一个模型覆盖多种形状，尽量泛化到没见过的形状</td></tr><tr><td>怎么检验</td><td>和全空间仿真、Romero et al. 2021（Learning Contact Corrections for Handle-Based Subspace Dynamics） 比误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div>
 <p>一句话：本文学<strong>坑的形状</strong>，再用普通弹性能和接触势算力；我们学<strong>粗自由度缺掉的那部分碰撞能量</strong>。</p><p class="kp">Romero 2022 学习接触凹坑的形状，接触力仍来自人工设计的罚函数，不保证无穿透；每个网络只对应一个物体和一个碰撞体。</p><h3 id="p_romero23">Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors</h3>
-<h4>和我们（Neural-IPC）的区别</h4>
+<p><b>核心贡献：</b>用通用的碰撞体描述符作为网络输入，在一批碰撞体上训练后，运行时可换成任意形状的刚性碰撞体；速度 9–26 fps，全空间仿真为 1 fps。</p><h4>和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th>维度</th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>局部位移修正；能量由仿真器定义</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>不保证，有穿插</td><td>参考解由 IPC（保证不穿透的接触算法）给出</td></tr><tr><td>真值</td><td>全空间仿真；接触怎么处理原文没写</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>泛化方向</td><td>每个被压物体训一个网络，泛化的是碰撞体形状</td><td>一个模型覆盖多种被压物体形状，方向相反</td></tr><tr><td>怎么检验</td><td>对全空间仿真的相对误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">Romero 2023 为每个被压物体训练一个网络、泛化到不同碰撞体；Neural-IPC 用一个模型覆盖多种被压物体，泛化方向相反。</p><h3 id="p_rigidformer">Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>
-<h4>和我们（Neural-IPC）的区别</h4>
+<p><b>核心贡献：</b>用 Transformer 直接从点云预测多个刚体的下一步运动，不需要网格连接关系，按物体一级推理；精度与 FIGNet、HopNet 持平或更好，速度分别快 8 倍和 101 倍。</p><h4>和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th>维度</th><th>RigidFormer</th><th>我们</th></tr><tr><td>网络学什么</td><td>锚点加速度，整个求解器换成网络</td><td>保留粗自由度仿真，只补一个额外的碰撞能量项</td></tr><tr><td>碰撞能量</td><td>没有能量概念</td><td>有穿透与无穿透时的能量差</td></tr><tr><td>无穿透、局部形变</td><td>只保证单个物体刚性；物体之间不保证不穿透；没有形变</td><td>物体靠局部形变达到无穿透</td></tr><tr><td>真值</td><td>MOVi 轨迹</td><td>IPC（保证不穿透的接触算法）+ FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>力从哪来</td><td>加速度直接进积分，不经过力</td><td>力由能量求导</td></tr><tr><td>怎么检验</td><td>和真值轨迹比位置、朝向误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><p class="kp">RigidFormer 用网络替代整个刚体求解器，没有能量，也不保证物体间无穿透；Neural-IPC 保留物理求解器，只补充一项学习得到的碰撞能量。</p></section>
 <section id="w3"><h2>看代码：supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）</h2>
 <h4>核心公式</h4>

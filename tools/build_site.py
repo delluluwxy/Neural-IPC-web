@@ -663,8 +663,8 @@ CUTS_HERTZ = [(r"\*\*等效量\*\*.*?(?=\*\*接触半径\*\*)", ""),
               (r"这个圆比拿平面直接切球得到的 \$`\\sqrt\{2R\\delta\}`\$ 小，因为接触圈外的表面也被带着往下陷。", ""),
               (r"\*\*压力分布\*\*.*?(?=\*\*弹性能\*\*)", ""),
               # 讲稿在「前提假设」表里解释接触半径，组会页不放那张表，所以在第 3 节首次出现处补上说明
-              (r"\$`a`\$ 接触半径，\$`R`\$ 等效半径", "$`a`$ 接触半径（contact radius；接触区 contact area 指两物体压紧后"
-               "实际贴合的那块面积，球压平面时是一个圆，a 是它的半径），$`R`$ 等效半径")]
+              (r"\$`a`\$ 接触半径，\$`R`\$ 等效半径", "$`a`$ 接触半径（两物体压紧后贴合区域的半径，"
+               "球压平面时贴合区域是一个圆），$`R`$ 等效半径")]
 CUTS_CODE = [(r"线弹性时它就是刚度矩阵的 \*\*Schur 补\*\*.*?再拟合。", "")]
 CUTS_PLAN = [(r"推荐：E1、E2 用教科书里.*?hydro 类 10 篇都没有。", ""),
              (r"\*\*统一规则\*\*\n.*?(?=- \*\*主判据是比值\*\*)", ""),
@@ -772,9 +772,32 @@ HYDRO_PAPERS = [("p_elandt", "Elandt et al. 2019：A pressure field model for fa
                              "force and moment between nominally rigid objects"),
                 ("p_masterjohn", "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches"),
                 ("p_sap", "Castro et al. 2023：An Unconstrained Convex Formulation of Compliant Contact")]
-# 论文标题里没有 SAP，正文第一句交代名字的来历（用户 10-10「那这个名字为啥叫 sap」；原文第 41 行）
-HYDRO_PAPER_INTRO = {"p_sap": "本文提出的求解器叫 SAP（Semi-Analytic Primal solver：接触约束用解析式直接消去，"
-                              "再对速度做牛顿法下降），Genesis 的 SAPCoupler 即由此得名。"}
+# 每篇论文标题下第一段：核心贡献（讲给组里听的顺序：核心贡献 → 公式 / 和我们的区别 → 总结句）。
+# 内容取自各篇讲稿第 1 节「要解决什么问题」与原文摘要（related_work/ 下全文 md）。
+PAPER_CONTRIBUTIONS = {
+    "p_elandt": "提出压力场接触模型（Pressure Field Contact，PFC，即 hydroelastic）：每个名义刚体内部离线算好一个压力场，"
+                "两物体重叠时以两侧压力相等的曲面为接触面，在其上积分得到接触力和力矩。比弹性理论模型快得多，"
+                "物体非凸、网格很粗时力仍随位置连续变化。",
+    "p_masterjohn": "原始 PFC 只能配合加速度层面、自适应步长的积分器。本文把每块接触面在速度层面线性化为一根弹簧，"
+                    "使 PFC 能接入主流机器人仿真引擎的固定步长速度层面求解器，并达到实时。",
+    "p_sap": "传统接触求解要解互补问题（「不接触就没有力、有力就必须贴紧」的二选一条件），难解且不稳定。本文用解析式消去接触约束，"
+             "把每个时间步写成只含速度的无约束凸优化，并给出求解器 SAP（Semi-Analytic Primal），保证全局收敛、可达交互速率。"
+             "Genesis 的 hydroelastic 用的就是这个求解器。",
+    "p_hertz": "给出两个光滑弹性曲面接触的闭式解析解：接触半径、压力分布、接触力和弹性能随压深的关系。"
+               "它不依赖任何仿真代码，因此作为比较 hydroelastic 与我们方法的独立裁判。",
+    "p_romero21": "整体运动用少量控制量（handle，把手）带动的子空间计算，接触压出的局部凹坑由神经网络预测的位移修正补上；"
+                  "2D 例子中速度从全 FEM 的 20 fps 提到 140 fps，同时保留凹坑细节。",
+    "p_romero22": "在碰撞体（去压物体的那个硬物）的坐标系里学习凹坑形状（contact-centric），不必对物体的各种姿态稠密采样，"
+                  "实时生成高分辨率凹坑。",
+    "p_romero23": "用通用的碰撞体描述符作为网络输入，在一批碰撞体上训练后，运行时可换成任意形状的刚性碰撞体；"
+                  "速度 9–26 fps，全空间仿真为 1 fps。",
+    "p_rigidformer": "用 Transformer 直接从点云预测多个刚体的下一步运动，不需要网格连接关系，按物体一级推理；"
+                     "精度与 FIGNet、HopNet 持平或更好，速度分别快 8 倍和 101 倍。"}
+
+
+def _contribution(anchor):
+    """论文标题下的「核心贡献：…」一段。"""
+    return f"<p><b>核心贡献：</b>{esc(PAPER_CONTRIBUTIONS[anchor])}</p>"
 
 
 def _hydro_papers():
@@ -784,8 +807,7 @@ def _hydro_papers():
     if len(parts) != len(HYDRO_PAPERS):
         raise SystemExit(f"[build_site] genesis_hydro_impl 第 2 节应拆成 {len(HYDRO_PAPERS)} 篇，实际 {len(parts)}")
     return "".join(f'<h3 id="{a}">{esc(t)}</h3>\n'
-                   + (f"<p>{esc(HYDRO_PAPER_INTRO[a])}</p>" if a in HYDRO_PAPER_INTRO else "")
-                   + _notion_md_to_html(p) for (a, t), p in zip(HYDRO_PAPERS, parts))
+                   + _contribution(a) + _notion_md_to_html(p) for (a, t), p in zip(HYDRO_PAPERS, parts))
 # (锚点, 论文全名, 底稿文件名, 取哪几节：6 和我们的区别)
 LECTURES_NEURAL = [
     ("p_romero21", "Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics", "romero2021", (6,)),
@@ -812,7 +834,7 @@ def _takeaway(text):
 
 
 def _lectures(items):
-    return "".join(f'<h3 id="{a}">{esc(title)}</h3>\n{_notion_md_to_html(_handout_sections(name, nums))}'
+    return "".join(f'<h3 id="{a}">{esc(title)}</h3>\n{_contribution(a)}{_notion_md_to_html(_handout_sections(name, nums))}'
                    + (_takeaway(LECTURE_TAKEAWAYS[a]) if a in LECTURE_TAKEAWAYS else "")
                    for a, title, name, nums in items)
 
@@ -882,7 +904,7 @@ def week2_sections(hydro):
                + _handout_sections("experiment_plan", headings=["E1 ", "E2 ", "E3 ", "E4 ", "E5 "]))
     S = [("w1", "文献：Hydroelastic + Hertz", "".join([
              _hydro_papers(),
-             '<h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper（和 hydro 比时的裁判）</h3>',
+             '<h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper</h3>' + _contribution("p_hertz"),
              _notion_md_to_html(_trim(_handout_sections("hertz", (3,)), CUTS_HERTZ))])),
          ("w2", "文献：神经网络接触模型", _lectures(LECTURES_NEURAL)),
          ("w3", "看代码：supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）",
