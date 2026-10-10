@@ -126,7 +126,7 @@ OFFICIAL_TEST_NOTES = {
 # setting -> expectation by principle -> video -> conclusions. Sources of every number (not on the page):
 # Neural-IPC-sandbox docs/drafts/T2.4_web_chapter_plan.md section 2.
 HYDRO = {
-    "key": "genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_fit",
+    "key": "genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_readable",
     "nodeid": "tests/coupling/test_hybrid.py::test_sap_rigid_rigid_hydroelastic_contact[64]",
     "title": "两条关节链落到盒子上（官方 hydroelastic 测试）",
 }
@@ -134,7 +134,7 @@ HYDRO = {
 PAGE_TITLE = "Neural-IPC 周汇报"
 # 每周一块，新的一周在前；周的分界 = weekly todo/weekN.txt 文件头的日期。锚点只用字母和数字
 WEEKS = [("week2", "Week 2（TODO 2026-10-04）",
-          [("w0", "在做什么"), ("w1", "文献"), ("w2", "公式"), ("w3", "Demo"), ("w4", "实验设计"), ("w5", "结论"),
+          [("w0", "在做什么"), ("w1", "文献"), ("w2", "公式"), ("wc", "代码"), ("w3", "Demo"), ("w4", "实验设计"), ("w5", "结论"),
            ("w6", "问题")]),
          ("week1", "Week 1（TODO 2026-09-26）",
           [("videos", "IPC demo"), ("tests", "官方测试"), ("sweep", "盒子实验与参数扫描"), ("data", "对生成数据的意义")])]
@@ -686,17 +686,53 @@ def week2_sections(hydro, f):
         e("我们的做法：物体只用很少的自由度来仿真，接触处那份能量交给神经网络学"),
         e("网络的训练数据（label）= 精细仿真算出来的这份能量")])))
 
-    S.append(('w1', "1. 这周读的文献", _ul([
-        e("Hydroelastic（Drake、Genesis 里用的接触模型）"),
-        e("· Elandt 2019：每个物体里放一个「压力场」，两物体重叠的地方按压力算接触力"),
-        e("· Masterjohn 2022、Castro 2022：把它做快、做稳，能实时跑；Han 2023：推广到软的物体"),
-        e("神经网络接触模型"),
-        e("· Romero 2021–2023：粗仿真 + 网络学接触处的凹陷形状"),
-        e("· RigidFormer：网络直接预测刚体下一步怎么动"),
-        e("标准答案：Hertz（1882）—— 球压弹性平面的精确公式"),
-        e("区别：hydro 的软硬是人为调的；Romero 学形状；我们学能量，力由能量求导得到")])))
+    def paper(title, para, formula, ours):
+        """一篇文献：标题、一段话（核心贡献 + 怎么做）、公式（论文没有就不写）、和我们的关联。"""
+        return (f"<h3>{e(title)}</h3><p>{e(para)}</p>" + (f"<p>{formula}</p>" if formula else "")
+                + f"<p><b>和我们：</b>{e(ours)}</p>")
 
-    S.append(('w2', "2. 四个公式", "".join([
+    S.append(('w1', "1. 这周读的文献", "".join([
+        paper("Elandt 2019：压力场接触（hydroelastic 的原始论文）",
+              "核心贡献：一种又快、力又连续的刚体接触模型，也就是 Drake 和 Genesis 里的 hydroelastic。做法：每个物体内部"
+              "预先放一个「压力场」，表面为 0、越往里越大；两个物体按原形状直接重叠，不做变形，重叠区里两边压力相等的那张面"
+              "就是接触面，把这张面上的压力加起来就是接触力。物体切成很粗的四面体也能用，每对四面体只需求一张平面。",
+              r"\[p_0=E\,\varepsilon,\qquad \text{接触面：}p_{0,A}=p_{0,B},\qquad \mathbf f=\int_S p_0\,\hat{\mathbf n}\,dS\]",
+              "它的碰撞能量是人为设计的压力场积分，软硬只由 E 这一个数和几何决定；我们的碰撞能量从精细仿真的不穿透解里来，"
+              "由网络学。"),
+        _ul([e("p₀：物体内部某点的「压力」，预先算好、跟着物体一起动，不是真实的应力"),
+             e("ε：这个点离表面有多深，换算到 0–1（表面 0，最深处 1）"),
+             e("E：一个刚度数，决定物体多「硬」；Genesis 里叫 hydroelastic 模量，由用户填"),
+             e("S：重叠区里两边压力相等的那张面；n̂：它的法向"),
+             e("嵌得越深 → 压力越大、接触面越大 → 力越大"),
+             e("软的一方要嵌得更深才顶得住同样的压力，所以接触面陷进软的那一边"),
+             e("物体本身不变形，软硬全靠 E 和几何；所以几何一变，力的变化规律可能和真实的弹性体不一样"
+               "（第 5 部分的实验就是查这个）")]),
+        paper("Romero 2021：子空间 + 网络补接触凹坑",
+              "核心贡献：物体整体运动只用少数几个「把手」（控制点）来算，所以快；接触压出的局部凹坑，粗表示做不出来，"
+              "由网络补上。训练数据是全有限元仿真在每个姿态下的静力平衡形状减去粗表示的形状。2D 例子里全有限元 20 帧/秒，"
+              "本文 140 帧/秒，凹坑细节找回来了。",
+              r"\[\mathbf x(\mathbf q)=\mathbf U\mathbf q+\mathbf F(\mathbf q)\,\mathbf r(\mathbf q)\]",
+              "思路和我们一样：粗自由度 + 网络补接触处的局部变形。区别是它学位移 r，没有接触能量，也不保证不穿透；"
+              "我们学的是一个能量，力由能量求导得到。"),
+        paper("Romero 2022：在碰撞体坐标系里学凹坑",
+              "核心贡献：凹坑的形状换到「站在碰撞体上看」的坐标系里描述，变化平滑得多，所以要的训练数据少很多、网络也小；"
+              "网络是一个连续函数，物体表面任何一点都能查询，也能直接求导算力。远处的把手权重为 0，直接屏蔽。",
+              r"\[u(\bar x)=\mathbf T(\mathbf z)\,r(\bar z),\qquad \bar z=\mathbf T(\mathbf z)^{-1}\tilde x(\bar x)\]",
+              "仍然学位移；接触项是人为设计的罚函数，不保证不穿透。「换到接触的局部坐标系里学」这一点我们可以借鉴。"),
+        paper("Romero 2023：换一个没见过的碰撞体也能用",
+              "核心贡献：前两篇只对训练时那一个碰撞体有效；这篇在每个点周围撒 65 个探针，读出碰撞体在附近长什么样"
+              "（有符号距离），网络只看这一小块局部形状，所以运行时换成任意形状的碰撞体也能用，9–26 帧/秒，全空间仿真 1 帧/秒。",
+              r"\[r=T\,R(x)\,r_{\text{local}},\qquad r_{\text{local}}=\mathbb N\big(\hat\phi(x),\,W(\bar x)\,R^{-1}T^{-1}(q-x)\big)\]",
+              "泛化到没见过的形状，正是我们「一个模型覆盖多种形状」要做的；它还是学位移、不保证不穿透，我们学能量、"
+              "label 来自保证不穿透的 IPC。"),
+        paper("RigidFormer：用 Transformer 直接预测刚体怎么动",
+              "核心贡献：只输入点云、不需要网格连接关系；每个物体压成一个向量，物体之间用 attention 交互；"
+              "每个物体只预测 4 个锚点的加速度，再用一次最贴合的刚体变换把整个物体摆正，保证物体本身不变形。"
+              "比 FIGNet 快 8 倍、比 HopNet 快 101 倍。",
+              r"\[\mathbf x_{t+1}=f_\theta(\mathbf x_{t-1},\mathbf x_t,\Delta t)\]",
+              "它把整个求解器换成网络，没有能量的概念，物体之间也不保证不穿透；我们保留仿真器，只补一个碰撞能量项。")])))
+
+    S.append(('w2', "2. 三个公式", "".join([
         "<h3>Hertz：刚性球压进弹性体（标准答案）</h3>",
         r"<p>\[a=\sqrt{R\,\delta},\qquad F=\tfrac{4}{3}E^*\sqrt{R}\,\delta^{3/2},\qquad "
         r"U=\tfrac{8}{15}E^*\sqrt{R}\,\delta^{5/2},\qquad E^*=\frac{E}{1-\nu^2}\]</p>",
@@ -707,16 +743,6 @@ def week2_sections(hydro, f):
              e("U 是 F 对压深的积分：压深翻倍，能量约 ×5.7；材料越硬、球越大，能量越大"),
              e("成立条件：变形小、材料线弹性、无摩擦、物体比接触圆大得多。我们检查 label 的算例正好满足，"
                "所以拿它当标准答案")]),
-        "<h3>Hydroelastic：压力场接触</h3>",
-        r"<p>\[p_0(\mathbf x)=E_h\,\varepsilon(\mathbf x),\qquad \text{接触面 }S:\ p_{0,A}=p_{0,B},"
-        r"\qquad F=\int_S p_0\,dA\]</p>",
-        _ul([e("每个物体内部预先算好一个「压力场」p₀：表面为 0，越往里越大"),
-             e("ε：这个点离表面有多深，换算到 0–1（表面 0，最深处 1）"),
-             e("E_h：hydroelastic 模量，人为指定的一个数，决定物体多「硬」"),
-             e("两个物体按原来的形状直接重叠，不做变形；重叠区里两边压力相等的那张面就是接触面 S"),
-             e("接触力 = S 上压力的积分：嵌得越深 → 压力越大、接触面越大 → 力越大"),
-             e("软硬全靠 E_h 这一个数，它和材料真实的 E 没有固定关系；所以几何一变，"
-               "力的变化规律可能和真实的弹性体不一样（第 4 部分的实验就是查这个）")]),
         "<h3>IPC：保证不穿透的接触能量</h3>",
         r"<p>\[B(d)=\kappa\,\big(d^2-\hat d^{\,2}\big)^2\Big[\ln\frac{d^2}{\hat d^{\,2}}\Big]^2"
         r"\quad (d<\hat d),\qquad B=0\quad (d\ge\hat d)\]</p>",
@@ -736,16 +762,34 @@ def week2_sections(hydro, f):
              e("力 = U_c 对 z 求导，由能量得到，所以不会凭空多出能量"),
              e("球压平面时 U_c 就等于 Hertz 的 U，所以可以用 Hertz 检验")])])))
 
-    S.append(('w3', "3. Demo：Genesis 的 hydroelastic", "".join([
+    S.append(('wc', "3. 看代码：supervisor 的 NeuralIPC 仓库", "".join([
+        _ul([e("目标：学上面的碰撞能量 U_c，给只有少量自由度的物体当接触能量用"),
+             e("造 label 的三个求解器："),
+             e("· 边界元：只离散接触表面，用半空间的解析公式；主力，和 Hertz 误差 < 0.1%"),
+             e("· 有限元 + 增广拉格朗日（用乘子精确保证不穿透）：大变形时的参考"),
+             e("· libuipc（GPU 上的 IPC 库）：刚球压软块，3D 造数据的雏形；我们第 6 部分检查的就是它")]),
+        "<h3>现在的网络：先算间隙，网络只给两个数</h3>",
+        r"<p>\[U=c\,\delta^{\,p},\qquad \delta=\max\big(0,\,-\min\text{gap}\big),\qquad p>2\]</p>",
+        _ul([e("gap：两个表面之间的有向间隙，用几何直接算；δ：最深的穿插量，分开时为 0，所以能量也正好是 0"),
+             e("网络只输出 c 和 p：c 管多硬，p 管随压深涨多快；p > 2 保证刚碰上时力从 0 平滑地长起来"),
+             e("力 = U 对位置求导，所以和能量一致"),
+             e("网络学到的 p 中位数 2.47，接近 Hertz 的 2.5")]),
+        "<h3>多个接触区</h3>",
+        _ul([e("总能量 = 各接触区自己的能量之和 − 相邻两区互相「变软」的修正"),
+             e("两个接触区靠得越近，修正越大：它们互相预压，一起变软")]),
+        _ul([e("现状：训练用的 label 来自边界元和有限元；用 IPC（libuipc）造的 3D 数据还没接进训练。"
+               "要接进来，先要确认 IPC 造的 label 本身是对的，这就是第 6 部分的检查")])])))
+
+    S.append(('w3', "4. Demo：Genesis 的 hydroelastic", "".join([
         '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
         _ul([e("Genesis 自带的 hydroelastic 测试，原样跑通"),
              e("两条链掉到盒子上，被托住、叠起来"),
              e("盒子只压进地面约 8 微米：是靠「嵌进去一点」托住的，肉眼看不出")]),
         _setting("Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 "
                  "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic"
-                 "（SAP 求解器，不经过 IPC）；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍")])))
+                 "（SAP 求解器，不经过 IPC）；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；为看清接触，只改了灯光、盒子颜色和相机仰角，物理和检查条件不变")])))
 
-    S.append(('w4', "4. 实验设计：怎么证明我们原理上比 hydro 对", "".join([
+    S.append(('w4', "5. 实验设计：怎么证明我们原理上比 hydro 对", "".join([
         _ul([e("标准答案用弹性力学的精确公式，不用任何一方自己的仿真"),
              e("每个实验只改一个几何量，看谁的变化跟标准答案一致")]),
         table(["实验", "改什么", "标准答案", "hydro"],
@@ -756,7 +800,7 @@ def week2_sections(hydro, f):
                ["E5", "物体本身也会变形", "变形只算一次", "变形算了两遍"]]),
         _ul([e("先做 E0：检查我们的训练数据本身对不对（下一部分）")])])))
 
-    S.append(('w5', "5. 结论", "".join([
+    S.append(("w5", "6. 结论", "".join([
         _ul([e("Hydro：物体靠微米级的嵌入托住；软硬只由一个人为的数决定")]),
         "<h3>E0：训练数据对不对</h3>",
         _setting("supervisor 造 label 的球压算例：刚性球（半径 1）竖直压进底面固定的软块（E = 1e5，ν = 0.3），"
@@ -776,7 +820,7 @@ def week2_sections(hydro, f):
         _setting("独立有限元：supervisor 的轴对称有限元程序（不经过 IPC，没有安全距离），圆柱块半径 = 高 = 2.4 → 19.2，"
                  "两种网格；按 Hertz 的全部假设算一遍、按 label 实际的材料和真球面再算一遍，都按块大小外推到无限大")])))
 
-    S.append(('w6', "6. 遇到的问题", _ul([
+    S.append(("w6", "7. 遇到的问题", _ul([
         e("IPC 的「安全距离」让能量偏大 → 取几个不同的安全距离，外推到 0"),
         e("球面网格太粗 → 加细"),
         e(f"新版 IPC 库里材料实际的硬度比设定的大 {f['E_meas'] / 1e5 - 1:.0%}（软件更新时漏改了一处换算）→ 已找到改法"),

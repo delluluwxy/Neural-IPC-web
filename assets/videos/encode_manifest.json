@@ -2302,5 +2302,37 @@
   ],
   "out_size": 112151,
   "encoded_at": "2026-10-09 04:12:34"
+ },
+ "genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_readable.mp4": {
+  "src": "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_readable/scene0.mp4",
+  "src_size": 989052,
+  "src_mtime": 1791616560.7134857,
+  "crf": 26,
+  "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
+  "args": [
+   "-hide_banner",
+   "-loglevel",
+   "error",
+   "-nostdin",
+   "-y",
+   "-i",
+   "/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_readable/scene0.mp4",
+   "-vf",
+   "scale=-2:'min(720,ih)'",
+   "-c:v",
+   "libx264",
+   "-preset",
+   "slow",
+   "-crf",
+   "26",
+   "-pix_fmt",
+   "yuv420p",
+   "-movflags",
+   "+faststart",
+   "-an",
+   "<out>"
+  ],
+  "out_size": 58274,
+  "encoded_at": "2026-10-10 00:18:19"
  }
 }
