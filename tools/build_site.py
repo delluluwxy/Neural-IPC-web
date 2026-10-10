@@ -159,7 +159,7 @@ HYDRO = {
 PAGE_TITLE = "Neural-IPC 周汇报"
 NAV = [("meeting", "组会提纲"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查"),
        ("videos", "上周：IPC demo"), ("tests", "上周：官方测试"), ("sweep", "上周：盒子实验与参数扫描"),
-       ("data", "对生成数据的意义")]  # 锚点只用字母；本周（week2）的在前，上周（week1）的在后
+       ("data", "上周：对生成数据的意义")]  # 锚点只用字母；本周（week2）的在前，上周（week1）的在后
 
 
 # ==========================================================================
@@ -1479,7 +1479,7 @@ def data_section():
     """The training-data implications of the experiments, one item per DATA_IMPLICATIONS entry (what to do + basis)."""
     items = "".join(f"<li><b>{esc(what)}</b><br><span class=\"small\">依据：{esc(why)}</span></li>"
                     for what, why in DATA_IMPLICATIONS)
-    return f'<section id="data"><h2>对生成训练数据的意义</h2><ol>{items}</ol></section>'
+    return f'<section id="data"><h2>上周：对生成训练数据的意义</h2><ol>{items}</ol></section>'
 
 
 # ---------------- 关键数字（发现 / 结论里用，dry-run 时也打印出来核对） ----------------
@@ -1497,7 +1497,11 @@ def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
     n_ran = sum(1 for r in tests if r.get("outcome") in ("passed", "failed"))
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
-    summary = (f"这周在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
+    summary = ("本周（10-04 起）：读了 hydroelastic 和神经接触模型的文献；跑通 Genesis 的 hydroelastic 官方测试和例子；"
+               "设计了证明「原理上比 hydro 好」的实验（E1–E5，裁判用弹性力学解析解）；作为前提，检查了造训练数据的 label "
+               "是否收敛到 Hertz，发现并拆清了几处误差来源（见「组会提纲」）。"
+               "上周（09-26 起）：")
+    summary += (f"在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
                f"{len(demos)} 个 Genesis IPC 例子和 {len(tests)} 个 Genesis 官方 IPC 测试场景，共 {n_video} 段视频"
                f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
                f"然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 {n_gsweeps} 个 IPC 参数"
