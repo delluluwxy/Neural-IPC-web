@@ -943,11 +943,38 @@ def _add_takeaways(anchor, body):
     return body
 
 
+def _e0_figure():
+    """E0 实测图（标签能量 / Hertz 能量随 d̂ 的变化）。"""
+    return (f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
+            f'<figcaption class="small">E0 实测（外推前的原始数据）：标签能量 / Hertz 能量（1 表示一致），'
+            f'横轴为 \\(\\hat d\\)，\\(\\hat d\\) 越大能量越偏高，故外推到 0</figcaption></figure>')
+
+
+def _week2_from_draft(demo_html):
+    """整页讲稿 docs/drafts/web_week2.md（用户 10-10：整页要自成一条逻辑，一个 agent 统一重写）→
+    [(锚点, 标题, HTML)]。按「## SECTION wN: 标题」分节，「### 」为论文标题，「TAKEAWAY: 」行为醒目色总结句，
+    [[DEMO_VIDEO]] / [[E0_FIG]] 换成视频卡片和 E0 图。未核对（不在 VERIFIED_DRAFTS）或不存在时返回 None。"""
+    path = DRAFTS / "web_week2.md"
+    if "week2" not in VERIFIED_DRAFTS or not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8")
+    m = re.search(r"(?ms)^## A\..*?\n(.*?)(?=^## B\.|\Z)", text)
+    parts = re.split(r"(?m)^## SECTION (w\d):\s*(.+)$", m.group(1) if m else text)
+    out = []
+    for anchor, title, md in zip(parts[1::3], parts[2::3], parts[3::3]):
+        md = re.sub(r"(?m)^### (.+)$", lambda h: f"\n<h3>{esc(h.group(1).strip())}</h3>\n", md)
+        md = re.sub(r"(?m)^TAKEAWAY:\s*(.+)$", lambda k: f'\n<p class="kp">{k.group(1).strip()}</p>\n', md)
+        md = md.replace("[[DEMO_VIDEO]]", "\n@@DEMO@@\n").replace("[[E0_FIG]]", "\n@@E0FIG@@\n")
+        html = _notion_md_to_html(md)
+        for mark, rep in (("@@DEMO@@", demo_html), ("@@E0FIG@@", _e0_figure())):
+            html = html.replace(f"<p>{mark}</p>", rep).replace(mark, rep)
+        out.append((anchor, title.strip(), html))
+    return out
+
+
 def _with_e0_figure(plan_html):
     """E0 实测图放在 E0 一节末尾（E1 标题之前），紧跟它说明的结论。"""
-    fig = (f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
-           f'<figcaption class="small">E0 实测（外推前的原始数据）：标签能量 / Hertz 能量（1 表示一致），'
-           f'横轴为 \\(\\hat d\\)，\\(\\hat d\\) 越大能量越偏高，故外推到 0</figcaption></figure>')
+    fig = _e0_figure()
     m = re.search(r"<h[45]>E1 ", plan_html)
     if not m:
         raise SystemExit("[build_site] 实验方案里找不到 E1 标题，E0 图无处可放")
@@ -958,6 +985,14 @@ def week2_sections(hydro):
     """Week 2 页：讲稿正文取自 Notion（_handout_sections），顺序照 Notion 拆解页：文献（hydroelastic、神经网络接触模型）→
     看代码（NeuralIPC、Genesis 的 hydroelastic）→ Genesis + hydroelastic demo → 实验方案 → 问题与待决定。"""
     outcome = OUTCOME_LABEL.get(hydro.get("outcome"), "无结果") if hydro["state"] == "ok" else hydro["reason"]
+    demo_html = ('<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>"
+                 + _setting("Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 "
+                            "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic；"
+                            "压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
+                            "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变"))
+    whole = _week2_from_draft(demo_html)
+    if whole is not None:
+        return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{body}</section>' for a, t, body in whole]
     plan_md = (_handout_sections("experiment_plan", headings=["核心思路"])
                + "### E0 前提：label 先对上解析解\n" + _handout_bullet("experiment_plan", "结论") + "\n"
                + _handout_sections("experiment_plan", headings=["E1 ", "E2 ", "E3 ", "E4 ", "E5 "]))
