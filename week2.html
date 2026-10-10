@@ -152,7 +152,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 </ul>
 <p>\(\ell_p\) 强凸，解唯一；SAP 用牛顿法加线搜索求解。\(k\) 大到接触振动周期不大于 \(\delta t\) 时自动按近刚性处理：把接触振动周期定为 \(\beta\,\delta t\)（\(\beta\) 默认 1，即一步），\(\mathbf R\) 改由有效质量和 \(\beta\) 决定，\(k\) 再大接触也不再变硬。</p>
 <h4>实现</h4>
-<p>Drake 每次牛顿迭代用稀疏 Cholesky 分解解方程。Genesis 每步最多 5 次牛顿迭代，每次用预条件共轭梯度（至多 100 次）求方向，再做至多 10 次精确线搜索；法向正则化取 \(R_n=\max\!\big(\tfrac{\beta^2}{4\pi^2}w_{\text{rms}},\ \tfrac{1}{\delta t\,k\,(\delta t+\tau_d)}\big)\)，\(\beta\) 默认 1，\(\tau_d\) 默认 0.1 s，与 Drake 默认相同。</p>
+<p>Drake 每次牛顿迭代用稀疏 Cholesky 分解解方程。Genesis 每步最多 5 次牛顿迭代，每次用预条件共轭梯度（至多 100 次）求方向，再做至多 10 次精确线搜索；\(\tau_d\) 默认 0.1 s，与 Drake 相同。</p>
 <h4>和我们的关系</h4>
 <p>SAP 只求解给定的柔顺接触，不规定能量来源，在 hydro 中是求解器一层。我们的碰撞能量是粗自由度的非线性函数，力与刚度由能量的梯度和二阶导数给出。</p>
 <p class="kp">SAP 把一步时间积分写成只含速度的强凸无约束优化，解唯一、牛顿法可证收敛；接触力由重叠量产生。</p><h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper</h3><p><strong>核心贡献：</strong> 给出两个光滑弹性曲面接触的闭式解析解：接触半径、压力分布、法向合力与弹性能随压深的关系。它不依赖任何仿真代码，因此作为比较 hydroelastic 与我们方法的独立裁判。</p>
@@ -171,10 +171,10 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <p>\(\delta\) 越大 → \(F\) 增长快于线性，因为刚度 \(dF/d\delta=2E^*a\) 随接触圆扩大。\(R\) 越大 → \(F\) 越大，因为接触区更宽、承载的材料更多。\(E^*\) 越大 → \(F\) 越大，因为材料越硬越难压。</p>
 <p>成立条件：线弹性、\(a\ll R\)、物体远大于接触区（可视为半空间）、表面光滑、无摩擦、准静态。\(\delta/R\) 超过约 0.1 后 \(a\) 与峰值压力开始偏离，\(F\)–\(\delta\) 关系仍较稳。</p>
 <h4>实现</h4>
-<p>在本项目的压深范围内，用不经过 IPC 的轴对称有限元（增广拉格朗日接触，按块大小外推到无限大）核对，Hertz 自身误差小于 0.2%。原代码的边界元求解器复现 Hertz 的力与能量，误差小于 0.1%。</p>
+<p>在本项目的压深范围内，用独立的轴对称有限元（增广拉格朗日接触，按块大小外推到无限大）核对，Hertz 自身误差小于 0.2%。原代码的边界元求解器复现 Hertz 的力与能量，误差小于 0.1%。</p>
 <h4>和我们的关系</h4>
 <p>粗表示不含表面局部形变模态时，光滑球压弹性半空间的碰撞能量 \(U_c\) 恰为 Hertz 弹性能 \(U\)，所以 Hertz 同时检验我们的标签和学到的能量。</p>
-<p class="kp">Hertz 给出 F ∝ √R·δ^1.5、U ∝ √R·δ^2.5，越压越硬；它是独立于双方的解析裁判。</p></section>
+<p class="kp">Hertz 给出 \(F\propto\sqrt R\,\delta^{3/2}\)、\(U\propto\sqrt R\,\delta^{5/2}\)，越压越硬；它是独立于双方的解析裁判。</p></section>
 <section id="w2"><h2>文献：神经网络接触模型</h2>
 <h3 id="p_romero21">Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics</h3>
 <p><strong>核心贡献：</strong> 线性子空间模型（少量控制量带动整张网格）快，但缺接触凹陷。本文用神经网络学习由同一组控制量参数化的位移修正，以接近子空间的速度恢复全空间接触细节。</p>
