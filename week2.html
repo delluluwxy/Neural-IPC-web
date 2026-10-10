@@ -194,7 +194,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h4>训练数据</h4>
 <p>标签是精细 Neo-Hookean 有限元的全空间解：固定把手，求无碰撞体与刚性碰撞体以不同深度扫过表面时的准静态平衡，减去 \(\mathbf{U}\mathbf{q}\) 再乘 \(\mathbf{F}^{-1}\) 得修正。每个物体–碰撞体组合单独训练。</p>
 <h4>和我们的关系</h4>
-<p>本文输出位移修正，直接改写形状；我们的粗模型允许穿透，网络把穿透状态折算为碰撞能量作软约束，且一个模型覆盖多种形状。</p><p class="kp">Romero 2021 在把手子空间上叠加学习型位移修正，以少量把手复现全空间接触凹陷、提速约 5–9 倍，但学的是形状而非能量，且每个物体–碰撞体组合需单独训练。</p><h3 id="p_romero22">Romero et al. 2022：Contact-Centric Deformation Learning</h3>
+<p>本文学的是位移修正，直接改写形状，每个物体与碰撞体的组合单独训练；我们学的是碰撞能量，接触力由能量求导得到，一个模型覆盖多种形状。</p><p class="kp">Romero 2021 在把手子空间上叠加学习型位移修正，以少量把手复现全空间接触凹陷、提速约 5–9 倍，但学的是形状而非能量，且每个物体–碰撞体组合需单独训练。</p><h3 id="p_romero22">Romero et al. 2022：Contact-Centric Deformation Learning</h3>
 <p><strong>核心贡献：</strong> 子空间仿真（少量「把手」带动整张网格）快，但缺接触凹坑。本文用网络预测凹坑位移，在碰撞体（压向物体的刚体）坐标系中学习，即 contact-centric：该坐标系下凹坑变化平滑，少量姿态即可泛化。</p>
 <h4>怎么做的</h4>
 <p>位置 = 子空间位置 + 网络预测的凹坑位移：</p>
@@ -287,10 +287,10 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <p>学习实验全是刚性压头压弹性半空间的合成数据，未用 IPC 标签；两个可变形体、3D 学习模型、粗模型仿真器和测速都还没做。</p>
 <p class="kp">原代码给出了碰撞能量 \(U_c\) 的定义、带接触区耦合的网络结构和半空间合成数据上的可行性证据；下一步是接入 IPC 标签并推广到 3D 真实物体。</p></section>
 <section id="w4"><h2>Demo：Genesis + hydroelastic</h2>
-<div class="grid"><div class="demo"><h3>两条关节链落到盒子上（官方 hydroelastic 测试）</h3><video controls muted playsinline preload="metadata" src="assets/videos/genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_readable.mp4"></video><p>官方检查：通过</p></div></div><ul><li><b>箱体最终下沉约 8 µm：</b>hydroelastic 依靠微小的相互穿透产生支撑力，穿透量很小、视觉上不可见。</li></ul><p class="setting muted">设置：Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变</p><p class="kp">hydroelastic 和我们一样允许穿透、由穿透量产生支撑力（本例箱体下沉约 8 µm）；区别在于它的压力来自人工设定的压力场，我们的碰撞能量来自精细仿真的真解。</p></section>
+<div class="grid"><div class="demo"><h3>两条关节链落到盒子上（官方 hydroelastic 测试）</h3><video controls muted playsinline preload="metadata" src="assets/videos/genesis_test_test_sap_rigid_rigid_hydroelastic_contact_64_readable.mp4"></video><p>官方检查：通过</p></div></div><ul><li><b>箱体最终下沉约 8 µm：</b>hydroelastic 依靠微小的相互穿透产生支撑力，穿透量很小、视觉上不可见。</li></ul><p class="setting muted">设置：Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变</p><p class="kp">hydroelastic 靠物体间的微小重叠产生支撑力（本例箱体下沉约 8 µm），重叠量由人工设定的压力场刚度决定。</p></section>
 <section id="w5"><h2>实验方案：怎么证明我们「原理上」比 hydroelastic 好</h2>
 <h4>核心思路</h4>
-<p>hydroelastic（下称 hydro）和我们的粗模型都允许重叠并由重叠算接触能量：hydro 的能量来自人工压力场，我们的来自精细仿真真解（IPC 不穿透接触 + FEM 有限元）。以它为标准答案等于默认自己正确，故裁判用独立的弹性力学解析解，不足时用与造标签不同的数值方法。</p>
+<p>目标是在原理层面检验 hydroelastic（下称 hydro）的接触模型。hydro 的接触能量来自人工设定的压力场，我们的碰撞能量来自精细仿真（IPC 接触 + FEM 有限元）的真解。若以我们的标签作标准答案，等于默认自己正确，故裁判用独立的弹性力学解析解，解析解不足时用与造标签不同的数值方法。</p>
 <p>主判据是比值：同一物体、同一压深只改一个几何量，看力变几倍；hydro 的刚度和压力映射在比值中约掉，调参无效。hydro 刚度只用训练数据拟合一次，另报取杨氏模量的结果。</p>
 <h4>E0 前提：标签对得上解析解</h4>
 <p><strong>测什么</strong>：半径 1 的刚球压一块长方体（下称块），\(E=10^5\)、\(\nu=0.3\)，压深 0.004–0.024（与半径同单位），看标签弹性能 / Hertz 能量，1 为一致。</p>
