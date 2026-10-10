@@ -303,7 +303,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <p><strong>结果</strong>：外推后压深 0.004、0.024 为 0.994、1.005。独立的轴对称有限元（增广拉格朗日接触，外推到无限大块）给出 1.002、1.001、1.000（压深 0.004、0.009、0.024），Hertz 可当裁判。</p>
 <p class="kp">标签经网格与块大小外推（各两点、属估算）后与 Hertz 之比为 0.994 / 1.005，偏差可全部归因于网格与块大小。</p>
 
-<h4>E1 球压厚块：换球半径</h4>
+<figure><img src="assets/images/e0_label_convergence.png" alt="标签收敛图"><figcaption class="small">E0 实测（外推前的原始数据）：标签能量 / Hertz 能量（1 表示一致），横轴为 \(\hat d\)，\(\hat d\) 越大能量越偏高，故外推到 0</figcaption></figure><h4>E1 球压厚块：换球半径</h4>
 <p><strong>hydro 的两种搭法</strong>：(A) 刚球压一块只提供压力场、几乎不变形的块；(B) 两边都是刚体、各带压力场、共用全局刚度（Genesis、Drake 的刚体做法）。压力 = 刚度 × 到表面距离 ÷ 最大距离。</p>
 <p>\[F_A=\frac{E_h}{D}\,\pi R\,\delta^{2},\qquad F_B=K\,\frac{\pi R\,\delta^{2}}{R+D}\]</p>
 <ul>
@@ -361,7 +361,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 </ul>
 <p><strong>hydro 给出什么</strong>：与粗表示无关，在仿射体上重复计入柔度，力偏小。</p>
 <p><strong>判据</strong>：原代码中仿射表示的碰撞能量比刚体软 1.0%→9.6%（线弹性）、7.1%→16.8%（大变形），物体越细长越大；hydro 不变。</p>
-<p class="kp">粗表示越柔，正确碰撞能量越软；hydro 与粗表示无关，物体越细长偏差越大。</p><figure><img src="assets/images/e0_label_convergence.png" alt="标签收敛图"><figcaption class="small">E0 实测：标签能量 / Hertz 能量（1 表示一致），横轴为 IPC 势垒距离 \(\hat d\)</figcaption></figure></section>
+<p class="kp">粗表示越柔，正确碰撞能量越软；hydro 与粗表示无关，物体越细长偏差越大。</p></section>
 <section id="w6"><h2>问题与待决定事项</h2>
 <ul><li><b>高精度标签生成代价高：</b>最细网格（0.00625）、块半宽 4.8 的验证设置，单进程显存峰值约 19–20 GB，每档 \(\hat d\) 约 5–10 分钟，三档外推后单样本约 15–30 分钟。需确定一套低成本的批量生成设置，并用验证设置量出它的系统偏差。</li><li><b>待决定：标签沿用原代码的做法（pyuipc 0.0.25）直接生成，还是改用 Genesis（内含新版 libuipc）。</b>新版 libuipc 的软体材料换算与求解所用能量不一致：输入 \(E=10^5\)、\(\nu=0.3\)，实际等效为 \(E\approx1.245\times10^5\)、\(\nu\approx0.214\)；改写材料参数后实测 \(E=99931\)、\(\nu=0.2998\)，Genesis 中已可开启此修正。pyuipc 0.0.25 不受影响。</li></ul><p class="kp">待决定：标签用 pyuipc 0.0.25 直接生成，还是改用 Genesis（开启材料参数修正）；并确定低成本的批量生成设置。</p></section>
 </main>

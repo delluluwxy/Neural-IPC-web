@@ -943,6 +943,17 @@ def _add_takeaways(anchor, body):
     return body
 
 
+def _with_e0_figure(plan_html):
+    """E0 实测图放在 E0 一节末尾（E1 标题之前），紧跟它说明的结论。"""
+    fig = (f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
+           f'<figcaption class="small">E0 实测（外推前的原始数据）：标签能量 / Hertz 能量（1 表示一致），'
+           f'横轴为 \\(\\hat d\\)，\\(\\hat d\\) 越大能量越偏高，故外推到 0</figcaption></figure>')
+    m = re.search(r"<h[45]>E1 ", plan_html)
+    if not m:
+        raise SystemExit("[build_site] 实验方案里找不到 E1 标题，E0 图无处可放")
+    return plan_html[:m.start()] + fig + plan_html[m.start():]
+
+
 def week2_sections(hydro):
     """Week 2 页：讲稿正文取自 Notion（_handout_sections），顺序照 Notion 拆解页：文献（hydroelastic、神经网络接触模型）→
     看代码（NeuralIPC、Genesis 的 hydroelastic）→ Genesis + hydroelastic demo → 实验方案 → 问题与待决定。"""
@@ -965,10 +976,8 @@ def week2_sections(hydro):
                       "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic；"
                       "压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
                       "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变")])),
-         ("w5", "实验方案：怎么证明我们「原理上」比 hydroelastic 好", "".join([
-             _draft_html("plan") or _notion_md_to_html(_trim(plan_md, CUTS_PLAN)),
-             f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
-             f'<figcaption class="small">{esc("E0 实测：标签能量 / Hertz 能量（1 表示一致），横轴为 IPC 势垒距离 d̂")}</figcaption></figure>'])),
+         ("w5", "实验方案：怎么证明我们「原理上」比 hydroelastic 好",
+          _with_e0_figure(_draft_html("plan") or _notion_md_to_html(_trim(plan_md, CUTS_PLAN)))),
          ("w6", "问题与待决定事项", _ul([
              _pt("高精度标签生成代价高：", "最细网格（0.00625）、块半宽 4.8 的验证设置，单进程显存峰值约 19–20 GB，"
                  "每档 \\(\\hat d\\) 约 5–10 分钟，三档外推后单样本约 15–30 分钟。需确定一套低成本的批量生成设置，"
