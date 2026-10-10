@@ -157,9 +157,11 @@ HYDRO = {
 }
 
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("meeting", "组会提纲"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查"),
-       ("videos", "上周：IPC demo"), ("tests", "上周：官方测试"), ("sweep", "上周：盒子实验与参数扫描"),
-       ("data", "上周：对生成数据的意义")]  # 锚点只用字母；本周（week2）的在前，上周（week1）的在后
+# 每周一块，新的一周在前；周的分界 = weekly todo/weekN.txt 文件头的日期。锚点只用字母和数字
+WEEKS = [("week2", "Week 2（TODO 2026-10-04）",
+          [("meeting", "组会提纲"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查")]),
+         ("week1", "Week 1（TODO 2026-09-26）",
+          [("videos", "IPC demo"), ("tests", "官方测试"), ("sweep", "盒子实验与参数扫描"), ("data", "对生成数据的意义")])]
 
 
 # ==========================================================================
@@ -511,8 +513,11 @@ a:hover { text-decoration: underline; }
 header.top { padding: 28px 0 8px; }
 h1 { font-size: 1.85rem; margin: 0 0 8px; font-weight: 650; letter-spacing: 0.01em; }
 .summary { margin: 8px 0 0; }
-nav.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.9rem; margin: 14px 0 0;
-          padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+nav.toc { font-size: 0.9rem; margin: 14px 0 0; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+nav.toc .navweek { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 3px 0; }
+div.week { counter-reset: sec; }
+div.weekhead { font-size: 1.5rem; font-weight: 700; margin: 56px 0 6px; padding: 10px 14px; border-radius: 6px;
+               background: var(--soft); border-left: 5px solid var(--accent); }
 h2 { font-size: 1.6rem; margin: 64px 0 14px; font-weight: 650; }
 h3 { font-size: 1rem; margin: 22px 0 4px; font-weight: 600; }
 h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -602,11 +607,11 @@ def demo_card(r, facts):
 
 def videos_section(demos, tests, facts):
     """Official Genesis IPC examples, then Genesis's own IPC test scenes (each with its assertion outcome)."""
-    parts = ['<section id="videos"><h2>上周：Demo 视频（Genesis + lib IPC）</h2>',
+    parts = ['<section id="videos"><h2>Demo 视频（Genesis + lib IPC）</h2>',
              '<p class="muted small">Genesis 官方 IPC 例子一字未改，相机用官方代码里给的 viewer 位置；物理由 Genesis 底层的 '
              "libuipc 在 GPU 上算，画面在服务器上离屏渲染（CPU 软件渲染）。</p>",
              '<div class="grid">', *[demo_card(r, facts) for r in demos], "</div></section>",
-             '<section id="tests"><h2>上周：官方测试场景</h2>',
+             '<section id="tests"><h2>官方测试场景</h2>',
              '<p class="muted small">Genesis 仓库自带的 IPC 测试（tests/ipc/），场景和断言一字未改，用 pytest 原样运行；'
              "每个测试自己写好了 viewer 相机位置，录像就用它。卡片里写的是官方断言有没有通过。</p>",
              '<div class="grid">', *[demo_card(r, facts) for r in tests], "</div></section>"]
@@ -640,12 +645,12 @@ def hydro_section(r):
 MEETING = [
     ("m_refs", "1. 这周看了哪些文献", [], None),
     ("m_theory", "2. 公式和理论", [], None),
-    ("m_demo", "3. 做了哪些 demo（本周：Genesis + hydroelastic）", [
+    ("m_demo", "3. 做了哪些 demo（Genesis + hydroelastic）", [
         "Genesis 官方 hydroelastic 测试原样跑通并录像：两条关节链落到盒子上，接触由 Genesis 自带的 SAP 求解器按压力场计算"
         "（不经过 IPC）。",
         "Genesis 自带的 4 个 SAP（hydroelastic）例子原样跑通；另外 5 个用到 SAP 的官方测试也逐个跑过。",
-        "上周的 Genesis + IPC demo 和盒子参数扫描仍在下方，本周没有新增。"], "hydro"),
-    ("m_setup", "4. 实验设定（本周：怎么证明原理上比 hydro 好）", [
+        "Genesis + lib IPC demo 和盒子参数扫描是 Week 1 的，在页面下方 Week 1 部分。"], "hydro"),
+    ("m_setup", "4. 实验设定（怎么证明原理上比 hydro 好）", [
         "思路：和 hydro 比的裁判用独立的弹性力学解析解（Hertz 球压、平底压头、薄层等），不用我们自己的 IPC label 当标准答案。"
         "每个实验只改一个几何量，看解析解的变化规律和 hydro 公式的变化规律能不能分开。",
         "E1 换球半径：解析解力 ×√2 ≈ 1.41，hydro ×2。E2 平底压头半径 ×1/×2/×4：解析解 ×1/×2/×4，hydro ×1/×4/×16。"
@@ -1453,7 +1458,7 @@ def sweep_section(gsweeps, cfg, videos):
     gscene = ("Genesis 没有「一堆物体扔进盒子」的官方例子，这里用官方 ipc_objects_falling 场景加一个盒子和更多同款物体。"
               f"这一套：{VARIANTS[GEN_TAG]['label']}。所有实验每次只改一个参数。盒子墙画成半透明，盒内物体不透明。"
               "除了一开始就穿插的两档（开跑前被拒），所有档位 libuipc 的穿透检查都没有报穿透。")
-    parts = ['<section id="sweep"><h2>上周：盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>", FORMULA_BLOCK]
+    parts = ['<section id="sweep"><h2>盒子实验与 IPC 参数扫描</h2>', f"<p>{esc(gscene)}</p>", FORMULA_BLOCK]
     for sweep, title, one, expect, rows, tbl in genesis_sweep_tables(gsweeps, cfg):
         parts.append(genesis_experiment(sweep, title, one, expect, rows, tbl, cfg, videos, gd))
     parts.append("</section>")
@@ -1480,7 +1485,7 @@ def data_section():
     """The training-data implications of the experiments, one item per DATA_IMPLICATIONS entry (what to do + basis)."""
     items = "".join(f"<li><b>{esc(what)}</b><br><span class=\"small\">依据：{esc(why)}</span></li>"
                     for what, why in DATA_IMPLICATIONS)
-    return f'<section id="data"><h2>上周：对生成训练数据的意义</h2><ol>{items}</ol></section>'
+    return f'<section id="data"><h2>对生成训练数据的意义</h2><ol>{items}</ol></section>'
 
 
 # ---------------- 关键数字（发现 / 结论里用，dry-run 时也打印出来核对） ----------------
@@ -1493,17 +1498,32 @@ def compute_facts(demos):
 
 
 def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
-    summary = ("本周（10-04 起）：读了 hydroelastic 和神经接触模型的文献；跑通 Genesis 自带的 hydroelastic 接触官方测试"
-               f"（SAP 求解器，官方断言{OUTCOME_LABEL.get(hydro.get('outcome'), '尚无结果')}）和例子；"
-               "设计了证明「原理上比 hydro 好」的实验（E1–E5，裁判用弹性力学解析解）；作为前提，检查了造训练数据的 label "
-               "是否收敛到 Hertz，拆出了几处误差来源（见「组会提纲」）。")
-    nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
-    body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
-            f'<nav class="toc">{nav}</nav></header>\n'
-            + meeting_section() + "\n"
-            + hydro_section(hydro) + "\n" + label_section(label_facts()) + "\n"
-            + videos_section(demos, tests, facts) + "\n"
-            + sweep_section(gsweeps, cfg, videos) + "\n" + data_section())
+    n_video = sum(1 for r in demos + tests if r.get("video_web"))
+    n_pass = sum(1 for r in tests if r.get("outcome") == "passed")
+    n_ran = sum(1 for r in tests if r.get("outcome") in ("passed", "failed"))
+    n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
+    n_grows = sum(len(s["rows"]) for s in gsweeps)
+    summary = {
+        "week2": ("读了 hydroelastic 和神经接触模型的文献；跑通 Genesis 自带的 hydroelastic 接触官方测试"
+                  f"（SAP 求解器，官方断言{OUTCOME_LABEL.get(hydro.get('outcome'), '尚无结果')}）和例子；"
+                  "设计了证明「原理上比 hydro 好」的实验（E1–E5，裁判用弹性力学解析解）；作为前提，检查了造训练数据的 label "
+                  "是否收敛到 Hertz，拆出了几处误差来源（见「组会提纲」）。"),
+        "week1": ("在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
+                  f"{len(demos)} 个 Genesis IPC 例子和 {len(tests)} 个 Genesis 官方 IPC 测试场景，共 {n_video} 段视频"
+                  f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
+                  f"然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 {n_gsweeps} 个 IPC 参数"
+                  f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
+                  "d̂ 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
+                  "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")}
+    sections = {"week2": [meeting_section(), hydro_section(hydro), label_section(label_facts())],
+                "week1": [videos_section(demos, tests, facts), sweep_section(gsweeps, cfg, videos), data_section()]}
+    nav = "".join(f'<div class="navweek"><a href="#{wid}"><b>{esc(title)}</b></a>'
+                  + "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in items) + "</div>"
+                  for wid, title, items in WEEKS)
+    weeks = "".join(f'<div class="week" id="{wid}"><div class="weekhead">{esc(title)}</div>'
+                    f'<p class="summary">{esc(summary[wid])}</p>\n' + "\n".join(sections[wid]) + "</div>\n"
+                    for wid, title, _ in WEEKS)
+    body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><nav class="toc">{nav}</nav></header>\n' + weeks)
     return page(body)
 
 
