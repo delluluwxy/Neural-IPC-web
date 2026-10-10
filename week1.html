@@ -5,7 +5,7 @@
 <style>
 :root {
   --bg: #fafaf8; --fg: #1f2328; --muted: #646b74; --border: #dcdfe3; --soft: #f1f3f5;
-  --accent: #245f96; --good: #1f6b3a; --warn: #8a5a0b;
+  --accent: #245f96; --good: #1f6b3a; --warn: #8a5a0b; --key: #b3261e;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
           "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
   color-scheme: light;
@@ -13,13 +13,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #16191d; --fg: #e4e7eb; --muted: #9ba3ad; --border: #353b43; --soft: #20252b;
-    --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a;
+    --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a; --key: #ff8a80;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #16191d; --fg: #e4e7eb; --muted: #9ba3ad; --border: #353b43; --soft: #20252b;
-  --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a;
+  --accent: #80b4e6; --good: #8fd3a5; --warn: #e6c27a; --key: #ff8a80;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -45,6 +45,8 @@ h3 { font-size: 1rem; margin: 22px 0 4px; font-weight: 600; }
 h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--border); }
 h4 { font-size: 1.15rem; margin: 26px 0 8px; font-weight: 650; }
 h5 { font-size: 1.05rem; margin: 20px 0 6px; font-weight: 650; }
+section h4, section h5 { color: var(--accent); }
+section p strong, section li strong, section td strong, section p > b, section li > b, section td b { color: var(--key); }
 pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.76rem;
           line-height: 1.45; background: var(--soft); border-radius: 4px; padding: 10px 12px; margin: 6px 0;
           max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
