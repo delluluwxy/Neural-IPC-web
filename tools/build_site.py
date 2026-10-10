@@ -1483,6 +1483,10 @@ def main():
     pages = build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit)
     # 讲稿里引用的 NAS 图（_notion_image 在生成页面时登记）
     ijobs += [{"src": src, "dst": IMAGE_DIR / src.name, "size": src.stat().st_size} for src in NOTION_IMAGES]
+    # 只压缩 / 复制页面真正引用的文件（扫描每档的视频不一定都上页面，没用到的不进 assets）
+    used = "".join(pages.values())
+    vjobs = [j for j in vjobs if f"assets/videos/{j['dst'].name}" in used]
+    ijobs = [j for j in ijobs if f"assets/images/{j['dst'].name}" in used]
 
     # ---------------- 打印计划 ----------------
     mode = "EXECUTE" if args.execute else "DRY-RUN（只演练，不写任何文件；加 --execute 才真正写）"
