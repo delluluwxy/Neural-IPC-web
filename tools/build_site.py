@@ -157,7 +157,7 @@ HYDRO = {
 }
 
 PAGE_TITLE = "Neural-IPC 周汇报"
-NAV = [("videos", "Demo 视频"), ("tests", "官方测试场景"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查"),
+NAV = [("meeting", "组会提纲"), ("videos", "Demo 视频"), ("tests", "官方测试场景"), ("hydro", "Hydroelastic 接触"), ("label", "造 label 的收敛检查"),
        ("sweep", "盒子实验与参数扫描"),
        ("data", "对生成数据的意义")]  # 锚点只用字母
 
@@ -634,6 +634,55 @@ def hydro_section(r):
     return "\n".join(parts)
 
 
+# ---------------- 组会提纲（用户 10-10：看了啥 ref → 公式理论 → 做了什么 demo → 实验设定 → 视频和结论 → 遇到什么问题） ----------------
+# 每部分：(锚点, 标题, 要点列表, 详细内容所在小节的锚点或 None)。第 1、2 部分素材来自 Neural-IPC-sandbox
+# docs/drafts/meeting_refs_theory.md（由已核对的讲义 docs/handouts/ 提炼）；其余部分的数字都出自本页各小节。
+MEETING = [
+    ("m_refs", "1. 这周看了哪些文献", [], None),
+    ("m_theory", "2. 公式和理论", [], None),
+    ("m_demo", "3. 做了哪些 demo", [
+        "Genesis 官方 IPC 例子 4 个原样跑通并录像：物体落地、动量守恒、机械臂抓软方块、一堆物体扔进盒子；"
+        "另有本地带窗口遥控机械臂抓布。",
+        "Genesis 官方 IPC 测试 4 个按测试自带断言录像（离地间隙、斜向重力滑动、布盖物体、夹布拖动）；"
+        "两个断言没过，原因已查清（见各卡片说明）。",
+        "Genesis 官方 hydroelastic 测试：两条关节链落到盒子上，接触由 SAP 求解器按压力场计算。"], "videos"),
+    ("m_setup", "4. 实验设定", [
+        "盒子实验：官方「物体落地」场景加一个开口盒子，只扫 IPC 自己的参数（d̂、接触刚度 κ、ε_v、时间步、初始穿插、网格），"
+        "每次只改一个。",
+        "造 label 的收敛检查：supervisor 造训练数据的球压算例（刚性球压软块，和 Hertz 解析解比），逐样改 d̂、网格、"
+        "球面细分、接触模型、块大小、材料参数，看 label 收敛到哪里。"], "label"),
+    ("m_result", "5. 视频和结论", [
+        "IPC 全程没有穿透；停住时每一对接触面之间都留一条约 0.7–1 倍 d̂ 的缝，越重的物体陷得越深。",
+        "接触刚度 κ 只在 libuipc 按场景算出的区间里生效，区间外会被夹到边界；Genesis 默认值会被夹。",
+        "Hydroelastic：物体靠微米级的互相嵌入被托住，画面上看不出穿插；它的软硬只由一个人为指定的刚度数决定。",
+        "label：supervisor 之前「label 接近 Hertz」是两个误差抵消的结果（d̂ 太大把能量算高、球面太粗把能量算低），"
+        "不能再引用；改对以后小压深在网格外推误差内和 Hertz 一致，大压深剩约 2%，推测是 Hertz 自身的近似，正在验证。"],
+     "label"),
+    ("m_problems", "6. 遇到的问题", [
+        "IPC 的 d̂ 让能量偏大：两表面还隔着 d̂ 就开始推，小压深时 supervisor 的设置多算约 80%；要用多档 d̂ 外推到 0。",
+        "球面网格太粗：三角形比接触区还大，球底其实是个多面体尖顶；球面细分至少 7 次。",
+        "新版 libuipc 的软体材料参数和设定值对不上：设 E = 1e5、ν = 0.3，拉棒实测是 E ≈ 1.245e5、ν ≈ 0.214。"
+        "原因是 2026-08 换了材料能量公式，但参数换算没跟着改；supervisor 用的旧版不受影响，我们的新版和 Genesis 的软体都受影响。"
+        "改法：换算后直接改写参数，实测回到设定值。",
+        "label 的能量公式要跟着换：supervisor 的脚本按旧公式算能量，在旧版软件下没问题；换到新版后软件内部换了新公式，"
+        "两边对不上，label 要改按新公式算。",
+        "块不够大、接触区网格不够细也会让结果偏高，都要加大、加密或外推。",
+        "这套全改对的设置很贵（每个进程约 20 GB 显存，每档 d̂ 约 8–11 分钟），批量造数据要另定便宜的生产配置，"
+        "再用这套贵的量出它的偏差、列成表。"], "label"),
+]
+
+
+def meeting_section():
+    """The meeting outline: six parts in the order the user presents them, each linking to the detailed section."""
+    parts = ['<section id="meeting"><h2>组会提纲</h2>']
+    for anchor, title, items, detail in MEETING:
+        link = f' <a class="small" href="#{detail}">（详细）</a>' if detail else ""
+        parts.append(f'<h3 id="{anchor}">{esc(title)}{link}</h3>')
+        parts.append('<ul>' + "".join(f"<li>{x if x.startswith('<') else esc(x)}</li>" for x in items) + "</ul>")
+    parts.append("</section>")
+    return "\n".join(parts)
+
+
 # ---------------- 造 label 的收敛检查（实验方案 E0） ----------------
 # Data: Neural-IPC-sandbox tools/ipc_sweep/uipc_constitution_check.py json files (one per configuration), figures from
 # tools/figs/sphere_facets_vs_contact.py and tools/figs/e0_label_convergence.py. Every number below is read from them.
@@ -648,7 +697,7 @@ SUPERVISOR_RECORDED = 1.418   # supervisor results/hertz_results.txt:18（libuip
 LABEL = {
     "setting": "supervisor 造 label 用的 Hertz 算例原样照搬：一个刚性球（半径 1）竖直压进一块底面固定的软块"
                "（宽 2.4、高 1.2，E = 1e5，ν = 0.3），无摩擦、无重力，每个压深静置到平衡后算块里存的弹性能 U，"
-               "这就是训练网络用的 label。和 Hertz 解析解 U_Hertz = (8/15)·E*·√R·δ^2.5 比。"
+               "这就是训练网络用的 label。和 Hertz 解析解 U_Hertz = (8/15)·E*·√R·δ^2.5 比（变形小时它是精确的；压得深时它自己的小变形、抛物面近似也有误差）。"
                "压深照 supervisor 的 6 个，另外逐样改下表里的设置，看 label 会不会变。",
     "params": [("压深 δ", "0.004 – 0.024（6 个）", "球最低点压到块顶以下多深；supervisor 的主扫描"),
                ("d̂", "1e-3（supervisor）、5e-4、2.5e-4", "barrier 开始推的距离：两表面离得比 d̂ 近就开始互相推"),
@@ -664,7 +713,7 @@ LABEL = {
     "concl": "label 目前主要被 d̂ 拉高：supervisor 用的 d̂ = 1e-3 在小压深下多算了约 80% 的能量；"
              "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。按 d̂ 外推到 0 以后剩下的偏高，"
              "来自块不够大、libuipc 新版的材料参数错配和网格分辨率：参数改对、label 按 SNK1 算以后，小压深再把网格加密"
-             "就回到 Hertz（外推约 1.00–1.02），大压深再把块按 1/L 外推到无限大就只差约 2%。造数据要用细分 ≥ 6 次的球、"
+             "就回到 Hertz（外推约 1.00–1.02），大压深再把块按 1/L 外推到无限大还剩约 2%，推测来自 Hertz 公式自身的近似（压深 0.024 时接触半径约 0.155，(a/R)² ≈ 2.4%），正在用不经过 IPC 的独立有限元验证。supervisor 之前「label 接近 Hertz」的结论是两个误差抵消的结果，不能再引用。造数据要用细分 ≥ 7 次的球、"
              "接触区网格足够细（压深 0.004 时 0.0125 还不够）、尽量小的 d̂（至少三档、"
              "确认和 d̂ 成正比后外推到 0）、足够大的块，并在新版 libuipc 上直写材料参数、按 SNK1 算 label。",
     "explain": ["为什么 d̂ 会把能量拉高：barrier 在两表面还隔着不到 d̂ 时就开始推，所以球还没真正碰到，"
@@ -1425,6 +1474,7 @@ def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
     nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in NAV)
     body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><p class="summary">{esc(summary)}</p>'
             f'<nav class="toc">{nav}</nav></header>\n'
+            + meeting_section() + "\n"
             + videos_section(demos, tests, facts) + "\n" + hydro_section(hydro) + "\n"
             + label_section(label_facts()) + "\n"
             + sweep_section(gsweeps, cfg, videos) + "\n" + data_section())
