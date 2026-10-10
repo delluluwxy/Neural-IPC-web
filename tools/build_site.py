@@ -843,7 +843,7 @@ def _takeaway(text):
 DRAFTS = PROJECT / "docs" / "drafts"
 # 主会话逐条核对过出处的网页稿；不在名单里的稿子（agent 还在写或未核对）不上页面
 VERIFIED_DRAFTS = {"romero2021", "romero2022", "romero2023", "rigidformer",
-                   "elandt", "masterjohn", "sap", "hertz", "code", "plan"}
+                   "elandt", "masterjohn", "sap", "hertz", "code", "plan", "week2"}
 
 
 def _web_draft(name):
@@ -961,6 +961,9 @@ def _week2_from_draft(demo_html):
     m = re.search(r"(?ms)^## A\..*?\n(.*?)(?=^## B\.|\Z)", text)
     parts = re.split(r"(?m)^## SECTION (w\d):\s*(.+)$", m.group(1) if m else text)
     out = []
+    intro = re.search(r"(?ms)^## INTRO\s*\n(.*)", parts[0])   # 页首：一句话说明要解决什么、本页讲什么
+    if intro:
+        out.append(("intro", None, _notion_md_to_html(intro.group(1))))
     for anchor, title, md in zip(parts[1::3], parts[2::3], parts[3::3]):
         md = re.sub(r"(?m)^### (.+)$", lambda h: f"\n<h3>{esc(h.group(1).strip())}</h3>\n", md)
         md = re.sub(r"(?m)^TAKEAWAY:\s*(.+)$", lambda k: f'\n<p class="kp">{k.group(1).strip()}</p>\n', md)
@@ -992,7 +995,8 @@ def week2_sections(hydro):
                             "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变"))
     whole = _week2_from_draft(demo_html)
     if whole is not None:
-        return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{body}</section>' for a, t, body in whole]
+        return [f'<div class="lead">{body}</div>' if t is None else f'<section id="{a}"><h2>{esc(t)}</h2>\n{body}</section>'
+                for a, t, body in whole]
     plan_md = (_handout_sections("experiment_plan", headings=["核心思路"])
                + "### E0 前提：label 先对上解析解\n" + _handout_bullet("experiment_plan", "结论") + "\n"
                + _handout_sections("experiment_plan", headings=["E1 ", "E2 ", "E3 ", "E4 ", "E5 "]))
