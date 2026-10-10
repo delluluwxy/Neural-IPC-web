@@ -657,12 +657,15 @@ LABEL = {
                ("接触模型", "al-ipc（supervisor）、原版 IPC", "al-ipc 不用 barrier、用增广拉格朗日防穿透"),
                ("块的半宽 = 深度 L", "1.2（supervisor）、2.4、4.8", "块越大越接近 Hertz 假设的无限大半空间"),
                ("细网格区外的单元放大倍数", "1.4（supervisor）、1.2", "越接近 1，远处的网格越细"),
-               ("材料参数", "照原样传入（supervisor）、反算", "见下面「材料参数」一段")],
+               ("材料参数", "照原样传入（supervisor）、直写属性", "见下面「材料参数」一段"),
+               ("label 怎么算", "小应变线弹性公式（supervisor 的球压脚本）、SNK1 公式",
+                "SNK1 = 我们这版求解器真正在最小化的能量")],
     "expect": "如果 label 是对的，这些设置都加密、放大以后，U ÷ U_Hertz 应该不再变化，而且接近 1。",
     "concl": "label 目前主要被 d̂ 拉高：supervisor 用的 d̂ = 1e-3 在小压深下多算了约 80% 的能量；"
              "球面太粗又把它压低了一部分，两者恰好抵消成看起来还行的 1.4。按 d̂ 外推到 0 以后剩下的偏高，"
-             "大部分来自块不够大和 libuipc 新版的材料参数错配，两项都改掉后剩约 5–7%。造数据要用细分 ≥ 6 次的球、"
-             "尽量小的 d̂（或按 d̂ 外推到 0）、足够大的块，并在新版 libuipc 上反算材料参数。",
+             "大部分来自块不够大和 libuipc 新版的材料参数错配；块放大、参数改对、label 按 SNK1 算以后只剩约 4–5%，"
+             "和块半宽 4.8 的残余尺寸效应加网格误差的量级相当。造数据要用细分 ≥ 6 次的球、尽量小的 d̂（至少三档、"
+             "确认和 d̂ 成正比后外推到 0）、足够大的块，并在新版 libuipc 上直写材料参数、按 SNK1 算 label。",
     "explain": ["为什么 d̂ 会把能量拉高：barrier 在两表面还隔着不到 d̂ 时就开始推，所以球还没真正碰到，"
                 "块就已经在比真实接触圈更大的一片区域上被压下去，存的能量更多。这部分多出来的能量大致和 d̂ ÷ δ 成正比，"
                 "所以压得越浅越严重。把实测间隙从压深里扣掉补不回来：扣了以后比值反而更偏离 1。",
@@ -670,27 +673,38 @@ LABEL = {
                 "球底在这个尺度上是个多面体的尖顶，不是光滑球面，接触区的形状和受力都不对。",
                 "材料参数：libuipc 的 StableNeoHookean 先把输入的 E、ν 按原版 Stable Neo-Hookean 能量需要的公式换算"
                 "（让它在小变形下正好等于输入值），可是 2026-08-23 起它的 GPU 端换成了另一种能量（Stiff-GIPC 的 SNK1），"
-                "换算没跟着改。数值线性化的结果：输入 E = 1e5、ν = 0.3，实际小变形下是 E ≈ 1.245e5、ν ≈ 0.214。"
+                "换算没跟着改。拉一根细长棒实测（已知拉力 ÷ 量到的伸长，不靠任何能量公式）证实了这一点。"
                 "supervisor 用的 pyuipc 0.0.25 早于这次改动，不受影响；我们源码编译的版本和 Genesis 的 IPC 软体都受影响。"
-                "「反算」= 把传进去的参数先倒推一次，让最后生效的正好是 E = 1e5、ν = 0.3。",
-                "剩下的约 5–7% 还没单独量：块半宽 4.8 时仍有一点有限尺寸影响，网格 0.0125 约 1–2%，"
-                "以及大压深下的有限变形。",
-                "块尺寸表里压深 0.004 那一列不单调（1.2 的块反而比 2.4 的低），原因还没查明；"
-                "这一列靠 d̂ = 5e-4 和 2.5e-4 两点直线外推，小压深下 d̂ 影响大，两点外推可能不够，要补更小的 d̂ 才能确定。"],
+                "「直写属性」= 换算之后再把块上的参数直接改成 SNK1 需要的值，实测 E、ν 回到设定值。",
+                "label 为什么要按 SNK1 算：求解器求的是让 SNK1 能量最小的形状；如果 label 用别的公式在这个形状上算能量，"
+                "它就不是任何一个材料模型的最小能量，大变形时连力（能量的梯度）都对不上。",
+                "d̂ 外推要至少三档：块半宽 2.4、4.8 时 d̂ 每减半多出的部分缩小到约 0.46–0.51 倍，和 d̂ 成正比，外推可靠；"
+                "半宽 1.2 时只缩小到约 0.26–0.30 倍，不成正比，原因还没查明。之前只用两档外推，半宽 1.2 的小压深值"
+                "（1.05）偏低，造成「块越大反而越高」的假象；三档以后单调了。",
+                "剩下的约 4–5% 还没单独量：块半宽 4.8 时 supervisor 自己的轴对称测试（rung1）给出约 2% 的有限尺寸偏高，"
+                "网格 0.0125 约 1–2%，大压深下还有有限变形。"],
 }
-# Block-size / far-mesh / material checks: ipc, h_c 0.0125, sphere 7; each row = (label, d̂ 5e-4 json, d̂ 2.5e-4 json),
-# the table shows the straight-line extrapolation to d̂ = 0 at depths 0.004 and 0.024.
-BLOCK_RUNS = [("1.2（supervisor 的块）", "ipc_m/ipc_hc0.0125_dhat0.0005_sph7.json",
-               "ipc_m/ipc_hc0.0125_dhat0.00025_sph7.json"),
-              ("2.4", "size_L2.4/ipc_hc0.0125_dhat0.0005_sph7_L2.4.json",
-               "size_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4.json"),
-              ("2.4，远处网格放大倍数 1.2", "grow_L2.4_g1.2/ipc_hc0.0125_dhat0.0005_sph7_L2.4_g1.2.json",
-               "grow_L2.4_g1.2/ipc_hc0.0125_dhat0.00025_sph7_L2.4_g1.2.json"),
-              ("4.8", "size_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8.json",
-               "size_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8.json"),
-              ("4.8，材料参数反算", "matched_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8_snk1_matched.json",
-               "matched_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_matched.json")]
-SNH_LINEARIZED = (1.245, 0.214)   # tools/ipc_sweep/snh_linearization.py --E 1e5 --nu 0.3 的 snk1 那一行（E 倍数、ν）
+# Block-size / far-mesh / material checks: ipc, h_c 0.0125, sphere 7. Each row = (label, json files in increasing-d̂
+# order (5e-4, 2.5e-4[, 1.25e-4]), which energy); the table shows the straight line through the two smallest d̂ at d̂ = 0.
+BLOCK_RUNS = [("1.2（supervisor 的块）", ["ipc_m/ipc_hc0.0125_dhat0.0005_sph7.json",
+                                         "ipc_m/ipc_hc0.0125_dhat0.00025_sph7.json",
+                                         "dhat125_L1.2/ipc_hc0.0125_dhat0.000125_sph7.json"], "U_over_UH"),
+              ("2.4", ["size_L2.4/ipc_hc0.0125_dhat0.0005_sph7_L2.4.json",
+                       "size_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4.json",
+                       "dhat125_L2.4/ipc_hc0.0125_dhat0.000125_sph7_L2.4.json"], "U_over_UH"),
+              ("2.4，远处网格放大倍数 1.2", ["grow_L2.4_g1.2/ipc_hc0.0125_dhat0.0005_sph7_L2.4_g1.2.json",
+                                         "grow_L2.4_g1.2/ipc_hc0.0125_dhat0.00025_sph7_L2.4_g1.2.json"], "U_over_UH"),
+              ("4.8", ["size_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8.json",
+                       "size_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8.json",
+                       "dhat125_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8.json"], "U_over_UH"),
+              ("4.8，材料参数直写", ["direct_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8_snk1_direct.json",
+                                  "direct_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_direct.json",
+                                  "direct_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8_snk1_direct.json"], "U_over_UH"),
+              ("4.8，材料参数直写，label 按 SNK1 算", ["direct_L4.8/ipc_hc0.0125_dhat0.0005_sph7_L4.8_snk1_direct.json",
+                                                  "direct_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_direct.json",
+                                                  "direct_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8_snk1_direct.json"],
+               "U_snk1_over_UH")]
+UNIAXIAL = {"as_input": "uniaxial/uniaxial_as_input.json", "snk1_direct": "uniaxial/uniaxial_snk1_direct.json"}
 
 
 def _load_e0():
@@ -739,17 +753,26 @@ def label_facts():
         "ref_sph4": first(e0[("al-ipc", 0.025, 0.001, 4)]),
         "ref_sph7": first(e0[("al-ipc", 0.025, 0.001, 7)]),
         "extrap": (extrap(0), extrap(-1)),
-        "block": [(lbl, *_extrap_pair(a, b)) for lbl, a, b in BLOCK_RUNS],
+        "block": [(lbl, len(paths), *_extrap_to_zero(paths, key)) for lbl, paths, key in BLOCK_RUNS],
+        "uniaxial": {m: _read_e0(p) for m, p in UNIAXIAL.items()},
+        # far-mesh check has only d̂ 5e-4 / 2.5e-4, so compare it with the L = 2.4 run extrapolated from the same pair
+        "far_mesh_diff": abs(_extrap_to_zero(BLOCK_RUNS[2][1], "U_over_UH")[1]
+                             - _extrap_to_zero(BLOCK_RUNS[1][1][:2], "U_over_UH")[1]),
     }
 
 
-def _extrap_pair(path_5e4, path_25e4):
-    """(depth 0.004, depth 0.024) values of the straight line through d̂ = 5e-4 and 2.5e-4, evaluated at d̂ = 0."""
-    a, err_a = load_json(E0_ROOT / path_5e4)
-    b, err_b = load_json(E0_ROOT / path_25e4)
-    if a is None or b is None:
-        raise SystemExit(f"[build_site] 块尺寸检查的结果文件读不了：{path_5e4} {err_a} / {path_25e4} {err_b}")
-    return tuple(2 * b["rows"][k]["U_over_UH"] - a["rows"][k]["U_over_UH"] for k in (0, -1))
+def _read_e0(path):
+    d, err = load_json(E0_ROOT / path)
+    if d is None:
+        raise SystemExit(f"[build_site] 结果文件读不了：{E0_ROOT / path} {err}")
+    return d
+
+
+def _extrap_to_zero(paths, key):
+    """(depth 0.004, depth 0.024) values of `key` on the straight line through the two smallest d̂, at d̂ = 0
+    (successive d̂ are halved, so the line gives 2·y(smallest) − y(next))."""
+    a, b = _read_e0(paths[-2]), _read_e0(paths[-1])
+    return tuple(2 * b["rows"][k][key] - a["rows"][k][key] for k in (0, -1))
 
 
 def label_section(f):
@@ -767,11 +790,12 @@ def label_section(f):
            f"照 supervisor 的设置（al-ipc、网格 0.025、d̂ 1e-3、球面细分 4）复现出压深 0.004 的比值 {f['ref_sph4']:.2f}"
            f"（supervisor 记录 {SUPERVISOR_RECORDED:.2f}）；只把球面换成细分 7 次，变成 {f['ref_sph7']:.2f}",
            f"把最细网格的结果按 d̂ 线性外推到 0：压深 0.004 约 {f['extrap'][0]:.2f}，压深 0.024 约 {f['extrap'][1]:.2f}",
-           f"块半宽 1.2 → 2.4 → 4.8（外推到 d̂ = 0，压深 0.024）：{arrow([f['block'][i][2] for i in (0, 1, 3)])}；"
-           f"远处网格加细只差 {abs(f['block'][2][2] - f['block'][1][2]):.3f}；"
-           f"材料参数反算后 {f['block'][3][2]:.2f} → {f['block'][4][2]:.2f}",
-           f"libuipc 新版 StableNeoHookean 小变形下的实际参数：输入 E = 1e5、ν = 0.3，"
-           f"实际 E ≈ {SNH_LINEARIZED[0]:.3f} 倍、ν ≈ {SNH_LINEARIZED[1]:.3f}"]
+           f"块半宽 1.2 → 2.4 → 4.8（外推到 d̂ = 0，压深 0.024）：{arrow([f['block'][i][3] for i in (0, 1, 3)])}；"
+           f"远处网格加细只差 {f['far_mesh_diff']:.3f}（两者都用 d̂ 5e-4、2.5e-4 外推）；"
+           f"材料参数直写后 {f['block'][3][3]:.2f} → {f['block'][4][3]:.2f}，label 再按 SNK1 算 → {f['block'][5][3]:.2f}",
+           "细长棒单轴拉伸实测（设定 E = 1e5、ν = 0.3）：照原样传入 E = "
+           f"{f['uniaxial']['as_input']['E_meas']:.0f}、ν = {f['uniaxial']['as_input']['nu_meas']:.3f}；直写属性后 "
+           f"E = {f['uniaxial']['snk1_direct']['E_meas']:.0f}、ν = {f['uniaxial']['snk1_direct']['nu_meas']:.3f}"]
     figs = "".join(f'<figure><img src="assets/images/{name}" alt="{esc(cap)}"><figcaption class="small">{esc(cap)}'
                    f"</figcaption></figure>" for name, cap in E0_FIGS)
     sph_table = table(["球面细分次数", "压深 0.004 的 U ÷ U_Hertz", "压深 0.012 的 U ÷ U_Hertz"],
@@ -781,8 +805,9 @@ def label_section(f):
              table(["改什么", "取值", "直观上是什么"], [list(r) for r in LABEL["params"]]),
              f'<p class="expect"><b>按原理期待：</b>{esc(LABEL["expect"])}</p>',
              figs, sph_table,
-             table(["块的半宽 L（网格 0.0125、球面细分 7、原版 IPC）", "外推到 d̂ = 0：压深 0.004", "压深 0.024"],
-                   [[lbl, f"{a:.3f}", f"{b:.3f}"] for lbl, a, b in f["block"]]),
+             table(["块的半宽 L（网格 0.0125、球面细分 7、原版 IPC）", "d̂ 档数", "外推到 d̂ = 0：压深 0.004",
+                    "压深 0.024"],
+                   [[lbl, str(n), f"{a:.3f}", f"{b:.3f}"] for lbl, n, a, b in f["block"]]),
              '<ul class="obs">' + "".join(f"<li>{esc(o)}</li>" for o in obs) + "</ul>",
              f'<p class="concl"><b>结论：</b>{esc(LABEL["concl"])}</p>',
              *[f'<p class="small">{esc(e)}</p>' for e in LABEL["explain"]],
