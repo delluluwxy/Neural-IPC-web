@@ -657,12 +657,14 @@ def _trim(md, cuts):
 
 
 # 组会版删掉的细节：类比、实现细节、回答过的追问（ν 和锁死、BEM/PolyFEM 当裁判、判据怎么分开误差等）
-CUTS_GENESIS_HYDRO = [(r"^Genesis 里的 hydro 就是 SAPCoupler.*?\n", ""), (r"^打个比方：.*?\n", ""),
-                      (r"原文用 Laplace 方程生成（像稳态温度：表面 0 度、骨架 1 度），也允许随深度线性增长。", ""),
+CUTS_GENESIS_HYDRO = [(r"原文用 Laplace 方程生成（像稳态温度：表面 0 度、骨架 1 度），也允许随深度线性增长。", ""),
                       (r"\$`k`\$ 大到步长分辨不了时.*?SAP 论文只做了刚体。", "")]
 CUTS_HERTZ = [(r"\*\*等效量\*\*.*?(?=\*\*接触半径\*\*)", ""),
               (r"这个圆比拿平面直接切球得到的 \$`\\sqrt\{2R\\delta\}`\$ 小，因为接触圈外的表面也被带着往下陷。", ""),
-              (r"\*\*压力分布\*\*.*?(?=\*\*弹性能\*\*)", "")]
+              (r"\*\*压力分布\*\*.*?(?=\*\*弹性能\*\*)", ""),
+              # 「接触斑」讲稿里没解释（用户 10-10「接触斑是啥」）：组会页统一叫接触区，首次出现处说明
+              (r"\$`a`\$ 接触斑半径，", "$`a`$ 接触区半径（接触区：两物体压紧后实际贴合的那块面积，球压平面时是一个圆），"),
+              (r"接触斑宽", "接触区宽")]
 CUTS_CODE = [(r"线弹性时它就是刚度矩阵的 \*\*Schur 补\*\*.*?再拟合。", "")]
 CUTS_PLAN = [(r"推荐：E1、E2 用教科书里.*?hydro 类 10 篇都没有。", ""),
              (r"\*\*统一规则\*\*\n.*?(?=- \*\*主判据是比值\*\*)", ""),
@@ -741,6 +743,7 @@ def _notion_md_to_html(md):
         t = re.sub(r"(?s)[ \t]*<details>\s*<summary>(.*?)</summary>((?:(?!<details>).)*?)[ \t]*</details>", details_html, t)
 
     t = re.sub(r"(?m)^---\s*$", "", t)
+    t = re.sub(r"(?m)^(##+ )\d+(?:\.\d+)*\.? ", r"\1", t)   # 去掉讲稿自带的节号（页面只取部分节，原编号对不上）
     t = re.sub(r"(?m)^### ", "##### ", re.sub(r"(?m)^## ", "#### ", t))
     t = re.sub(r"(?m)^(\t+)", lambda m: "    " * len(m.group(1)), t)
     t = re.sub(r"(?m)^(?![-*\s]|\d+\. )(.+)\n(?=\s*(?:[-*] |\d+\. ))", r"\1\n\n", t)   # 列表前补空行，否则不认
@@ -763,11 +766,21 @@ def _notion_image(src):
 
 
 # 组会 45 分钟放不下讲稿全文（用户 10-10「字太多」），每篇只取最核心的节，原文不改。
-# Genesis 的 hydroelastic 由这三篇拼成；三篇的核心公式取「Genesis hydro 实现」讲稿第 1、2 节，全名与年份按 related_work/INDEX.md
-HYDRO_PAPERS = ["Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment "
-                "between nominally rigid objects",
-                "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches",
-                "Castro et al. 2023（SAP）：An Unconstrained Convex Formulation of Compliant Contact"]
+# Genesis 的 hydroelastic 用到的三篇逐篇讲（用户 10-10：每篇单独讲，不放「三篇拼起来」的总述）；
+# 内容取「Genesis hydro 实现」讲稿第 2 节的 2.1–2.3，全名与年份按 related_work/INDEX.md。(锚点, 标题)
+HYDRO_PAPERS = [("p_elandt", "Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact "
+                             "force and moment between nominally rigid objects"),
+                ("p_masterjohn", "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches"),
+                ("p_sap", "Castro et al. 2023：SAP: An Unconstrained Convex Formulation of Compliant Contact")]
+
+
+def _hydro_papers():
+    """三篇 hydroelastic 论文各一个 h3：讲稿第 2 节按「### 2.x」拆开，标题换成论文全名，正文照搬（_trim 删减后）。"""
+    sec = _trim(_handout_sections("genesis_hydro_impl", (2,)), CUTS_GENESIS_HYDRO)
+    parts = re.split(r"(?m)^### 2\.\d .*\n", sec)[1:]
+    if len(parts) != len(HYDRO_PAPERS):
+        raise SystemExit(f"[build_site] genesis_hydro_impl 第 2 节应拆成 {len(HYDRO_PAPERS)} 篇，实际 {len(parts)}")
+    return "".join(f'<h3 id="{a}">{esc(t)}</h3>\n{_notion_md_to_html(p)}' for (a, t), p in zip(HYDRO_PAPERS, parts))
 # (锚点, 论文全名, 底稿文件名, 取哪几节：6 和我们的区别)
 LECTURES_NEURAL = [
     ("p_romero21", "Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics", "romero2021", (6,)),
@@ -810,7 +823,7 @@ TAKEAWAYS = [
     ("w1", "解唯一。</p>",
      "hydroelastic 的接触力必须由穿透产生；SAP 把每个时间步写成无约束凸优化，保证解唯一。"),
     ("w1", "指数比力多 1。</li>",
-     "Hertz：\\(F\\propto\\sqrt R\\,\\delta^{3/2}\\)，\\(U\\propto\\sqrt R\\,\\delta^{5/2}\\)；接触斑随压深扩大，刚度随之增大。"
+     "Hertz：\\(F\\propto\\sqrt R\\,\\delta^{3/2}\\)，\\(U\\propto\\sqrt R\\,\\delta^{5/2}\\)；接触区随压深扩大，刚度随之增大。"
      "它是我们与 hydroelastic 比较时独立于双方的解析基准。"),
     ("w3", "证明它 ≥ 0。</li>",
      "\\(U_c\\) 是粗表示为实现无穿透所缺失的弹性能，恒非负；粗表示不含表面局部模态时，球压弹性半空间的 \\(U_c\\) 就是 Hertz 能量。"),
@@ -863,9 +876,7 @@ def week2_sections(hydro):
                + "### E0 前提：label 先对上解析解\n" + _handout_bullet("experiment_plan", "结论") + "\n"
                + _handout_sections("experiment_plan", headings=["E1 ", "E2 ", "E3 ", "E4 ", "E5 "]))
     S = [("w1", "文献：Hydroelastic + Hertz", "".join([
-             '<h3 id="p_hydro">Genesis 的 hydroelastic 由三篇论文组成</h3>',
-             _ul([esc(p) for p in HYDRO_PAPERS]),
-             _notion_md_to_html(_trim(_handout_sections("genesis_hydro_impl", (1, 2)), CUTS_GENESIS_HYDRO)),
+             _hydro_papers(),
              '<h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper（和 hydro 比时的裁判）</h3>',
              _notion_md_to_html(_trim(_handout_sections("hertz", (3,)), CUTS_HERTZ))])),
          ("w2", "文献：神经网络接触模型", _lectures(LECTURES_NEURAL)),
