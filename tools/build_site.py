@@ -633,7 +633,7 @@ NOTION_IMAGES = []   # 讲稿里 <image src=NAS 路径> 引用的图，build 时
 def _handout_sections(name, numbers=None, headings=None):
     """docs/handouts/<name>.md 的一部分，原样拼起来：numbers = 编号在其中的「## N. …」节；headings = 标题行（## 或 ###）
     以其中某个前缀开头的节；都不给时取全文。"""
-    text = (HANDOUTS / f"{name}.md").read_text(encoding="utf-8")
+    text = _full_names((HANDOUTS / f"{name}.md").read_text(encoding="utf-8"))
     if numbers is None and headings is None:
         return text
     if headings is not None:
@@ -674,9 +674,31 @@ CUTS_PLAN = [(r"推荐：E1、E2 用教科书里.*?hydro 类 10 篇都没有。"
              (r"块有限大带来的偏差，用 E4 那套不锁死的轴对称有限元核对。", "")]
 
 
+# 讲稿里的论文简称 → 组会页写「作者 et al. 年份（全名）」（用户 10-10：「paper 要全名」）；全名与年份按 related_work/INDEX.md
+FULL_NAME_ELANDT = ("Elandt et al. 2019（A pressure field model for fast, robust approximation of net contact force and moment "
+                    "between nominally rigid objects）")
+FULL_NAME_MASTERJOHN = "Masterjohn et al. 2022（Velocity Level Approximation of Pressure Field Contact Patches）"
+FULL_NAME_SAP = "Castro et al. 2023（SAP：An Unconstrained Convex Formulation of Compliant Contact）"
+FULL_NAME_ROMERO21 = "Romero et al. 2021（Learning Contact Corrections for Handle-Based Subspace Dynamics）"
+PAPER_FULL_NAMES = [("Elandt 2019，Pressure Field Contact", FULL_NAME_ELANDT),
+                    ("Masterjohn 2022，Velocity Level Approximation of Pressure Field Contact Patches", FULL_NAME_MASTERJOHN),
+                    ("Castro 2023，SAP", FULL_NAME_SAP),
+                    ("### 2.1 Elandt：", f"### 2.1 {FULL_NAME_ELANDT}："),
+                    ("### 2.2 Masterjohn：", f"### 2.2 {FULL_NAME_MASTERJOHN}："),
+                    ("### 2.3 SAP：", f"### 2.3 {FULL_NAME_SAP}："),
+                    ("Romero 2021 比误差", f"{FULL_NAME_ROMERO21} 比误差")]
+
+
+def _full_names(md):
+    """把讲稿里的论文简称换成全名（PAPER_FULL_NAMES）。"""
+    for short, full in PAPER_FULL_NAMES:
+        md = md.replace(short, full)
+    return md
+
+
 def _handout_bullet(name, lead):
     """docs/handouts/<name>.md 里以「- **lead**」开头的那一条要点（原文一行）。"""
-    text = (HANDOUTS / f"{name}.md").read_text(encoding="utf-8")
+    text = _full_names((HANDOUTS / f"{name}.md").read_text(encoding="utf-8"))
     return re.search(rf"(?m)^- \*\*{re.escape(lead)}\*\*.*$", text).group(0)
 
 

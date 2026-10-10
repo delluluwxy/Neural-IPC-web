@@ -97,9 +97,9 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <section id="w1"><h2>文献：Hydroelastic + Hertz</h2>
 <h3 id="p_hydro">Genesis 的 hydroelastic 由三篇论文组成</h3><ul><li>Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment between nominally rigid objects</li><li>Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches</li><li>Castro et al. 2023（SAP）：An Unconstrained Convex Formulation of Compliant Contact</li></ul><h4>1. 一句话</h4>
 <p><strong>Genesis 的 hydro = 三篇论文拼起来：</strong></p>
-<div class="tablewrap"><table><tr><th>层</th><th>论文</th><th>管什么</th></tr><tr><td>接触模型</td><td>Elandt 2019，Pressure Field Contact</td><td>力从哪来：每个物体内部一个「虚拟压力场」</td></tr><tr><td>面片离散</td><td>Masterjohn 2022，Velocity Level Approximation of Pressure Field Contact Patches</td><td>每块接触面怎么变成一根弹簧</td></tr><tr><td>求解器</td><td>Castro 2023，SAP</td><td>所有弹簧和约束怎么一起解</td></tr></table></div>
+<div class="tablewrap"><table><tr><th>层</th><th>论文</th><th>管什么</th></tr><tr><td>接触模型</td><td>Elandt et al. 2019（A pressure field model for fast, robust approximation of net contact force and moment between nominally rigid objects）</td><td>力从哪来：每个物体内部一个「虚拟压力场」</td></tr><tr><td>面片离散</td><td>Masterjohn et al. 2022（Velocity Level Approximation of Pressure Field Contact Patches）</td><td>每块接触面怎么变成一根弹簧</td></tr><tr><td>求解器</td><td>Castro et al. 2023（SAP：An Unconstrained Convex Formulation of Compliant Contact）</td><td>所有弹簧和约束怎么一起解</td></tr></table></div>
 <h4>2. 三篇论文的核心公式</h4>
-<h5>2.1 Elandt：压力场</h5>
+<h5>2.1 Elandt et al. 2019（A pressure field model for fast, robust approximation of net contact force and moment between nominally rigid objects）：压力场</h5>
 <p>\[p_0 = E\,\epsilon\]</p>
 <ul>
 <li>\(p_0\)：物体内部某点的虚拟压力（Pa），固定在物体上，离线算一次，不需要满足力学平衡。</li>
@@ -116,7 +116,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <p>接触面越大、压力越高 → 合力越大。</p>
 <p><strong>有势能</strong>：\(U_A=\int_{V_A^{\cap}}p_{0_A}\,dV\)，\(V_A^{\cap}\) 是 A 被挤占的体积。重叠越多越深 → 能量越大。</p>
 <p>原文的边界：物体「名义上是刚体」，不追求准确预测形变。</p>
-<h5>2.2 Masterjohn：每块接触面 = 形心处一根弹簧</h5>
+<h5>2.2 Masterjohn et al. 2022（Velocity Level Approximation of Pressure Field Contact Patches）：每块接触面 = 形心处一根弹簧</h5>
 <p>\[f_{n}=A\,p_c,\qquad k=g\,A_0,\qquad \phi_0=-\frac{p_{c,0}}{g},\qquad g=\frac{g_A\,g_B}{g_A+g_B}\]</p>
 <ul>
 <li>\(f_n\)：一块平面多边形的法向力；\(A\)：面积；\(p_c\)：形心压力。压力在多边形上线性，「面积 × 形心值」正好是积分，力是精确的；力矩不精确，误差随网格尺寸平方减小。</li>
@@ -125,7 +125,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <li>\(\phi_0\)：把压力换算成的「等效穿透深度」（负值）。</li>
 </ul>
 <p>面积越大、梯度越大 → 弹簧越硬。\(g\) 是两侧串联，一软一硬时约等于软的那侧。</p>
-<h5>2.3 SAP：凸优化求解器</h5>
+<h5>2.3 Castro et al. 2023（SAP：An Unconstrained Convex Formulation of Compliant Contact）：凸优化求解器</h5>
 <p>\[\gamma_n/\delta t=\big(-k\phi-\tau_d\,k\,v_n\big)_+\]</p>
 <ul>
 <li>\(\gamma_n\)：一步内法向冲量；\(\delta t\)：步长。</li>
@@ -157,7 +157,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h4>6. 和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th>维度</th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>位移修正 \(\mathbf{r}\)；论文没写接触能量或接触力怎么算</td><td>一个标量碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>没讨论</td><td>物体靠局部形变达到无穿透：碰撞 → 无穿透 → 局部形变 → 弹性能量</td></tr><tr><td>参考解</td><td>全 FEM 静力解</td><td>IPC（保证不穿透的接触算法）+ 高精度 FEM</td></tr><tr><td>粗自由度</td><td>BGBC 把手</td><td>刚体 / affine body（可整体线性变形的物体）/ 降阶模型</td></tr><tr><td>训练单位</td><td>输出绑定该物体网格的 PCA 分量，换物体要重训；外部修正还按碰撞体形状分开训</td><td>一个模型覆盖多种形状，尽量泛化到没见过的形状</td></tr><tr><td>怎么检验</td><td>和全 FEM 比 RMSE、峰值力</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><h3 id="p_romero22">Romero et al. 2022：Contact-Centric Deformation Learning</h3>
 <h4>6. 和我们（Neural-IPC）的区别</h4>
-<div class="tablewrap"><table><tr><th></th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>凹坑位移；接触项是人工设计的 SDF 三次方罚函数</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>没有保证</td><td>参考解由 IPC（保证不穿透的接触算法）给出；运行时网络这一项是软约束，允许穿透</td></tr><tr><td>真值</td><td>全空间仿真 − 子空间；原文没说全空间用什么接触模型</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>训练单位</td><td>每个网络绑死一个物体加一个碰撞体（输入维度由该物体的把手数决定），换任何一个都要重训</td><td>一个模型覆盖多种形状，尽量泛化到没见过的形状</td></tr><tr><td>怎么检验</td><td>和全空间仿真、Romero 2021 比误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div>
+<div class="tablewrap"><table><tr><th></th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>凹坑位移；接触项是人工设计的 SDF 三次方罚函数</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>没有保证</td><td>参考解由 IPC（保证不穿透的接触算法）给出；运行时网络这一项是软约束，允许穿透</td></tr><tr><td>真值</td><td>全空间仿真 − 子空间；原文没说全空间用什么接触模型</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>训练单位</td><td>每个网络绑死一个物体加一个碰撞体（输入维度由该物体的把手数决定），换任何一个都要重训</td><td>一个模型覆盖多种形状，尽量泛化到没见过的形状</td></tr><tr><td>怎么检验</td><td>和全空间仿真、Romero et al. 2021（Learning Contact Corrections for Handle-Based Subspace Dynamics） 比误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div>
 <p>一句话：本文学<strong>坑的形状</strong>，再用普通弹性能和接触势算力；我们学<strong>粗自由度缺掉的那部分碰撞能量</strong>。</p><h3 id="p_romero23">Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors</h3>
 <h4>6. 和我们（Neural-IPC）的区别</h4>
 <div class="tablewrap"><table><tr><th>维度</th><th>本文</th><th>我们</th></tr><tr><td>网络学什么</td><td>局部位移修正；能量由仿真器定义</td><td>一个额外的碰撞能量：有穿透与无穿透时的能量差</td></tr><tr><td>无穿透</td><td>不保证，有穿插</td><td>参考解由 IPC（保证不穿透的接触算法）给出</td></tr><tr><td>真值</td><td>全空间仿真；接触怎么处理原文没写</td><td>IPC + 高精度 FEM（有限元：把物体切成小四面体逐块算形变）</td></tr><tr><td>泛化方向</td><td>每个被压物体训一个网络，泛化的是碰撞体形状</td><td>一个模型覆盖多种被压物体形状，方向相反</td></tr><tr><td>怎么检验</td><td>对全空间仿真的相对误差</td><td>先和 IPC 比；对不上就从 Hertz（两个弹性曲面接触的经典解析解）入手</td></tr></table></div><h3 id="p_rigidformer">Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>
