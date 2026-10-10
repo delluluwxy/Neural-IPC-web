@@ -707,26 +707,26 @@ def week2_sections(hydro, f):
              _pt("\\(U_c\\) 即消除穿透所需的额外弹性能，称为凝聚接触势（静态凝聚后得到的接触能量），由网络学习；",
                  "接触力取为能量对 z 的导数。这样得到的力是保守力：物体压入再分开，能量如数返还，不会凭空增减。"),
              _pt("训练标签取 IPC + 精细 FEM 的准静态解：", "准静态指只求每个压深下的受力平衡形状，不计速度和惯性；"
-                 "IPC（Incremental Potential Contact）在两表面接近时加入一个距离越近越大的能量项（势垒），保证全程无穿透。")])])))
+                 "IPC（Li et al. 2020，Incremental Potential Contact: Intersection- and Inversion-free, Large-Deformation Dynamics）在两表面接近时加入一个距离越近越大的能量项（势垒），保证全程无穿透。")])])))
 
     S.append(("w2", "Hydroelastic 接触模型", "".join([
-        _ul([_pt("Genesis 中的 hydroelastic 接触由三部分组成：", "Elandt 2019 的压力场模型给出接触力，Masterjohn 2022 把接触面"
-                 "离散成一组弹簧，SAP 负责求解。")]),
-        "<h3>Elandt 2019：压力场接触模型</h3>",
+        _ul([_pt("Genesis 中的 hydroelastic 接触由三部分组成：", "Elandt et al. 2019 的压力场模型给出接触力，Masterjohn et al. 2022 把接触面"
+                 "离散成一组弹簧，SAP（Castro et al. 2023）负责求解。")]),
+        "<h3>Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment between nominally rigid objects</h3>", _ul([_pt("压力场接触模型。")]),
         _ul([_pt("每个物体内部预定义一个压力场（每个点一个压力值），表面为 0，向内部单调增大。"),
              _pt("两物体按刚体几何直接重叠、不计变形；", "重叠区内两侧压力相等的那张面（等压面）即接触面，压力在其上积分得到接触力。")]),
         _math(r"p_0=E\,\varepsilon,\qquad F=\int_S p_0\,dA"),
         _ul([_pt("ε：", "点离表面的深度，按物体内部最深处归一化到 0–1（表面为 0，最深处即中轴为 1）。"),
              _pt("E：", "hydroelastic 模量，用户指定的模型参数，与材料的杨氏模量（材料本身的弹性刚度）没有直接对应。"),
              _pt("穿透越深，压力与接触面积同时增大，接触力随之增大。")]),
-        "<h3>Masterjohn 2022：接触面片的速度层离散</h3>",
+        "<h3>Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches</h3>", _ul([_pt("接触面片的速度层离散。")]),
         _ul([_pt("将接触面上每个多边形面片等效为一根线性弹簧（柔性点接触：允许少量嵌入，力随嵌入量增大），",
                  "从而接入速度层求解器（固定步长、每步求解下一时刻速度的求解器，MuJoCo、Drake 均属此类），实现实时仿真。")]),
         _math(r"k=g\,A,\qquad \phi_0=-\frac{p}{g}"),
         _ul([_pt("A：", "面片面积；p：面片中心（形心）处的压力；φ₀：由压力反推出的等效嵌入深度。"),
              _pt("g：", "压力沿接触面法向每深入 1 m 增加多少；两物体各有一个，按两根弹簧串联合成一个。"),
              _pt("面积越大、压力梯度越大，等效刚度 k 越大；", "静止时面片合力等于面积 × 形心压力，与连续模型一致。")]),
-        "<h3>SAP 2022：无约束凸优化求解器</h3>",
+        "<h3>Castro et al. 2023（SAP）：An Unconstrained Convex Formulation of Compliant Contact</h3>", _ul([_pt("无约束凸优化求解器。")]),
         _ul([_pt("将每个时间步的柔性接触问题写成只以速度为未知量、没有约束条件、强凸的最小化问题，",
                  "强凸即目标函数是严格的「碗形」，只有一个最低点，因此解唯一，用牛顿法（利用二阶导数确定下降方向的迭代法）可稳定收敛。")]),
         _math(r"\min_{\mathbf v}\ \tfrac12\|\mathbf v-\mathbf v^*\|_A^2+\ell_{\text{接触}}(\mathbf v)"),
@@ -746,24 +746,24 @@ def week2_sections(hydro, f):
 
     S.append(("w3", "神经网络接触模型", "".join([
         _ul([_pt("现有方法学习位移修正或刚体运动，不学习接触能量，也不保证无穿透；", "本项目学习接触能量，接触力由能量梯度给出。")]),
-        "<h3>Romero 2021：降阶子空间 + 学习接触区位移修正</h3>",
+        "<h3>Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics</h3>", _ul([_pt("降阶子空间 + 学习接触区位移修正。")]),
         _math(r"\mathbf x(\mathbf q)=\mathbf U\mathbf q+\mathbf F(\mathbf q)\,\mathbf r(\mathbf q)"),
         _ul([_pt("q / Uq：", "q 是少数几个控制柄（handle：可移动的控制点或小坐标架）的状态，Uq 是它们按固定权重插值出的整体形状；"
                  "这组可能形状称为子空间。"),
              _pt("r / F：", "r 是网络预测的局部位移修正（接触压出的凹坑）；F 是形变梯度（描述每一小块材料被旋转、拉伸了多少），"
                  "把修正变换到物体当前的姿态。"),
              _pt("与本项目思路最接近（降阶自由度 + 学习局部变形），", "区别在于其学习位移而非能量。")]),
-        "<h3>Romero 2022：在碰撞体坐标系中学习接触变形</h3>",
+        "<h3>Romero et al. 2022：Contact-Centric Deformation Learning</h3>", _ul([_pt("在碰撞体坐标系中学习接触变形。")]),
         _math(r"u(\bar x)=\mathbf T(\mathbf z)\,r(\bar z),\qquad \bar z=\mathbf T(\mathbf z)^{-1}\tilde x(\bar x)"),
         _ul([_pt("T(z)：", "碰撞体（压向物体的刚体）的位置和朝向；z̄：物体上的点在碰撞体坐标系中的位置；r：该坐标系下预测的局部位移。"),
              _pt("在碰撞体坐标系下变形场更平滑，", "所需训练数据显著减少。")]),
-        "<h3>Romero 2023：基于局部距离场描述子泛化到未见碰撞体</h3>",
+        "<h3>Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors</h3>", _ul([_pt("基于局部距离场描述子，泛化到未见过的碰撞体。")]),
         _math(r"r_{\text{local}}=\mathbb N\big(\hat\phi(x),\,W(\bar x)\,R^{-1}T^{-1}(q-x)\big)"),
         _ul([_pt("φ̂：", "在要预测修正的表面点周围撒 65 个采样点，记录每点到碰撞体表面的有符号距离（SDF：点在碰撞体外为正、内为负），"
                  "作为碰撞体局部几何的描述。"),
              _pt("𝕅：", "神经网络；另一个输入是附近各控制柄相对该点的位置。"),
              _pt("对未见几何的泛化，与本项目「单一模型覆盖多种形状」的目标一致。")]),
-        "<h3>RigidFormer：以 Transformer 预测多刚体运动</h3>",
+        "<h3>Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>", _ul([_pt("以 Transformer 预测多刚体运动。")]),
         _math(r"\mathbf x_{t+1}=f_\theta(\mathbf x_{t-1},\mathbf x_t,\Delta t)"),
         _ul([_pt("由前两帧的点云位置预测下一帧；", "网络是 Transformer（一种用注意力机制让各物体相互交换信息的结构）；"
                  "每个物体选 4 个锚点（代表点），预测它们的加速度，再求一个最贴合的刚体变换，保证物体本身不变形。"),
@@ -792,13 +792,13 @@ def week2_sections(hydro, f):
              _pt("hydroelastic 模量仅用训练数据拟合一次，之后固定；", "若对每个实验单独调参，任一单例都可拟合，但不具预测性。")]),
         "<h3>E1 球半径加倍：Hertz 解 ×1.41，hydroelastic ×2</h3>",
         _math(r"F_{\text{Hertz}}=\tfrac{4}{3}E^{*}R^{1/2}\delta^{3/2}"),
-        _ul([_pt("符号：", "F 为接触力，R 为球半径，δ 为压深；E* = E/(1−ν²) 为等效模量，E 为杨氏模量，"
+        _ul([_pt("Hertz 解（Hertz 1882：Ueber die Berührung fester elastischer Körper）。", "F 为接触力，R 为球半径，δ 为压深；E* = E/(1−ν²) 为等效模量，E 为杨氏模量，"
                  "ν 为泊松比（材料受压时向侧面膨胀的程度，0–0.5，越接近 0.5 越难压缩体积）。"),
              _pt("Hertz：", "接触半径增大但平均压力降低，力按 √R 增长。"),
              _pt("hydroelastic：", "力与重叠面积成正比，按 R 增长，与压力映射形式无关。")]),
         "<h3>E2 平底圆柱压头半径 ×2、×4：解析解 ×2、×4，hydroelastic ×4、×16</h3>",
         _math(r"F_{\text{Boussinesq}}=2E^{*}a\,\delta,\qquad F_{\text{hydro}}=\pi a^{2}\,p(\delta)"),
-        _ul([_pt("Boussinesq 解：", "刚性平底圆柱压入无限大弹性体的精确解；a 为压头半径，p(δ) 为 hydroelastic 在压深 δ 处的压力。"),
+        _ul([_pt("Boussinesq 解（Boussinesq 1885：Application des potentiels à l'étude de l'équilibre et du mouvement des solides élastiques）：", "刚性平底圆柱压入无限大弹性体的精确解；a 为压头半径，p(δ) 为 hydroelastic 在压深 δ 处的压力。"),
              _pt("解析解：", "变形影响的深度随 a 增大，同一压深下材料被拉伸得更少（应变减小），力与 a 成正比。"),
              _pt("hydroelastic：", "底面各点穿透相同，力 = 面积 × 压力，按 a² 增长。")]),
         "<h3>E3 同一刚体上两个凸台间距减小：解析解每个凸台力减小 6–14%，hydroelastic 不变</h3>",
