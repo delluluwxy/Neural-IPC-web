@@ -606,6 +606,8 @@ OUTCOME_LABEL = {"passed": "通过", "failed": "未通过", "skipped": "跳过"}
 # ---------------- Week 2 讲稿 ----------------
 # E0 收敛图：Neural-IPC-sandbox tools/figs/e0_label_convergence.py 画的，build 时从 NAS outputs/figs/ 复制进 assets/images/
 E0_FIG = "e0_label_convergence.png"
+# E0 球压块仿真原始输出视频：sandbox tools/figs/e0_press_video.py 画的，和 demo 视频一起压缩进 assets/videos/
+E0_VIDEO = {"key": "e0_press", "video_src": OUT_ROOT / "e0_label_convergence" / "press_video" / "e0_press.mp4"}
 
 
 def _ul(items):
@@ -950,6 +952,13 @@ def _e0_figure():
             f'横轴为 \\(\\hat d\\)，\\(\\hat d\\) 越大能量越偏高，故外推到 0</figcaption></figure>')
 
 
+def _e0_video():
+    """E0 球压块视频（每个压深一帧：过球心截面 + 俯视块顶面位移）。"""
+    return (f'<figure><video controls muted playsinline preload="metadata" src="assets/videos/{E0_VIDEO["key"]}.mp4">'
+            f'</video><figcaption class="small">IPC + FEM 仿真原始输出：半径 1 的刚球压块，压深 0.004–0.024，'
+            f'每个压深停 1.5 s；左为过球心的竖直截面（竖直方向放大），右为俯视块顶面的竖直位移</figcaption></figure>')
+
+
 def _week2_from_draft(demo_html):
     """整页讲稿 docs/drafts/web_week2.md（用户 10-10：整页要自成一条逻辑，一个 agent 统一重写）→
     [(锚点, 标题, HTML)]。按「## SECTION wN: 标题」分节，「### 」为论文标题，「TAKEAWAY: 」行为醒目色总结句，
@@ -967,9 +976,10 @@ def _week2_from_draft(demo_html):
     for anchor, title, md in zip(parts[1::3], parts[2::3], parts[3::3]):
         md = re.sub(r"(?m)^### (.+)$", lambda h: f"\n<h3>{esc(h.group(1).strip())}</h3>\n", md)
         md = re.sub(r"(?m)^TAKEAWAY:\s*(.+)$", lambda k: f'\n<p class="kp">{k.group(1).strip()}</p>\n', md)
-        md = md.replace("[[DEMO_VIDEO]]", "\n@@DEMO@@\n").replace("[[E0_FIG]]", "\n@@E0FIG@@\n")
+        md = (md.replace("[[DEMO_VIDEO]]", "\n@@DEMO@@\n").replace("[[E0_FIG]]", "\n@@E0FIG@@\n")
+              .replace("[[E0_VIDEO]]", "\n@@E0VIDEO@@\n"))
         html = _notion_md_to_html(md)
-        for mark, rep in (("@@DEMO@@", demo_html), ("@@E0FIG@@", _e0_figure())):
+        for mark, rep in (("@@DEMO@@", demo_html), ("@@E0FIG@@", _e0_figure()), ("@@E0VIDEO@@", _e0_video())):
             html = html.replace(f"<p>{mark}</p>", rep).replace(mark, rep)
         out.append((anchor, title.strip(), html))
     return out
@@ -1648,7 +1658,7 @@ def main():
     all_demos = demos + tests + [hydro]
     videos = gen_level_videos(gsweeps)   # 盒子扫描每档自己的视频（和 demo 视频一起压缩、一起上传）
     bypass = [x for x in (bypass_video_record(r["level"]) for r in rows_of(gsweeps, "init_penetration")) if x]
-    vjobs, manifest = plan_videos(all_demos + list(videos.values()) + bypass,
+    vjobs, manifest = plan_videos(all_demos + list(videos.values()) + bypass + [dict(E0_VIDEO)],
                                   args.crf, args.force_videos)
     ijobs = plan_images(all_demos) + [{"src": src, "dst": IMAGE_DIR / name, "size": src.stat().st_size}
                                       for src, name in filter(None, (init_frame_image(r["level"])
