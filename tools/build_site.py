@@ -770,6 +770,9 @@ def label_facts():
         # SNK1 label, d̂ → 0: block → ∞ assuming the block-size error ∝ 1/L (2·L4.8 − L2.4); mesh → 0 assuming the
         # mesh error ∝ h (2·h0.00625 − h0.0125); both are estimates from two points
         "final": {name: _extrap_to_zero(BLOCK_RUNS[i][1], BLOCK_RUNS[i][2]) for name, i in FINAL_ROWS.items()},
+        "sph78": [(a["delta"], a["U_snk1_over_UH"], b["U_snk1_over_UH"]) for a, b in zip(
+            _read_e0("fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.00025_sph7_L4.8_snk1_direct.json")["rows"],
+            _read_e0("fine_direct_L4.8_s8/ipc_hc0.00625_dhat0.00025_sph8_L4.8_snk1_direct.json")["rows"])],
         # far-mesh check has only d̂ 5e-4 / 2.5e-4, so compare it with the L = 2.4 run extrapolated from the same pair
         "far_mesh_diff": abs(_extrap_to_zero(BLOCK_RUNS[2][1], "U_over_UH")[1]
                              - _extrap_to_zero(BLOCK_RUNS[1][1][:2], "U_over_UH")[1]),
@@ -814,6 +817,9 @@ def label_section(f):
            + " / ".join(f"{f['final']['L4.8'][k]:.3f} → {f['final']['L4.8_fine'][k]:.3f}" for k in (0, 1))
            + "，按误差和网格尺寸成正比外推到网格 0："
            + " / ".join(f"{2 * f['final']['L4.8_fine'][k] - f['final']['L4.8'][k]:.3f}" for k in (0, 1)),
+           "最细网格上球面再从细分 7 次加到 8 次（d̂ 2.5e-4、SNK1 label）：压深 0.004 / 0.024 只变 "
+           + " / ".join(f"{100 * (f['sph78'][k][2] / f['sph78'][k][1] - 1):+.1f}%" for k in (0, -1))
+           + "，球面已不是误差来源",
            "细长棒单轴拉伸实测（设定 E = 1e5、ν = 0.3）：照原样传入 E = "
            f"{f['uniaxial']['as_input']['E_meas']:.0f}、ν = {f['uniaxial']['as_input']['nu_meas']:.3f}；直写属性后 "
            f"E = {f['uniaxial']['snk1_direct']['E_meas']:.0f}、ν = {f['uniaxial']['snk1_direct']['nu_meas']:.3f}"]
