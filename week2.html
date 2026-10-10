@@ -207,7 +207,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <h4>训练数据</h4>
 <p>冻结降阶状态，在其约束下跑<strong>全空间仿真</strong>（细网格全部顶点为自由度），流程沿用 Romero 2022。标签 = 全空间减降阶位置。果冻：52 个碰撞体（30 训练）× 5 个降阶状态 × 105 个接触构型。</p>
 <h4>和我们的关系</h4>
-<p>输入相近：碰撞体已压入降阶物体，网络读局部几何。本文输出位移、换被压物体须重训；我们输出穿透粗状态与无穿透真解的能量差作软约束，一个模型覆盖多种形状。其 SDF 探针可借来编码穿透状态。</p><p class="kp">Romero 等人以「局部接触坐标系 + 球内 SDF 采样」构成碰撞体描述符，把降阶模型缺失的接触细节学成局部位移场，在固定被压物体的前提下泛化到未见过的刚性碰撞体（训练/测试误差 17.0%/17.8%），速度比全空间仿真快 9–26 倍。</p><h3 id="p_rigidformer">Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>
+<p>输入相近：碰撞体已压入降阶物体，网络读局部几何。本文输出位移、换被压物体须重训；我们输出穿透粗状态与无穿透真解的能量差作软约束，一个模型覆盖多种形状。其 SDF 探针可借来编码穿透状态。</p><p class="kp">以局部接触坐标系下的球内 SDF 采样为条件学习接触位移，使降阶模型的接触细节泛化到未见过的刚性碰撞体。</p><h3 id="p_rigidformer">Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>
 <p><strong>核心贡献：</strong> 只用点云（无连接关系的三维点）预测多刚体碰撞：物体级 Transformer 计算物体间作用，每个物体只预测 4 个锚点的加速度再投影为刚体运动，精度不低于网格方法。</p>
 <h4>怎么做的</h4>
 <p>FIGNet、HopNet 依赖网格连接关系（点如何连成边和面）。它把每个物体的点云压成一个 token（代表物体的向量），Transformer 的注意力让物体间按相关程度交换信息；每个物体用最远点采样选 4 个锚点，网络输出锚点加速度，按 Verlet 积分推进：</p>
