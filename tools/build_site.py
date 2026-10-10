@@ -503,7 +503,7 @@ h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1p
 h4 { font-size: 1.15rem; margin: 26px 0 8px; font-weight: 650; }
 h5 { font-size: 1.05rem; margin: 20px 0 6px; font-weight: 650; }
 section h4, section h5 { color: var(--accent); }
-section p strong, section li strong, section td strong, section p > b, section li > b, section td b { color: var(--key); }
+.kp { color: var(--key); font-weight: 600; }
 pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.76rem;
           line-height: 1.45; background: var(--soft); border-radius: 4px; padding: 10px 12px; margin: 6px 0;
           max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -781,6 +781,40 @@ def _lectures(items):
                    for a, title, name, nums in items)
 
 
+# 每节真正要讲的重点（核心结论、关键判据），只这些标醒目色；加粗不等于重点（用户 10-10：「不要加粗的都当重点」）。
+# (节锚点, 页面 HTML 里的原文片段)；片段必须原样出现，底稿改了对不上就报错。
+KEY_POINTS = [
+    ("w1", "原文的边界：物体「名义上是刚体」，不追求准确预测形变。"),
+    ("w1", "一步时间积分写成一个无约束凸优化（碗形、只有一个最低点），解唯一。"),
+    ("w1", "随接触面一起变大，越压越硬。"),
+    ("w2", "一个标量碰撞能量：有穿透与无穿透时的能量差"),
+    ("w2", "一个模型覆盖多种被压物体形状，方向相反"),
+    ("w2", "保留粗自由度仿真，只补一个额外的碰撞能量项"),
+    ("w3", "为了真正不穿透，薄层额外付出的能量"),
+    ("w3", "局限：所有学习结果都只在「刚性压头 + 半空间、E* = 1」上做过；两个可变形体、3D 学习模型、用它跑的简化仿真器都还没做。"),
+    ("w4", "hydroelastic 依靠微小的相互穿透产生支撑力"),
+    ("w5", "裁判必须和造 label 的流程分开，否则等于先认定自己是对的。"),
+    ("w5", "比值里 hydro 的刚度和压力映射都约掉了，调参救不回来。"),
+    ("w5", "压深 0.004、0.024 为 0.994、1.005，与 Hertz 一致"),
+    ("w5", "hydro (A) ×2，对任意映射 \\(f\\) 都成立"),
+    ("w5", "解析解 ×1、×2、×4；hydro ×1、×4、×16。"),
+    ("w5", "hydro 不变。"),
+    ("w5", "比值趋近 4，hydro 始终是 2。"),
+    ("w5", "换到仿射体上把这部分柔度算两遍，力算小。"),
+    ("w6", "待决定：标签沿用 supervisor 的 pyuipc 0.0.25 直接生成，还是改用 Genesis（内含新版 libuipc）。")]
+
+
+def _mark_keys(anchor, body):
+    """把 KEY_POINTS 里属于这一节的片段包成 <span class="kp">。"""
+    for a, frag in KEY_POINTS:
+        if a != anchor:
+            continue
+        if frag not in body:
+            raise SystemExit(f"[build_site] 重点片段在 {anchor} 节里找不到（底稿可能改过）：{frag[:40]}")
+        body = body.replace(frag, f'<span class="kp">{frag}</span>', 1)
+    return body
+
+
 def week2_sections(hydro):
     """Week 2 页：讲稿正文取自 Notion（_handout_sections），顺序照 Notion 拆解页：文献（hydroelastic、神经网络接触模型）→
     看代码（NeuralIPC、Genesis 的 hydroelastic）→ Genesis + hydroelastic demo → 实验方案 → 问题与待决定。"""
@@ -813,7 +847,7 @@ def week2_sections(hydro):
                  "并用高精度设置量出它的系统偏差。"),
              _pt("待决定：标签沿用 supervisor 的 pyuipc 0.0.25 直接生成，还是改用 Genesis（内含新版 libuipc）。",
                  "新版的软体材料参数换算有误，需改写材料参数（E0「材料参数要先核对」）；Genesis 中所有 IPC 软体同样受影响。")]))]
-    return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{body}</section>' for a, t, body in S]
+    return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{_mark_keys(a, body)}</section>' for a, t, body in S]
 
 
 # ---------------- 参数扫描 ----------------
