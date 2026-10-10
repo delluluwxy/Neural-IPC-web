@@ -809,8 +809,12 @@ def _hydro_papers():
     parts = re.split(r"(?m)^### 2\.\d .*\n", sec)[1:]
     if len(parts) != len(HYDRO_PAPERS):
         raise SystemExit(f"[build_site] genesis_hydro_impl 第 2 节应拆成 {len(HYDRO_PAPERS)} 篇，实际 {len(parts)}")
-    return "".join(f'<h3 id="{a}">{esc(t)}</h3>\n'
-                   + _contribution(a) + _notion_md_to_html(p) for (a, t), p in zip(HYDRO_PAPERS, parts))
+    out = []
+    for (a, t), p in zip(HYDRO_PAPERS, parts):
+        draft = _draft_html(a.removeprefix("p_"))   # 核对过的逐篇网页稿（web_elandt/masterjohn/sap.md）优先
+        out.append(f'<h3 id="{a}">{esc(t)}</h3>\n'
+                   + (draft if draft is not None else _contribution(a) + _notion_md_to_html(p)))
+    return "".join(out)
 # (锚点, 论文全名, 底稿文件名, 取哪几节：6 和我们的区别)
 LECTURES_NEURAL = [
     ("p_romero21", "Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics", "romero2021", (6,)),
@@ -851,6 +855,18 @@ def _web_draft(name):
     return re.sub(r"\n-{3,}\s*$", "", part_a[:m.start()].rstrip()), m.group(1).strip()
 
 
+def _draft_html(name):
+    """docs/drafts/web_<name>.md 的「A. 网页稿」整段转成 HTML，其中每行「TAKEAWAY: …」原地变成醒目色总结句；
+    没有这份稿子时返回 None（调用方退回讲稿原文）。"""
+    path = DRAFTS / f"web_{name}.md"
+    if not path.is_file():
+        return None
+    part_a = re.search(r"(?ms)^## A\..*?\n(.*?)^## B\.", path.read_text(encoding="utf-8")).group(1)
+    part_a = re.sub(r"\n-{3,}\s*$", "", part_a.rstrip())
+    md = re.sub(r"(?m)^TAKEAWAY:\s*(.+)$", lambda m: f'\n<p class="kp">{m.group(1).strip()}</p>\n', part_a)
+    return _notion_md_to_html(md)
+
+
 def _lectures(items):
     """神经网络接触论文逐篇讲：有核对过的网页稿（_web_draft）就用它，否则用讲稿第 6 节 + 核心贡献 + 总结句。"""
     out = []
@@ -870,35 +886,35 @@ def _lectures(items):
 # 「章节讲完了要总结和强调的东西单独写出来上色」）。只有这些标醒目色，加粗不上色。
 # (节锚点, 插在哪段之后：页面 HTML 里该段的结尾原文；None = 本节末尾, 总结句)
 TAKEAWAYS = [
-    ("w1", "不追求准确预测形变。</p>",
+    ("w1:elandt", "不追求准确预测形变。</p>",
      "hydroelastic 的接触压力由预先给定的压力场按穿入深度确定，不来自弹性力学平衡；它针对名义刚体，不预测真实形变。"),
-    ("w1", "约等于软的那侧。</p>",
+    ("w1:masterjohn", "约等于软的那侧。</p>",
      "每块接触多边形等效为形心处的一根线性弹簧，刚度 \\(k=g\\,A_0\\) 与接触面积成正比。"),
-    ("w1", "解唯一。</p>",
+    ("w1:sap", "解唯一。</p>",
      "hydroelastic 的接触力必须由穿透产生；SAP 把每个时间步写成无约束凸优化，保证解唯一。"),
-    ("w1", "指数比力多 1。</li>",
+    ("w1:hertz", "指数比力多 1。</li>",
      "Hertz：\\(F\\propto\\sqrt R\\,\\delta^{3/2}\\)，\\(U\\propto\\sqrt R\\,\\delta^{5/2}\\)；接触区随压深扩大，刚度随之增大。"
      "它是我们与 hydroelastic 比较时独立于双方的解析基准。"),
-    ("w3", "证明它 ≥ 0。</li>",
+    ("w3:code", "证明它 ≥ 0。</li>",
      "粗模型的物体允许互相穿透，\\(U_c\\) 是把这层穿透还原成精细真解中的局部形变所需的弹性能，恒非负；粗表示不含表面局部模态时，球压弹性半空间的 \\(U_c\\) 就是 Hertz 能量。"),
-    ("w3", None,
+    ("w3:code", None,
      "现有学习结果全部在刚性压头压半空间（\\(E^*=1\\)）上得到，标签来自 BEM 与有限应变 FEM；"
      "libuipc 生成的 IPC 标签尚未用于训练。"),
     ("w4", None,
      "hydroelastic 和我们一样允许穿透、由穿透量产生支撑力（本例箱体下沉约 8 µm）；区别在于它的压力来自人工设定的压力场，我们的碰撞能量来自精细仿真的真解。"),
-    ("w5", "调参救不回来。</li>",
+    ("w5:plan", "调参救不回来。</li>",
      "判据：以独立于双方的弹性解析解为裁判，只改变一个量、比较力的比值；比值中 hydroelastic 的刚度参数完全约去，无法靠调参弥补。"),
-    ("w5", "块大小。</li>",
+    ("w5:plan", "块大小。</li>",
      "IPC 标签经网格与块尺寸外推后，与 Hertz 的比值为 0.994 / 1.005，标签可信。"),
-    ("w5", "介于 1 和 2 之间。</p>",
+    ("w5:plan", "介于 1 和 2 之间。</p>",
      "球半径加倍：解析力增大 \\(\\sqrt2\\) 倍，hydroelastic（A）增大 2 倍，且与压力映射的选取无关。"),
-    ("w5", "×1、×4、×16。</p>",
+    ("w5:plan", "×1、×4、×16。</p>",
      "平底压头：解析力与半径成正比，hydroelastic 的力与面积成正比；半径增大 4 倍时两者相差 4 倍。"),
-    ("w5", "降到约 6%。</p>",
+    ("w5:plan", "降到约 6%。</p>",
      "相邻接触区通过基底相互卸载，解析力随间距减小而下降；hydroelastic 各接触区独立计算，无法表达这种耦合。"),
-    ("w5", "hydro 始终是 2。</p>",
+    ("w5:plan", "hydro 始终是 2。</p>",
      "近不可压薄层中，压力由整个接触区决定而不是局部穿入深度；球半径加倍时解析力趋近 4 倍，hydroelastic 恒为 2 倍。"),
-    ("w5", "7%→17%。</p>",
+    ("w5:plan", "7%→17%。</p>",
      "粗表示本身越柔，正确的接触能量越软；hydroelastic 与粗表示无关，用在仿射体上会重复计入柔度，力偏小，"
      "且偏差随物体变细长而增大。"),
     ("w6", None,
@@ -906,9 +922,11 @@ TAKEAWAYS = [
 
 
 def _add_takeaways(anchor, body):
-    """把 TAKEAWAYS 里属于这一节的总结句插到对应段落之后（列表项则插到整个列表之后）。"""
-    for a, after, text in TAKEAWAYS:
-        if a != anchor:
+    """把 TAKEAWAYS 里属于这一节的总结句插到对应段落之后（列表项则插到整个列表之后）。
+    锚点写成「节:稿名」的条目，在该部分已换成 docs/drafts/web_<稿名>.md 时跳过（稿子自带总结句）。"""
+    for key, after, text in TAKEAWAYS:
+        a, _, draft = key.partition(":")
+        if a != anchor or (draft and _draft_html(draft) is not None):
             continue
         if after is None:
             body += _takeaway(text)
@@ -931,11 +949,12 @@ def week2_sections(hydro):
                + _handout_sections("experiment_plan", headings=["E1 ", "E2 ", "E3 ", "E4 ", "E5 "]))
     S = [("w1", "文献：Hydroelastic + Hertz", "".join([
              _hydro_papers(),
-             '<h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper</h3>' + _contribution("p_hertz"),
-             _notion_md_to_html(_trim(_handout_sections("hertz", (3,)), CUTS_HERTZ))])),
+             '<h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper</h3>',
+             _draft_html("hertz") or (_contribution("p_hertz")
+                                     + _notion_md_to_html(_trim(_handout_sections("hertz", (3,)), CUTS_HERTZ)))])),
          ("w2", "文献：神经网络接触模型", _lectures(LECTURES_NEURAL)),
          ("w3", "看代码：NeuralIPC 原代码",
-          _notion_md_to_html(_trim(_handout_sections("neuralipc_code", (2, 4)), CUTS_CODE))),
+          _draft_html("code") or _notion_md_to_html(_trim(_handout_sections("neuralipc_code", (2, 4)), CUTS_CODE))),
          ("w4", "Demo：Genesis + hydroelastic", "".join([
              '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
              _ul([_pt("箱体最终下沉约 8 µm：", "hydroelastic 依靠微小的相互穿透产生支撑力，穿透量很小、视觉上不可见。")]),
@@ -944,7 +963,7 @@ def week2_sections(hydro):
                       "压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
                       "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变")])),
          ("w5", "实验方案：怎么证明我们「原理上」比 hydroelastic 好", "".join([
-             _notion_md_to_html(_trim(plan_md, CUTS_PLAN)),
+             _draft_html("plan") or _notion_md_to_html(_trim(plan_md, CUTS_PLAN)),
              f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
              f'<figcaption class="small">{esc("E0 实测：标签能量 / Hertz 能量（1 表示一致），横轴为 IPC 势垒距离 d̂")}</figcaption></figure>'])),
          ("w6", "问题与待决定事项", _ul([
