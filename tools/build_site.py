@@ -630,13 +630,54 @@ HANDOUTS = PROJECT / "docs" / "handouts"
 NOTION_IMAGES = []   # 讲稿里 <image src=NAS 路径> 引用的图，build 时复制进 assets/images/
 
 
-def _handout_sections(name, numbers=None):
-    """docs/handouts/<name>.md 里编号在 numbers 中的「## N. …」节（numbers=None 取全文），原样拼起来。"""
+def _handout_sections(name, numbers=None, headings=None):
+    """docs/handouts/<name>.md 的一部分，原样拼起来：numbers = 编号在其中的「## N. …」节；headings = 标题行（## 或 ###）
+    以其中某个前缀开头的节；都不给时取全文。"""
     text = (HANDOUTS / f"{name}.md").read_text(encoding="utf-8")
-    if numbers is None:
+    if numbers is None and headings is None:
         return text
+    if headings is not None:
+        parts = re.split(r"(?m)^(?=##+ )", text)
+        return "".join(p for p in parts if any(p.lstrip("#").strip().startswith(h) for h in headings))
     parts = re.split(r"(?m)^(?=## )", text)
     return "".join(p for p in parts if re.match(r"## (\d+)\.", p) and int(re.match(r"## (\d+)\.", p).group(1)) in numbers)
+
+
+def _trim(md, cuts):
+    """按 cuts = [(正则, 替换), …] 删掉讲稿里组会不讲的细节解释（用户 10-10：「一些我问的问题的详细解释不用写」）。
+    每条都必须命中，讲稿改了对不上就报错，避免静默漏删。"""
+    for pattern, repl in cuts:
+        md, n = re.subn(pattern, repl, md, flags=re.S | re.M)
+        if n == 0:
+            raise SystemExit(f"[build_site] 讲稿删减规则没命中（Notion 底稿可能改过）：{pattern[:60]}")
+    return md
+
+
+# 组会版删掉的细节：类比、实现细节、回答过的追问（ν 和锁死、BEM/PolyFEM 当裁判、判据怎么分开误差等）
+CUTS_GENESIS_HYDRO = [(r"^Genesis 里的 hydro 就是 SAPCoupler.*?\n", ""), (r"^打个比方：.*?\n", ""),
+                      (r"原文用 Laplace 方程生成（像稳态温度：表面 0 度、骨架 1 度），也允许随深度线性增长。", ""),
+                      (r"\$`k`\$ 大到步长分辨不了时.*?SAP 论文只做了刚体。", "")]
+CUTS_HERTZ = [(r"\*\*等效量\*\*.*?(?=\*\*接触半径\*\*)", ""),
+              (r"这个圆比拿平面直接切球得到的 \$`\\sqrt\{2R\\delta\}`\$ 小，因为接触圈外的表面也被带着往下陷。", ""),
+              (r"\*\*压力分布\*\*.*?(?=\*\*弹性能\*\*)", "")]
+CUTS_CODE = [(r"线弹性时它就是刚度矩阵的 \*\*Schur 补\*\*.*?再拟合。", "")]
+CUTS_PLAN = [(r"推荐：E1、E2 用教科书里.*?hydro 类 10 篇都没有。", ""),
+             (r"\*\*统一规则\*\*\n.*?(?=- \*\*主判据是比值\*\*)", ""),
+             (r"\*\*附加演示：扫深度\*\*.*?(?=### E2)", ""),
+             (r"\*\*期待 / 判据\*\*：裁判给出每凸台力随.*?按上式估计，", "**期待 / 判据**：按上式估计，"),
+             (r"hydro 只用搭法 \(A\)：.*?不会假硬的单元）。", ""),
+             (r"\*\*期待 / 判据\*\*：两条公式就是薄端的裁判.*?有公式期待的是 E4b（约 2\.5 倍）。",
+              "**期待 / 判据**：$`\\\\nu=0.3`$ 用可压公式，比值 2，与 hydro 相同，作对照组；$`\\\\nu\\\\to0.5`$ 时比值趋近 4，hydro 始终是 2。"),
+             (r"\*\*E4b 大球.*?(?=### E5)", ""),
+             (r"这一条依赖「hydro 刚度只拟合一次」.*?随形状变的误差分开。", ""),
+             (r"裁判用线弹性有限元的精确解。", ""),
+             (r"块有限大带来的偏差，用 E4 那套不锁死的轴对称有限元核对。", "")]
+
+
+def _handout_bullet(name, lead):
+    """docs/handouts/<name>.md 里以「- **lead**」开头的那一条要点（原文一行）。"""
+    text = (HANDOUTS / f"{name}.md").read_text(encoding="utf-8")
+    return re.search(rf"(?m)^- \*\*{re.escape(lead)}\*\*.*$", text).group(0)
 
 
 def _notion_md_to_html(md):
@@ -681,7 +722,7 @@ def _notion_md_to_html(md):
     # Notion 里每一行是一个独立块：相邻两行顶格正文各成一段，不并成一段
     t = re.sub(r"(?m)^(?![-*] |\s|\d+\. )(.+)\n(?![-*] |\s|\d+\. )", r"\1\n\n", t)
     # 列表后紧跟的顶格正文补空行，否则会被并进最后一条（Notion 里它是独立段落）
-    t = re.sub(r"(?m)^(\s*(?:[-*]|\d+\.) .+)\n(?=[^\s\-*\d\n]|\d+[^.\d])", r"\1\n\n", t)
+    t = re.sub(r"(?m)^(\s*(?:[-*]|\d+\.) .+)\n(?![-*] |\s|\d+\. )", r"\1\n\n", t)
     out = markdown.markdown(t)
     for i, s in reversed(list(enumerate(stash))):
         out = out.replace(f"<p>@@S{i}@@</p>", s).replace(f"@@S{i}@@", s)
@@ -696,18 +737,18 @@ def _notion_image(src):
     return f'<figure><img src="assets/images/{path.name}" alt="{esc(path.stem)}"></figure>'
 
 
-# (锚点, Notion 讲稿标题, 底稿文件名, 取哪几节) —— 标题照 Notion 页，全名与年份按 related_work/INDEX.md
-LECTURES_HYDRO = [
-    ("p_elandt", "Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment "
-                 "between nominally rigid objects", "elandt", (1, 2, 6)),
-    ("p_masterjohn", "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches", "masterjohn", (1, 2, 6)),
-    ("p_sap", "Castro et al. 2023（SAP）：An Unconstrained Convex Formulation of Compliant Contact", "sap", (1, 2, 6)),
-    ("p_hertz", "Hertz 1882：Ueber die Berührung fester elastischer Körper（和 hydro 比时的裁判）", "hertz", (3, 5))]
+# 组会 45 分钟放不下讲稿全文（用户 10-10「字太多」），每篇只取最核心的节，原文不改。
+# Genesis 的 hydroelastic 由这三篇拼成；三篇的核心公式取「Genesis hydro 实现」讲稿第 1、2 节，全名与年份按 related_work/INDEX.md
+HYDRO_PAPERS = ["Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment "
+                "between nominally rigid objects",
+                "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches",
+                "Castro et al. 2023（SAP）：An Unconstrained Convex Formulation of Compliant Contact"]
+# (锚点, 论文全名, 底稿文件名, 取哪几节：6 和我们的区别)
 LECTURES_NEURAL = [
-    ("p_romero21", "Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics", "romero2021", (1, 2, 6)),
-    ("p_romero22", "Romero et al. 2022：Contact-Centric Deformation Learning", "romero2022", (1, 2, 6)),
-    ("p_romero23", "Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors", "romero2023", (1, 2, 6)),
-    ("p_rigidformer", "Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers", "rigidformer", (1, 2, 6))]
+    ("p_romero21", "Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics", "romero2021", (6,)),
+    ("p_romero22", "Romero et al. 2022：Contact-Centric Deformation Learning", "romero2022", (6,)),
+    ("p_romero23", "Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors", "romero2023", (6,)),
+    ("p_rigidformer", "Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers", "rigidformer", (6,))]
 
 
 def _lectures(items):
@@ -719,13 +760,18 @@ def week2_sections(hydro):
     """Week 2 页：讲稿正文取自 Notion（_handout_sections），顺序照 Notion 拆解页：文献（hydroelastic、神经网络接触模型）→
     看代码（NeuralIPC、Genesis 的 hydroelastic）→ Genesis + hydroelastic demo → 实验方案 → 问题与待决定。"""
     outcome = OUTCOME_LABEL.get(hydro.get("outcome"), "无结果") if hydro["state"] == "ok" else hydro["reason"]
-    S = [("w1", "文献：Hydroelastic + Hertz", _lectures(LECTURES_HYDRO)),
+    plan_md = (_handout_sections("experiment_plan", headings=["核心思路"])
+               + "### E0 前提：label 先对上解析解\n" + _handout_bullet("experiment_plan", "结论") + "\n"
+               + _handout_sections("experiment_plan", headings=["E1 ", "E2 ", "E3 ", "E4 ", "E5 "]))
+    S = [("w1", "文献：Hydroelastic + Hertz", "".join([
+             '<h3 id="p_hydro">Genesis 的 hydroelastic 由三篇论文组成</h3>',
+             _ul([esc(p) for p in HYDRO_PAPERS]),
+             _notion_md_to_html(_trim(_handout_sections("genesis_hydro_impl", (1, 2)), CUTS_GENESIS_HYDRO)),
+             '<h3 id="p_hertz">Hertz 1882：Ueber die Berührung fester elastischer Körper（和 hydro 比时的裁判）</h3>',
+             _notion_md_to_html(_trim(_handout_sections("hertz", (3,)), CUTS_HERTZ))])),
          ("w2", "文献：神经网络接触模型", _lectures(LECTURES_NEURAL)),
-         ("w3", "看代码", "".join([
-             '<h3 id="c_nipc">supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）</h3>',
-             _notion_md_to_html(_handout_sections("neuralipc_code", (1, 2, 3, 4, 5))),
-             '<h3 id="c_genesis">Genesis 的 hydroelastic 是怎么实现的</h3>',
-             _notion_md_to_html(_handout_sections("genesis_hydro_impl", (1, 3)))])),
+         ("w3", "看代码：supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）",
+          _notion_md_to_html(_trim(_handout_sections("neuralipc_code", (2, 4)), CUTS_CODE))),
          ("w4", "Demo：Genesis + hydroelastic", "".join([
              '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
              _ul([_pt("箱体最终下沉约 8 µm：", "hydroelastic 依靠微小的相互穿透产生支撑力，视觉上不可见；IPC 则在两表面间始终保持正间隙。")]),
@@ -734,7 +780,7 @@ def week2_sections(hydro):
                       "（SAP 求解器，不经过 IPC）；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
                       "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变")])),
          ("w5", "实验方案：怎么证明我们「原理上」比 hydroelastic 好", "".join([
-             _notion_md_to_html(_handout_sections("experiment_plan")),
+             _notion_md_to_html(_trim(plan_md, CUTS_PLAN)),
              f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
              f'<figcaption class="small">{esc("E0 实测：标签能量 / Hertz 能量（1 表示一致），横轴为 IPC 势垒距离 d̂")}</figcaption></figure>'])),
          ("w6", "问题与待决定事项", _ul([
@@ -1316,7 +1362,7 @@ def build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     summary = {
-        "week2": "研究目标、hydroelastic 接触模型、神经网络接触模型、NeuralIPC 代码现状、对比实验设计、IPC 标签收敛性。",
+        "week2": "文献（hydroelastic、神经网络接触模型）、NeuralIPC 代码、Genesis + hydroelastic demo、实验方案、问题与待决定。",
         "week1": ("在服务器上跑通了 Genesis + lib IPC（Genesis 的 IPC 接触底层由 libuipc 计算）："
                   f"{len(demos)} 个 Genesis IPC 例子和 {len(tests)} 个 Genesis 官方 IPC 测试场景，共 {n_video} 段视频"
                   f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
