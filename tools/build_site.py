@@ -17,7 +17,8 @@
   扫描 : /nas/xiaoyingwang/Neural-IPC/outputs/ipc_sweep/<扫描>/<档位>.json（由 Neural-IPC/tools/ipc_sweep/sweep.py 写出）
   档位清单 : Neural-IPC/tools/ipc_sweep/configs.py（纯数据文件，按路径加载，不写 __pycache__）
 
-index.html 发布在 GitHub Pages（https://delluluwxy.github.io/Neural-IPC-web/）：开头是 doctype、charset、viewport，
+发布在 GitHub Pages（https://delluluwxy.github.io/Neural-IPC-web/）：index.html 只列各周的链接，每周一页
+week1.html、week2.html …（见 WEEKS）。每页开头是 doctype、charset、viewport，
 然后直接 <title> 和 <style>，省略 html / head / body 标签；
 颜色全是 CSS 变量（亮 / 暗两套）；不引外部资源；视频和图片用相对路径，发布时作为附属文件上传。
 每个压好的视频超过 10 MB、或全部视频加起来超过 60 MB，就报错停止，不写页面。
@@ -514,10 +515,13 @@ header.top { padding: 28px 0 8px; }
 h1 { font-size: 1.85rem; margin: 0 0 8px; font-weight: 650; letter-spacing: 0.01em; }
 .summary { margin: 8px 0 0; }
 nav.toc { font-size: 0.9rem; margin: 14px 0 0; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-nav.toc .navweek { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 3px 0; }
-div.week { counter-reset: sec; }
-div.weekhead { font-size: 1.5rem; font-weight: 700; margin: 56px 0 6px; padding: 10px 14px; border-radius: 6px;
-               background: var(--soft); border-left: 5px solid var(--accent); }
+nav.toc { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+nav.weeks { display: grid; gap: 14px; margin: 18px 0 40px; }
+a.weekcard { display: block; padding: 14px 16px; border-radius: 6px; background: var(--soft);
+             border-left: 5px solid var(--accent); color: var(--fg); }
+a.weekcard:hover { text-decoration: none; filter: brightness(0.97); }
+a.weekcard b { font-size: 1.25rem; color: var(--accent); }
+a.weekcard span { display: block; font-size: 0.86rem; color: var(--muted); margin: 2px 0 6px; }
 h2 { font-size: 1.6rem; margin: 64px 0 14px; font-weight: 650; }
 h3 { font-size: 1rem; margin: 22px 0 4px; font-weight: 600; }
 h3.sub { font-size: 1.08rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -570,7 +574,7 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 """
 
 
-def page(body):
+def page(body, title):
     """整页 HTML：doctype + charset/viewport + <title>/<style>，省略 html/head/body 标签（HTML5 允许）。"""
     # math: MathJax (SVG output, no font files) renders \( \) inline and \[ \] display LaTeX; the d̂ symbol in prose
     # becomes \hat d as well
@@ -578,7 +582,7 @@ def page(body):
     return f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{esc(PAGE_TITLE)}</title>
+<title>{esc(title)}</title>
 <style>{PAGE_CSS}</style>
 <script>window.MathJax = {{tex: {{inlineMath: [["\\\\(", "\\\\)"]], displayMath: [["\\\\[", "\\\\]"]]}}, svg: {{fontCache: "global"}}}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
@@ -648,8 +652,7 @@ MEETING = [
     ("m_demo", "3. 做了哪些 demo（Genesis + hydroelastic）", [
         "Genesis 官方 hydroelastic 测试原样跑通并录像：两条关节链落到盒子上，接触由 Genesis 自带的 SAP 求解器按压力场计算"
         "（不经过 IPC）。",
-        "Genesis 自带的 4 个 SAP（hydroelastic）例子原样跑通；另外 5 个用到 SAP 的官方测试也逐个跑过。",
-        "Genesis + lib IPC demo 和盒子参数扫描是 Week 1 的，在页面下方 Week 1 部分。"], "hydro"),
+        "Genesis 自带的 4 个 SAP（hydroelastic）例子原样跑通；另外 5 个用到 SAP 的官方测试也逐个跑过。"], "hydro"),
     ("m_setup", "4. 实验设定（怎么证明原理上比 hydro 好）", [
         "思路：和 hydro 比的裁判用独立的弹性力学解析解（Hertz 球压、平底压头、薄层等），不用我们自己的 IPC label 当标准答案。"
         "每个实验只改一个几何量，看解析解的变化规律和 hydro 公式的变化规律能不能分开。",
@@ -1497,7 +1500,8 @@ def compute_facts(demos):
 
 
 
-def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
+def build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
+    """{路径: HTML}：index.html 只列各周的链接和摘要，每周一页 <weekN>.html（WEEKS 决定有哪几周、各放哪几节）。"""
     n_video = sum(1 for r in demos + tests if r.get("video_web"))
     n_pass = sum(1 for r in tests if r.get("outcome") == "passed")
     n_ran = sum(1 for r in tests if r.get("outcome") in ("passed", "failed"))
@@ -1517,14 +1521,18 @@ def build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
                   "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")}
     sections = {"week2": [meeting_section(), hydro_section(hydro), label_section(label_facts())],
                 "week1": [videos_section(demos, tests, facts), sweep_section(gsweeps, cfg, videos), data_section()]}
-    nav = "".join(f'<div class="navweek"><a href="#{wid}"><b>{esc(title)}</b></a>'
-                  + "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in items) + "</div>"
-                  for wid, title, items in WEEKS)
-    weeks = "".join(f'<div class="week" id="{wid}"><div class="weekhead">{esc(title)}</div>'
-                    f'<p class="summary">{esc(summary[wid])}</p>\n' + "\n".join(sections[wid]) + "</div>\n"
-                    for wid, title, _ in WEEKS)
-    body = (f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1><nav class="toc">{nav}</nav></header>\n' + weeks)
-    return page(body)
+    cards = "".join(f'<a class="weekcard" href="{wid}.html"><b>{esc(title)}</b>'
+                    f'<span>{esc(" · ".join(n for _, n in items))}</span><p>{esc(summary[wid])}</p></a>'
+                    for wid, title, items in WEEKS)
+    pages = {WEB / "index.html": page(f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1></header>\n'
+                                      f'<nav class="weeks">{cards}</nav>', PAGE_TITLE)}
+    for wid, title, items in WEEKS:
+        nav = "".join(f'<a href="#{h}">{esc(n)}</a>' for h, n in items)
+        body = (f'<header class="top"><a href="index.html">← 所有周</a><h1>{esc(title)}</h1>'
+                f'<p class="summary">{esc(summary[wid])}</p><nav class="toc">{nav}</nav></header>\n'
+                + "\n".join(sections[wid]))
+        pages[WEB / f"{wid}.html"] = page(body, f"{PAGE_TITLE} · {title}")
+    return pages
 
 
 # ==========================================================================
@@ -1562,7 +1570,7 @@ def main():
     facts = compute_facts(demos)
     commit = genesis_commit()
 
-    pages = {WEB / "index.html": build_page(demos, tests, hydro, gsweeps, cfg, facts, videos, commit)}
+    pages = build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit)
 
     # ---------------- 打印计划 ----------------
     mode = "EXECUTE" if args.execute else "DRY-RUN（只演练，不写任何文件；加 --execute 才真正写）"
