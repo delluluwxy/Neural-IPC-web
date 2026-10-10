@@ -134,8 +134,8 @@ HYDRO = {
 PAGE_TITLE = "Neural-IPC 周汇报"
 # 每周一块，新的一周在前；周的分界 = weekly todo/weekN.txt 文件头的日期。锚点只用字母和数字
 WEEKS = [("week2", "Week 2（TODO 2026-10-04）",
-          [("w1", "研究目标"), ("w2", "Hydroelastic"), ("w3", "神经网络接触模型"), ("w4", "NeuralIPC 代码"),
-           ("w5", "对比实验设计"), ("w6", "标签收敛性"), ("w7", "问题与待决定")]),
+          [("w1", "文献：Hydroelastic"), ("w2", "文献：神经网络接触模型"), ("w3", "看代码"), ("w4", "Demo"),
+           ("w5", "实验方案"), ("w6", "问题与待决定")]),
          ("week1", "Week 1（TODO 2026-09-26）",
           [("videos", "IPC demo"), ("tests", "官方测试"), ("sweep", "盒子实验与参数扫描"), ("data", "对生成数据的意义")])]
 
@@ -600,66 +600,9 @@ def videos_section(demos, tests, facts):
 OUTCOME_LABEL = {"passed": "通过", "failed": "未通过", "skipped": "跳过"}
 
 
-# ---------------- 造 label 的收敛检查（实验方案 E0） ----------------
-# Data: Neural-IPC-sandbox tools/ipc_sweep/uipc_constitution_check.py json files (run_commands 19), figure from
-# tools/figs/e0_label_convergence.py. Every number on the page is read from them.
-E0_ROOT = OUT_ROOT / "e0_label_convergence"
+# ---------------- Week 2 讲稿 ----------------
+# E0 收敛图：Neural-IPC-sandbox tools/figs/e0_label_convergence.py 画的，build 时从 NAS outputs/figs/ 复制进 assets/images/
 E0_FIG = "e0_label_convergence.png"
-# supervisor's setting (al-ipc, contact mesh 0.025, d̂ 1e-3, sphere subdivision 4); depth 0.004 is its first row
-E0_SUPERVISOR = "ref_supervisor/al-ipc_hc0.025_dhat0.001_sph4.json"
-# everything fixed (direct material attributes, SNK1 label, sphere 7), d̂ → 0 through the two smallest d̂;
-# then block → ∞ by 1/L (half-width 2.4 vs 4.8) and mesh → 0 by h (0.0125 vs 0.00625), both two-point estimates
-E0_FIXED = {"L2.4": ["direct_L2.4/ipc_hc0.0125_dhat0.00025_sph7_L2.4_snk1_direct.json",
-                     "direct_L2.4/ipc_hc0.0125_dhat0.000125_sph7_L2.4_snk1_direct.json"],
-            "L4.8": ["direct_L4.8/ipc_hc0.0125_dhat0.00025_sph7_L4.8_snk1_direct.json",
-                     "direct_L4.8/ipc_hc0.0125_dhat0.000125_sph7_L4.8_snk1_direct.json"],
-            "L4.8_fine": ["fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.00025_sph7_L4.8_snk1_direct.json",
-                          "fine_direct_L4.8_s7/ipc_hc0.00625_dhat0.000125_sph7_L4.8_snk1_direct.json"]}
-UNIAXIAL_AS_INPUT = "uniaxial/uniaxial_as_input.json"   # slender bar pulled with E = 1e5, ν = 0.3 passed as-is
-
-
-def label_facts():
-    """Week 2 页用到的 label 数字：supervisor 设置的比值、全部改对后的比值（压深 0.004 / 0.024）、单轴实测 E。"""
-    fin = {k: _extrap_to_zero(p, "U_snk1_over_UH") for k, p in E0_FIXED.items()}
-    # mesh → 0 at half-width 4.8, plus the block-size correction (block → ∞ minus half-width 4.8 = L4.8 − L2.4)
-    fixed = [2 * fin["L4.8_fine"][k] - fin["L4.8"][k] + (fin["L4.8"][k] - fin["L2.4"][k]) for k in (0, 1)]
-    return {"supervisor": _read_e0(E0_SUPERVISOR)["rows"][0]["U_over_UH"], "fixed": fixed,
-            "E_meas": _read_e0(UNIAXIAL_AS_INPUT)["E_meas"]}
-
-
-def _read_e0(path):
-    d, err = load_json(E0_ROOT / path)
-    if d is None:
-        raise SystemExit(f"[build_site] 结果文件读不了：{E0_ROOT / path} {err}")
-    return d
-
-
-def _extrap_to_zero(paths, key):
-    """(depth 0.004, depth 0.024) values of `key` on the straight line through the two smallest d̂, at d̂ = 0
-    (successive d̂ are halved, so the line gives 2·y(smallest) − y(next))."""
-    a, b = _read_e0(paths[-2]), _read_e0(paths[-1])
-    return tuple(2 * b["rows"][k][key] - a["rows"][k][key] for k in (0, -1))
-
-
-
-
-# ---------------- Week 2 组会稿（45 分钟，给不了解项目的人听；用户 10-10：只讲重点、全部 bullet、不标分钟；公式讲细；设置小字不读） ----------------
-# 独立有限元（supervisor 轴对称 torch FEM，不经过 IPC）：Neural-IPC-sandbox tools/ipc_sweep/torch_fem_hertz_reference.py，
-# run_commands 19i。线弹性 + 间隙按变形前算 = Hertz 的全部假设（检验裁判）；snk1 + 真球面 = label 实际的材料和压头。
-TORCH_ROOT = E0_ROOT / "torch_fem"
-TORCH_RUNS = {"hertz_assumptions": "linear_parabref_nr192.json", "label_setup": "snk1_sphere_nr192.json"}
-
-
-def _torch_block_limit(name):
-    """每个压深按 1/b 把最大两档圆柱外推到无限大块：{δ: 能量 ÷ Hertz}。"""
-    d, err = load_json(TORCH_ROOT / TORCH_RUNS[name])
-    if d is None:
-        raise SystemExit(f"[build_site] 独立有限元结果读不了：{TORCH_ROOT / TORCH_RUNS[name]} {err}")
-    out = {}
-    for delta in sorted({r["delta"] for r in d["rows"]}):
-        by_b = sorted((r["b"], r["ratio"]) for r in d["rows"] if r["delta"] == delta)
-        out[delta] = 2 * by_b[-1][1] - by_b[-2][1]
-    return out
 
 
 def _ul(items):
@@ -681,166 +624,124 @@ def _math(tex):
     return f"<p>\\[{tex}\\]</p>"
 
 
-def week2_sections(hydro, f):
-    """Week 2 页 = 组会讲稿，一条线讲下来：研究目标 → hydroelastic 接触模型 → 神经网络接触模型 → NeuralIPC 代码现状 →
-    与 hydroelastic 的对比实验设计 → 前提：IPC 标签的收敛性 → 问题与待决定事项。每条 = 加粗结论 + 说明，用词用学术写法；
-    公式放在讲到它的地方；设置用小字（组会不读）。"""
+# Week 2 的讲稿正文直接取自 Notion 讲稿（用户 10-10：「就把 notion 里的搬过来」）。底稿是 Neural-IPC-sandbox
+# docs/handouts/<名>.md，和 Notion 页逐字同步（Notion 的增强 Markdown：$`…`$ 行内公式、$$ 块公式、<table>、<details>）。
+HANDOUTS = PROJECT / "docs" / "handouts"
+NOTION_IMAGES = []   # 讲稿里 <image src=NAS 路径> 引用的图，build 时复制进 assets/images/
+
+
+def _handout_sections(name, numbers=None):
+    """docs/handouts/<name>.md 里编号在 numbers 中的「## N. …」节（numbers=None 取全文），原样拼起来。"""
+    text = (HANDOUTS / f"{name}.md").read_text(encoding="utf-8")
+    if numbers is None:
+        return text
+    parts = re.split(r"(?m)^(?=## )", text)
+    return "".join(p for p in parts if re.match(r"## (\d+)\.", p) and int(re.match(r"## (\d+)\.", p).group(1)) in numbers)
+
+
+def _notion_md_to_html(md):
+    """Notion 增强 Markdown → HTML：公式交给 MathJax，<table>/<details> 逐个转换，图片换成 assets 路径，
+    标题降两级挂在页面的 h3 下面。"""
+    import markdown
+    stash = []
+
+    def keep(html_text, block=False):
+        stash.append(html_text)
+        return f"\n\n@@S{len(stash) - 1}@@\n\n" if block else f"@@S{len(stash) - 1}@@"
+
+    def inline(s):
+        """表格格子 / 折叠标题里的行内格式：**粗体**、`代码`。"""
+        s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+        return re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+
+    t = md.replace("\\<", "&lt;")
+    t = re.sub(r"(?ms)^[ \t]*\$\$\s*\n(.*?)\n[ \t]*\$\$[ \t]*$", lambda m: keep(f"<p>\\[{esc(m.group(1).strip())}\\]</p>", True), t)
+    t = re.sub(r"\$`(.+?)`\$", lambda m: keep(f"\\({esc(m.group(1))}\\)"), t)
+    t = re.sub(r'<image src="([^"]+)"></image>(（[^）]*）)?', lambda m: keep(_notion_image(m.group(1)), True), t)
+    t = re.sub(r'<mention-page url="([^"]+)"\s*/>', r'[Notion 页面](\1)', t)
+
+    def table_html(m):
+        rows = re.findall(r"<tr>(.*?)</tr>", m.group(1), flags=re.S)
+        cells = [re.findall(r"<td>(.*?)</td>", r, flags=re.S) for r in rows]
+        head = "".join(f"<th>{inline(c.strip())}</th>" for c in cells[0])
+        body = "".join("<tr>" + "".join(f"<td>{inline(c.strip())}</td>" for c in r) + "</tr>" for r in cells[1:])
+        return keep(f'<div class="tablewrap"><table><tr>{head}</tr>{body}</table></div>', True)
+    t = re.sub(r'(?s)<table[^>]*>(.*?)</table>', table_html, t)
+
+    def details_html(m):
+        inner = "\n".join(line[1:] if line.startswith("\t") else line for line in m.group(2).split("\n"))
+        return keep(f"<details><summary>{inline(m.group(1).strip())}</summary>{_notion_md_to_html(inner)}</details>", True)
+    while "<details>" in t:   # 由内向外：先换掉不含嵌套的最内层
+        t = re.sub(r"(?s)[ \t]*<details>\s*<summary>(.*?)</summary>((?:(?!<details>).)*?)[ \t]*</details>", details_html, t)
+
+    t = re.sub(r"(?m)^---\s*$", "", t)
+    t = re.sub(r"(?m)^### ", "##### ", re.sub(r"(?m)^## ", "#### ", t))
+    t = re.sub(r"(?m)^(\t+)", lambda m: "    " * len(m.group(1)), t)
+    t = re.sub(r"(?m)^(?![-*\s]|\d+\. )(.+)\n(?=\s*(?:[-*] |\d+\. ))", r"\1\n\n", t)   # 列表前补空行，否则不认
+    # Notion 里每一行是一个独立块：相邻两行顶格正文各成一段，不并成一段
+    t = re.sub(r"(?m)^(?![-*] |\s|\d+\. )(.+)\n(?![-*] |\s|\d+\. )", r"\1\n\n", t)
+    # 列表后紧跟的顶格正文补空行，否则会被并进最后一条（Notion 里它是独立段落）
+    t = re.sub(r"(?m)^(\s*(?:[-*]|\d+\.) .+)\n(?=[^\s\-*\d\n]|\d+[^.\d])", r"\1\n\n", t)
+    out = markdown.markdown(t)
+    for i, s in reversed(list(enumerate(stash))):
+        out = out.replace(f"<p>@@S{i}@@</p>", s).replace(f"@@S{i}@@", s)
+    return out
+
+
+def _notion_image(src):
+    """讲稿里的 NAS 图：登记到 NOTION_IMAGES（build 时复制进 assets/images/），返回 <img>。"""
+    path = Path(src)
+    if path not in NOTION_IMAGES:
+        NOTION_IMAGES.append(path)
+    return f'<figure><img src="assets/images/{path.name}" alt="{esc(path.stem)}"></figure>'
+
+
+# (锚点, Notion 讲稿标题, 底稿文件名, 取哪几节) —— 标题照 Notion 页，全名与年份按 related_work/INDEX.md
+LECTURES_HYDRO = [
+    ("p_elandt", "Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment "
+                 "between nominally rigid objects", "elandt", (1, 2, 6)),
+    ("p_masterjohn", "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches", "masterjohn", (1, 2, 6)),
+    ("p_sap", "Castro et al. 2023（SAP）：An Unconstrained Convex Formulation of Compliant Contact", "sap", (1, 2, 6)),
+    ("p_hertz", "Hertz 1882：Ueber die Berührung fester elastischer Körper（和 hydro 比时的裁判）", "hertz", (3, 5))]
+LECTURES_NEURAL = [
+    ("p_romero21", "Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics", "romero2021", (1, 2, 6)),
+    ("p_romero22", "Romero et al. 2022：Contact-Centric Deformation Learning", "romero2022", (1, 2, 6)),
+    ("p_romero23", "Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors", "romero2023", (1, 2, 6)),
+    ("p_rigidformer", "Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers", "rigidformer", (1, 2, 6))]
+
+
+def _lectures(items):
+    return "".join(f'<h3 id="{a}">{esc(title)}</h3>\n{_notion_md_to_html(_handout_sections(name, nums))}'
+                   for a, title, name, nums in items)
+
+
+def week2_sections(hydro):
+    """Week 2 页：讲稿正文取自 Notion（_handout_sections），顺序照 Notion 拆解页：文献（hydroelastic、神经网络接触模型）→
+    看代码（NeuralIPC、Genesis 的 hydroelastic）→ Genesis + hydroelastic demo → 实验方案 → 问题与待决定。"""
     outcome = OUTCOME_LABEL.get(hydro.get("outcome"), "无结果") if hydro["state"] == "ok" else hydro["reason"]
-    fixed = f["fixed"]
-    # 独立有限元：Hertz 的全部假设、label 实际的材料和压头，两种都算，取离 1 最远的那个
-    torch_err = max(abs(v - 1) for name in TORCH_RUNS for v in _torch_block_limit(name).values())
-    S = []
-
-    S.append(("w1", "研究目标", "".join([
-        _ul([_pt("接触时物体在接触区产生局部变形，正是这一局部变形保证两物体互不穿透；", "变形中储存的弹性能即接触能量。"),
-             _pt("FEM 配合 IPC 可精确求解，但自由度多、计算慢。", "FEM（有限元）把物体切成大量小四面体逐块计算变形；"
-                 "自由度即要求解的未知数，精细网格下每个物体上万个。"),
-             _pt("本项目：仿真只保留少量降阶自由度，", "即只用少数几个变量描述整个物体：刚体为位置和朝向；仿射体再加上整体拉伸与剪切，"
-                 "三维共 12 个；或只保留少数几个振动模态。接触区局部变形对应的能量由神经网络学习。")]),
-        _math(r"U_c(z)=\min_{w}\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z)"),
-        _ul([_pt("z：", "降阶自由度，即仿真器实际求解的少量变量。"),
-             _pt("Φz：", "仅由降阶自由度给出的物体形状（位形），接触时与对方相互穿透。"),
-             _pt("Ψw：", "接触区的局部修正变形，w 为其系数。"),
-             _pt("Π：", "物体的总弹性势能。"),
-             _pt("\\(\\min_w\\)：固定 z，让局部变形在无穿透条件下自行调整到能量最低。", "这一步称为静态凝聚：把局部变形的自由度"
-                 "从问题中消去，只留下它对 z 的能量贡献；前提是局部变形比整体运动快得多，可视为瞬间达到平衡。"),
-             _pt("\\(U_c\\) 即消除穿透所需的额外弹性能，称为凝聚接触势（静态凝聚后得到的接触能量），由网络学习；",
-                 "接触力取为能量对 z 的导数。这样得到的力是保守力：物体压入再分开，能量如数返还，不会凭空增减。"),
-             _pt("训练标签取 IPC + 精细 FEM 的准静态解：", "准静态指只求每个压深下的受力平衡形状，不计速度和惯性；"
-                 "IPC（Li et al. 2020，Incremental Potential Contact: Intersection- and Inversion-free, Large-Deformation Dynamics）在两表面接近时加入一个距离越近越大的能量项（势垒），保证全程无穿透。")])])))
-
-    S.append(("w2", "Hydroelastic 接触模型", "".join([
-        _ul([_pt("Genesis 中的 hydroelastic 接触由三部分组成：", "Elandt et al. 2019 的压力场模型给出接触力，Masterjohn et al. 2022 把接触面"
-                 "离散成一组弹簧，SAP（Castro et al. 2023）负责求解。")]),
-        "<h3>Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact force and moment between nominally rigid objects</h3>", _ul([_pt("压力场接触模型。")]),
-        _ul([_pt("每个物体内部预定义一个压力场（每个点一个压力值），表面为 0，向内部单调增大。"),
-             _pt("两物体按刚体几何直接重叠、不计变形；", "重叠区内两侧压力相等的那张面（等压面）即接触面，压力在其上积分得到接触力。")]),
-        _math(r"p_0=E\,\varepsilon,\qquad F=\int_S p_0\,dA"),
-        _ul([_pt("ε：", "点离表面的深度，按物体内部最深处归一化到 0–1（表面为 0，最深处即中轴为 1）。"),
-             _pt("E：", "hydroelastic 模量，用户指定的模型参数，与材料的杨氏模量（材料本身的弹性刚度）没有直接对应。"),
-             _pt("穿透越深，压力与接触面积同时增大，接触力随之增大。")]),
-        "<h3>Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches</h3>", _ul([_pt("接触面片的速度层离散。")]),
-        _ul([_pt("将接触面上每个多边形面片等效为一根线性弹簧（柔性点接触：允许少量嵌入，力随嵌入量增大），",
-                 "从而接入速度层求解器（固定步长、每步求解下一时刻速度的求解器，MuJoCo、Drake 均属此类），实现实时仿真。")]),
-        _math(r"k=g\,A,\qquad \phi_0=-\frac{p}{g}"),
-        _ul([_pt("A：", "面片面积；p：面片中心（形心）处的压力；φ₀：由压力反推出的等效嵌入深度。"),
-             _pt("g：", "压力沿接触面法向每深入 1 m 增加多少；两物体各有一个，按两根弹簧串联合成一个。"),
-             _pt("面积越大、压力梯度越大，等效刚度 k 越大；", "静止时面片合力等于面积 × 形心压力，与连续模型一致。")]),
-        "<h3>Castro et al. 2023（SAP）：An Unconstrained Convex Formulation of Compliant Contact</h3>", _ul([_pt("无约束凸优化求解器。")]),
-        _ul([_pt("将每个时间步的柔性接触问题写成只以速度为未知量、没有约束条件、强凸的最小化问题，",
-                 "强凸即目标函数是严格的「碗形」，只有一个最低点，因此解唯一，用牛顿法（利用二阶导数确定下降方向的迭代法）可稳定收敛。")]),
-        _math(r"\min_{\mathbf v}\ \tfrac12\|\mathbf v-\mathbf v^*\|_A^2+\ell_{\text{接触}}(\mathbf v)"),
-        _ul([_pt("v：", "下一时间步的速度；v*：无接触时的自由运动速度；A：质量矩阵（各自由度的质量）。"),
-             _pt("第一项衡量速度偏离自由运动的程度，第二项在物体沿法向压入对方时增大；", "两项平衡处即下一步速度。")]),
-        "<h3>Genesis 实现与官方测试</h3>",
-        _ul([_pt("Genesis 的 hydroelastic 即上述三者的组合；", "刚体共用一个全局 hydroelastic 模量（默认 1e8 Pa），与材料杨氏模量不联动。")]),
-        '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
-        _ul([_pt("箱体最终下沉约 8 µm：", "hydroelastic 依靠微小的相互穿透产生支撑力，视觉上不可见；IPC 则在两表面间始终保持正间隙。")]),
-        _setting("Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 "
-                 "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic"
-                 "（SAP 求解器，不经过 IPC）；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
-                 "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变"),
-        "<h3>模型假设</h3>",
-        _ul([_pt("每点的压力只取决于该点自身的穿透深度，近似于 Winkler 地基（一组互不耦合的弹簧）；",
-                 "真实弹性体中各点通过连续介质相互耦合。第 5 部分的实验即针对这一差异设计。")])])))
-
-    S.append(("w3", "神经网络接触模型", "".join([
-        _ul([_pt("现有方法学习位移修正或刚体运动，不学习接触能量，也不保证无穿透；", "本项目学习接触能量，接触力由能量梯度给出。")]),
-        "<h3>Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics</h3>", _ul([_pt("降阶子空间 + 学习接触区位移修正。")]),
-        _math(r"\mathbf x(\mathbf q)=\mathbf U\mathbf q+\mathbf F(\mathbf q)\,\mathbf r(\mathbf q)"),
-        _ul([_pt("q / Uq：", "q 是少数几个控制柄（handle：可移动的控制点或小坐标架）的状态，Uq 是它们按固定权重插值出的整体形状；"
-                 "这组可能形状称为子空间。"),
-             _pt("r / F：", "r 是网络预测的局部位移修正（接触压出的凹坑）；F 是形变梯度（描述每一小块材料被旋转、拉伸了多少），"
-                 "把修正变换到物体当前的姿态。"),
-             _pt("与本项目思路最接近（降阶自由度 + 学习局部变形），", "区别在于其学习位移而非能量。")]),
-        "<h3>Romero et al. 2022：Contact-Centric Deformation Learning</h3>", _ul([_pt("在碰撞体坐标系中学习接触变形。")]),
-        _math(r"u(\bar x)=\mathbf T(\mathbf z)\,r(\bar z),\qquad \bar z=\mathbf T(\mathbf z)^{-1}\tilde x(\bar x)"),
-        _ul([_pt("T(z)：", "碰撞体（压向物体的刚体）的位置和朝向；z̄：物体上的点在碰撞体坐标系中的位置；r：该坐标系下预测的局部位移。"),
-             _pt("在碰撞体坐标系下变形场更平滑，", "所需训练数据显著减少。")]),
-        "<h3>Romero et al. 2023：Learning Contact Deformations with General Collider Descriptors</h3>", _ul([_pt("基于局部距离场描述子，泛化到未见过的碰撞体。")]),
-        _math(r"r_{\text{local}}=\mathbb N\big(\hat\phi(x),\,W(\bar x)\,R^{-1}T^{-1}(q-x)\big)"),
-        _ul([_pt("φ̂：", "在要预测修正的表面点周围撒 65 个采样点，记录每点到碰撞体表面的有符号距离（SDF：点在碰撞体外为正、内为负），"
-                 "作为碰撞体局部几何的描述。"),
-             _pt("𝕅：", "神经网络；另一个输入是附近各控制柄相对该点的位置。"),
-             _pt("对未见几何的泛化，与本项目「单一模型覆盖多种形状」的目标一致。")]),
-        "<h3>Dou et al. 2026：RigidFormer: Learning Rigid Dynamics using Transformers</h3>", _ul([_pt("以 Transformer 预测多刚体运动。")]),
-        _math(r"\mathbf x_{t+1}=f_\theta(\mathbf x_{t-1},\mathbf x_t,\Delta t)"),
-        _ul([_pt("由前两帧的点云位置预测下一帧；", "网络是 Transformer（一种用注意力机制让各物体相互交换信息的结构）；"
-                 "每个物体选 4 个锚点（代表点），预测它们的加速度，再求一个最贴合的刚体变换，保证物体本身不变形。"),
-             _pt("替代整个求解器，无能量表述，物体间不保证无穿透；", "本项目保留仿真器，仅增加一项接触能量。")])])))
-
-    S.append(("w4", "NeuralIPC 代码现状", "".join([
-        _ul([_pt("已有：", "两种求解器生成的标签——BEM（边界元：只在接触表面划网格，用无限大弹性体的解析公式把表面压力换算成位移）"
-                 "与有限应变 FEM（适用于大变形的有限元）；凝聚接触势网络；以及多接触区之间的耦合。")]),
-        _math(r"U=\sum_k U_k(\delta_k)\;-\;\sum_{k\lt l}\mathrm{softplus}(\mathrm{NN})\,\sqrt{U_kU_l}\,\frac{L}{r_{kl}},"
-              r"\qquad \delta_k=\max\big(0,\,-\min\text{gap}_k\big)"),
-        _ul([_pt("每个接触区先由几何计算两表面的有向间隙 gap（带符号的距离：分开为正、穿透为负），取最深的穿透量为 δ，",
-                 "网络只输出该区能量 \\(U_k\\)；无接触时 δ = 0，能量严格为 0。"),
-             _pt("同一基底上相邻接触区相互预压、整体变软，故减去耦合项：", "NN 为神经网络，softplus 是恒为正的平滑函数，保证这一项只减不加；"
-                 "r 为两区距离，L 为长度尺度，距离越小，修正越大。"),
-             _pt("BEM 标签与 Hertz 解的误差 < 0.1%；", "网络学到的能量随穿透深度增长的幂次（U ∝ δ^p 中的 p）中位数为 2.47，Hertz 为 2.5。"),
-             _pt("多接触区不可直接叠加：", "2 / 3 个接触区直接相加高估 27.8% / 54.9%，引入耦合后为 6.1% / 6.5%。"),
-             _pt("准静态接触势适用于低速冲击：", "冲击速度为材料中弹性波速（变形在材料里传播的速度）的 1.5% 时误差 0.4%，30% 时达 212%，"
-                 "因为准静态模型不包含接触区的振动能。"),
-             _pt("尚缺：libuipc 生成的 3D IPC 标签尚未接入训练。", "其球压算例在网格加密下为 1.312 → 1.235 → 1.208，尚未收敛，"
-                 "原因见第 6 部分；材料泛化、速度评测与演示尚未开展。")])])))
-
-    S.append(("w5", "与 hydroelastic 的对比实验设计", "".join([
-        _ul([_pt("以弹性力学解析解为裁判，", "即由弹性力学方程推导出的精确公式；不使用任何一方的仿真结果作为真值。"),
-             _pt("以力的比值为主判据：同一物体、同一压深，仅改变一个几何参数，比较力的变化倍数；",
-                 "比值中 hydroelastic 模量被约去，不能通过调参弥补。"),
-             _pt("hydroelastic 模量仅用训练数据拟合一次，之后固定；", "若对每个实验单独调参，任一单例都可拟合，但不具预测性。")]),
-        "<h3>E1 球半径加倍：Hertz 解 ×1.41，hydroelastic ×2</h3>",
-        _math(r"F_{\text{Hertz}}=\tfrac{4}{3}E^{*}R^{1/2}\delta^{3/2}"),
-        _ul([_pt("Hertz 解（Hertz 1882：Ueber die Berührung fester elastischer Körper）。", "F 为接触力，R 为球半径，δ 为压深；E* = E/(1−ν²) 为等效模量，E 为杨氏模量，"
-                 "ν 为泊松比（材料受压时向侧面膨胀的程度，0–0.5，越接近 0.5 越难压缩体积）。"),
-             _pt("Hertz：", "接触半径增大但平均压力降低，力按 √R 增长。"),
-             _pt("hydroelastic：", "力与重叠面积成正比，按 R 增长，与压力映射形式无关。")]),
-        "<h3>E2 平底圆柱压头半径 ×2、×4：解析解 ×2、×4，hydroelastic ×4、×16</h3>",
-        _math(r"F_{\text{Boussinesq}}=2E^{*}a\,\delta,\qquad F_{\text{hydro}}=\pi a^{2}\,p(\delta)"),
-        _ul([_pt("Boussinesq 解（Boussinesq 1885：Application des potentiels à l'étude de l'équilibre et du mouvement des solides élastiques）：", "刚性平底圆柱压入无限大弹性体的精确解；a 为压头半径，p(δ) 为 hydroelastic 在压深 δ 处的压力。"),
-             _pt("解析解：", "变形影响的深度随 a 增大，同一压深下材料被拉伸得更少（应变减小），力与 a 成正比。"),
-             _pt("hydroelastic：", "底面各点穿透相同，力 = 面积 × 压力，按 a² 增长。")]),
-        "<h3>E3 同一刚体上两个凸台间距减小：解析解每个凸台力减小 6–14%，hydroelastic 不变</h3>",
-        _math(r"F_{\text{每个凸台}}=\frac{2E^{*}a\,\delta}{1+2a/(\pi L)}"),
-        _ul([_pt("解析解：", "相邻凸台使基底整体下沉，自身变形减小；L 为中心距，L = 4a 时减小约 14%，10a 时约 6%。"),
-             _pt("hydroelastic：", "各面片独立计算，与 L 无关。")]),
-        "<h3>E4 粘结于刚性基底的近不可压薄层：球半径加倍，解析解趋近 ×4，hydroelastic ×2</h3>",
-        _math(r"F_{\text{不可压}}=\frac{\pi}{2}E^{*}\frac{R^{2}\delta^{3}}{b^{3}}"),
-        _ul([_pt("解析解：", "近不可压材料（泊松比接近 0.5，体积几乎不能压缩）受压时只能从侧面挤出，接触越宽挤出路径越长，"
-                 "力按 R² 增长；b 为层厚。"),
-             _pt("hydroelastic：", "仍按 R 增长。可压缩情形（ν = 0.3）两者均为 ×2，作对照。")]),
-        "<h3>E5 降阶表示自身可变形时，hydroelastic 重复计入柔度</h3>",
-        _ul([_pt("解析解：", "仿射体（可整体平移、旋转、均匀拉伸和剪切）已承担部分变形，正确的接触能量应相应减小。"),
-             _pt("hydroelastic：", "只依赖材料与几何，柔度（受力后变形的容易程度）被计入两次，力偏小；supervisor 数据中"
-                 "物体越细长，该偏差越大：线弹性下 1% → 10%，大变形下 7% → 17%。"),
-             _pt("本项目学习的是扣除降阶表示已储存能量之后剩下的那部分，", "不存在这一问题。")])])))
-
-    S.append(("w6", "前提：IPC 标签的收敛性", "".join([
-        _ul([_pt("以 supervisor 造标签的球压算例与 Hertz 解对比：", "标签能量 / Hertz 能量，1 表示一致。")]),
-        _setting("刚性球（半径 1）竖直压进底面固定的软块（E = 1e5，ν = 0.3），无摩擦、无重力，压深 0.004–0.024，每个压深求准静态平衡"
-                 "后计算块的弹性能。原来：块宽 2.4、高 1.2，接触区网格 0.025，势垒距离 d̂ = 1e-3，球面细分 4 次。修正后：d̂ 三档外推到 0，"
-                 "球面细分 7 次，块半宽 2.4 / 4.8 外推到无限大，网格 0.0125 / 0.00625 外推到 0，材料参数按求解器实际使用的能量改写"),
-        f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
-        f'<figcaption class="small">{esc("纵轴：标签能量 / Hertz 能量（1 表示一致）；横轴：IPC 势垒距离 d̂")}</figcaption></figure>',
-        _ul([_pt(f"原设置结果为 {f['supervisor']:.2f}，", "其中包含两项方向相反、部分抵消的误差。")]),
-        _math(r"B(d)=\kappa\,\big(d^2-\hat d^{\,2}\big)^2\Big[\ln\frac{d^2}{\hat d^{\,2}}\Big]^2\quad (d\lt\hat d)"),
-        _ul([_pt("IPC 势垒距离 d̂ 使能量偏大：", "上式即 IPC 的势垒，d 为两表面距离，κ 为势垒刚度；距离小于 d̂ 即产生斥力，"
-                 "距离趋于 0 时势能趋于无穷，保证无穿透，但也等效于接触提前发生。偏差近似与 d̂ 成正比，可外推至 d̂ → 0。"),
-             _pt("压头球面离散过粗使能量偏小：", "球面由三角形面片拼成，面片尺寸大于 Hertz 接触半径时，球底近似为尖点；"
-                 "细分 7 次（每次把每个三角形一分为四）后结果不再变化。"),
-             _pt(f"新版 libuipc 的材料参数换算有误，实际杨氏模量偏大 {f['E_meas'] / 1e5 - 1:.0%}：", "拉伸一根细长棒，"
-                 "用已知拉力和测得的伸长直接算出杨氏模量（单轴拉伸），确认了这一偏差；改写求解器内部的材料参数后恢复设定值。"),
-             _pt(f"修正后标签与 Hertz 一致：小压深 {fixed[0]:.2f}，大压深 {fixed[1]:.2f}。"),
-             _pt(f"在本算例的压深范围内，Hertz 解自身的近似误差 < {torch_err:.1%}：", "Hertz 假设变形小、材料线弹性；"
-                 "用一个不经过 IPC 的独立有限元程序按实际情况重算，与 Hertz 相差不到这个量，因此可作为裁判。")]),
-        _setting("独立有限元：supervisor 的轴对称有限元程序（不经过 IPC，无势垒距离），圆柱块半径 = 高 = 2.4 → 19.2，两种网格；"
-                 "按 Hertz 的全部假设算一遍、按标签实际使用的材料和真实球面再算一遍，都按块大小外推到无限大")])))
-
-    S.append(("w7", "问题与待决定事项", _ul([
-        _pt("完整修正后的标签生成代价高，单样本约 30 分钟：", "需多档 d̂ 外推、足够大的块与细网格；需确定一套低成本的批量生成设置，"
-            "并用高精度设置量出它的系统偏差。"),
-        _pt("待决定：标签使用 pyuipc 0.0.25 还是 Genesis 所用的新版 libuipc。", "新版需改写材料参数，Genesis 中所有 IPC 软体同样受影响。")])))
+    S = [("w1", "文献：Hydroelastic + Hertz", _lectures(LECTURES_HYDRO)),
+         ("w2", "文献：神经网络接触模型", _lectures(LECTURES_NEURAL)),
+         ("w3", "看代码", "".join([
+             '<h3 id="c_nipc">supervisor 的 NeuralIPC 仓库（YumengHe/NeuralIPC）</h3>',
+             _notion_md_to_html(_handout_sections("neuralipc_code", (1, 2, 3, 4, 5))),
+             '<h3 id="c_genesis">Genesis 的 hydroelastic 是怎么实现的</h3>',
+             _notion_md_to_html(_handout_sections("genesis_hydro_impl", (1, 3)))])),
+         ("w4", "Demo：Genesis + hydroelastic", "".join([
+             '<div class="grid">' + demo_card(dict(hydro, title=HYDRO["title"], line=f"官方检查：{outcome}"), {}) + "</div>",
+             _ul([_pt("箱体最终下沉约 8 µm：", "hydroelastic 依靠微小的相互穿透产生支撑力，视觉上不可见；IPC 则在两表面间始终保持正间隙。")]),
+             _setting("Genesis 官方测试 test_sap_rigid_rigid_hydroelastic_contact，场景和检查条件原样；地上一个 "
+                      "0.5 × 0.5 × 0.2 m 的方盒，两条由球和胶囊（半径 24 mm）连成的链从上方落下；全部接触用 hydroelastic"
+                      "（SAP 求解器，不经过 IPC）；压力场刚度 1e8 Pa，阻尼时间尺度 0.1 s；80 步 = 1.33 s，视频慢放约 3.75 倍；"
+                      "为便于观察接触，仅修改了光照、箱体颜色和相机仰角，物理过程与检查条件不变")])),
+         ("w5", "实验方案：怎么证明我们「原理上」比 hydroelastic 好", "".join([
+             _notion_md_to_html(_handout_sections("experiment_plan")),
+             f'<figure><img src="assets/images/{E0_FIG}" alt="标签收敛图">'
+             f'<figcaption class="small">{esc("E0 实测：标签能量 / Hertz 能量（1 表示一致），横轴为 IPC 势垒距离 d̂")}</figcaption></figure>'])),
+         ("w6", "问题与待决定事项", _ul([
+             _pt("完整修正后的标签生成代价高，单样本约 30 分钟：", "需多档 d̂ 外推、足够大的块与细网格；需确定一套低成本的批量生成设置，"
+                 "并用高精度设置量出它的系统偏差。"),
+             _pt("待决定：标签沿用 supervisor 的 pyuipc 0.0.25 直接生成，还是改用 Genesis（内含新版 libuipc）。",
+                 "新版的软体材料参数换算有误，需改写材料参数（E0「材料参数要先核对」）；Genesis 中所有 IPC 软体同样受影响。")]))]
     return [f'<section id="{a}"><h2>{esc(t)}</h2>\n{body}</section>' for a, t, body in S]
 
 
@@ -1423,7 +1324,7 @@ def build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit):
                   f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
                   "d̂ 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
                   "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")}
-    sections = {"week2": week2_sections(hydro, label_facts()),
+    sections = {"week2": week2_sections(hydro),
                 "week1": [videos_section(demos, tests, facts), sweep_section(gsweeps, cfg, videos), data_section()]}
     cards = "".join(f'<a class="weekcard" href="{wid}.html"><b>{esc(title)}</b>'
                     f'<span>{esc(" · ".join(n for _, n in items))}</span><p>{esc(summary[wid])}</p></a>'
@@ -1475,6 +1376,8 @@ def main():
     commit = genesis_commit()
 
     pages = build_pages(demos, tests, hydro, gsweeps, cfg, facts, videos, commit)
+    # 讲稿里引用的 NAS 图（_notion_image 在生成页面时登记）
+    ijobs += [{"src": src, "dst": IMAGE_DIR / src.name, "size": src.stat().st_size} for src in NOTION_IMAGES]
 
     # ---------------- 打印计划 ----------------
     mode = "EXECUTE" if args.execute else "DRY-RUN（只演练，不写任何文件；加 --execute 才真正写）"
