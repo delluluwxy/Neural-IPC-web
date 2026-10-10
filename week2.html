@@ -122,8 +122,8 @@ footer.foot { color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(
 <li>\(g\)：等效压力梯度（Pa/m），压力沿法向每深 1 m 涨多少；\(g_A,g_B\)：两侧各自的梯度。</li>
 <li>\(\phi_0\)：把压力换算成的「等效穿透深度」（负值）。</li>
 </ul>
-<p>面积越大、梯度越大 → 弹簧越硬。\(g\) 是两侧串联，一软一硬时约等于软的那侧。</p><p class="kp">每块接触多边形等效为形心处的一根线性弹簧，刚度 \(k=g\,A_0\) 与接触面积成正比。</p><h3 id="p_sap">Castro et al. 2023：An Unconstrained Convex Formulation of Compliant Contact（求解器 SAP = Semi-Analytic Primal solver）</h3>
-<p>\[\gamma_n/\delta t=\big(-k\phi-\tau_d\,k\,v_n\big)_+\]</p>
+<p>面积越大、梯度越大 → 弹簧越硬。\(g\) 是两侧串联，一软一硬时约等于软的那侧。</p><p class="kp">每块接触多边形等效为形心处的一根线性弹簧，刚度 \(k=g\,A_0\) 与接触面积成正比。</p><h3 id="p_sap">Castro et al. 2023：An Unconstrained Convex Formulation of Compliant Contact</h3>
+<p>本文提出的求解器叫 SAP（Semi-Analytic Primal solver：接触约束用解析式直接消去，再对速度做牛顿法下降），Genesis 的 SAPCoupler 即由此得名。</p><p>\[\gamma_n/\delta t=\big(-k\phi-\tau_d\,k\,v_n\big)_+\]</p>
 <ul>
 <li>\(\gamma_n\)：一步内法向冲量；\(\delta t\)：步长。</li>
 <li>\(\phi\)：有符号距离，穿透为负；\(v_n\)：法向相对速度。</li>

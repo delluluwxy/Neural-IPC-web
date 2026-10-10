@@ -683,7 +683,7 @@ CUTS_PLAN = [(r"推荐：E1、E2 用教科书里.*?hydro 类 10 篇都没有。"
 FULL_NAME_ELANDT = ("Elandt et al. 2019（A pressure field model for fast, robust approximation of net contact force and moment "
                     "between nominally rigid objects）")
 FULL_NAME_MASTERJOHN = "Masterjohn et al. 2022（Velocity Level Approximation of Pressure Field Contact Patches）"
-FULL_NAME_SAP = "Castro et al. 2023（An Unconstrained Convex Formulation of Compliant Contact；文中求解器名为 SAP，Semi-Analytic Primal solver）"
+FULL_NAME_SAP = "Castro et al. 2023（An Unconstrained Convex Formulation of Compliant Contact）"
 FULL_NAME_ROMERO21 = "Romero et al. 2021（Learning Contact Corrections for Handle-Based Subspace Dynamics）"
 PAPER_FULL_NAMES = [("Elandt 2019，Pressure Field Contact", FULL_NAME_ELANDT),
                     ("Masterjohn 2022，Velocity Level Approximation of Pressure Field Contact Patches", FULL_NAME_MASTERJOHN),
@@ -771,7 +771,10 @@ def _notion_image(src):
 HYDRO_PAPERS = [("p_elandt", "Elandt et al. 2019：A pressure field model for fast, robust approximation of net contact "
                              "force and moment between nominally rigid objects"),
                 ("p_masterjohn", "Masterjohn et al. 2022：Velocity Level Approximation of Pressure Field Contact Patches"),
-                ("p_sap", "Castro et al. 2023：An Unconstrained Convex Formulation of Compliant Contact（求解器 SAP = Semi-Analytic Primal solver）")]
+                ("p_sap", "Castro et al. 2023：An Unconstrained Convex Formulation of Compliant Contact")]
+# 论文标题里没有 SAP，正文第一句交代名字的来历（用户 10-10「那这个名字为啥叫 sap」；原文第 41 行）
+HYDRO_PAPER_INTRO = {"p_sap": "本文提出的求解器叫 SAP（Semi-Analytic Primal solver：接触约束用解析式直接消去，"
+                              "再对速度做牛顿法下降），Genesis 的 SAPCoupler 即由此得名。"}
 
 
 def _hydro_papers():
@@ -780,7 +783,9 @@ def _hydro_papers():
     parts = re.split(r"(?m)^### 2\.\d .*\n", sec)[1:]
     if len(parts) != len(HYDRO_PAPERS):
         raise SystemExit(f"[build_site] genesis_hydro_impl 第 2 节应拆成 {len(HYDRO_PAPERS)} 篇，实际 {len(parts)}")
-    return "".join(f'<h3 id="{a}">{esc(t)}</h3>\n{_notion_md_to_html(p)}' for (a, t), p in zip(HYDRO_PAPERS, parts))
+    return "".join(f'<h3 id="{a}">{esc(t)}</h3>\n'
+                   + (f"<p>{esc(HYDRO_PAPER_INTRO[a])}</p>" if a in HYDRO_PAPER_INTRO else "")
+                   + _notion_md_to_html(p) for (a, t), p in zip(HYDRO_PAPERS, parts))
 # (锚点, 论文全名, 底稿文件名, 取哪几节：6 和我们的区别)
 LECTURES_NEURAL = [
     ("p_romero21", "Romero et al. 2021：Learning Contact Corrections for Handle-Based Subspace Dynamics", "romero2021", (6,)),
