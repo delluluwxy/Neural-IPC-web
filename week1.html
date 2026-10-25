@@ -240,7 +240,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "c138dc801084";</script>
+<script>window.NIPC_PAGE = "d8be51e83412";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -2222,7 +2222,9 @@ html.annot-on #annot-capture { display: block; }
       },
       contentIndex() {
         const ix = ensureIndex();
-        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el) })),
+        const s = frame().s;   // width：公式在本机排版下的宽（正文卡片 px），只用来估一笔压住了几个记号
+        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el),
+                                                                     width: m.el.getBoundingClientRect().width / s })),
                  media: [...article.querySelectorAll('img, video')].map(srcKey) };
       },
       where(ids) {
@@ -2235,7 +2237,10 @@ html.annot-on #annot-capture { display: block; }
           const c = S.cache.get(id), t = c && c.target, d = S.drawn.get(id), state = d ? d.state : 'none';
           if (!t) return [id, { state }];
           if (t.el === main) return [id, { state, kind: 'page' }];
-          if (t.pos !== undefined) return [id, { state, kind: 'text', pos: t.pos }];
+          if (t.pos !== undefined) {   // w：锚字在本机排版下的宽（正文卡片 px）
+            const r = charRect(t.pos);
+            return [id, { state, kind: 'text', pos: t.pos, w: r ? r.width / f.s : 0 }];
+          }
           const k = M.findIndex(m => m.el === t.el), glyph = t.glyph || c.glyph;
           if (k >= 0) return [id, { state, kind: glyph ? 'glyph' : 'math', math: k, gi: glyph ? glyphList(t.el).els.indexOf(glyph) : -1 }];
           const mi = media.indexOf(t.el);
