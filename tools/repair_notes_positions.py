@@ -166,6 +166,46 @@ def shoot(job):
         browser.close()
 
 
+# 在原版页面上把一笔公式笔换成符号锚点：读它当时画在哪（placed().abs，正文卡片坐标），取起笔点所在（或最近）的
+# 陈列公式里离起笔点最近的符号，点改存成相对该符号的像素坐标（同 annotate.py「陈列公式里的符号」，glyphLen = 8）
+GLYPH_JS = """ids => {
+  const N = window.__nipcNotes, f = N.frame(), L = 8, r2 = v => Math.round(v * 100) / 100;
+  const maths = [...MathJax.startup.document.math].filter(m => m.display && m.typesetRoot && m.typesetRoot.isConnected);
+  const dist = (q, x, y) => Math.hypot(Math.max(q.left - x, 0, x - q.right), Math.max(q.top - y, 0, y - q.bottom));
+  const out = {};
+  for (const id of ids) {
+    const pl = N.placed(id);
+    if (!pl || pl.state !== 'ok' || !pl.abs || !maths.length) { out[id] = null; continue; }
+    const x = f.x + pl.abs[0][0] * f.s, y = f.y + pl.abs[0][1] * f.s;
+    const m = maths.reduce((a, b) => dist(b.typesetRoot.getBoundingClientRect(), x, y) <
+                                    dist(a.typesetRoot.getBoundingClientRect(), x, y) ? b : a);
+    const els = [...m.typesetRoot.querySelectorAll('[data-c]')];
+    const ch = els.map(e => { const c = parseInt(e.getAttribute('data-c'), 16); return Number.isFinite(c) ? String.fromCodePoint(c) : '?'; });
+    let k = -1, bd = Infinity;
+    els.forEach((e, i) => { const q = e.getBoundingClientRect(); if ((q.width || q.height) && dist(q, x, y) < bd) { bd = dist(q, x, y); k = i; } });
+    if (k < 0) { out[id] = null; continue; }
+    const q = els[k].getBoundingClientRect();
+    const R = {x: (q.left - f.x) / f.s, y: (q.top - f.y) / f.s, w: q.width / f.s, h: q.height / f.s};
+    out[id] = {tex: m.math.replace(/\\s+/g, ' ').trim(),
+               g: {prefix: ch.slice(Math.max(0, k - L), k).join(''), exact: ch[k], suffix: ch.slice(k + 1, k + 1 + L).join('')},
+               orig: {x: r2(R.x), y: r2(R.y), w: r2(R.w), h: r2(R.h)},
+               pts: pl.abs.map(p => [r2(p[0] - R.x), r2(p[1] - R.y), r2(p[2])])};
+  }
+  return out;
+}"""
+
+
+def glyph_anchors(job):
+    """一个进程处理一个原版页面上的公式笔：返回 {笔 id: 新的 tex / g / orig / pts 或 None}。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = open_with_notes(browser, checkout(job["sha"], job["worktrees"]) / job["page"],
+                               dict(job["current"], strokes=job["strokes"]))
+        got = page.evaluate(GLYPH_JS, [s["id"] for s in job["strokes"]])
+        browser.close()
+    return got
+
+
 def split(groups, ids, n):
     """把要处理的笔轮流分成 n 份，每份仍按原始版本分组。"""
     by_id = {s["id"]: (sha, s) for sha, g in groups.items() for s in g}
@@ -212,6 +252,8 @@ def main():
     ap.add_argument("--worktrees", default=str(WORKTREES), help="旧版页面 worktree 放哪")
     ap.add_argument("--only", nargs="+", help="只修这几笔（冒烟用；其余笔原样写出）")
     ap.add_argument("--workers", type=int, default=8, help="并行进程数（每个进程一个 chromium）")
+    ap.add_argument("--math-from-origin", metavar="BASE_JSON",
+                    help="只做一件事：当初挂在公式上的笔，在各自原版页面上换成符号锚点，写进 BASE_JSON 的副本（--out）")
     args = ap.parse_args()
     stem = pathlib.Path(args.page).stem
     if args.shots:
@@ -237,6 +279,28 @@ def main():
     common = dict(page=args.page, worktrees=pathlib.Path(args.worktrees), root=ROOT, current=current)
     for sha in groups:
         checkout(sha, common["worktrees"])          # 先检出，免得几个进程同时 git worktree add
+    if args.math_from_origin:
+        # 当初挂在公式上的笔：在各自原版页面上换成符号锚点（每个版本一个进程），写进底稿笔记
+        jobs = [dict(common, sha=sha, strokes=[s for s in g if s["anchor"].get("type") == "math"]) for sha, g in groups.items()]
+        jobs = [j for j in jobs if j["strokes"]]
+        with mp.get_context("spawn").Pool(len(jobs)) as pool:
+            got = {k: v for r in pool.map(glyph_anchors, jobs) for k, v in r.items()}
+        base = json.loads(pathlib.Path(args.math_from_origin).read_text(encoding="utf-8"))
+        now, done, miss = int(time.time() * 1000), 0, []
+        for s in base["strokes"]:
+            if s["id"] not in got:
+                continue
+            r = got[s["id"]]
+            if r is None:
+                miss.append(s["id"])
+                continue
+            s.update(anchor={"type": "math", "tex": r["tex"], "ctx": s["anchor"].get("ctx", ""), "g": r["g"]},
+                     frame="px", orig=r["orig"], pts=r["pts"], updatedAt=now)
+            done += 1
+        pathlib.Path(args.out).write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+        print(f"== 公式笔换成原版页面上的符号锚点 {done} 笔，原版上看不到 {len(miss)} 笔 {miss}；用 {time.time() - t0:.0f} s；"
+              f"写出 {args.out}")
+        return
     chunks = split(groups, ids, args.workers)
     with mp.get_context("spawn").Pool(len(chunks)) as pool:   # 各笔互不相关：每个进程自己的浏览器量一批
         outs = pool.map(measure, [dict(common, groups=g) for g in chunks])
