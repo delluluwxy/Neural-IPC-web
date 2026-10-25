@@ -400,8 +400,6 @@ def remap_media(base, version, worktrees, root, fig_labels, maps):
     sys.path.insert(0, str(root.parent / "Neural-IPC-sandbox/tools/figs"))
     from fig_label_boxes import pixel_hash
     by_hash = {v["pixels"]: v for d in fig_labels.values() for v in d.values()}
-    inside = lambda L: [l for l in L if l["box"][0] >= 0 and l["box"][1] >= 0 and l["box"][2] <= 1 and l["box"][3] <= 1]
-    cen = lambda l, W, H: np.array([(l["box"][0] + l["box"][2]) / 2 * W, (l["box"][1] + l["box"][3]) / 2 * H])
     report = []
     by_id = {s["id"]: s for s in base["strokes"]}
     for i, sha in version.items():
@@ -419,33 +417,59 @@ def remap_media(base, version, worktrees, root, fig_labels, maps):
             report.append((i, src, "图改过，但认不出是哪个提交画的（fig_labels 里没有同像素的图），没动"))
             continue
         old, new = by_hash[ho], by_hash[hn]
-        (W0, H0), (W1, H1) = old["size"], new["size"]
-        lo, ln = inside(old["labels"]), inside(new["labels"])
-        pairs = []
-        for l in lo:
-            m = [k for k in ln if same_label(l["text"], k["text"], maps)]
-            if len(m) == 1 and sum(x["text"] == l["text"] for x in lo) == 1:
-                pairs.append((cen(l, W0, H0), cen(m[0], W1, H1)))
-        A, B = np.array([p for p, _ in pairs]), np.array([q for _, q in pairs])
-        sc = np.array([np.polyfit(A[:, k], B[:, k], 1)[0] for k in (0, 1)]) if len(pairs) >= 2 else np.array([W1 / W0, H1 / H0])
-        P = np.array([[p[0] * W0, p[1] * H0] for p in s["pts"]])
-        dist = lambda l: np.hypot(np.maximum(0, np.maximum(l["box"][0] * W0 - P[:, 0], P[:, 0] - l["box"][2] * W0)),
-                                  np.maximum(0, np.maximum(l["box"][1] * H0 - P[:, 1], P[:, 1] - l["box"][3] * H0))).min()
-        near = min(lo, key=dist)
-        cands = [k for k in ln if same_label(near["text"], k["text"], maps)]
-        if not cands:
+        r = follow_label(s["pts"], old, new, maps)
+        if r["gone"]:
             s["anchor"]["gone"] = True
-            report.append((i, src, f"最近的标注「{near['text']}」（距笔 {dist(near):.0f} px）在新图里没了，隐藏"))
+            report.append((i, src, f"最近的标注「{r['label']}」（距笔 {r['dist']:.0f} px）在新图里没了，隐藏"))
             continue
-        c0 = cen(near, W0, H0)
-        guess = B.mean(0) + sc * (c0 - A.mean(0)) if len(pairs) >= 2 else c0 * [W1 / W0, H1 / H0]
-        tgt = min(cands, key=lambda k: np.hypot(*(cen(k, W1, H1) - guess)))
-        Q = cen(tgt, W1, H1) + sc * (P - c0)
-        s["pts"] = [[round(q[0] / W1, 4), round(q[1] / H1, 4), p[2]] for q, p in zip(Q, s["pts"])]
+        s["pts"] = [q + [p[2]] for q, p in zip(r["pts"], s["pts"])]
         s["anchor"].pop("gone", None)
-        report.append((i, src, f"跟着标注「{near['text']}」（距笔 {dist(near):.0f} px）走：缩放 {sc[0]:.4f} / {sc[1]:.4f}，"
-                               f"{len(pairs)} 对同名标注拟合"))
+        report.append((i, src, f"跟着标注「{r['label']}」（距笔 {r['dist']:.0f} px）走：缩放 {r['sc'][0]:.4f} / {r['sc'][1]:.4f}，"
+                               f"{r['pairs']} 对同名标注拟合"))
     return report
+
+
+def label_same(a, b, old_png, new_png, fig_labels, maps):
+    """图重画过的笔：原版图上的起笔点按 follow_label 跟着最近的标注搬到新图，与现在页面上量到的起笔点（图内归一化坐标）
+    差 ≤ 0.005 就返回 "label"；两版图像素相同、认不出版本或对不上返回 None。"""
+    sys.path.insert(0, str(ROOT.parent / "Neural-IPC-sandbox/tools/figs"))
+    from fig_label_boxes import pixel_hash
+    by_hash = {v["pixels"]: v for d in fig_labels.values() for v in d.values()}
+    ho, hn = pixel_hash(old_png), pixel_hash(new_png)
+    if ho == hn or ho not in by_hash or hn not in by_hash:
+        return None
+    r = follow_label([a["rel"]], by_hash[ho], by_hash[hn], maps)
+    return "label" if not r["gone"] and all(abs(x - y) <= 0.005 for x, y in zip(r["pts"][0], b["rel"])) else None
+
+
+def follow_label(pts, old, new, maps):
+    """一笔（旧图归一化坐标的点 pts）跟着离它最近的文字标注从旧图搬到新图（old / new = fig_label_boxes 的一张图）。
+    两版里都只出现一次的同名标注逐轴线性拟合出整张图的缩放 sc；笔 = 新标注中心 + sc ×（笔 − 旧标注中心）。
+    返回 {label, dist（旧图 px）, gone（最近的标注新图里没了）, sc, pairs, pts（新图归一化坐标，四位小数）}。"""
+    inside = lambda L: [l for l in L if l["box"][0] >= 0 and l["box"][1] >= 0 and l["box"][2] <= 1 and l["box"][3] <= 1]
+    cen = lambda l, W, H: np.array([(l["box"][0] + l["box"][2]) / 2 * W, (l["box"][1] + l["box"][3]) / 2 * H])
+    (W0, H0), (W1, H1) = old["size"], new["size"]
+    lo, ln = inside(old["labels"]), inside(new["labels"])
+    pairs = []
+    for l in lo:
+        m = [k for k in ln if same_label(l["text"], k["text"], maps)]
+        if len(m) == 1 and sum(x["text"] == l["text"] for x in lo) == 1:
+            pairs.append((cen(l, W0, H0), cen(m[0], W1, H1)))
+    A, B = np.array([p for p, _ in pairs]), np.array([q for _, q in pairs])
+    sc = np.array([np.polyfit(A[:, k], B[:, k], 1)[0] for k in (0, 1)]) if len(pairs) >= 2 else np.array([W1 / W0, H1 / H0])
+    P = np.array([[p[0] * W0, p[1] * H0] for p in pts])
+    dist = lambda l: np.hypot(np.maximum(0, np.maximum(l["box"][0] * W0 - P[:, 0], P[:, 0] - l["box"][2] * W0)),
+                              np.maximum(0, np.maximum(l["box"][1] * H0 - P[:, 1], P[:, 1] - l["box"][3] * H0))).min()
+    near = min(lo, key=dist)
+    out = dict(label=near["text"], dist=float(dist(near)), sc=sc.tolist(), pairs=len(pairs), gone=False, pts=None)
+    cands = [k for k in ln if same_label(near["text"], k["text"], maps)]
+    if not cands:
+        return dict(out, gone=True)
+    c0 = cen(near, W0, H0)
+    guess = B.mean(0) + sc * (c0 - A.mean(0)) if len(pairs) >= 2 else c0 * [W1 / W0, H1 / H0]
+    tgt = min(cands, key=lambda k: np.hypot(*(cen(k, W1, H1) - guess)))
+    Q = cen(tgt, W1, H1) + sc * (P - c0)
+    return dict(out, pts=[[round(q[0] / W1, 4), round(q[1] / H1, 4)] for q in Q])
 
 
 def side_by_side(left, right, path):
@@ -621,6 +645,7 @@ def main():
                 t = table[t]
                 seen.add(t)
             tex_renames[k] = t
+        fig_labels = json.loads(pathlib.Path(args.fig_labels).read_text(encoding="utf-8"))
         # 字母换名换成公式符号字符（t → q、\theta → θ → ψ），和标注层 glyphList 的 NFKC 字符一致
         glyph = lambda tok: GREEK_CHAR.get(tok, tok)
         char_maps = [{glyph(x): glyph(y) for x, y in m.items()} for m in letter_maps(table)]
@@ -639,7 +664,11 @@ def main():
                 continue
             if args.verify_cover:
                 # 新判据（标注层 coverOf 算）：圈住的内容串与锚点类型相同；笔画起点相对内容起点差 ≤ 1 px，图上的笔比图内相对位置差 ≤ 0.005
-                rows.append(dict(id=i, same=False, match=None, old=a, new=b, how=cover_same(a, b, tex_renames, char_maps)))
+                how = cover_same(a, b, tex_renames, char_maps)
+                if how is None and a["rel"] is not None and b["rel"] is not None and a["cover"] == b["cover"]:
+                    how = label_same(a, b, checkout(version[i], common["worktrees"]) / "assets/images" / a["cover"],
+                                     ROOT / "assets/images" / b["cover"], fig_labels, letter_maps(table))
+                rows.append(dict(id=i, same=False, match=None, old=a, new=b, how=how))
                 rows[-1]["same"] = rows[-1]["how"] is not None
                 continue
             # 影响范围内的内容一一对应：原版范围里每个字 / 符号，在现在的范围里有同一个字、相对起笔点的位置差 ≤ 1 px
