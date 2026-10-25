@@ -485,29 +485,52 @@ ANNOT_JS = r"""
    * 然后变成cxxxaxxxb那我圈的还要在ab上」）。圈住的内容 = 中心落在笔画外框里的正文字 / 公式符号；一个都没有（下划线、
    * 箭头、旁注）就取离笔画最近、nearPx 以内的那一个。锚点存这串内容本身（cover）：还原时先在全页找它，几处一样再用
    * 前后文挑，一处都没有就不画（findCover / findCoverGlyph）。主要圈在图上的笔照旧锚整张图。 */
+  /** 页面几何（页面坐标，不随滚动变）：陈列公式的外框与符号、正文文字节点的外框，单字矩形按需量、量过就记。
+   * 一批笔共用一份（reanchorAll），单独一笔现量；排版变了（DOM 版本或窗口宽度变）就重建。 */
+  function pageGeom() {
+    const key = `${S.domVersion}:${innerWidth}`;
+    if (S.geom && S.geom.key === key) return S.geom;
+    const page = q => ({ left: q.left + scrollX, top: q.top + scrollY, right: q.right + scrollX, bottom: q.bottom + scrollY,
+                         width: q.width, height: q.height });
+    const maths = displayMath().filter(m => !inClosedDetails(m.el)).map(m => {
+      const g = glyphList(m.el);
+      return { m, g, box: page(m.el.getBoundingClientRect()), q: g.els.map(e => page(e.getBoundingClientRect())) };
+    });
+    const ix = ensureIndex(), rg = document.createRange();
+    const nodes = ix.nodes.map((n, ni) => {
+      if (!n.isConnected || inClosedDetails(n.parentElement)) return null;
+      rg.selectNodeContents(n);
+      return { ni, box: page(rg.getBoundingClientRect()) };
+    }).filter(Boolean);
+    S.geom = { key, page, maths, nodes, chars: new Map() };
+    return S.geom;
+  }
   function strokeCover(abs, f) {
-    const P = abs.map(p => toClient(p[0], p[1], f));
+    const G = pageGeom();
+    const P = abs.map(p => { const c = toClient(p[0], p[1], f); return { x: c.x + scrollX, y: c.y + scrollY }; });
     const l = Math.min(...P.map(p => p.x)), r = Math.max(...P.map(p => p.x));
     const t = Math.min(...P.map(p => p.y)), b = Math.max(...P.map(p => p.y)), pad = CFG.nearPx * f.s;
     const near = q => q.right >= l - pad && q.left <= r + pad && q.bottom >= t - pad && q.top <= b + pad;
     const inside = q => { const cx = (q.left + q.right) / 2, cy = (q.top + q.bottom) / 2; return cx >= l && cx <= r && cy >= t && cy <= b; };
     const dist = q => Math.min(...P.map(p => Math.hypot(Math.max(q.left - p.x, 0, p.x - q.right), Math.max(q.top - p.y, 0, p.y - q.bottom))));
     const items = [];
-    for (const m of displayMath()) {
-      if (inClosedDetails(m.el) || !near(m.el.getBoundingClientRect())) continue;
-      const g = glyphList(m.el);
-      g.els.forEach((e, i) => { const q = e.getBoundingClientRect(); if ((q.width || q.height) && near(q)) items.push({ kind: 'g', m, g, i, q }); });
+    for (const { m, g, box, q } of G.maths) {
+      if (!near(box)) continue;
+      q.forEach((qi, i) => { if ((qi.width || qi.height) && near(qi)) items.push({ kind: 'g', m, g, i, q: qi }); });
     }
-    const ix = ensureIndex(), rg = document.createRange();
-    ix.nodes.forEach((n, ni) => {
-      if (!n.isConnected || inClosedDetails(n.parentElement)) return;
-      rg.selectNodeContents(n);
-      if (!near(rg.getBoundingClientRect())) return;
-      for (let p = firstPos(ni, 0); p >= 0 && p < ix.text.length && ix.posNode[p] === ni; p++) {
-        const q = ix.text[p] === ' ' ? null : charRect(p);
-        if (q && near(q)) items.push({ kind: 't', pos: p, q });
+    const ix = S.index;
+    for (const { ni, box } of G.nodes) {
+      if (!near(box)) continue;
+      if (!G.chars.has(ni)) {
+        const cs = [];
+        for (let p = firstPos(ni, 0); p >= 0 && p < ix.text.length && ix.posNode[p] === ni; p++) {
+          const q = ix.text[p] === ' ' ? null : charRect(p);
+          if (q) cs.push([p, G.page(q)]);
+        }
+        G.chars.set(ni, cs);
       }
-    });
+      for (const [p, q] of G.chars.get(ni)) if (near(q)) items.push({ kind: 't', pos: p, q });
+    }
     let hit = items.filter(it => inside(it.q));
     if (!hit.length) {
       const best = items.map(it => [dist(it.q), it]).filter(([d]) => d <= pad).sort((x, y) => x[0] - y[0])[0];
@@ -580,6 +603,7 @@ ANNOT_JS = r"""
   }
   /** 一整笔（正文卡片坐标的点）的锚点：主要落在图 / 视频里就锚整张图；否则锚圈住的内容；都不行退回起笔点规则。 */
   function anchorForStroke(abs) {
+    if (!S.geomBatch) S.geom = null;   // 单独一笔：现量（折叠框开合会改排版）；批量迁移时共用一份
     const f = frame(), P = abs.map(p => toClient(p[0], p[1], f));
     for (const m of article.querySelectorAll('img, video')) {
       const q = m.getBoundingClientRect();
@@ -1472,10 +1496,13 @@ ANNOT_JS = r"""
       // 按它们此刻圈住的内容重新建锚点。返回改了几笔。
       reanchorAll: ids => {
         let n = 0;
+        S.geom = null; S.geomBatch = true;   // 这一批笔逐个处理时排版不变，页面几何只量一次
+        const byId = new Map(S.strokes.map(s => [s.id, s]));
         for (const id of ids) {
-          const s = S.strokes.find(t => t.id === id), d = S.drawn.get(id);
+          const s = byId.get(id), d = S.drawn.get(id);
           if (s && d && d.abs && d.state === 'ok') { reanchor(s, d.abs); n++; }
         }
+        S.geomBatch = false; S.geom = null;
         commit();
         return n;
       },

@@ -281,11 +281,15 @@ def with_new_layer(page_path):
     from webgen.annotate import ANNOT_CSS, ANNOT_JS
     h = page_path.read_text(encoding="utf-8")
 
+    import re
+
     def swap(h, marker, tag, new):
-        k = h.index(marker)
-        a = h.index(">", h.rindex(f"<{tag}", 0, k)) + 1
-        return h[:a] + new + h[h.index(f"</{tag}>", k):]
-    h = swap(swap(h, "window.__nipcNotes = {", "script", ANNOT_JS), "#annot-fab", "style", ANNOT_CSS)
+        """把内容里含 marker 的那一个 <tag>…</tag> 块（逐块找，不跨块）的内容换成 new。"""
+        for m in re.finditer(rf"<{tag}\b[^>]*>(.*?)</{tag}>", h, flags=re.S):
+            if marker in m.group(1):
+                return h[:m.start(1)] + new + h[m.end(1):]
+        raise ValueError(f"页面里没有内容含 {marker!r} 的 <{tag}>")
+    h = swap(swap(h, "#annot-layer", "style", ANNOT_CSS), "window.__nipcNotes = {", "script", ANNOT_JS)
     out = page_path.with_name(page_path.stem + ".newlayer.html")
     out.write_text(h, encoding="utf-8")
     return out
