@@ -267,12 +267,16 @@ HIT_JS = """ids => {
 
 
 def hits(job):
-    """一个进程在一个页面上算一批笔压住的内容：job 里 sha 为 None 表示当前页面。"""
+    """一个进程在一个页面上算一批笔压住的内容：job 里 sha 为 None 表示当前页面。
+    job["cover"]：改用标注层自己的 coverOf（原版页面先换上当前标注层），与标注层挂靠用同一套「圈住的内容」定义。"""
     with sync_playwright() as p:
         browser = p.chromium.launch()
         path = job["root"] / job["page"] if job["sha"] is None else checkout(job["sha"], job["worktrees"]) / job["page"]
+        if job.get("cover") and job["sha"] is not None:
+            path = with_new_layer(path)
         page = open_with_notes(browser, path, dict(job["current"], strokes=job["strokes"]))
-        got = page.evaluate(HIT_JS, [s["id"] for s in job["strokes"]])
+        ids = [s["id"] for s in job["strokes"]]
+        got = page.evaluate("ids => window.__nipcNotes.coverOf(ids)", ids) if job.get("cover") else page.evaluate(HIT_JS, ids)
         browser.close()
     return got
 
@@ -404,8 +408,9 @@ def main():
     if args.verify:
         # 精确核对：每笔在原版页面（原始笔画）与当前页面（VERIFY_JSON 的笔画）上压住的字 / 公式符号 / 图位置是否相同
         shown = json.loads(pathlib.Path(args.verify).read_text(encoding="utf-8"))
-        jobs = [dict(common, sha=sha, strokes=g) for sha, g in groups.items()]
-        jobs.append(dict(common, sha=None, current=shown, strokes=[s for s in shown["strokes"] if s["id"] in ids]))
+        jobs = [dict(common, sha=sha, strokes=g, cover=args.verify_cover) for sha, g in groups.items()]
+        jobs.append(dict(common, sha=None, current=shown, strokes=[s for s in shown["strokes"] if s["id"] in ids],
+                         cover=args.verify_cover))
         with mp.get_context("spawn").Pool(len(jobs)) as pool:
             outs = pool.map(hits, jobs)
         old = {k: v for r in outs[:-1] for k, v in r.items()}
@@ -417,12 +422,12 @@ def main():
                 rows.append(dict(id=i, same=a["state"] == b["state"], match=None, old=a, new=b))
                 continue
             if args.verify_cover:
-                # 新判据：圈住的内容串相同，且它相对起笔点的位置差 ≤ 1 px（图上的笔仍比图内位置）
-                same_off = a["off"] is not None and b["off"] is not None and all(abs(x - y) <= 1 for x, y in zip(a["off"], b["off"]))
-                same = (a["cover"] == b["cover"] and same_off) if not a["media"] else a["media"] == b["media"] or all(
-                    abs(float(x) - float(y)) <= 0.01 for ma, mb in zip(a["media"], b["media"])
-                    for x, y in zip(ma.split("@")[1].split(","), mb.split("@")[1].split(",")))
-                rows.append(dict(id=i, same=same, match=None, old=a, new=b))
+                # 新判据（标注层 coverOf 算）：圈住的内容串与锚点类型相同；笔画起点相对内容起点差 ≤ 1 px，图上的笔比图内相对位置差 ≤ 0.005
+                if a["rel"] is not None or b["rel"] is not None:
+                    same_pos = a["rel"] is not None and b["rel"] is not None and all(abs(x - y) <= 0.005 for x, y in zip(a["rel"], b["rel"]))
+                else:
+                    same_pos = all(abs(x - y) <= 1 for x, y in zip(a["off"], b["off"]))
+                rows.append(dict(id=i, same=a["type"] == b["type"] and a["cover"] == b["cover"] and same_pos, match=None, old=a, new=b))
                 continue
             # 影响范围内的内容一一对应：原版范围里每个字 / 符号，在现在的范围里有同一个字、相对起笔点的位置差 ≤ 1 px
             pool, lost = list(b["zone"]), []
@@ -448,7 +453,7 @@ def main():
         for r in bad:
             a, b = r["old"], r["new"]
             fmt = lambda h: (h["state"] if h["state"] != "ok" else
-                             f"圈住「{h['cover']}」 位置 {h['off']} 图{h['media']}" if args.verify_cover else
+                             f"{h['type']} 圈住「{h['cover']}」 相对位置 {h['rel'] or h['off']}" if args.verify_cover else
                              f"范围内「{''.join(z[0] for z in h['zone'])}」 压住「{h['text']}{h['glyph']}」 图{h['media']}")
             pct = "" if r["match"] is None else (f"（范围内对上 {100 * r['match']:.0f}%；原来有、现在对不上的「{a.get('lost', '')}」，"
                                                 f"现在多出来的「{b.get('extra', '')}」）")
