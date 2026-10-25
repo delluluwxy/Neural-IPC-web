@@ -12,6 +12,9 @@
     # 回归：只把三个 html 写到指定目录（不压视频、不复制图片、不写仓库），用来和改动前逐字节比较
     python tools/build_site.py --html-only --out-dir <目录>
 
+    # 审稿预览：只把 week3_4.html（空笔记快照、只读）和它引用的图片写到 preview/<名>/，视频指向仓库已有的
+    python tools/build_site.py --preview preview/meeting
+
 必须用 Neural-IPC 的 genesis 环境跑（要用它自带的 imageio-ffmpeg 二进制和 numpy、markdown）：
     /data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/bin/python tools/build_site.py
 
@@ -35,7 +38,7 @@ from webgen.config import (DEMO_ROOT, IMAGE_DIR, MAX_IMAGE_BYTES, MAX_TOTAL_VIDE
                            MAX_VIDEO_BYTES, OUT_ROOT, PROJECT, VIDEO_DIR)
 from webgen.draft_md import NOTION_IMAGES, NOTION_VIDEOS  # noqa: E402
 from webgen.media import encode_video, get_ffmpeg_exe, merge_video_jobs, plan_videos  # noqa: E402
-from webgen.annotate import with_page_version  # noqa: E402
+from webgen.annotate import inject_before_scripts, with_page_version  # noqa: E402
 from webgen.pages import build_pages  # noqa: E402
 from webgen.week2_hydro import collect_hydro_sweeps  # noqa: E402
 
@@ -123,6 +126,9 @@ SUBFIGS = {
     "t5_wave_crest_overview.png": 2, "t5_wave_trough_overview.png": 2, "t5_ring_inner_R6_overview.png": 2,
     "t5_ring_inner_R45_overview.png": 2, "t5_footprint_flat_vs_ring.png": 2, "fig10a_ellipse_vs_circle.png": 2,
     "fig11a_similarity.png": 2, "e0e1_same_depth_ratio.png": 2, "fig09_network_diagram.png": 2,
+    # week3_4 组会精简版新图（同 concept_figs.N_SUB）
+    "meeting_02_thin_vs_thick.png": 2, "meeting_03_tilt.png": 2, "meeting_05_kernel_three.png": 3,
+    "meeting_06_gap_grid.png": 3, "meeting_07_new_arch.png": 2,
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 
@@ -174,10 +180,49 @@ def parse_args():
     ap.add_argument("--html-only", action="store_true",
                     help="回归用：只把 html 写到 --out-dir，不压视频、不复制图片、不写仓库")
     ap.add_argument("--out-dir", type=Path, help="--html-only 的输出目录")
+    ap.add_argument("--preview", type=Path, metavar="DIR",
+                    help="审稿预览：只把 week3_4.html 和它引用的图片写到 DIR（如 preview/meeting），见 write_preview")
     args = ap.parse_args()
     if args.html_only and (args.execute or args.out_dir is None):
         ap.error("--html-only 必须配 --out-dir，且不能和 --execute 同用")
+    if args.preview and (args.execute or args.html_only):
+        ap.error("--preview 不能和 --execute / --html-only 同用")
     return args
+
+
+PREVIEW_PAGE = "week3_4.html"
+# 预览页嵌的空快照（照 preview/latest）：笔记层见到 NIPC_SNAPSHOT 就只读、从不同步（annotate.py SNAP），不碰线上笔记
+PREVIEW_SNAPSHOT = {"format": "nipc-notes", "version": 1, "page": PREVIEW_PAGE, "path": "/Neural-IPC-web/week3_4.html",
+                    "colWidth": 920, "strokes": [], "tombstones": {}}
+
+
+def write_preview(out_dir, pages, ijobs):
+    """--preview：线上笔记迁移完成前给审稿用的预览，只写 out_dir（仓库里两层深，如 preview/meeting/），不写仓库根的
+    html / assets：
+    - 页面只取 week3_4.html：第一个 <script> 前嵌空的 NIPC_SNAPSHOT（只读、不同步），导航 index / week1 / week2 改指 ../../；
+    - 页面引用的图片复制进 out_dir/assets/images/（留白副本照常 trim_and_pad，同 execute）；
+    - 视频不压缩，改指仓库已有的 ../../assets/videos/<名>；仓库里没有就停止。"""
+    page = next(p for p in pages if p.name == PREVIEW_PAGE)
+    html = inject_before_scripts(pages[page], "<script>window.NIPC_SNAPSHOT = "
+                                 + json.dumps(PREVIEW_SNAPSHOT, ensure_ascii=False, separators=(",", ":")) + ";</script>\n")
+    html = re.sub(r'href="((?:index|week1|week2)\.html)"', r'href="../../\1"', html)
+
+    def video(m):
+        if not (VIDEO_DIR / m.group(2)).is_file():
+            raise SystemExit(f"[build_site] 预览页引用的视频 {m.group(2)} 不在 {VIDEO_DIR}，停止（预览不压视频）")
+        return f'{m.group(1)}../../assets/videos/{m.group(2)}"'
+    html = re.sub(r'(<video\b[^>]*?\bsrc=")assets/videos/([^"]+)"', video, html)
+    img_dir = out_dir / "assets" / "images"
+    img_dir.mkdir(parents=True, exist_ok=True)
+    for j in ijobs:
+        if j["size"] > MAX_IMAGE_BYTES:
+            raise SystemExit(f"[build_site] 图片 {j['src']} 超过 {file_size_str(MAX_IMAGE_BYTES)}，停止。")
+        dst = img_dir / j["dst"].name
+        shutil.copy2(j["src"], dst)
+        if j.get("trim"):
+            fig_margin().trim_and_pad(dst)
+    (out_dir / PREVIEW_PAGE).write_text(html, encoding="utf-8")
+    print(f"[build_site] 预览：写入 {out_dir / PREVIEW_PAGE}，图片 {len(ijobs)} 张 -> {img_dir}")
 
 
 def collect_all(args):
@@ -326,6 +371,10 @@ def main():
     vjobs = [j for j in vjobs if f"assets/videos/{j['dst'].name}" in used]
     ijobs = [j for j in ijobs if f"assets/images/{j['dst'].name}" in used]
 
+    if args.preview:     # 审稿预览：只写 week3_4 页与它引用的图片到 --preview 目录
+        write_preview(args.preview, pages, [j for j in ijobs if f"assets/images/{j['dst'].name}" in pages[
+            next(p for p in pages if p.name == PREVIEW_PAGE)]])
+        return 0
     if args.html_only:   # 回归：只写 html 到指定目录（文件名同仓库里的），其余一概不动
         args.out_dir.mkdir(parents=True, exist_ok=True)
         for p, text in pages.items():
