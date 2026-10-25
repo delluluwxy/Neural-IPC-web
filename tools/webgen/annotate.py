@@ -138,6 +138,44 @@ html.annot-on #annot-capture { display: block; }
 }
 """
 
+# 只读探查接口（并进 window.__nipcNotes；repair_notes_positions --apply-snapshot 也把它原样补进快照页里的旧标注层）：
+#   contentIndex()：正文文字索引（标注层 buildIndex 的同一串）+ 按文档顺序的全部公式（TeX、陈列与否、符号序列、公式在文字索引里的位置）+ 图 / 视频 src；
+#   where(ids)：每笔此刻挂在哪——正文第几个字 / 第几个公式的第几个符号 / 第几个公式整块 / 哪张图（第几个同名），及显示状态。
+PROBE_API_JS = r"""
+      // 正文里全部公式（陈列 + 行内），按文档先后：[{el, tex, display}]
+      mathsInOrder() {
+        let out = [];
+        try {
+          out = [...MathJax.startup.document.math].filter(m => m.typesetRoot && article.contains(m.typesetRoot))
+            .map(m => ({ el: m.typesetRoot, tex: norm(m.math), display: !!m.display }));
+        } catch (e) { /* MathJax 没加载 */ }
+        return out.sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+      },
+      contentIndex() {
+        const ix = ensureIndex();
+        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el) })),
+                 media: [...article.querySelectorAll('img, video')].map(srcKey) };
+      },
+      where(ids) {
+        ensureIndex();
+        const f = frame(), M = this.mathsInOrder(), media = [...article.querySelectorAll('img, video')];
+        return Object.fromEntries(ids.map(id => {
+          const s = S.strokes.find(t => t.id === id);
+          if (!s) return [id, null];
+          if (!S.cache.get(id)) place(s, f);
+          const c = S.cache.get(id), t = c && c.target, d = S.drawn.get(id), state = d ? d.state : 'none';
+          if (!t) return [id, { state }];
+          if (t.el === main) return [id, { state, kind: 'page' }];
+          if (t.pos !== undefined) return [id, { state, kind: 'text', pos: t.pos }];
+          const k = M.findIndex(m => m.el === t.el), glyph = t.glyph || c.glyph;
+          if (k >= 0) return [id, { state, kind: glyph ? 'glyph' : 'math', math: k, gi: glyph ? glyphList(t.el).els.indexOf(glyph) : -1 }];
+          const mi = media.indexOf(t.el);
+          if (mi >= 0) return [id, { state, kind: 'media', src: srcKey(t.el), nth: media.slice(0, mi).filter(e => srcKey(e) === srcKey(t.el)).length }];
+          return [id, { state, kind: 'other' }];
+        }));
+      },
+"""
+
 ANNOT_JS = r"""
 (() => {
   'use strict';
@@ -924,10 +962,10 @@ ANNOT_JS = r"""
    * 一字不差、公式 TeX 相同且符号前后文原样出现、图 src 相同、标题 / 表格文字相同；不用改名表、不模糊匹配。
    * 找不到返回 null（这笔隐藏）。 */
   function findExact(a, orig, f) {
+    if (a.gone) return null;   // 迁移时判出内容在新版里没了（repair_notes_positions --apply-snapshot），不画
     if (a.type === 'text') { const p = exactQuote(a, orig, f); return p >= 0 ? { pos: p } : null; }
     let cands = [];
     if (a.type === 'media') {
-      if (a.gone) return null;
       cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
     } else if (a.type === 'math') {
       const els = displayMath().filter(m => m.tex === a.tex).map(m => m.el);
@@ -1720,7 +1758,7 @@ ANNOT_JS = r"""
                off: [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2] };
     }
     // 给自动化测试读状态用（tools/test_annotate.py）；页面本身不依赖它
-    window.__nipcNotes = {
+    window.__nipcNotes = {/*PROBE_API*/
       strokes: () => S.strokes, render: renderAll, frame,
       placed: id => { const d = S.drawn.get(id); return d ? { state: d.state, abs: d.abs } : null; },
       status: () => ({ orphans: S.orphans, hidden: S.hidden, on: S.on, sync: SY.state, tombs: Object.keys(S.tombs).length }),
@@ -1795,4 +1833,4 @@ ANNOT_JS = r"""
   }
   whenMathReady(start);
 })();
-"""
+""".replace("/*PROBE_API*/", PROBE_API_JS)

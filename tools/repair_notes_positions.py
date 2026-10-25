@@ -29,6 +29,7 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 from check_notes_anchors import REPO, ROOT
+from webgen.annotate import PROBE_API_JS, inject_before_scripts, page_version
 
 MARGIN = 40          # 模板：笔迹包围盒四周多截多少像素（带上下文才认得出位置）
 SEARCH_X, SEARCH_Y = 300, 700
@@ -282,22 +283,24 @@ def hits(job):
     return got
 
 
-def with_new_layer(page_path):
-    """旧版页面换上当前的标注层（annotate.py 的 JS 与 CSS 各一整块替换），写到同目录 <页名>.newlayer.html 并返回路径。"""
+def swap_block(h, marker, tag, new):
+    """把页面里内容含 marker 的那一个 <tag>…</tag> 块（逐块找，不跨块）的内容换成 new。"""
+    for m in re.finditer(rf"<{tag}\b[^>]*>(.*?)</{tag}>", h, flags=re.S):
+        if marker in m.group(1):
+            return h[:m.start(1)] + new + h[m.end(1):]
+    raise ValueError(f"页面里没有内容含 {marker!r} 的 <{tag}>")
+
+
+def swap_layer(h):
+    """页面 HTML 换上当前的标注层（annotate.py 的 JS 与 CSS 各一整块替换），返回新 HTML。"""
     from webgen.annotate import ANNOT_CSS, ANNOT_JS
-    h = page_path.read_text(encoding="utf-8")
+    return swap_block(swap_block(h, "#annot-layer", "style", ANNOT_CSS), "window.__nipcNotes = {", "script", ANNOT_JS)
 
-    import re
 
-    def swap(h, marker, tag, new):
-        """把内容里含 marker 的那一个 <tag>…</tag> 块（逐块找，不跨块）的内容换成 new。"""
-        for m in re.finditer(rf"<{tag}\b[^>]*>(.*?)</{tag}>", h, flags=re.S):
-            if marker in m.group(1):
-                return h[:m.start(1)] + new + h[m.end(1):]
-        raise ValueError(f"页面里没有内容含 {marker!r} 的 <{tag}>")
-    h = swap(swap(h, "#annot-layer", "style", ANNOT_CSS), "window.__nipcNotes = {", "script", ANNOT_JS)
+def with_new_layer(page_path):
+    """旧版页面换上当前的标注层，写到同目录 <页名>.newlayer.html 并返回路径。"""
     out = page_path.with_name(page_path.stem + ".newlayer.html")
-    out.write_text(h, encoding="utf-8")
+    out.write_text(swap_layer(page_path.read_text(encoding="utf-8")), encoding="utf-8")
     return out
 
 
@@ -626,13 +629,6 @@ def font_check(job):
 STATE_JS = "ids => Object.fromEntries(ids.map(id => [id, (window.__nipcNotes.placed(id) || {state: 'none'}).state]))"
 
 
-def inject_before_scripts(h, snippet):
-    """把 snippet 插到页面第一个 <script 之前（页面文件没有 <head>，标注层脚本在后面，先设好的全局量它才读得到）。"""
-    i = h.find("<script")
-    assert i >= 0, "页面里没有 <script>"
-    return h[:i] + snippet + h[i:]
-
-
 def build_check_page(sha, ids, out_dir, page_file):
     """核对页 check/<sha7>/<页>：那一版页面原样（只换上当前标注层），只显示 ids 这些笔；页面引用的图 / 视频按那一版拷过来。"""
     d = out_dir / sha[:7]
@@ -882,6 +878,293 @@ def explain(args):
         print(f"== 改名表补了 {len(new)} 条字母换名：{path}")
 
 
+# ---------- --apply-snapshot：用户确认过的快照（页面 + 笔记）里每笔挂的内容，按两版内容的 diff 迁到最新版 ----------
+# 用户 10-25 确认：线上 snapshot/2/（页面 8288b02 + 笔记 2e32506）上每一笔位置都对。每笔在那一版挂在哪个字 / 符号 / 图上
+# 由当时的标注层（快照页里那一份，原样不换）算出，是确定的；再把那一版的内容对应到最新版的内容，笔跟着走：
+#   正文：两版正文文字索引（标注层 buildIndex 的同一串）做字级 diff（difflib.SequenceMatcher，isjunk=None, autojunk=False），
+#         equal 段逐字一一对应，replace / delete 段里的字没有对应 → 这笔隐藏；对上了就按新位置取新的 prefix / exact / suffix。
+#   公式：两版公式（按文档顺序，陈列 + 行内）按 TeX 序列 diff；equal 的原样对上，replace 段里按 TeX 相似度（SequenceMatcher.ratio
+#         ≥ MATH_PAIR_MIN）做保序配对；对上的公式内按符号序列 diff（同上参数），锚点符号映射不到 → 隐藏。
+#   图：图文件像素相同 → 原样；像素变了 → follow_label（图中文字标注的精确框，sandbox tools/figs/fig_label_boxes.py），
+#       不用任何改名表（标注文字原样相同才算同一个）；最近的标注新图里没了 → 隐藏。
+# 不用任何手写对应表（改名表的 quote / text / tex 一律不用）。drawn = 快照里这一笔原样 + 页面版本号，不改。
+SNAP_REF = "origin/main:snapshot/2"        # 线上快照页（git 里的原样，与 GitHub Pages 上的逐字节相同）
+SNAP_NOTES, SNAP_PAGE, TOMBS_AT = "2e32506", "8288b02", "c13089b"
+MATH_PAIR_MIN = 0.5
+SENT_END = "。！？；!?;"
+# 可见的灰色笔：找不到圈的内容（orphan）的笔却还显示着（屏幕图层或打印副本里），任何页面任何状态都必须是 0
+VISIBLE_GRAY_JS = """() => [...document.querySelectorAll('#annot-layer path.orphan, svg.annot-print path.orphan')]
+  .filter(p => getComputedStyle(p).display !== 'none' && p.getBoundingClientRect().width > 0).length"""
+
+
+def git_bytes(spec):
+    """git show <提交>:<路径> 的字节；没有返回 None。"""
+    r = subprocess.run(["git", "-C", str(ROOT), "show", spec], capture_output=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def serve():
+    """本机起一个只读 HTTP 服务（127.0.0.1，随机端口）给出本仓库工作区文件（页面本身由 open_served 的 route 直接给，不落盘）。
+    返回 (base_url, server)。"""
+    import functools
+    import http.server
+    import threading
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(
+        type("Quiet", (http.server.SimpleHTTPRequestHandler,), {"log_message": lambda *a: None}), directory=str(ROOT)))
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return f"http://127.0.0.1:{srv.server_address[1]}", srv
+
+
+def open_served(browser, base, path, html, git_prefix=None, notes=None):
+    """打开 base + path，页面 HTML 由 route 直接给 html；git_prefix 时同目录下的资源取 git 对象（git_prefix/<相对路径>）。
+    notes 给了就导入（替换）。等 MathJax 和图片，展开全部折叠后返回 page。"""
+    page = browser.new_page(viewport=VIEW)
+    url, folder = base + path, base + path.rsplit("/", 1)[0] + "/"
+
+    def handle(route, request):
+        if request.url == url:
+            return route.fulfill(status=200, content_type="text/html; charset=utf-8", body=html)
+        if git_prefix and request.url.startswith(folder):
+            blob = git_bytes(f"{git_prefix}/{request.url[len(folder):].split('?')[0]}")
+            return route.fulfill(status=200, body=blob) if blob is not None else route.fulfill(status=404, body="")
+        return route.continue_()
+    page.route(base + "/**", handle)
+    page.goto(url, wait_until="domcontentloaded", timeout=120000)
+    page.wait_for_function("window.__nipcNotes && window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
+    page.evaluate("MathJax.startup.promise")
+    page.evaluate("Promise.all([...document.images].map(i => (i.loading = 'eager', i.complete ? 0 : "
+                  "new Promise(r => { i.onload = i.onerror = r; }))))")
+    if notes is not None:
+        if page.is_visible("#annot-fab"):
+            page.click("#annot-fab")
+        page.set_input_files("#annot-file", files=[{"name": "notes.json", "mimeType": "application/json",
+                                                    "buffer": json.dumps(dict(notes, page=path.rsplit('/', 1)[-1]), ensure_ascii=False).encode()}])
+        page.click('[data-import="replace"]')
+    page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+    page.wait_for_timeout(1500)
+    return page
+
+
+def opcode_map(a, b):
+    """序列 a → b 的逐项对应（difflib.SequenceMatcher(None, a, b, autojunk=False) 的 equal 段）：{a 下标: b 下标}。"""
+    import difflib
+    out = {}
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if tag == "equal":
+            out.update(zip(range(i1, i2), range(j1, j2)))
+    return out
+
+
+def pair_maths(old, new):
+    """两版公式（[{tex, ...}] 按文档顺序）的对应 {旧序号: 新序号}：TeX 序列 diff 的 equal 段原样对上；replace 段里按 TeX
+    相似度（≥ MATH_PAIR_MIN）做保序配对（动态规划取相似度之和最大）。"""
+    import difflib
+    out = {}
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, [m["tex"] for m in old], [m["tex"] for m in new],
+                                                       autojunk=False).get_opcodes():
+        if tag == "equal":
+            out.update(zip(range(i1, i2), range(j1, j2)))
+        elif tag == "replace":
+            sim = [[difflib.SequenceMatcher(None, old[i]["tex"], new[j]["tex"], autojunk=False).ratio()
+                    for j in range(j1, j2)] for i in range(i1, i2)]
+            n, m = i2 - i1, j2 - j1
+            best = [[0.0] * (m + 1) for _ in range(n + 1)]
+            for i in range(n - 1, -1, -1):
+                for j in range(m - 1, -1, -1):
+                    take = sim[i][j] + best[i + 1][j + 1] if sim[i][j] >= MATH_PAIR_MIN else -1
+                    best[i][j] = max(take, best[i + 1][j], best[i][j + 1])
+            i = j = 0
+            while i < n and j < m:
+                if sim[i][j] >= MATH_PAIR_MIN and best[i][j] == sim[i][j] + best[i + 1][j + 1]:
+                    out[i1 + i] = j1 + j
+                    i, j = i + 1, j + 1
+                elif best[i][j] == best[i + 1][j]:
+                    i += 1
+                else:
+                    j += 1
+    return out
+
+
+def sentence(text, pos):
+    """文字索引 text 里位置 pos 所在的整句（到前后最近的句末标点，各最多 120 字）。"""
+    lo = max(text.rfind(c, max(0, pos - 120), pos) for c in SENT_END) + 1
+    lo = max(lo, pos - 120, 0)
+    ends = [i for i in (text.find(c, pos, pos + 120) for c in SENT_END) if i >= 0]
+    return text[lo:(min(ends) + 1 if ends else min(len(text), pos + 120))].strip()
+
+
+def most_similar_sentence(text, s):
+    """最新版正文里与句子 s 最像的一句（按句末标点切句，SequenceMatcher.ratio 最大），只给人看。"""
+    import difflib
+    sents = [x.strip() for x in re.split(f"(?<=[{SENT_END}])", text) if x.strip()]
+    return max(sents, key=lambda x: difflib.SequenceMatcher(None, s, x, autojunk=False).ratio(), default="")
+
+
+def migrate_text(s, w, old, new, cmap):
+    """正文笔：旧位置 w["pos"] 经字级映射到新位置 → 新 TextQuote 锚点；映射不到返回 (None, 原因)。"""
+    p = cmap.get(w["pos"])
+    if p is None:
+        return None, "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）"
+    L = 30   # annotate.py CFG.quoteLen
+    a = {"type": "text", "exact": new["text"][p], "prefix": new["text"][max(0, p - L):p], "suffix": new["text"][p + 1:p + 1 + L]}
+    return dict(s, anchor=a), p
+
+
+def migrate_math(s, w, old, new, mpair):
+    """公式笔：旧公式（序号）经公式对应、旧符号经符号 diff 映射 → 新公式 TeX + 新符号锚点；整块公式锚点（没有符号）
+    只对应公式。映射不到返回 (None, 原因)。"""
+    k = mpair.get(w["math"])
+    if k is None:
+        return None, "所在公式在最新版里没有对应"
+    om, nm, L = old["maths"][w["math"]], new["maths"][k], 8   # annotate.py CFG.glyphLen
+    ctx = new["text"][max(0, nm["pos"] - 30):nm["pos"]] if nm["pos"] >= 0 else ""
+    a = {"type": "math", "tex": nm["tex"], "ctx": ctx}
+    if w["kind"] == "glyph":
+        gi = (dict(enumerate(range(len(om["ch"])))) if om["tex"] == nm["tex"] else opcode_map(om["ch"], nm["ch"])).get(w["gi"])
+        if gi is None:
+            return None, "公式对上了，但锚点符号在新公式里没有对应"
+        ch = nm["ch"]
+        a["g"] = {"prefix": "".join(ch[max(0, gi - L):gi]), "exact": ch[gi], "suffix": "".join(ch[gi + 1:gi + 1 + L])}
+    return dict(s, anchor=a), (k, gi if w["kind"] == "glyph" else -1)
+
+
+def migrate_media(s, w, fig_labels):
+    """图上的笔：快照里那张图与最新版同名图像素相同 → 原样；像素变了 → follow_label（不用改名表）。返回 (新笔 / None, 说明)。"""
+    sys.path.insert(0, str(ROOT.parent / "Neural-IPC-sandbox/tools/figs"))
+    from fig_label_boxes import pixel_hash
+    old_b = git_bytes(f"{SNAP_REF}/assets/images/{w['src']}")
+    new_p = ROOT / "assets/images" / w["src"]
+    if old_b is None or not new_p.exists():
+        return None, "最新版里没有这张图"
+    ho, hn = pixel_hash(io.BytesIO(old_b)), pixel_hash(new_p)
+    if ho == hn:
+        return dict(s), "图像素没变"
+    by_hash = {v["pixels"]: v for d in fig_labels.values() for v in d.values()}
+    if ho not in by_hash or hn not in by_hash:
+        return None, "图重画过，但 fig_labels 里认不出两版是哪个提交画的"
+    r = follow_label(s["pts"], by_hash[ho], by_hash[hn], [])
+    if r["gone"]:
+        return None, f"图重画过，离笔最近的标注「{r['label']}」新图里没了"
+    return dict(s, pts=[q + [p[2]] for q, p in zip(r["pts"], s["pts"])]), f"图重画过，跟着标注「{r['label']}」走"
+
+
+def apply_snapshot(args):
+    """--apply-snapshot：快照（SNAP_REF 页面 + SNAP_NOTES 笔记，按 TOMBS_AT 的墓碑去掉之后删的笔）里每笔挂的内容按两版 diff
+    迁到最新版（工作区的页面，换上当前标注层）。写 --out（带 drawn 的新笔记）、<out 目录>/apply_snapshot2_report.json / .md，
+    最后在最新版上无头浏览器核：迁过去的笔挂在映射到的位置、映射不到的隐藏、可见灰色 0。"""
+    stem = pathlib.Path(args.page).stem
+    raw = lambda sha: json.loads(gh("-H", "Accept: application/vnd.github.raw", f"repos/{REPO}/contents/notes/{stem}.json?ref={sha}"))
+    notes, tombs = raw(SNAP_NOTES), raw(TOMBS_AT).get("tombstones", {})
+    at = json.loads(gh(f"repos/{REPO}/commits/{SNAP_NOTES}"))["commit"]["committer"]["date"]
+    strokes = [s for s in notes["strokes"] if s["id"] not in tombs]
+    ids = [s["id"] for s in strokes]
+    drawn_page = page_version(git_bytes(f"{SNAP_PAGE}:{args.page}").decode("utf-8"))
+    snap_html = git_bytes(f"{SNAP_REF}/{args.page}").decode("utf-8")
+    assert "window.NIPC_SNAPSHOT = " in snap_html, "快照页里没有嵌入的笔记"
+    old_html = snap_html.replace("window.__nipcNotes = {", "window.__nipcNotes = {" + PROBE_API_JS, 1)   # 旧标注层原样，只补只读探查接口
+    new_html = swap_layer((ROOT / args.page).read_text(encoding="utf-8"))
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        base, srv = serve()
+        pg = open_served(browser, base, f"/_snap/{args.page}", old_html, git_prefix=SNAP_REF)
+        old, w_old = pg.evaluate("window.__nipcNotes.contentIndex()"), pg.evaluate("ids => window.__nipcNotes.where(ids)", ids)
+        pg.close()
+        pg = open_served(browser, base, f"/{args.page}", new_html)
+        new = pg.evaluate("window.__nipcNotes.contentIndex()")
+        pg.close()
+        cmap = opcode_map(old["text"], new["text"])
+        mpair = pair_maths(old["maths"], new["maths"])
+        fig_labels = json.loads(pathlib.Path(args.fig_labels).read_text(encoding="utf-8"))
+        out, rows, expect, now_ms = [], [], {}, int(datetime.datetime.now().timestamp() * 1000)
+        for s in strokes:
+            w, row = w_old.get(s["id"]) or {"state": "none"}, {"id": s["id"], "type": s["anchor"]["type"]}
+            drawn = {"page": drawn_page, "pts": s["pts"], "frame": s["frame"], "anchor": s["anchor"], "orig": s["orig"],
+                     "ua": None, "at": at}
+            kind = w.get("kind")
+            if kind == "text":
+                row["old"] = sentence(old["text"], w["pos"])
+                got, how = migrate_text(s, w, old, new, cmap)
+            elif kind in ("glyph", "math"):
+                row["old"] = old["maths"][w["math"]]["tex"]
+                got, how = migrate_math(s, w, old, new, mpair)
+            elif kind == "media":
+                row["old"] = w["src"]
+                got, how = migrate_media(s, w, fig_labels)
+            elif kind == "page":
+                got, how = dict(s), "页边（锚到正文卡片本身）"
+            else:
+                got, how = None, f"快照页上这笔没挂上（状态 {w['state']}）"
+            if got is None:
+                row.update(result="hidden", why=how)
+                if kind == "text":
+                    q = max((i for i in cmap if i < w["pos"]), default=None)
+                    row["new_here"] = sentence(new["text"], cmap[q]) if q is not None else ""
+                    row["new_similar"] = most_similar_sentence(new["text"], row["old"])
+                elif kind in ("glyph", "math"):
+                    import difflib
+                    row["new_similar"] = max((m["tex"] for m in new["maths"]), default="",
+                                             key=lambda t: difflib.SequenceMatcher(None, row["old"], t, autojunk=False).ratio())
+                got = dict(s, anchor=dict(s["anchor"], gone=True))
+            else:
+                row["result"] = "moved"
+                if kind == "text":
+                    row["new"], expect[s["id"]] = sentence(new["text"], how), {"kind": "text", "pos": how}
+                elif kind in ("glyph", "math"):
+                    row["new"] = new["maths"][how[0]]["tex"]
+                    expect[s["id"]] = {"kind": kind, "math": how[0], "gi": how[1]}
+                else:
+                    row["new"] = how
+            # 匹配字段换了：updatedAt 取现在，同步合并时胜过各设备本机存的旧锚点（mergeNotes 按 updatedAt 取新的；drawn 照样带上）
+            got["drawn"], got["updatedAt"] = drawn, now_ms
+            out.append(got)
+            rows.append(row)
+        result = dict(notes, strokes=out, tombstones=tombs, saved=datetime.datetime.now(datetime.timezone.utc).isoformat())
+        pathlib.Path(args.out).write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
+        # 核：最新版上导入迁移后的笔记，每笔挂的位置 = 映射到的位置；隐藏的不显示；可见灰色 0
+        pg = open_served(browser, base, f"/{args.page}", new_html, notes=result)
+        w_new = pg.evaluate("ids => window.__nipcNotes.where(ids)", ids)
+        gray = pg.evaluate(VISIBLE_GRAY_JS)
+        browser.close()
+        srv.shutdown()
+    bad = []
+    for r in rows:
+        w = w_new.get(r["id"]) or {}
+        if r["result"] == "hidden":
+            r["check"] = "ok" if w.get("state") == "orphan" else f"应隐藏，实际 {w.get('state')}"
+        elif r["id"] in expect:
+            e = expect[r["id"]]
+            same = all(w.get(k) == v for k, v in e.items())
+            r["check"] = "ok" if same and w.get("state") in ("ok", "hidden") else f"挂的位置与映射不同：{w}"
+        else:
+            r["check"] = "ok" if w.get("state") in ("ok", "hidden") else f"状态 {w.get('state')}"
+        if r["check"] != "ok":
+            bad.append(r)
+    write_apply_report(args, rows, gray, bad, drawn_page)
+
+
+def write_apply_report(args, rows, gray, bad, drawn_page):
+    """--apply-snapshot 的结果表：json 原样逐笔，md 给人看（统计 + 隐藏清单）。"""
+    import collections
+    d = pathlib.Path(args.out).parent
+    (d / "apply_snapshot2_report.json").write_text(json.dumps(dict(drawn_page=drawn_page, gray_visible=gray, rows=rows),
+                                                              ensure_ascii=False, indent=1), encoding="utf-8")
+    c = collections.Counter((r["type"], r["result"]) for r in rows)
+    hid = [r for r in rows if r["result"] == "hidden"]
+    md = [f"# 第 2 次快照的笔迁到最新版：结果表", "",
+          f"基准：线上 snapshot/2（页面 {SNAP_PAGE}，笔记 {SNAP_NOTES}，按 {TOMBS_AT} 的墓碑去掉之后删的笔），共 {len(rows)} 笔。",
+          f"迁过去 {sum(r['result'] == 'moved' for r in rows)} 笔，隐藏 {len(hid)} 笔；最新版上核对不符 {len(bad)} 笔；可见灰色 {gray} 笔。", "",
+          "| 类型 | 迁过去 | 隐藏 |", "|---|---|---|"]
+    md += [f"| {t} | {c[(t, 'moved')]} | {c[(t, 'hidden')]} |" for t in sorted({r['type'] for r in rows})]
+    md += ["", "## 隐藏的笔（内容在最新版里找不到对应）", ""]
+    for r in hid:
+        md += [f"- `{r['id']}`（{r['type']}）{r['why']}", f"  - 8288b02 里：{r.get('old', '')}",
+               f"  - 最新版同一位置附近：{r.get('new_here', '')}", f"  - 最新版最像的一句：{r.get('new_similar', '')}"]
+    (d / "apply_snapshot2_report.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+    print(f"== {len(rows)} 笔：{dict(c)}；核对不符 {len(bad)}；可见灰色 {gray}；报告 {d / 'apply_snapshot2_report.md'}")
+    for r in bad[:20]:
+        print(f"  不符 {r['id']} {r['check']}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("page")
@@ -922,7 +1205,13 @@ def main():
                     help="每笔分到它画的那一版，生成 check/<sha7>/ 核对页（只显示那一版上画的笔），逐页核灰色 0 笔；分组写 --out")
     ap.add_argument("--snapshots", action="store_true",
                     help="每一次主动画笔之后的样子（那次最后保存的笔记原样 + 当时线上页面）做成只读快照页 snapshot/<次>/，统计灰色笔数")
+    ap.add_argument("--apply-snapshot", action="store_true",
+                    help="用户确认过的第 2 次快照里每笔挂的内容按两版 diff 迁到最新版：写 --out（带 drawn 的笔记）与同目录 "
+                         "apply_snapshot2_report.json / .md，并在最新版上核对（只读笔记仓库，不写）")
     args = ap.parse_args()
+    if args.apply_snapshot:
+        apply_snapshot(args)
+        return
     if args.snapshots:
         snapshots(args)
         return
