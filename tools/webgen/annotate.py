@@ -124,6 +124,7 @@ ANNOT_JS = r"""
     headingFuzzy: 0.7,   // 标题文字改了几个字仍认
     texFuzzy: 0.8,       // 公式 TeX 小改（如改一个下标）仍认
     blockHeadAccept: 0.6, // 块内偏移后备：块开头 40 字的相似度
+    glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
     penWidth: 2.4, hlWidth: 16, eraseRadius: 12, undoLimit: 60,
     colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
   };
@@ -403,6 +404,39 @@ ANNOT_JS = r"""
       frame: 'px', R: localRect(r, f),
     };
   }
+  /* 陈列公式里的符号：MathJax SVG 每个字形是一个带 data-c（Unicode 编码，16 进制）的元素。公式上的笔锚到起笔处
+   * 最近的那个符号，存它前后各 glyphLen 个符号（同正文的 TextQuote），笔画坐标相对这个符号；公式别处增删、
+   * 整体变宽或拆成几行都不会把笔拉偏。没有符号锚点的老笔照旧按整块公式的比例坐标画。 */
+  function glyphList(mj) {
+    const els = [...mj.querySelectorAll('[data-c]')];
+    return { els, ch: els.map(e => { const c = parseInt(e.getAttribute('data-c'), 16);
+                                     return Number.isFinite(c) ? String.fromCodePoint(c) : '?'; }) };
+  }
+  function glyphQuote(g, i) {
+    return { prefix: g.ch.slice(Math.max(0, i - CFG.glyphLen), i).join(''), exact: g.ch[i],
+             suffix: g.ch.slice(i + 1, i + 1 + CFG.glyphLen).join('') };
+  }
+  /** 公式里离 (cx, cy) 最近的可见符号的下标；没有返回 -1。 */
+  function glyphAt(g, cx, cy) {
+    let best = -1, bestD = Infinity;
+    g.els.forEach((e, i) => {
+      const r = e.getBoundingClientRect();
+      if (!r.width && !r.height) return;
+      const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
+      if (dx * dx + dy * dy < bestD) { bestD = dx * dx + dy * dy; best = i; }
+    });
+    return best;
+  }
+  /** 公式里与符号锚点 q 最像的符号 {i, score}：score = 前、后符号串相似度的平均，被锚符号相同再加 0.01。 */
+  function matchGlyph(g, q) {
+    let best = { i: -1, score: -1 };
+    for (let i = 0; i < g.ch.length; i++) {
+      const c = glyphQuote(g, i);
+      const sc = (similarity(q.prefix, c.prefix) + similarity(q.suffix, c.suffix)) / 2 + (c.exact === q.exact ? 0.01 : 0);
+      if (sc > best.score) best = { i, score: sc };
+    }
+    return best;
+  }
   /** 按元素类型建锚点：媒体 / 陈列公式 / 表格单元格 / 标题 / 正文字符。返回 {anchor, frame, R} 或 null。 */
   function anchorForElement(el, cx, cy, f) {
     const media = el.closest('img, video');
@@ -413,8 +447,13 @@ ANNOT_JS = r"""
     const mj = el.closest('mjx-container');
     if (mj && mj.getAttribute('display') === 'true') {
       const m = displayMath().find(d => d.el === mj);
-      if (m) return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj) }, frame: 'norm',
-                      R: localRect(mj.getBoundingClientRect(), f) };
+      if (m) {
+        const g = glyphList(mj), i = glyphAt(g, cx, cy);
+        if (i >= 0) return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj), g: glyphQuote(g, i) }, frame: 'px',
+                             R: localRect(g.els[i].getBoundingClientRect(), f) };
+        return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj) }, frame: 'norm',
+                 R: localRect(mj.getBoundingClientRect(), f) };
+      }
     }
     if (mj) {   // 行内公式：锚到公式后面紧挨着的那个字
       const p = posFromElement(mj);
@@ -598,6 +637,10 @@ ANNOT_JS = r"""
         cands = all.filter(m => m.tex === t2).map(m => m.el);
         if (cands.length) migrated = Object.assign({}, a, { tex: t2 });
       }
+      if (!cands.length && a.g) {   // TeX 认不出（拆行、加了中间步骤）：按符号锚点在全部陈列公式里找最像的
+        let bestSc = CFG.fuzzyAccept;
+        for (const m of all) { const sc = matchGlyph(glyphList(m.el), a.g).score; if (sc >= bestSc) { bestSc = sc; cands = [m.el]; } }
+      }
       if (!cands.length) {
         let bestSim = CFG.texFuzzy;
         for (const m of all) { const sc = similarity(t2 || a.tex, m.tex); if (sc >= bestSim) { bestSim = sc; cands = [m.el]; } }
@@ -640,6 +683,15 @@ ANNOT_JS = r"""
     }
     if (!t) return { state: 'orphan', R: s.orig, el: main };
     if (t.el === main) return { state: 'ok', R: s.orig, el: main };
+    if (s.anchor.type === 'math' && s.anchor.g) {   // 符号锚点：画在公式里对应的那个符号上
+      if (c.glyph === undefined) {
+        const g = glyphList(t.el), m = matchGlyph(g, s.anchor.g);
+        c.glyph = m.score >= CFG.fuzzyAccept ? g.els[m.i] : null;
+      }
+      if (!c.glyph) return { state: 'orphan', R: s.orig, el: main };
+      const r = elementRect(c.glyph);   // 收起的折叠里仍有布局矩形，elementRect 会判成不可见
+      return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
+    }
     if (t.pos !== undefined) {
       const r = charRect(t.pos), node = S.index.nodes[S.index.posNode[t.pos]];
       return r ? { state: 'ok', R: localRect(r, f), el: node.parentElement } : { state: 'hidden' };
@@ -854,14 +906,17 @@ ANNOT_JS = r"""
     const d = S.drawn.get(mv.s.id);
     d.path.removeAttribute('transform');
     if (Math.hypot(mv.dx, mv.dy) < 0.5 || !d.abs) return;
-    const abs = d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]);
-    const f = frame(), c = toClient(abs[0][0], abs[0][1], f);
-    const got = anchorAt(Math.min(Math.max(c.x, 1), innerWidth - 1), Math.min(Math.max(c.y, 1), innerHeight - 1));
-    Object.assign(mv.s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
-                          pts: framePoints(abs, got.R, got.frame) });
-    forget(mv.s.id);
+    reanchor(mv.s, d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]));
     pushUndo(mv.snap);
     commit();
+  }
+  /** 一笔放到新位置 abs（正文卡片坐标）：在新起笔点重新建锚点，点换成新锚点坐标。 */
+  function reanchor(s, abs) {
+    const f = frame(), c = toClient(abs[0][0], abs[0][1], f);
+    const got = anchorAt(Math.min(Math.max(c.x, 1), innerWidth - 1), Math.min(Math.max(c.y, 1), innerHeight - 1));
+    Object.assign(s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
+                       pts: framePoints(abs, got.R, got.frame) });
+    forget(s.id);
   }
   function undo() {
     if (!S.undo.length) return setStatus('没有可以撤销的操作');
@@ -1288,6 +1343,15 @@ ANNOT_JS = r"""
       strokes: () => S.strokes, render: renderAll, frame,
       placed: id => { const d = S.drawn.get(id); return d ? { state: d.state, abs: d.abs } : null; },
       status: () => ({ orphans: S.orphans, hidden: S.hidden, on: S.on, sync: SY.state, tombs: Object.keys(S.tombs).length }),
+      // 修位置用（tools/check_notes_anchors.py --repair）：同「移动」工具，把一笔平移 (dx, dy)（正文卡片坐标）后重新建锚点；
+      // 调用前要把新起笔点滚进视口。返回新锚点类型，找不到这一笔返回 null。
+      moveBy: (id, dx, dy) => {
+        const s = S.strokes.find(t => t.id === id), d = S.drawn.get(id);
+        if (!s || !d || !d.abs) return null;
+        reanchor(s, d.abs.map(p => [p[0] + dx, p[1] + dy, p[2]]));
+        commit();
+        return s.anchor.type;
+      },
       syncNow,
     };
   }

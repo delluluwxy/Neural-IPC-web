@@ -12,6 +12,8 @@ fuzzy / orphan 就是「笔记没跟着内容走」，逐条打印锚点内容�
     /bin/python tools/check_notes_anchors.py week3_4.html [--notes <本地 json>]
     /bin/python tools/check_notes_anchors.py week3_4.html --write-quote-map <对应表 json> <改名表 json>
     /bin/python tools/check_notes_anchors.py week3_4.html --browser     （导入真实页面，读标注层自己判出的标灰笔数）
+    /bin/python tools/check_notes_anchors.py week3_4.html --compare <旧版页面绝对路径> <旧笔记 json>
+        （逐笔比旧页 + 旧笔记与新页 + 当前笔记盖住的内容；「标灰 0」不等于位置对，以这个为准）
 第二种：对应表是 [{"old": "旧锚点里带【】的一小段", "new": "新正文里带【】的一小段"}, …]，【】括住一个字：old 用来认出
 是哪一笔（在没原样找到的笔里唯一匹配），new 指出它该落到的新字（在页面正文里唯一出现）。按新字取前后各 30 字
 （与 annotate.py quoteLen 同）作新锚点，写进改名表的 "quote"（同一旧锚点的旧条目被替换），再照常核对一遍。
@@ -168,6 +170,116 @@ def write_quote_map(notes, d, map_path, renames_path):
     return len(out)
 
 
+# 每笔在页面上实际盖住了什么：笔迹包围盒与正文逐字、公式、图 / 视频的包围盒求交（页面坐标）
+COVER_JS = """() => {
+  const art = document.querySelector('main article');
+  const skip = n => !n.parentElement || !!n.parentElement.closest('mjx-container, script, style, svg, .annot-ui');
+  const box = q => [q.left + scrollX, q.top + scrollY, q.right + scrollX, q.bottom + scrollY];
+  const chars = [], rg = document.createRange(), w = document.createTreeWalker(art, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    if (skip(n)) continue;
+    for (let i = 0; i < n.data.length; i++) {
+      if (/\\s/.test(n.data[i])) continue;
+      rg.setStart(n, i); rg.setEnd(n, i + 1);
+      const q = rg.getBoundingClientRect();
+      if (q.width || q.height) chars.push([n.data[i], ...box(q)]);
+    }
+  }
+  const maths = [...MathJax.startup.document.math].filter(m => m.typesetRoot && art.contains(m.typesetRoot))
+    .map(m => [m.math.replace(/\\s+/g, ' ').trim(), ...box(m.typesetRoot.getBoundingClientRect())]);
+  const media = [...art.querySelectorAll('img, video')]
+    .map(e => [(e.getAttribute('src') || '').split('/').pop(), ...box(e.getBoundingClientRect())]);
+  const out = {};
+  for (const p of document.querySelectorAll('#annot-layer path[data-id]')) {
+    const q = p.getBoundingClientRect(), b = box(q);
+    const hit = r => r[1] < b[2] && r[3] > b[0] && r[2] < b[3] && r[4] > b[1];
+    out[p.dataset.id] = {shown: !!(q.width || q.height) && getComputedStyle(p).display !== 'none',
+                         gray: p.classList.contains('orphan'),
+                         text: chars.filter(hit).map(c => c[0]).join(''),
+                         math: maths.filter(hit).map(m => m[0]), media: media.filter(hit).map(m => m[0])};
+  }
+  return out;
+}"""
+
+
+def covered(page_path, notes, shots=None):
+    """把笔记导入页面，返回 {笔 id: {closed_shown, gray, text, math, media}}：closed_shown 是折叠全收起时
+    这一笔看不看得见；其余是折叠全展开后它盖住的正文字、公式 TeX、图 / 视频文件名。
+    shots = {笔 id: png 路径}：折叠全展开后，把这些笔连同四周 150 px 截图。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1440, "height": 900})
+        page.goto(pathlib.Path(page_path).resolve().as_uri() if pathlib.Path(page_path).is_absolute()
+                  else (ROOT / page_path).as_uri(), wait_until="domcontentloaded", timeout=120000)
+        page.wait_for_function("window.__nipcNotes && window.MathJax && MathJax.startup && MathJax.startup.promise",
+                               timeout=120000)
+        page.evaluate("MathJax.startup.promise")
+        page.evaluate("Promise.all([...document.images].map(i => (i.loading = 'eager', i.complete ? 0 : "
+                      "new Promise(r => { i.onload = i.onerror = r; }))))")
+        if page.is_visible("#annot-fab"):
+            page.click("#annot-fab")
+        page.set_input_files("#annot-file", files=[{"name": "notes.json", "mimeType": "application/json",
+                                                    "buffer": json.dumps(notes, ensure_ascii=False).encode()}])
+        page.click('[data-import="replace"]')
+        page.wait_for_timeout(1500)
+        closed = page.evaluate(COVER_JS)
+        page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+        page.wait_for_timeout(1500)
+        opened = page.evaluate(COVER_JS)
+        for i, path in (shots or {}).items():
+            el = page.locator(f'#annot-layer path[data-id="{i}"]')
+            if not el.count():
+                continue
+            el.scroll_into_view_if_needed()
+            page.wait_for_timeout(200)
+            q = el.bounding_box()
+            if q and q["width"]:
+                m = 150
+                page.screenshot(path=path, clip=dict(x=max(0, q["x"] - m), y=max(0, q["y"] - m),
+                                                    width=q["width"] + 2 * m, height=q["height"] + 2 * m))
+        browser.close()
+    return {i: dict(opened[i], closed_shown=closed[i]["shown"]) for i in opened}
+
+
+def compare(old_page, old_notes, new_page, new_notes, shot_dir=None):
+    """逐笔比：旧页 + 旧笔记（用户当时看到的）与新页 + 新笔记（现在看到的）盖住的内容是否相同。
+    shot_dir：给位置变了的每一笔截 <id>_old.png / <id>_new.png（折叠全展开，笔迹四周 150 px）。"""
+    from difflib import SequenceMatcher
+    old, new = covered(old_page, old_notes), covered(new_page, new_notes)
+    rows = []
+    for s in old_notes["strokes"]:
+        i = s["id"]
+        a, b = old.get(i), new.get(i)
+        if a is None or b is None:
+            rows.append((i, "缺笔", a, b))
+            continue
+        why = []
+        if b["gray"]:
+            why.append("标灰")
+        if a["closed_shown"] and not b["closed_shown"]:
+            why.append("原来不展开就看得到，现在被收进折叠")
+        if set(a["math"]) != set(b["math"]):
+            why.append("盖住的公式变了")
+        if set(a["media"]) != set(b["media"]):
+            why.append("盖住的图变了")
+        r = SequenceMatcher(None, a["text"], b["text"]).ratio() if (a["text"] or b["text"]) else 1.0
+        if r < 0.6:
+            why.append(f"盖住的文字变了（相似度 {r:.2f}）")
+        rows.append((i, "；".join(why), a, b))
+    bad = [x for x in rows if x[1]]
+    if shot_dir:
+        ids = [x[0] for x in bad]
+        covered(old_page, old_notes, {i: f"{shot_dir}/{i}_old.png" for i in ids})
+        covered(new_page, new_notes, {i: f"{shot_dir}/{i}_new.png" for i in ids})
+    print(f"== 对比 {old_page} → {new_page}：{len(rows)} 笔，位置变了 {len(bad)} 笔")
+    for i, why, a, b in bad:
+        print(f"  {i}  {why}")
+        if a and b:
+            print(f"      原来盖住：{a['text'][:40]!r} {a['math'][:1]} {a['media']}")
+            print(f"      现在盖住：{b['text'][:40]!r} {b['math'][:1]} {b['media']}")
+    return not bad
+
+
 def browser_check(rel, notes):
     """把笔记导入真实页面（标注层「导入 → 替换」），读标注层自己判出的标灰笔数，并列出这些笔的锚点。"""
     with sync_playwright() as p:
@@ -201,6 +313,9 @@ def main():
     ap.add_argument("page")
     ap.add_argument("--notes", help="本地笔记 json（默认从笔记仓库取）")
     ap.add_argument("--write-quote-map", nargs=2, metavar=("MAP_JSON", "RENAMES_JSON"))
+    ap.add_argument("--compare", nargs=2, metavar=("OLD_PAGE", "OLD_NOTES_JSON"),
+                    help="逐笔比旧页 + 旧笔记与本页 + 当前笔记各盖住什么（文字 / 公式 / 图、折叠收起时是否可见）")
+    ap.add_argument("--shot-dir", help="--compare 时给位置变了的笔各截新旧两张图到这个目录")
     ap.add_argument("--browser", action="store_true", help="改为在真实页面里导入笔记，按标注层自己的判定数标灰笔")
     ap.add_argument("--grep", nargs="+", metavar="TEXT", help="只打印正文索引里这些文字前后各 60 字（写对应表时用）")
     args = ap.parse_args()
@@ -211,6 +326,9 @@ def main():
             print(f"== {g}：{'没找到' if at < 0 else t[max(0, at - 60):at + len(g) + 60]}")
         return
     notes = load_notes(args.page, args.notes)
+    if args.compare:
+        old_notes = json.loads(pathlib.Path(args.compare[1]).read_text(encoding="utf-8"))
+        sys.exit(0 if compare(args.compare[0], old_notes, args.page, notes, args.shot_dir) else 1)
     if args.browser:
         sys.exit(0 if browser_check(args.page, notes) else 1)
     d = page_data(args.page)
