@@ -233,7 +233,17 @@ HIT_JS = """ids => {
       const my = inside.reduce((a, p) => a + (p[1] - q.top) / q.height, 0) / (inside.length || 1);
       return `${src}@${mx.toFixed(3)},${my.toFixed(3)}`;
     });
-    out[id] = {state: 'ok', text, glyph, media: med};
+    // 每个点最近的字 / 符号（笔画外框外扩 NEAR px 内找）和点相对它左上角的偏移：画在内容旁边的笔（下划线、圈、箭头）也能精确比
+    const NEAR = 80, cand = items.filter(it => it[2] <= bx[2] + NEAR && it[4] >= bx[0] - NEAR && it[3] <= bx[3] + NEAR && it[5] >= bx[1] - NEAR);
+    const near = P.map(([x, y]) => {
+      let best = null, bd = Infinity;
+      for (const it of cand) {
+        const d = Math.hypot(Math.max(it[2] - x, 0, x - it[4]), Math.max(it[3] - y, 0, y - it[5]));
+        if (d < bd) { bd = d; best = it; }
+      }
+      return best ? [best[1], Math.round((x - best[2]) / f.s * 2) / 2, Math.round((y - best[3]) / f.s * 2) / 2] : null;
+    });
+    out[id] = {state: 'ok', text, glyph, media: med, near};
   }
   return out;
 }"""
@@ -350,18 +360,29 @@ def main():
         rows = []
         for i in sorted(ids):
             a, b = old.get(i, {"state": "none"}), new.get(i, {"state": "none"})
-            same = a == b
-            rows.append(dict(id=i, same=same, old=a, new=b))
+            if a["state"] != "ok" or b["state"] != "ok":
+                rows.append(dict(id=i, same=a["state"] == b["state"], match=None, old=a, new=b))
+                continue
+            # 逐点：最近的是同一个字 / 符号，且相对它的偏移差 ≤ 1 px；图上的笔比图内平均位置
+            pairs = list(zip(a["near"], b["near"]))
+            ok = sum(1 for p, q in pairs if p and q and p[0] == q[0] and abs(p[1] - q[1]) <= 1 and abs(p[2] - q[2]) <= 1)
+            match = ok / len(pairs) if pairs else 1.0
+            same_media = [m.split("@")[0] for m in a["media"]] == [m.split("@")[0] for m in b["media"]] and all(
+                abs(float(x) - float(y)) <= 0.01 for ma, mb in zip(a["media"], b["media"])
+                for x, y in zip(ma.split("@")[1].split(","), mb.split("@")[1].split(",")))
+            rows.append(dict(id=i, same=(match >= 0.95 if not a["media"] else same_media), match=match, old=a, new=b))
         bad = [r for r in rows if not r["same"]]
         report = pathlib.Path(args.out)
         report.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(f"== 精确核对 {len(rows)} 笔：压住的内容完全相同 {len(rows) - len(bad)} 笔，不同 {len(bad)} 笔；"
+        print(f"== 精确核对 {len(rows)} 笔：位置对上（≥ 95% 的点最近同一个字 / 符号、偏移差 ≤ 1 px；图上的笔图内位置差 ≤ 0.01）"
+              f"{len(rows) - len(bad)} 笔，对不上 {len(bad)} 笔；"
               f"用 {time.time() - t0:.0f} s；逐笔明细 {report}")
         for r in bad:
             a, b = r["old"], r["new"]
             fmt = lambda h: (h["state"] if h["state"] != "ok" else
-                             f"字「{h['text']}」 符号「{h['glyph']}」 图{h['media']}")
-            print(f"  {r['id']}\n      原来：{fmt(a)}\n      现在：{fmt(b)}")
+                             f"最近的字「{''.join(dict.fromkeys(n[0] for n in h['near'] if n))}」 压住「{h['text']}{h['glyph']}」 图{h['media']}")
+            pct = "" if r["match"] is None else f"（逐点对上 {100 * r['match']:.0f}%）"
+            print(f"  {r['id']}{pct}\n      原来：{fmt(a)}\n      现在：{fmt(b)}")
         return
     if args.shots_for:
         # 只出对照图：给定的笔（id 列表文件），左原版页面 + 原笔画，右当前页面 + NOTES_JSON 里的笔画
