@@ -138,6 +138,8 @@ def main():
     ap.add_argument("--worktrees", default=str(WORKTREES), help="旧版页面 worktree 放哪")
     args = ap.parse_args()
     stem = pathlib.Path(args.page).stem
+    if args.shots:
+        pathlib.Path(args.shots).mkdir(parents=True, exist_ok=True)
     history = note_history(stem)
     current = history[-1][1]
     ids = {s["id"] for s in current["strokes"]}
