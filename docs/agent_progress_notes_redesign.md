@@ -19,3 +19,4 @@
 - 行内公式作 diff 记号（049269c）+ 重建页面（94811c0）后重跑：迁过去 254（text 138 / math 69 / media 46 / page 1），隐藏 54（text 47 / math 6 / media 1）；核对不符 0，灰色 0；比上次 moved→hidden 2 笔（mvmmsdljknm4mq、mvmmshd9g6n1m3：圈住的「换成 δ−h」新版改成「换掉」）；drawn 逐字节不同 0。
 - --preview：preview/week3_4.html 308 笔 ok 254 / orphan 54，显示 = 报告迁过去 254，灰色 0；preview/hidden.html 54 条；preview/ 共 9.8 MB，未提交（等协调者定）。
 - test_annotate：60 项，失败 0（行内公式记号版）。
+- hidden.html 核对（--check-hidden，390px）：54 条、每条 3 行、mjx-merror 0、控制台错误 0、无横向滚动（修 CSS 前 571 > 390）、抽 5 条黄底逐字相同 5。preview/ 未提交。
