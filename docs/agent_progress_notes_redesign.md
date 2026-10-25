@@ -16,3 +16,5 @@
 - 重跑：迁过去 256（text 140 / math 69 / media 46 / page 1），隐藏 52（text 45 / math 6 / media 1）；核对不符 0，可见灰色 0；比上次 hidden→moved 6 笔，反向 0；drawn 逐字节不同 0。
 - 第一次重跑 test_annotate 与迁移同时跑，Page.goto 30 s 超时（并发负载），单独重跑中。
 - test_annotate 单独重跑：60 项，失败 0。
+- 行内公式作 diff 记号（049269c）+ 重建页面（94811c0）后重跑：迁过去 254（text 138 / math 69 / media 46 / page 1），隐藏 54（text 47 / math 6 / media 1）；核对不符 0，灰色 0；比上次 moved→hidden 2 笔（mvmmsdljknm4mq、mvmmshd9g6n1m3：圈住的「换成 δ−h」新版改成「换掉」）；drawn 逐字节不同 0。
+- --preview：preview/week3_4.html 308 笔 ok 254 / orphan 54，显示 = 报告迁过去 254，灰色 0；preview/hidden.html 54 条；preview/ 共 9.8 MB，未提交（等协调者定）。
