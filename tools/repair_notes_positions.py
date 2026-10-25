@@ -623,6 +623,102 @@ def font_check(job):
     return got, fonts
 
 
+STATE_JS = "ids => Object.fromEntries(ids.map(id => [id, (window.__nipcNotes.placed(id) || {state: 'none'}).state]))"
+
+
+def build_check_page(sha, ids, out_dir, page_file):
+    """核对页 check/<sha7>/<页>：那一版页面原样（只换上当前标注层），只显示 ids 这些笔；页面引用的图 / 视频按那一版拷过来。"""
+    d = out_dir / sha[:7]
+    d.mkdir(parents=True, exist_ok=True)
+    src = checkout(sha, WORKTREES) / page_file
+    tmp = with_new_layer(src)
+    h = tmp.read_text(encoding="utf-8")
+    tmp.unlink()
+    pre = (f"<script>window.NIPC_ONLY = {json.dumps(sorted(ids))}; window.NIPC_CHECK_VERSION = '{sha[:7]}';</script>\n")
+    h = h.replace("<head>", "<head>\n" + pre, 1)
+    (d / page_file).write_text(h, encoding="utf-8")
+    for ref in sorted(set(re.findall(r'(?:src|href)="(assets/[^"#?]+)"', h))):
+        p = d / ref
+        p.parent.mkdir(parents=True, exist_ok=True)
+        blob = subprocess.run(["git", "-C", str(ROOT), "show", f"{sha}:{ref}"], capture_output=True)
+        if blob.returncode == 0:
+            p.write_bytes(blob.stdout)
+    return d / page_file
+
+
+def page_states(job):
+    """（子进程）打开核对页、导入笔记、展开全部折叠，返回每笔的显示状态（ok / hidden / orphan）。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = open_with_notes(browser, job["path"], job["notes"])
+        got = page.evaluate(STATE_JS, job["ids"])
+        browser.close()
+    return got
+
+
+def check_pages(args):
+    """--check-pages：每笔分到它画的那一版（先取第一次存下时线上那版；在那版上是灰的，就按时间远近试别的上线版本），
+    生成 check/<sha7>/ 核对页，最后逐页核：灰色（找不到锚点）必须 0 笔。"""
+    import multiprocessing as mp
+    stem = pathlib.Path(args.page).stem
+    notes = json.loads(gh("-H", "Accept: application/vnd.github.raw", f"repos/{REPO}/contents/notes/{stem}.json"))
+    history = note_history(stem)
+    first = {}
+    for t, n in history:
+        for s in n["strokes"]:
+            first.setdefault(s["id"], t)
+    live = live_versions()
+    blob = lambda sha: subprocess.run(["git", "-C", str(ROOT), "rev-parse", f"{sha}:{args.page}"],
+                                      capture_output=True, text=True).stdout.strip()
+    distinct, seen = [], set()           # 上线过的页面版本（同一页面内容只取最早上线那次），从早到晚
+    for t, sha in live:
+        b = blob(sha)
+        if b and b not in seen:
+            seen.add(b)
+            distinct.append((t, sha))
+    ids = [s["id"] for s in notes["strokes"]]
+    home = {}
+    for i in ids:
+        t = first[i]
+        k = max(j for j, (lt, _) in enumerate(distinct) if lt <= t)
+        home[i] = [distinct[k][1]] + [s for _, s in sorted(((abs(j - k), s) for j, (_, s) in enumerate(distinct) if j != k))]
+    out_dir = ROOT / "check"
+    assign, todo = {}, {i: 0 for i in ids}
+    for rnd in range(len(distinct)):
+        if not todo:
+            break
+        by = {}
+        for i, k in todo.items():
+            if k < len(home[i]):
+                by.setdefault(home[i][k], []).append(i)
+        jobs = [dict(path=build_check_page(sha, g, out_dir, args.page), notes=notes, ids=g) for sha, g in by.items()]
+        with mp.get_context("spawn").Pool(min(len(jobs), args.workers)) as pool:
+            outs = pool.map(page_states, jobs)
+        nxt = {}
+        for (sha, g), st in zip(by.items(), outs):
+            for i in g:
+                if st[i] == "ok":
+                    assign[i] = sha
+                else:
+                    nxt[i] = todo[i] + 1
+        todo = nxt
+        print(f"  第 {rnd + 1} 轮：已定 {len(assign)} 笔，待定 {len(todo)} 笔", flush=True)
+    groups = {}
+    for i, sha in assign.items():
+        groups.setdefault(sha, []).append(i)
+    import shutil
+    if out_dir.exists():
+        shutil.rmtree(out_dir)          # 只留最终分组的核对页（目录由本工具生成，可整个重建）
+    jobs = [dict(path=build_check_page(sha, g, out_dir, args.page), notes=notes, ids=g) for sha, g in groups.items()]
+    with mp.get_context("spawn").Pool(min(len(jobs), args.workers)) as pool:
+        outs = pool.map(page_states, jobs)
+    import collections
+    print(f"== 核对页 {len(groups)} 个（{out_dir}），笔 {len(assign)} / {len(ids)}；找不到家的 {sorted(todo)}")
+    for (sha, g), st in zip(groups.items(), outs):
+        print(f"  check/{sha[:7]}/{args.page}：{len(g)} 笔，状态 {dict(collections.Counter(st.values()))}")
+    pathlib.Path(args.out).write_text(json.dumps({sha[:7]: g for sha, g in groups.items()}, indent=1), encoding="utf-8")
+
+
 def write_original(args):
     """--write-original BASE_SHA：用户自己画的原始位置。以笔记仓库 BASE_SHA 那份为准（哪些笔还在、墓碑），每一笔换回它
     第一次存进仓库时的样子（画完那一刻设备上建的锚点和坐标，之后的任何迁移都不要），写回笔记仓库，并把写出的内容存 --out。"""
@@ -734,7 +830,12 @@ def main():
                     help="每笔起笔那个字在画笔设备上量的宽高（orig）与本机排版下的比，判断两边字体排版是否一致，写到 --out")
     ap.add_argument("--write-original", metavar="BASE_SHA",
                     help="以笔记仓库 BASE_SHA 那份的笔为准，每笔换回第一次存下时的样子（用户画的原始位置），写回笔记仓库")
+    ap.add_argument("--check-pages", action="store_true",
+                    help="每笔分到它画的那一版，生成 check/<sha7>/ 核对页（只显示那一版上画的笔），逐页核灰色 0 笔；分组写 --out")
     args = ap.parse_args()
+    if args.check_pages:
+        check_pages(args)
+        return
     if args.write_original:
         write_original(args)
         return

@@ -1041,11 +1041,14 @@ ANNOT_JS = r"""
     renderQueued = true;
     requestAnimationFrame(() => { renderQueued = false; renderAll(); });
   }
+  // 核对页（check/<版本>/）：只显示在这一版上画的笔（NIPC_ONLY = 笔 id 列表），其余笔不画也不动
+  const ONLY = Array.isArray(window.NIPC_ONLY) ? new Set(window.NIPC_ONLY) : null;
   function renderAll() {
     ensureIndex();
     const f = frame(), alive = new Set();
     let orphans = 0, hidden = 0;
     for (const s of S.strokes) {
+      if (ONLY && !ONLY.has(s.id)) continue;
       alive.add(s.id);
       let d = S.drawn.get(s.id);
       if (!d) {
@@ -1070,6 +1073,19 @@ ANNOT_JS = r"""
     }
     for (const [id, d] of S.drawn) if (!alive.has(id)) { d.path.remove(); S.drawn.delete(id); }
     S.orphans = orphans; S.hidden = hidden;
+    if (ONLY && !S.printing) {
+      // 核对页上（笔画的那一版、用户自己的设备和字体）：显示出来的笔就地算出圈住的内容，笔不动，存回笔记
+      const todo = S.strokes.filter(s => ONLY.has(s.id) && !s.coverOn && s.anchor.type !== 'media' && s.anchor.type !== 'page'
+                                         && (S.drawn.get(s.id) || {}).state === 'ok' && S.drawn.get(s.id).abs);
+      if (todo.length) {
+        S.geom = null; S.geomBatch = true;
+        // coverOn：在哪一版、什么设备上算的圈住内容（只算一次）
+        for (const s of todo) { reanchor(s, S.drawn.get(s.id).abs); s.coverOn = { page: window.NIPC_CHECK_VERSION || '', at: new Date().toISOString(), ua: navigator.userAgent }; }
+        S.geomBatch = false; S.geom = null;
+        commit();
+        return;
+      }
+    }
     if (S.migrated) { S.migrated = false; saveStored(); schedulePush(); }
     updateStatus();
   }
