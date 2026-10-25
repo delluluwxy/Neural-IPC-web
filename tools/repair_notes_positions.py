@@ -87,6 +87,7 @@ def open_with_notes(browser, path, notes):
                   "new Promise(r => { i.onload = i.onerror = r; }))))")
     if page.is_visible("#annot-fab"):
         page.click("#annot-fab")
+    notes = dict(notes, page=pathlib.Path(path).name)   # 页名不同会弹确认框（无头浏览器默认取消），导入前对齐
     page.set_input_files("#annot-file", files=[{"name": "notes.json", "mimeType": "application/json",
                                                 "buffer": json.dumps(notes, ensure_ascii=False).encode()}])
     page.click('[data-import="replace"]')
