@@ -9,3 +9,6 @@
 - 票据已签。--apply-snapshot（equal 段 ≥ 8 字 / 前后各 4 字；公式符号段 ≥ 3；挪位公式按唯一同 TeX 对上）：308 笔，迁过去 250（text 135 / math 69 / media 45 / page 1），隐藏 58（text 50 / math 6 / media 2）；最新版核对不符 0，可见灰色 0。
 - --check-drawn：308 笔 drawn 与 2e32506 逐字节不同 0；drawn.page 全是 1fd94db1f374（= 8288b02 页面哈希）；墓碑与 c13089b 相同（39 条）。
 - 下一步：重建页面 → 在重建页上重跑 --apply-snapshot → test_annotate。
+- 重建页面（0d245e8，只有标注层与版本号标签变化，三页 diff 行数相同）后重跑 --apply-snapshot：数字不变（迁过去 250 / 隐藏 58，核对不符 0，可见灰色 0）；--check-drawn 逐字节不同 0。
+- test_annotate：60 项，失败 0（新增 a7、f2、h3 灰色、h5、m1、k1、k2）。
+- 未做：快照页「确认位置并保存」按钮（等协调者再说）；--snapshots 改为从 drawn 生成。
