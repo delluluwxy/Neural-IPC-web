@@ -546,6 +546,37 @@ def letter_renames(notes, page_tex):
     return out
 
 
+def publish(args):
+    """--publish NEW_JSON BASE_JSON：把修好的笔记（NEW_JSON）写回笔记仓库 notes/<页>.json。
+    先拉线上那份，和迁移用的底稿 BASE_JSON 比：笔迹、墓碑有任何不同（用户之后又画过或删过）就不写、列出差异退出 1；
+    相同才用 Contents API 带 sha 覆盖写（期间又被改了 GitHub 返回 409，也不会覆盖）。"""
+    import base64
+    import tempfile
+    stem = pathlib.Path(args.page).stem
+    path = f"repos/{REPO}/contents/notes/{stem}.json"
+    meta = json.loads(gh(path))
+    live = json.loads(base64.b64decode(meta["content"]))
+    base = json.loads(pathlib.Path(args.publish[1]).read_text(encoding="utf-8"))
+    key = lambda n: (json.dumps(n["strokes"], sort_keys=True), json.dumps(n.get("tombstones"), sort_keys=True))
+    if key(live) != key(base):
+        lb, bb = {s["id"]: s for s in live["strokes"]}, {s["id"]: s for s in base["strokes"]}
+        diff = sorted(set(lb) ^ set(bb)) + sorted(i for i in set(lb) & set(bb) if lb[i] != bb[i])
+        print(f"== 线上笔记和底稿不同（之后又画过 / 删过），不写入：差异笔 {diff[:20]}"
+              f"{'…' if len(diff) > 20 else ''}；墓碑{'相同' if key(live)[1] == key(base)[1] else '不同'}")
+        sys.exit(1)
+    new = json.loads(pathlib.Path(args.publish[0]).read_text(encoding="utf-8"))
+    new["saved"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    body = {"message": f"notes {stem}: anchor every stroke to the content it circles (repair_notes_positions)",
+            "content": base64.b64encode(json.dumps(new, ensure_ascii=False).encode()).decode(), "sha": meta["sha"]}
+    with tempfile.NamedTemporaryFile("w", suffix=".json", dir=WORKTREES, delete=False) as fh:
+        json.dump(body, fh)
+    try:
+        out = json.loads(gh("--method", "PUT", path, "--input", fh.name))
+    finally:
+        pathlib.Path(fh.name).unlink()
+    print(f"== 写入 notes/{stem}.json：{len(new['strokes'])} 笔，提交 {out['commit']['sha'][:7]}")
+
+
 def explain(args):
     """--explain：当前页面换上当前标注层，导入 NOTES_JSON，对 IDS_TXT 里每笔调 __nipcNotes.explain，结果写 --out。"""
     ids = pathlib.Path(args.explain[0]).read_text(encoding="utf-8").split()
@@ -599,7 +630,12 @@ def main():
                          "位置变了的有一笔就退出码 1；内容删了而隐藏的只列出不拦")
     ap.add_argument("--write-renames", action="store_true",
                     help="配 --explain：把只差字母一一换名（θ→ψ、t→q）的公式对补进讲稿目录的 notation_renames_<页>.json")
+    ap.add_argument("--publish", nargs=2, metavar=("NEW_JSON", "BASE_JSON"),
+                    help="把修好的笔记写回笔记仓库；线上那份和底稿 BASE_JSON 不同（用户又画过）就不写")
     args = ap.parse_args()
+    if args.publish:
+        publish(args)
+        return
     if args.explain:
         explain(args)
         return
