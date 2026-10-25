@@ -969,7 +969,7 @@ def mapped(m, i, seg_min, margin=0):
 
 def pair_maths(old, new):
     """两版公式（[{tex, ...}] 按文档顺序）的对应 {旧序号: 新序号}：TeX 序列 diff 的 equal 段原样对上；replace 段里按 TeX
-    相似度（≥ MATH_PAIR_MIN）做保序配对（动态规划取相似度之和最大）。"""
+    相似度（≥ MATH_PAIR_MIN）做保序配对（动态规划取相似度之和最大）；最后剩下的里 TeX 原样相同且两边各唯一的（挪了位置）对上。"""
     import difflib
     out = {}
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, [m["tex"] for m in old], [m["tex"] for m in new],
@@ -994,6 +994,14 @@ def pair_maths(old, new):
                     i += 1
                 else:
                     j += 1
+    # 挪了位置的公式（保序 diff 认不出挪动）：剩下没对上的里，TeX 原样相同、且在两边剩下的里各只有一个的，对上
+    left_old = [i for i in range(len(old)) if i not in out]
+    left_new = [j for j in range(len(new)) if j not in set(out.values())]
+    count = lambda idx, seq, tex: sum(seq[k]["tex"] == tex for k in idx)
+    for i in left_old:
+        hit = [j for j in left_new if new[j]["tex"] == old[i]["tex"]]
+        if len(hit) == 1 and count(left_old, old, old[i]["tex"]) == 1:
+            out[i] = hit[0]
     return out
 
 

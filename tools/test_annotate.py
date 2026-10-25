@@ -26,6 +26,8 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
+from repair_notes_positions import VISIBLE_GRAY_JS
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DEFAULT_OUT = pathlib.Path("/nas/xiaoyingwang/Neural-IPC/outputs/web_annotate_test")
 TOL = 2.0   # 允许的偏差（未缩放 CSS px）
@@ -179,6 +181,17 @@ def strokes(page):
     return page.evaluate("window.__nipcNotes.strokes()")
 
 
+def check_no_gray(rep, page, when):
+    """屏幕和打印 media 下都没有可见的灰色笔（找不到内容的笔一律隐藏）。"""
+    screen = page.evaluate(VISIBLE_GRAY_JS)
+    page.emulate_media(media="print")
+    page.wait_for_timeout(300)
+    printed = page.evaluate(VISIBLE_GRAY_JS)
+    page.emulate_media(media="screen")
+    page.wait_for_timeout(300)
+    rep.check(f"{when}：0 笔可见灰色（屏幕 + 打印）", screen == 0 and printed == 0, f"屏幕 {screen} 笔，打印 {printed} 笔")
+
+
 def close_enough(a, b):
     return all(abs(a[k] - b[k]) <= TOL for k in ("x", "y", "w", "h"))
 
@@ -250,6 +263,12 @@ def test_ipad_draw(browser, rep, out):
         top = page.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e && (e.tagName + '#' + e.id + '.' + e.className); }", [sx, sy])
         print(f"      文字那一笔的起点 ({sx:.1f}, {sy:.1f})，字矩形 {c}，该点最上层元素 {top}")
         raise SystemExit("a2 没画出两笔，后面的检查无法进行")
+    ver = page.evaluate("window.NIPC_PAGE || ''")
+    keys = ("pts", "frame", "anchor", "orig")
+    ok = all(s.get("drawn") and s["drawn"]["page"] == ver and s["drawn"]["ua"] and all(s["drawn"][k] == s[k] for k in keys)
+             for s in st)
+    rep.check("a7 收笔时记下 drawn（页面版本号、UA、与刚画的样子相同）", bool(ver) and ok,
+              f"页面版本号 {ver!r}；drawn.page {[s.get('drawn', {}).get('page') for s in st]}")
     pres = sorted({p[2] for p in st[0]["pts"]})
     widths = page.evaluate(f"""() => [...document.querySelectorAll('#annot-layer path')].map(p => p.getBBox().height)""")
     rep.check("a3 压感进了笔画", len(pres) > 3 and min(pres) >= 0, f"第一笔压感取值 {pres[:3]}…{pres[-2:]}（共 {len(pres)} 种）")
@@ -482,9 +501,70 @@ def test_drift(browser, rep, out, text, tgt, ids, ref):
     status_text = page.inner_text("#annot-status")
     rep.check("f1 目标删掉后两笔隐藏、数据不丢", st["orphans"] == 2 and all("orphan" in c and d == "none" for c, d in cls),
               f"orphans={st['orphans']}，path={cls}，提示「{status_text.strip()}」")
+    check_no_gray(rep, page, "f2 目标删掉之后")
     page.evaluate(f"document.querySelector('#annot-layer path[data-id=\"{ids[1]}\"]').scrollIntoView({{block: 'center', behavior: 'instant'}})")
     page.wait_for_timeout(300)
     page.screenshot(path=str(out / "f_orphan.png"))
+    ctx.close()
+
+
+def test_move_redraws(browser, rep, text, tgt, ids):
+    """m) 用户「移动」一笔 = 新的 drawn（画的原样换成移动后的样子）；只是导入、渲染不改 drawn。"""
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    page = open_page(ctx, "week3_4.html")
+    cdp = ctx.new_cdp_session(page)
+    import_notes(page, text)
+    old = {s["id"]: json.dumps(s["drawn"], ensure_ascii=False) for s in strokes(page)}
+    page.click('[data-tool="move"]')
+    scroll_to(page, img_js(tgt["src"]))
+    x, y = page.evaluate("id => { const N = window.__nipcNotes, f = N.frame(), p = N.placed(id).abs[0]; "
+                         "return [f.x + p[0] * f.s, f.y + p[1] * f.s]; }", ids[0])
+    pen_stroke(cdp, [(x + 3 * k, y + 2 * k) for k in range(11)], [0.5] * 11)
+    page.wait_for_timeout(300)
+    now = {s["id"]: s for s in strokes(page)}
+    moved, kept = now.get(ids[0]), now.get(ids[1])
+    rep.check("m1 移动一笔后 drawn 换成移动后的样子，另一笔 drawn 逐字节不变",
+              moved and json.dumps(moved["drawn"], ensure_ascii=False) != old[ids[0]] and moved["drawn"]["pts"] == moved["pts"]
+              and kept and json.dumps(kept["drawn"], ensure_ascii=False) == old[ids[1]],
+              f"被移动那笔 drawn 变了={moved and json.dumps(moved['drawn'], ensure_ascii=False) != old[ids[0]]}，"
+              f"另一笔 drawn 不变={kept and json.dumps(kept['drawn'], ensure_ascii=False) == old[ids[1]]}")
+    ctx.close()
+
+
+# 快照页的写入探针：在页面脚本之前装好，数 localStorage 的每一次写（setItem / removeItem / clear）
+LS_PROBE_JS = """(() => { window.__lsWrites = [];
+  for (const k of ['setItem', 'removeItem', 'clear']) {
+    const orig = Storage.prototype[k];
+    Storage.prototype[k] = function (...a) { window.__lsWrites.push([k, a[0]]); return orig.apply(this, a); };
+  } })();"""
+
+
+def test_snapshot_readonly(browser, rep, text):
+    """k) 只读快照页（window.NIPC_SNAPSHOT）：本机填了同步 token 也不联网、不写 localStorage——打开、展开工具栏、
+    等过推送防抖、切到后台都一样；笔照常画出来，画笔工具不出现。"""
+    fake, reqs = FakeGitHub(), []
+    ctx = sync_context(browser, fake)   # 本机存了 token（SYNC_INIT_JS 在探针装好之前写，不计数）
+    ctx.add_init_script(f"window.NIPC_SNAPSHOT = {text};")
+    ctx.add_init_script(LS_PROBE_JS)
+    ctx.on("request", lambda r: reqs.append((r.method, r.url)))
+    page = open_page(ctx, "week3_4.html")
+    page.wait_for_timeout(500)
+    page.click("#annot-fab")
+    page.click("#annot-collapse")
+    page.wait_for_timeout(3600)
+    page.evaluate("Object.defineProperty(document, 'visibilityState', {get: () => 'hidden', configurable: true}); "
+                  "document.dispatchEvent(new Event('visibilitychange'))")
+    page.wait_for_timeout(500)
+    n = len(json.loads(text)["strokes"])
+    shown = page.evaluate("ids => ids.filter(id => (window.__nipcNotes.placed(id) || {}).state === 'ok').length",
+                          [s["id"] for s in json.loads(text)["strokes"]])
+    writes = [r for r in reqs if r[0] not in ("GET", "HEAD")]
+    gh_calls = [r for r in reqs if "api.github.com" in r[1]]
+    ls = page.evaluate("window.__lsWrites")
+    tools = page.evaluate("getComputedStyle(document.getElementById('annot-tools')).display")
+    rep.check("k1 快照页零网络写、零 GitHub 请求、零 localStorage 写", not writes and not gh_calls and not fake.calls and not ls,
+              f"非 GET 请求 {writes}，GitHub 请求 {len(gh_calls)}，假仓库收到 {fake.calls}，localStorage 写 {ls}")
+    rep.check("k2 快照页照常画出全部笔、不给画笔工具", shown == n and tools == "none", f"显示 {shown}/{n} 笔，画笔工具 display={tools}")
     ctx.close()
 
 
@@ -725,6 +805,13 @@ def test_renames(browser, rep, out):
               f"目标字在卡片内 y {ref['moved']['targetTop']:.0f} → {got_moved.get('targetTop', 0):.0f}")
     cls = b.evaluate(f"document.querySelector('#annot-layer path[data-id=\"{ids['changed']}\"]').getAttribute('class')")
     rep.check("h3 内容本身改写（不在改名表）→ 隐藏", "orphan" in (cls or ""), f"class={cls!r}")
+    check_no_gray(rep, b, "h3 改名 / 搬段 / 改写之后")
+    before = {s["id"]: json.dumps(s["drawn"], ensure_ascii=False) for s in json.loads(notes)["strokes"]}
+    now = {s["id"]: json.dumps(s.get("drawn"), ensure_ascii=False) for s in strokes(b)}
+    changed = [i for i in before if now.get(i) != before[i]]
+    moved = sum(1 for i in before if after[i]["anchor"] != next(s for s in json.loads(notes)["strokes"] if s["id"] == i)["anchor"])
+    rep.check("h5 迁移 / 改名 / 重排后 drawn 逐字节不变", not changed and len(before) == 4,
+              f"{len(before)} 笔里 drawn 变了的 {changed}；同时匹配字段（anchor）被改的 {moved} 笔")
     new_needle = tg["renamed"].replace(tg["old"], new_txt)
     got_ren = b.evaluate(MEASURE_JS, {"id": ids["renamed"], "kind": "char", "needle": new_needle})
     compare(rep, f"h4 文字换写法（{tg['old']!r}→{new_txt!r}，在表里）后笔跟着走", ref["renamed"], got_ren)
@@ -934,6 +1021,8 @@ def main():
         test_week2_details(browser, rep, args.out)
         test_video_click(browser, rep)
         test_drift(browser, rep, args.out, text, tgt, ids, ref)
+        test_move_redraws(browser, rep, text, tgt, ids)
+        test_snapshot_readonly(browser, rep, text)
         test_sync(browser, rep)
         test_renames(browser, rep, args.out)
         run_scroll_probe(browser, rep, args.out, [(1440, 900), (820, 1180)], ["strokes_off", "notes_on"])

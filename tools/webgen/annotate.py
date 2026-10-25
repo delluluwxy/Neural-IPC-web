@@ -117,8 +117,8 @@ html.annot-on #annot-capture { display: block; }
 #annot-sync-panel label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
 #annot-sync-panel input { display: block; width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; margin-top: 2px;
                           border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: #fff; }
-/* 只读快照页：不能画、不能改设置，只有「确认位置并保存」和导出 */
-.annot-ui:not(.snap) #annot-confirm, .annot-ui.snap #annot-toggle, .annot-ui.snap #annot-tools,
+/* 只读快照页：不能画、不能改设置，只能看和导出 */
+.annot-ui.snap #annot-toggle, .annot-ui.snap #annot-tools,
 .annot-ui.snap #annot-undo, .annot-ui.snap #annot-clear, .annot-ui.snap #annot-import, .annot-ui.snap #annot-sync { display: none; }
 #annot-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
@@ -1432,7 +1432,7 @@ ANNOT_JS = r"""
 
   /* ---------- 14. 工具栏 ---------- */
   const ui = document.createElement('div');
-  ui.className = 'annot-ui';
+  ui.className = SNAP ? 'annot-ui snap' : 'annot-ui';   // 快照页只读：CSS 藏掉画笔、撤销、导入、同步
   ui.id = 'annot-ui';
   ui.innerHTML = `
     <button type="button" id="annot-fab" aria-label="展开笔记工具栏">✎ 笔记</button>
