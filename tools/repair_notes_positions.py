@@ -594,6 +594,9 @@ def main():
                     help="只读查原因：这些笔圈住的关键词在当前页面（换上当前标注层）每一处出现的位置与段落相似度，写到 --out")
     ap.add_argument("--fig-labels", default=str(WORKTREES / "fig_labels/labels.json"),
                     help="配 --reanchor-origin：sandbox tools/figs/fig_label_boxes.py 输出的各版图文字标注框（图上的笔跟着标注走）")
+    ap.add_argument("--gate", action="store_true",
+                    help="推送前闸门（tools/githooks/pre-push 调）：用户现在的笔记在线上版本与工作区页面上逐笔比圈住的内容，"
+                         "位置变了的有一笔就退出码 1；内容删了而隐藏的只列出不拦")
     ap.add_argument("--write-renames", action="store_true",
                     help="配 --explain：把只差字母一一换名（θ→ψ、t→q）的公式对补进讲稿目录的 notation_renames_<页>.json")
     args = ap.parse_args()
@@ -603,7 +606,11 @@ def main():
     stem = pathlib.Path(args.page).stem
     if args.shots:
         pathlib.Path(args.shots).mkdir(parents=True, exist_ok=True)
-    history = note_history(stem)
+    if args.gate:   # 闸门只要现在的笔记，不拉历史
+        history = [(datetime.datetime.now(datetime.timezone.utc),
+                    json.loads(gh("-H", "Accept: application/vnd.github.raw", f"repos/{REPO}/contents/notes/{stem}.json")))]
+    else:
+        history = note_history(stem)
     current = history[-1][1]
     ids = {s["id"] for s in current["strokes"]} & set(args.only or [s["id"] for s in current["strokes"]])
     origin = {}
@@ -623,13 +630,21 @@ def main():
     import time
     t0 = time.time()
     common = dict(page=args.page, worktrees=pathlib.Path(args.worktrees), root=ROOT, current=current)
+    if args.gate:
+        # 推送前闸门：用户现在的笔记，在线上版本（origin/main）与要推的版本（工作区）上各圈住什么，逐笔比（同 --verify-cover）
+        live = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "origin/main"], capture_output=True, text=True,
+                              check=True).stdout.strip()
+        groups = {live: [s for s in current["strokes"] if s["id"] in ids]}
+        version = {s["id"]: live for s in groups[live]}
+        args.verify_cover = True
+        print(f"== 闸门：线上 {live[:7]} 对 工作区，{len(ids)} 笔", flush=True)
     for sha in groups:
         checkout(sha, common["worktrees"])          # 先检出，免得几个进程同时 git worktree add
-    if args.verify:
+    if args.verify or args.gate:
         # 精确核对：每笔在原版页面（原始笔画）与当前页面（VERIFY_JSON 的笔画）上压住的字 / 公式符号 / 图位置是否相同
-        shown = json.loads(pathlib.Path(args.verify).read_text(encoding="utf-8"))
-        vfile = pathlib.Path(args.verify + ".versions.json")
-        if vfile.exists():   # 迁移时实际用的原版（换过版本的笔按它分组）
+        shown = current if args.gate else json.loads(pathlib.Path(args.verify).read_text(encoding="utf-8"))
+        vfile = pathlib.Path(f"{args.verify}.versions.json")
+        if not args.gate and vfile.exists():   # 迁移时实际用的原版（换过版本的笔按它分组）
             version = json.loads(vfile.read_text(encoding="utf-8"))
             by = {s["id"]: s for g in groups.values() for s in g}
             groups = {}
@@ -707,6 +722,11 @@ def main():
             pct = "" if r["match"] is None else (f"（范围内对上 {100 * r['match']:.0f}%；原来有、现在对不上的「{a.get('lost', '')}」，"
                                                 f"现在多出来的「{b.get('extra', '')}」）")
             print(f"  {r['id']}{pct}\n      原来：{fmt(a)}\n      现在：{fmt(b)}")
+        if args.gate:
+            moved = [r for r in bad if not (r["old"]["state"] == "ok" and r["new"]["state"] == "orphan")]
+            print(f"== 闸门{'不通过' if moved else '通过'}：圈的位置变了 {len(moved)} 笔；"
+                  f"圈的内容删了、已隐藏 {len(bad) - len(moved)} 笔（不拦，见上面明细）")
+            sys.exit(1 if moved else 0)
         return
     if args.shots_for:
         # 只出对照图：给定的笔（id 列表文件），左原版页面 + 原笔画，右当前页面 + NOTES_JSON 里的笔画

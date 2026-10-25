@@ -1,0 +1,14 @@
+#!/bin/bash
+# 推送网页前核对手写笔记：笔记仓库里有笔记的每一页，逐笔比它在线上版本（origin/main）与要推的版本上圈住的内容；
+# 有一笔圈的位置变了就拦下推送（内容删了而隐藏的只列出，不拦）。启用：git config core.hooksPath tools/githooks
+set -o pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 1
+OUT=/nas/xiaoyingwang/Neural-IPC/outputs/web_annotate_test
+for name in $(gh api repos/delluluwxy/neural-ipc-notes/contents/notes --jq '.[].name'); do
+  page="${name%.json}.html"
+  [ -f "$page" ] || continue
+  /bin/python tools/repair_notes_positions.py "$page" --gate --out "$OUT/gate_${name}" || {
+    echo "笔记位置核对不通过：$page（明细 $OUT/gate_${name}），推送已拦下" >&2
+    exit 1
+  }
+done
