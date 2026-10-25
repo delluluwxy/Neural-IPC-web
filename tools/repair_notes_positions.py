@@ -248,7 +248,18 @@ HIT_JS = """ids => {
     const zone = cand.filter(it => P.some(([x, y]) =>
         Math.hypot(Math.max(it[2] - x, 0, x - it[4]), Math.max(it[3] - y, 0, y - it[5])) <= ZONE))
       .map(it => [it[1], Math.round(((it[2] + it[4]) / 2 - x0) / f.s * 2) / 2, Math.round(((it[3] + it[5]) / 2 - y0) / f.s * 2) / 2]);
-    out[id] = {state: 'ok', text, glyph, media: med, near, zone};
+    // 圈住的内容：中心落在笔画外框里的字 / 符号（按文档顺序，NFKC 归一）；一个都没有就取离笔画最近（30 px 内）的那一个。
+    // 同时记第一个的中心相对起笔点的位置（未缩放 px）
+    const ctr = it => [(it[2] + it[4]) / 2, (it[3] + it[5]) / 2];
+    let cov = cand.filter(it => { const [cx, cy] = ctr(it); return cx >= bx[0] + r && cx <= bx[2] - r && cy >= bx[1] + r && cy <= bx[3] - r; });
+    if (!cov.length) {
+      const d = it => Math.min(...P.map(([x, y]) => Math.hypot(Math.max(it[2] - x, 0, x - it[4]), Math.max(it[3] - y, 0, y - it[5]))));
+      const best = cand.map(it => [d(it), it]).filter(([dd]) => dd <= 30 * f.s).sort((p, q) => p[0] - q[0])[0];
+      cov = best ? [best[1]] : [];
+    }
+    const cover = cov.map(it => it[1].normalize('NFKC')).join('');
+    const off = cov.length ? [Math.round((ctr(cov[0])[0] - x0) / f.s * 2) / 2, Math.round((ctr(cov[0])[1] - y0) / f.s * 2) / 2] : null;
+    out[id] = {state: 'ok', text, glyph, media: med, near, zone, cover, off};
   }
   return out;
 }"""
@@ -352,6 +363,8 @@ def main():
     ap.add_argument("--workers", type=int, default=8, help="并行进程数（每个进程一个 chromium）")
     ap.add_argument("--verify", metavar="NOTES_JSON",
                     help="精确核对：每笔在原版页面与「当前页面 + NOTES_JSON」上压住的字 / 公式符号 / 图位置；明细写到 --out")
+    ap.add_argument("--verify-cover", action="store_true",
+                    help="--verify 用新判据：圈住的内容串相同、它相对起笔点的位置差 ≤ 1 px")
     ap.add_argument("--shots-for", nargs=2, metavar=("IDS_TXT", "NOTES_JSON"),
                     help="只出对照图（要配 --shots）：这些笔在原版页面与「当前页面 + NOTES_JSON」上的样子")
     ap.add_argument("--reanchor-origin", metavar="BASE_JSON",
@@ -398,6 +411,14 @@ def main():
             if a["state"] != "ok" or b["state"] != "ok":
                 rows.append(dict(id=i, same=a["state"] == b["state"], match=None, old=a, new=b))
                 continue
+            if args.verify_cover:
+                # 新判据：圈住的内容串相同，且它相对起笔点的位置差 ≤ 1 px（图上的笔仍比图内位置）
+                same_off = a["off"] is not None and b["off"] is not None and all(abs(x - y) <= 1 for x, y in zip(a["off"], b["off"]))
+                same = (a["cover"] == b["cover"] and same_off) if not a["media"] else a["media"] == b["media"] or all(
+                    abs(float(x) - float(y)) <= 0.01 for ma, mb in zip(a["media"], b["media"])
+                    for x, y in zip(ma.split("@")[1].split(","), mb.split("@")[1].split(",")))
+                rows.append(dict(id=i, same=same, match=None, old=a, new=b))
+                continue
             # 影响范围内的内容一一对应：原版范围里每个字 / 符号，在现在的范围里有同一个字、相对起笔点的位置差 ≤ 1 px
             pool, lost = list(b["zone"]), []
             for it in a["zone"]:
@@ -422,6 +443,7 @@ def main():
         for r in bad:
             a, b = r["old"], r["new"]
             fmt = lambda h: (h["state"] if h["state"] != "ok" else
+                             f"圈住「{h['cover']}」 位置 {h['off']} 图{h['media']}" if args.verify_cover else
                              f"范围内「{''.join(z[0] for z in h['zone'])}」 压住「{h['text']}{h['glyph']}」 图{h['media']}")
             pct = "" if r["match"] is None else (f"（范围内对上 {100 * r['match']:.0f}%；原来有、现在对不上的「{a.get('lost', '')}」，"
                                                 f"现在多出来的「{b.get('extra', '')}」）")
