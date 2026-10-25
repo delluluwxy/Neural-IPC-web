@@ -1470,7 +1470,7 @@ CONSIST_JS = r"""(near) => {
     if (!core.length) { const d = Math.min(...zone.map(it => dist(it.q))); core = zone.filter(it => dist(it.q) <= d + 0.5); how = 'nearest'; }
     const rel = it => [it.k, it.k === 't' ? it.p : [it.m, it.i], it.c, +(cx(it.q) - B.l).toFixed(2), +(cy(it.q) - B.t).toFixed(2)];
     const med = media.findIndex(m => cx(B) >= m.q.l && cx(B) <= m.q.r && cy(B) >= m.q.t && cy(B) <= m.q.b);
-    out[path.dataset.id] = { box: [B.l, B.t, B.r - B.l, B.b - B.t].map(v => +v.toFixed(2)), how, core: core.map(rel), zone: zone.map(rel),
+    out[path.dataset.id] = { box: [B.l, B.t, B.r - B.l, B.b - B.t].map(v => +v.toFixed(2)), how, core: core.map(rel), nzone: zone.length,
       media: med < 0 ? null : { src: media[med].src, nth: media.slice(0, med).filter(m => m.src === media[med].src).length,
         rel: [(B.l - media[med].q.l) / (media[med].q.r - media[med].q.l), (B.t - media[med].q.t) / (media[med].q.b - media[med].q.t)],
         size: [media[med].q.r - media[med].q.l, media[med].q.b - media[med].q.t] } };
