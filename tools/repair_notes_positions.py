@@ -195,6 +195,61 @@ GLYPH_JS = """ids => {
 }"""
 
 
+# 每一笔精确压在哪些内容上：笔画每个点（按笔宽的一半作半径）落进哪些正文字、公式符号（data-c 字形）、图 / 视频。
+# 先按笔画外框筛候选，再逐点判断。文字按文档顺序连成串；图记文件名和笔画点在图内的平均位置（0–1，取 3 位）。
+HIT_JS = """ids => {
+  const N = window.__nipcNotes, f = N.frame(), art = document.querySelector('main article');
+  const skip = n => !n.parentElement || !!n.parentElement.closest('mjx-container, script, style, svg, .annot-ui');
+  const items = [], rg = document.createRange(), w = document.createTreeWalker(art, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    if (skip(n)) continue;
+    for (let i = 0; i < n.data.length; i++) {
+      if (/\\s/.test(n.data[i])) continue;
+      rg.setStart(n, i); rg.setEnd(n, i + 1);
+      const q = rg.getBoundingClientRect();
+      if (q.width || q.height) items.push(['t', n.data[i], q.left, q.top, q.right, q.bottom]);
+    }
+  }
+  for (const e of art.querySelectorAll('mjx-container [data-c]')) {
+    const q = e.getBoundingClientRect(), c = parseInt(e.getAttribute('data-c'), 16);
+    if (q.width || q.height) items.push(['g', Number.isFinite(c) ? String.fromCodePoint(c) : '?', q.left, q.top, q.right, q.bottom]);
+  }
+  const media = [...art.querySelectorAll('img, video')].map(e => [(e.getAttribute('src') || '').split('/').pop(), e.getBoundingClientRect()]);
+  const byId = new Map(N.strokes().map(s => [s.id, s]));
+  const out = {};
+  for (const id of ids) {
+    const pl = N.placed(id), s = byId.get(id);
+    if (!pl || pl.state !== 'ok' || !pl.abs || !s) { out[id] = {state: pl ? pl.state : 'none'}; continue; }
+    const r = (s.w || 2) / 2 * f.s, P = pl.abs.map(p => [f.x + p[0] * f.s, f.y + p[1] * f.s]);
+    const bx = [Math.min(...P.map(p => p[0])) - r, Math.min(...P.map(p => p[1])) - r,
+                Math.max(...P.map(p => p[0])) + r, Math.max(...P.map(p => p[1])) + r];
+    const hit = (l, t, rr, b) => l <= bx[2] && rr >= bx[0] && t <= bx[3] && b >= bx[1] &&
+      P.some(([x, y]) => x >= l - r && x <= rr + r && y >= t - r && y <= b + r);
+    const text = items.filter(it => it[0] === 't' && hit(it[2], it[3], it[4], it[5])).map(it => it[1]).join('');
+    const glyph = items.filter(it => it[0] === 'g' && hit(it[2], it[3], it[4], it[5])).map(it => it[1]).join('');
+    const med = media.filter(([, q]) => hit(q.left, q.top, q.right, q.bottom)).map(([src, q]) => {
+      const inside = P.filter(([x, y]) => x >= q.left && x <= q.right && y >= q.top && y <= q.bottom);
+      const mx = inside.reduce((a, p) => a + (p[0] - q.left) / q.width, 0) / (inside.length || 1);
+      const my = inside.reduce((a, p) => a + (p[1] - q.top) / q.height, 0) / (inside.length || 1);
+      return `${src}@${mx.toFixed(3)},${my.toFixed(3)}`;
+    });
+    out[id] = {state: 'ok', text, glyph, media: med};
+  }
+  return out;
+}"""
+
+
+def hits(job):
+    """一个进程在一个页面上算一批笔压住的内容：job 里 sha 为 None 表示当前页面。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        path = job["root"] / job["page"] if job["sha"] is None else checkout(job["sha"], job["worktrees"]) / job["page"]
+        page = open_with_notes(browser, path, dict(job["current"], strokes=job["strokes"]))
+        got = page.evaluate(HIT_JS, [s["id"] for s in job["strokes"]])
+        browser.close()
+    return got
+
+
 def glyph_anchors(job):
     """一个进程处理一个原版页面上的公式笔：返回 {笔 id: 新的 tex / g / orig / pts 或 None}。"""
     with sync_playwright() as p:
@@ -252,6 +307,8 @@ def main():
     ap.add_argument("--worktrees", default=str(WORKTREES), help="旧版页面 worktree 放哪")
     ap.add_argument("--only", nargs="+", help="只修这几笔（冒烟用；其余笔原样写出）")
     ap.add_argument("--workers", type=int, default=8, help="并行进程数（每个进程一个 chromium）")
+    ap.add_argument("--verify", metavar="NOTES_JSON",
+                    help="精确核对：每笔在原版页面与「当前页面 + NOTES_JSON」上压住的字 / 公式符号 / 图位置；明细写到 --out")
     ap.add_argument("--shots-for", nargs=2, metavar=("IDS_TXT", "NOTES_JSON"),
                     help="只出对照图（要配 --shots）：这些笔在原版页面与「当前页面 + NOTES_JSON」上的样子")
     ap.add_argument("--math-from-origin", metavar="BASE_JSON",
@@ -281,6 +338,31 @@ def main():
     common = dict(page=args.page, worktrees=pathlib.Path(args.worktrees), root=ROOT, current=current)
     for sha in groups:
         checkout(sha, common["worktrees"])          # 先检出，免得几个进程同时 git worktree add
+    if args.verify:
+        # 精确核对：每笔在原版页面（原始笔画）与当前页面（VERIFY_JSON 的笔画）上压住的字 / 公式符号 / 图位置是否相同
+        shown = json.loads(pathlib.Path(args.verify).read_text(encoding="utf-8"))
+        jobs = [dict(common, sha=sha, strokes=g) for sha, g in groups.items()]
+        jobs.append(dict(common, sha=None, current=shown, strokes=[s for s in shown["strokes"] if s["id"] in ids]))
+        with mp.get_context("spawn").Pool(len(jobs)) as pool:
+            outs = pool.map(hits, jobs)
+        old = {k: v for r in outs[:-1] for k, v in r.items()}
+        new = outs[-1]
+        rows = []
+        for i in sorted(ids):
+            a, b = old.get(i, {"state": "none"}), new.get(i, {"state": "none"})
+            same = a == b
+            rows.append(dict(id=i, same=same, old=a, new=b))
+        bad = [r for r in rows if not r["same"]]
+        report = pathlib.Path(args.out)
+        report.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"== 精确核对 {len(rows)} 笔：压住的内容完全相同 {len(rows) - len(bad)} 笔，不同 {len(bad)} 笔；"
+              f"用 {time.time() - t0:.0f} s；逐笔明细 {report}")
+        for r in bad:
+            a, b = r["old"], r["new"]
+            fmt = lambda h: (h["state"] if h["state"] != "ok" else
+                             f"字「{h['text']}」 符号「{h['glyph']}」 图{h['media']}")
+            print(f"  {r['id']}\n      原来：{fmt(a)}\n      现在：{fmt(b)}")
+        return
     if args.shots_for:
         # 只出对照图：给定的笔（id 列表文件），左原版页面 + 原笔画，右当前页面 + NOTES_JSON 里的笔画
         want = set(pathlib.Path(args.shots_for[0]).read_text().split())
