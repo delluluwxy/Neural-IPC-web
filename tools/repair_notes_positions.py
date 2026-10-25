@@ -611,6 +611,18 @@ def origin_report(args):
         print(f"  {k}  {n}")
 
 
+def font_check(job):
+    """（子进程）一个原版页面换上当前标注层、导入当初的笔：每笔锚点在本机排版下的参考矩形，与笔里存的画笔设备上的 orig 比。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        path = with_new_layer(checkout(job["sha"], job["worktrees"]) / job["page"])
+        page = open_with_notes(browser, path, dict(job["current"], strokes=job["strokes"]))
+        got = page.evaluate("ids => window.__nipcNotes.anchorRects(ids)", [s["id"] for s in job["strokes"]])
+        fonts = page.evaluate("getComputedStyle(document.querySelector('article p')).fontFamily")
+        browser.close()
+    return got, fonts
+
+
 def restore(args):
     """--restore SHA：笔记仓库 notes/<页>.json 原样恢复成提交 SHA 时的内容（字节不改），带当前 sha 覆盖写。"""
     import base64
@@ -689,6 +701,8 @@ def main():
     ap.add_argument("--restore", metavar="SHA", help="笔记仓库这一页的笔记原样恢复成某个提交时的内容")
     ap.add_argument("--origin-report", action="store_true",
                     help="每笔画的时候线上部署的是哪一版（Pages 部署记录），和按提交时间推的版本比，写到 --out")
+    ap.add_argument("--font-check", action="store_true",
+                    help="每笔起笔那个字在画笔设备上量的宽高（orig）与本机排版下的比，判断两边字体排版是否一致，写到 --out")
     args = ap.parse_args()
     if args.origin_report:
         origin_report(args)
@@ -835,6 +849,27 @@ def main():
         with mp.get_context("spawn").Pool(len(chunks)) as pool:
             pool.map(shoot, [dict(common, groups=g, repaired=shown, shots=args.shots) for g in chunks])
         print(f"== 对照图 {len(want)} 笔，用 {time.time() - t0:.0f} s，写到 {args.shots}")
+        return
+    if args.font_check:
+        # 每笔用它第一次存下时的锚点（画笔设备上建的），在当初那版页面上按本机排版放，量锚点参考矩形，与存的 orig（设备上量的）比
+        jobs = [dict(common, sha=sha, strokes=g) for sha, g in groups.items()]
+        with mp.get_context("spawn").Pool(len(jobs)) as pool:
+            outs = pool.map(font_check, jobs)
+        orig = {s["id"]: s for g in groups.values() for s in g}
+        rows = []
+        for got, fonts in outs:
+            for i, r in got.items():
+                o = orig[i].get("orig")
+                if r and o and orig[i].get("frame") == "px":
+                    rows.append(dict(id=i, type=r["type"], device=[o["w"], o["h"]], here=[round(r["w"], 2), round(r["h"], 2)]))
+        pathlib.Path(args.out).write_text(json.dumps(dict(fonts=[f for _, f in outs], rows=rows), ensure_ascii=False, indent=1),
+                                          encoding="utf-8")
+        text = [r for r in rows if r["type"] == "text"]
+        same = [r for r in text if abs(r["device"][0] - r["here"][0]) <= 0.5 and abs(r["device"][1] - r["here"][1]) <= 0.5]
+        print(f"== 正文锚点 {len(text)} 笔：起笔那个字的宽高，画笔设备上与本机相同（≤ 0.5 px）{len(same)} 笔、不同 {len(text) - len(same)} 笔；"
+              f"本机正文字体 {outs[0][1]}；明细 {args.out}")
+        for r in [r for r in text if r not in same][:12]:
+            print(f"  {r['id']}  设备 {r['device']}  本机 {r['here']}")
         return
     if args.reanchor_origin:
         # 每笔在它当初画的那版页面上、按它圈住的内容重新建锚点（每个版本一个进程），写进底稿笔记

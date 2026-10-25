@@ -1641,6 +1641,13 @@ ANNOT_JS = r"""
         return out;
       },
       texList: () => allMath().map(m => m.tex),
+      // 核对字体排版用（只读）：每笔存的锚点此刻在本机排版下的参考矩形（正文卡片 px），与笔里存的画笔设备上的 orig 比
+      anchorRects: ids => Object.fromEntries(ids.map(id => {
+        const s = S.strokes.find(t => t.id === id);
+        if (!s) return [id, null];
+        const pl = place(s, frame());
+        return [id, pl.state === 'ok' ? { x: pl.R.x, y: pl.R.y, w: pl.R.w, h: pl.R.h, type: s.anchor.type } : null];
+      })),
       // 查原因用（只读）：一笔圈住的关键词在当前页面每一处出现的位置、所在段落相似度、是否在收起的折叠里
       explain: id => {
         const s = S.strokes.find(t => t.id === id);
