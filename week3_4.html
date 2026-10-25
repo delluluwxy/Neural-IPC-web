@@ -224,6 +224,9 @@ html.annot-on #annot-capture { display: block; }
 #annot-sync-panel label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
 #annot-sync-panel input { display: block; width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; margin-top: 2px;
                           border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: #fff; }
+/* 只读快照页：不能画、不能改设置，只能看和导出 */
+.annot-ui.snap #annot-toggle, .annot-ui.snap #annot-tools,
+.annot-ui.snap #annot-undo, .annot-ui.snap #annot-clear, .annot-ui.snap #annot-import, .annot-ui.snap #annot-sync { display: none; }
 #annot-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* ===== 打印 / 生成 PDF：笔迹跟着各自的块走，正文保持 920px 排版再整体缩到纸宽 ===== */
@@ -237,6 +240,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
+<script>window.NIPC_PAGE = "80d7d9f3a4fc";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -1570,7 +1574,7 @@ html.annot-on #annot-capture { display: block; }
   viewer.addEventListener('close', () => opener && opener.focus({ preventScroll: true }));
 })();
 </script>
-<script type="application/json" id="annot-renames">{"tex": {"J=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "K=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a1\\,dx.": "K=\\frac{dF}{d\\delta}=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a\\frac{\\partial}{\\partial\\delta}\\big(\\delta-g(x)\\big)dx.", "\\color{#c0392b}{U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}}.": "U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}.", "\\color{#c0392b}{\\frac{U_H}{E^*R^3}=\\frac{8}{15}\\cdot\\frac{\\sqrt R\\,\\delta^{5/2}}{R^3}=\\frac{8}{15}\\Big(\\frac{\\delta}{R}\\Big)^{5/2}}.": "\\frac{U_H}{E^*R^3}=\\frac{8}{15}\\cdot\\frac{\\sqrt R\\,\\delta^{5/2}}{R^3}.", "\\color{#c0392b}{c=\\frac{2\\cdot\\tfrac12F\\delta}{2\\cdot\\tfrac12F_1\\delta}=\\frac{F}{F_1}=\\frac{1}{1+\\dfrac{2a}{\\pi r}}}.": "c=\\frac{2\\cdot\\tfrac12F\\delta}{2\\cdot\\tfrac12F_1\\delta}=\\frac{F}{F_1}=\\frac{1}{1+\\dfrac{2a}{\\pi r}}.", "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}": "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}.", "\\color{#c0392b}{\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.": "\\color{#c0392b}{p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.", "\\color{#c0392b}{\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2}.": "\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2.", "\\frac{U_H'}{U_H}=\\frac{\\sqrt{R}}{\\sqrt{R/2}}=\\sqrt2,": "\\frac{U_H'}{U_H}=\\frac{\\frac8{15}E^*\\sqrt{R^{*\\prime}}\\,\\delta^{5/2}}{\\frac8{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}}=\\frac{\\sqrt{R}}{\\sqrt{R/2}}=\\sqrt2.", "\\langle U\\rangle=2\\pi R\\int_0^\\delta(\\delta-s)\\,\\bar p(s)\\,ds\\ \\propto\\ R.": "\\color{#c0392b}{\\langle U\\rangle=2\\pi R\\int_0^\\delta(\\delta-s)\\,\\bar p(s)\\,ds\\ \\propto\\ R};", "\\frac{1+\\varepsilon}{1-\\varepsilon}\\ge\\frac{2}{\\sqrt2}=\\sqrt2\\ \\Longrightarrow\\ \\varepsilon\\ge\\frac{\\sqrt2-1}{\\sqrt2+1}=17.16\\%.": "\\color{#c0392b}{\\varepsilon\\ge\\frac{\\sqrt2-1}{\\sqrt2+1}=17.16\\%};", "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}\\mathcal E\\,dV+\\int_{\\Omega_②}\\mathcal E\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②},", "\\color{#c0392b}{U_③=c\\,(U_①+U_②),\\qquad c<1}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②},", "\\color{#c0392b}{(1-\\varepsilon)\\,U_k\\le U^{\\text{hydro}}_k\\le(1+\\varepsilon)\\,U_k,\\qquad k=①,②,③}.": "\\color{#c0392b}{(1-\\varepsilon)\\,U_k\\le U^{\\text{hydro}}_k\\le(1+\\varepsilon)\\,U_k,\\qquad k=①,②,③};", "\\color{#c0392b}{1-\\varepsilon\\le c+c\\,\\varepsilon\\ \\Longrightarrow\\ \\varepsilon\\ge\\frac{1-c}{1+c}}.": "\\color{#c0392b}{\\varepsilon\\ge\\frac{1-c}{1+c}}.", "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\sigma\\sqrt s\\,ds=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},": "U=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\Big(\\frac23-\\frac25\\Big)\\delta^{5/2}=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}.", "\\color{#c0392b}{T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}}.": "T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}.", "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr=2E^*\\delta\\Big[-\\sqrt{\\tilde a^2-r^2}\\Big]_0^{\\tilde a}=2E^*\\tilde a\\,\\delta.": "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr.", "\\color{#c0392b}{p(r)=\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}}\\quad(r<\\tilde a),": "p(r)=\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\quad(r<\\tilde a).", "u(\\mathbf x)=\\frac{1}{\\pi E^*}\\int_{\\text{圆盘}}\\frac{p(\\mathbf x')}{|\\mathbf x-\\mathbf x'|}\\,d\\mathbf x'.": "\\frac1{E^*}\\cdot\\frac1\\pi\\int_{\\text{圆盘}}\\frac{p(\\mathbf x')}{|\\mathbf x-\\mathbf x'|}\\,d\\mathbf x'=\\delta.", "u(\\mathbf x)=\\frac{\\delta}{\\pi^2}\\,I,\\qquad I=\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}.": "u(\\mathbf x)=\\frac{E^*\\delta}{\\pi\\cdot\\pi E^*}\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}=\\frac{\\delta}{\\pi^2}\\,I,\\qquad I=\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}.", "\\color{#c0392b}{d\\mathbf x'=\\rho\\,d\\rho\\,d\\varphi,\\qquad|\\mathbf x-\\mathbf x'|=\\rho}.": "d\\mathbf x'=d\\rho\\cdot\\rho\\,d\\varphi=\\rho\\,d\\rho\\,d\\varphi.", "d\\mathbf x'=\\rho\\,d\\rho\\,d\\varphi,\\qquad|\\mathbf x-\\mathbf x'|=\\rho.": "d\\mathbf x'=d\\rho\\cdot\\rho\\,d\\varphi=\\rho\\,d\\rho\\,d\\varphi.", "I=\\int_0^{2\\pi}\\left[\\int_0^{\\text{边缘}}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}\\right]d\\varphi.": "I=\\int_0^{2\\pi}\\left[\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}\\right]d\\varphi.", "\\color{#c0392b}{r^2=m^2+t^2,\\qquad\\tilde a^2=m^2+c^2}.": "r^2=m^2+q^2,\\qquad\\tilde a^2=m^2+c^2.", "r^2=m^2+t^2,\\qquad\\tilde a^2=m^2+c^2.": "r^2=m^2+q^2,\\qquad\\tilde a^2=m^2+c^2.", "\\tilde a^2-r^2=c^2-t^2.": "\\tilde a^2-r^2=(m^2+c^2)-(m^2+q^2)=c^2-q^2.", "\\tilde a^2-r^2=(m^2+c^2)-(m^2+t^2)=c^2-t^2.": "\\tilde a^2-r^2=(m^2+c^2)-(m^2+q^2)=c^2-q^2.", "\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}.", "\\int_0^{L(\\varphi+\\pi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{t_{\\mathbf x}}^{-c}\\frac{-dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_0^{L(\\varphi+\\pi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{q_{\\mathbf x}}^{-c}\\frac{-dq}{\\sqrt{c^2-q^2}}.", "\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}+\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}+\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}\\equiv J.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "t=c\\sin\\theta,\\qquad\\sqrt{c^2-t^2}=c\\cos\\theta,\\qquad dt=c\\cos\\theta\\,d\\theta,": "q=c\\sin\\psi,\\qquad-\\frac{\\pi}{2}\\le\\psi\\le\\frac{\\pi}{2}.", "t=c\\sin\\theta.": "q=c\\sin\\psi,\\qquad-\\frac{\\pi}{2}\\le\\psi\\le\\frac{\\pi}{2}.", "\\sqrt{c^2-t^2}=\\sqrt{c^2-c^2\\sin^2\\theta}=c\\sqrt{1-\\sin^2\\theta}=c\\sqrt{\\cos^2\\theta}=c\\cos\\theta.": "\\sqrt{c^2-q^2}=\\sqrt{c^2-c^2\\sin^2\\psi}=c\\sqrt{\\cos^2\\psi}=c\\cos\\psi.", "\\sqrt{c^2-t^2}=\\sqrt{c^2-c^2\\sin^2\\theta}=c\\sqrt{\\cos^2\\theta}=c\\cos\\theta.": "\\sqrt{c^2-q^2}=\\sqrt{c^2-c^2\\sin^2\\psi}=c\\sqrt{\\cos^2\\psi}=c\\cos\\psi.", "dt=c\\cos\\theta\\,d\\theta.": "dq=c\\cos\\psi\\,d\\psi.", "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\theta\\,d\\theta}{c\\cos\\theta}=\\int_{-\\pi/2}^{\\pi/2}d\\theta=\\pi.": "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\psi\\,d\\psi}{c\\cos\\psi}=\\int_{-\\pi/2}^{\\pi/2}d\\psi=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.", "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\theta\\,d\\theta}{c\\cos\\theta}=\\int_{-\\pi/2}^{\\pi/2}d\\theta=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.": "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\psi\\,d\\psi}{c\\cos\\psi}=\\int_{-\\pi/2}^{\\pi/2}d\\psi=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.", "I=\\int_0^{\\pi}J\\,d\\varphi=\\int_0^{\\pi}\\pi\\,d\\varphi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "I=\\int_0^{\\pi}\\pi\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\cdot\\pi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\cdot\\pi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr=2E^*\\delta\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}.": "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr.", "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\int_{\\tilde a^2}^{0}\\frac{-\\tfrac12\\,dv}{\\sqrt v}=\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv.": "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\int_{\\tilde a^2}^{0}\\frac{-\\frac12\\,dv}{\\sqrt v}=-\\frac12\\int_{\\tilde a^2}^{0}\\frac{dv}{\\sqrt v}.", "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\Big[\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\sqrt{\\tilde a^2}-0=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "F_{\\text{平底}}=2E^*\\delta\\cdot\\tilde a=2E^*\\tilde a\\,\\delta.": "F_{\\text{平底}}=2E^*\\tilde a\\,\\delta.", "\\color{#c0392b}{d=g(a),\\qquad F=2E^*\\int_0^a\\big(d-g(x)\\big)dx,\\qquad U_0=E^*\\int_0^a\\big(d-g(x)\\big)^2dx}.": "\\color{#c0392b}{\\delta=g(a),\\qquad F=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx,\\qquad U_0=E^*\\int_0^a\\big(\\delta-g(x)\\big)^2dx}.", "w(r)=\\frac{2\\delta}{\\pi}\\arcsin\\frac{\\tilde a}{r}\\quad(r>\\tilde a).": "u(r)=\\frac{2\\delta}{\\pi}\\arcsin\\frac{\\tilde a}{r}\\quad(r>\\tilde a).", "F=2E^*\\Big[\\tilde a\\,g(\\tilde a)\\Big]_0^a-2E^*\\int_0^ag\\,d\\tilde a=2E^*\\Big(a\\,d-\\int_0^ag\\,d\\tilde a\\Big)=2E^*\\int_0^a\\big(d-g(x)\\big)dx.": "F=2E^*\\Big[\\tilde a\\,g(\\tilde a)\\Big]_0^a-2E^*\\int_0^ag\\,d\\tilde a=2E^*\\Big(a\\,\\delta-\\int_0^ag\\,d\\tilde a\\Big)=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx.", "w(a)=\\frac2\\pi\\int_0^a\\arcsin\\frac{\\tilde a}{a}\\;g'(\\tilde a)\\,d\\tilde a.": "u(a)=\\frac2\\pi\\int_0^a\\arcsin\\frac{\\tilde a}{a}\\;g'(\\tilde a)\\,d\\tilde a.", "w(a)=\\frac2\\pi\\Big[\\arcsin\\frac{\\tilde a}{a}\\,g(\\tilde a)\\Big]_0^a-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.": "u(a)=\\frac2\\pi\\Big[\\arcsin\\frac{\\tilde a}{a}\\,g(\\tilde a)\\Big]_0^a-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.", "w(a)=d-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.": "u(a)=\\delta-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.", "\\int_t^x\\frac{r\\,dr}{\\sqrt{x^2-r^2}\\,\\sqrt{r^2-t^2}}=\\frac12\\int_{t^2}^{x^2}\\frac{du}{\\sqrt{(x^2-u)(u-t^2)}}=\\frac12\\int_0^{\\pi/2}2\\,d\\theta=\\frac\\pi2.": "\\int_t^x\\frac{r\\,dr}{\\sqrt{x^2-r^2}\\,\\sqrt{r^2-t^2}}=\\frac12\\int_{t^2}^{x^2}\\frac{d\\tau}{\\sqrt{(x^2-\\tau)(\\tau-t^2)}}=\\frac12\\int_0^{\\pi/2}2\\,d\\theta=\\frac\\pi2.", "\\frac{dU_0}{dd}=E^*\\big(d-g(a)\\big)^2\\frac{da}{dd}+E^*\\int_0^a2\\big(d-g(x)\\big)dx.": "\\frac{dU_0}{d\\delta}=E^*\\big(\\delta-g(a)\\big)^2\\frac{da}{d\\delta}+E^*\\int_0^a2\\big(\\delta-g(x)\\big)dx.", "\\frac{dU_0}{dd}=2E^*\\int_0^a\\big(d-g(x)\\big)dx=F.": "\\frac{dU_0}{d\\delta}=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx=F.", "K=2E^*\\big(d-g(a)\\big)\\frac{da}{dd}+2E^*\\int_0^a1\\,dx.": "K=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a1\\,dx.", "\\color{#c0392b}{h=f_A+f_B=\\frac{r^2}{2R_A}+\\frac{r^2}{2R_B}=\\frac{r^2}{2}\\Big(\\frac1{R_A}+\\frac1{R_B}\\Big)=\\frac{r^2}{2R},\\qquad \\frac1R=\\frac1{R_A}+\\frac1{R_B}}.": "\\color{#c0392b}{h=f_A+f_B=\\frac{r^2}{2R_A}+\\frac{r^2}{2R_B}=\\frac{r^2}{2}\\Big(\\frac1{R_A}+\\frac1{R_B}\\Big)=\\frac{r^2}{2R^*},\\qquad \\frac1{R^*}=\\frac1{R_A}+\\frac1{R_B}}.", "g(x)=\\frac{|x|}{R}\\int_0^{|x|}\\frac{r}{\\sqrt{x^2-r^2}}\\,dr=\\frac{|x|}{R}\\Big[-\\sqrt{x^2-r^2}\\Big]_0^{|x|}=\\frac{|x|}{R}\\big(0+|x|\\big)=\\frac{x^2}{R}.": "g(x)=\\frac{|x|}{R^*}\\int_0^{|x|}\\frac{r}{\\sqrt{x^2-r^2}}\\,dr=\\frac{|x|}{R^*}\\Big[-\\sqrt{x^2-r^2}\\Big]_0^{|x|}=\\frac{|x|}{R^*}\\big(0+|x|\\big)=\\frac{x^2}{R^*}.", "\\color{#c0392b}{F=2E^*\\int_0^a\\Big(d-\\frac{x^2}{R}\\Big)dx=2E^*\\Big(ad-\\frac{a^3}{3R}\\Big)}.": "\\color{#c0392b}{F=2E^*\\int_0^a\\Big(\\delta-\\frac{x^2}{R^*}\\Big)dx=2E^*\\Big(a\\delta-\\frac{a^3}{3R^*}\\Big)}.", "\\color{#c0392b}{F=2E^*\\Big(\\sqrt R\\,d^{3/2}-\\frac13\\sqrt R\\,d^{3/2}\\Big)=2E^*\\cdot\\frac23\\sqrt R\\,d^{3/2}=\\frac43E^*\\sqrt R\\,d^{3/2}}.": "\\color{#c0392b}{F=2E^*\\Big(\\sqrt{R^*}\\,\\delta^{3/2}-\\frac13\\sqrt{R^*}\\,\\delta^{3/2}\\Big)=2E^*\\cdot\\frac23\\sqrt{R^*}\\,\\delta^{3/2}=\\frac43E^*\\sqrt{R^*}\\,\\delta^{3/2}}.", "\\color{#c0392b}{U_H=\\int_0^d\\frac43E^*\\sqrt R\\,s^{3/2}\\,ds=\\frac43E^*\\sqrt R\\cdot\\frac25d^{5/2}=\\frac{8}{15}E^*\\sqrt R\\,d^{5/2}}.": "\\color{#c0392b}{U_H=\\int_0^\\delta\\frac43E^*\\sqrt{R^*}\\,\\delta'^{3/2}\\,d\\delta'=\\frac43E^*\\sqrt{R^*}\\cdot\\frac25\\delta^{5/2}=\\frac{8}{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}}.", "g(x)=|x|\\int_0^{|x|}\\frac{c\\,n\\,r^{n-1}}{\\sqrt{x^2-r^2}}\\,dr.": "g(x)=|x|\\int_0^{|x|}\\frac{A\\,n\\,r^{n-1}}{\\sqrt{x^2-r^2}}\\,dr.", "\\begin{aligned}g(x)&=|x|\\int_0^1\\frac{c\\,n\\,|x|^{n-1}t^{n-1}}{|x|\\sqrt{1-t^2}}\\,|x|\\,dt\\\\&=c\\,|x|^n\\cdot n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt\\\\&=\\kappa_n\\,c\\,|x|^n,\\qquad \\kappa_n=n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt.\\end{aligned}": "\\begin{aligned}g(x)&=|x|\\int_0^1\\frac{A\\,n\\,|x|^{n-1}t^{n-1}}{|x|\\sqrt{1-t^2}}\\,|x|\\,dt\\\\&=A\\,|x|^n\\cdot n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt\\\\&=\\mu_n\\,A\\,|x|^n,\\qquad \\mu_n=n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt.\\end{aligned}", "d=\\kappa_n\\,c\\,a^n\\ \\Longrightarrow\\ a=\\Big(\\frac{d}{\\kappa_n c}\\Big)^{1/n}\\propto d^{1/n}.": "\\delta=\\mu_n\\,A\\,a^n\\ \\Longrightarrow\\ a=\\Big(\\frac{\\delta}{\\mu_n A}\\Big)^{1/n}\\propto \\delta^{1/n}.", "U_0=E^*\\int_0^ad^2\\Big(1-\\Big(\\frac xa\\Big)^n\\Big)^2dx.": "U_0=E^*\\int_0^a\\delta^2\\Big(1-\\Big(\\frac xa\\Big)^n\\Big)^2dx.", "U_0=E^*\\,a\\,d^2\\int_0^1\\big(1-s^n\\big)^2ds\\ \\propto\\ a\\,d^2.": "U_0=E^*\\,a\\,\\delta^2\\int_0^1\\big(1-\\xi^n\\big)^2d\\xi\\ \\propto\\ a\\,\\delta^2.", "\\color{#c0392b}{U_0\\propto d^{1/n}\\cdot d^2=d^{2+1/n}=d^{(2n+1)/n}}.": "\\color{#c0392b}{U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}}.", "\\color{#c0392b}{\\text{扁度}=\\ln\\frac{\\kappa_1}{\\kappa_2}},": "\\color{#c0392b}{e=\\ln\\frac{\\kappa_1}{\\kappa_2}},", "X_1=X_0+2k\\hat d_2,\\qquad X_2=X_0+k\\hat d_2.": "X_1=X_0+2\\alpha\\hat d_2,\\qquad X_2=X_0+\\alpha\\hat d_2.", "X_0=X_2-k\\hat d_2=X_2-(X_1-X_2)=2X_2-X_1.": "X_0=X_2-\\alpha\\hat d_2=X_2-(X_1-X_2)=2X_2-X_1.", "X(L_1)=X_\\infty+\\frac{k}{L_1},\\qquad X(L_2)=X_\\infty+\\frac{k}{2L_1}.": "X(L_1)=X_\\infty+\\frac{\\alpha}{L_1},\\qquad X(L_2)=X_\\infty+\\frac{\\alpha}{2L_1}.", "U_2=U_\\infty+C\\Big(\\frac h2\\Big)^p,\\qquad U_3=U_\\infty+C\\Big(\\frac h4\\Big)^p.": "U^{(2)}=U_\\infty+C\\Big(\\frac h2\\Big)^p,\\qquad U^{(3)}=U_\\infty+C\\Big(\\frac h4\\Big)^p.", "U_2-U_3=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h4\\Big)^p\\big(2^p-1\\big)\\ \\Longrightarrow\\ C\\Big(\\frac h4\\Big)^p=\\frac{U_2-U_3}{2^p-1}.": "U^{(2)}-U^{(3)}=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h4\\Big)^p\\big(2^p-1\\big)\\ \\Longrightarrow\\ C\\Big(\\frac h4\\Big)^p=\\frac{U^{(2)}-U^{(3)}}{2^p-1}.", "U_\\infty=U_3-\\frac{U_2-U_3}{2^p-1}": "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}", "\\color{#c0392b}{U_\\infty=U_3+\\frac{U_3-U_2}{2^p-1}}.": "\\color{#c0392b}{U_\\infty=U^{(3)}+\\frac{U^{(3)}-U^{(2)}}{2^p-1}}.", "\\begin{aligned}U_1-U_2&=C\\,h^p-C\\Big(\\frac h2\\Big)^p=C\\,h^p(1-2^{-p}),\\\\U_2-U_3&=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h2\\Big)^p(1-2^{-p}).\\end{aligned}": "\\begin{aligned}U^{(1)}-U^{(2)}&=C\\,h^p-C\\Big(\\frac h2\\Big)^p=C\\,h^p(1-2^{-p}),\\\\U^{(2)}-U^{(3)}&=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h2\\Big)^p(1-2^{-p}).\\end{aligned}", "\\frac{U_1-U_2}{U_2-U_3}=\\frac{h^p}{(h/2)^p}=2^p.": "\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=\\frac{h^p}{(h/2)^p}=2^p.", "\\color{#c0392b}{\\frac{U_1-U_2}{U_2-U_3}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U_1-U_2}{U_2-U_3}}.": "\\color{#c0392b}{\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.", "\\varepsilon\\approx\\frac{\\rho^2}{2R}.": "\\zeta\\approx\\frac{\\rho^2}{2R}.", "\\color{#c0392b}{F(c)=\\tfrac43E^*\\sqrt R\\,(c-g_0)^{3/2},\\qquad f_i=\\frac{m_i}{M}\\,F}.": "\\color{#c0392b}{F(\\delta_{\\text t})=\\tfrac43E^*\\sqrt R\\,(\\delta_{\\text t}-\\gamma_0)^{3/2},\\qquad F^{\\text b}_i=\\frac{m_i}{M}\\,F}.", "\\color{#c0392b}{y\\leftarrow y+f(r)\\Big(1-\\frac yD\\Big),\\qquad f(r)=R-\\sqrt{R^2-\\min(r,r_{\\text{cap}})^2}}.": "\\color{#c0392b}{y\\leftarrow y+f(r)\\Big(1-\\frac yH\\Big),\\qquad f(r)=R-\\sqrt{R^2-\\min(r,r_{\\text{cap}})^2}}.", "\\color{#c0392b}{s_{\\text{管顶}}=\\sqrt{r^2-\\Big(\\sqrt{(R_T-z)^2+x^2}-R_T\\Big)^2}-r,\\qquad s_{\\text{内圈}}=R_T-r-\\sqrt{\\Big(R_T-\\sqrt{r^2-z^2}\\Big)^2-x^2}}.": "\\color{#c0392b}{\\begin{aligned}\\eta_{\\text{管顶}}&=\\sqrt{r_T^2-\\Big(\\sqrt{(R_T-z)^2+x^2}-R_T\\Big)^2}-r_T,\\\\\\eta_{\\text{内圈}}&=R_T-r_T-\\sqrt{\\Big(R_T-\\sqrt{r_T^2-z^2}\\Big)^2-x^2}.\\end{aligned}}", "U=\\frac{\\pi E^*R}{b}\\int_0^\\delta(\\delta-u)^2\\,du=\\frac{\\pi E^*R}{b}\\cdot\\frac{\\delta^3}{3}=\\frac{\\pi E^*R\\,\\delta^3}{3b}.": "U=\\frac{\\pi E^*R}{b}\\int_0^\\delta(\\delta-\\tau)^2\\,d\\tau=\\frac{\\pi E^*R}{b}\\cdot\\frac{\\delta^3}{3}=\\frac{\\pi E^*R\\,\\delta^3}{3b}.", "\\color{#c0392b}{\\frac1{R_{\\text{合}}}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R_{\\text{合}}=\\frac R2}.": "\\color{#c0392b}{\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2}.", "\\color{#c0392b}{p=\\frac{E_h}{D}\\times s}.": "\\color{#c0392b}{p=\\frac{E_h}{D_h}\\times s}.", "\\color{#c0392b}{U^{\\text{hydro}}=\\int_{\\Omega}e\\big(s(\\mathbf x)\\big)\\,dV}.": "\\color{#c0392b}{U^{\\text{hydro}}=\\int_{\\Omega}\\mathcal E\\big(s(\\mathbf x)\\big)\\,dV}.", "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}e\\,dV+\\int_{\\Omega_②}e\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}\\mathcal E\\,dV+\\int_{\\Omega_②}\\mathcal E\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.", "\\color{#c0392b}{p=c\\,\\frac{s}{r}}": "\\color{#c0392b}{p=\\beta\\,\\frac{s}{r}}", "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\kappa\\sqrt s\\,ds=2\\pi R\\kappa\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\kappa\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},": "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\sigma\\sqrt s\\,ds=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},", "T_{ij}=\\kappa_{\\text{合},ij}^{-2}=\\kappa_{P_i}^{-2}+\\kappa_{B_j}^{-2}=u_i+v_j.": "T_{ij}=\\sigma_{\\text{合},ij}^{-2}=\\sigma_{P_i}^{-2}+\\sigma_{B_j}^{-2}=C^{\\text P}_i+C^{\\text B}_j.", "T_{11}=u_1+v_1,\\quad T_{22}=u_2+v_2,\\quad T_{12}=u_1+v_2,\\quad T_{21}=u_2+v_1.": "T_{11}=C^{\\text P}_1+C^{\\text B}_1,\\quad T_{22}=C^{\\text P}_2+C^{\\text B}_2,\\quad T_{12}=C^{\\text P}_1+C^{\\text B}_2,\\quad T_{21}=C^{\\text P}_2+C^{\\text B}_1.", "\\color{#c0392b}{T_{11}+T_{22}=u_1+u_2+v_1+v_2=T_{12}+T_{21}}.": "\\color{#c0392b}{T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}}.", "R_e=\\frac{1}{\\sqrt{c_1c_2}}.": "R^*=\\frac{1}{\\sqrt{\\kappa_1\\kappa_2}}.", "F_U(e)=\\frac{U_{\\text{椭圆 Hertz}}}{U_H(R_e)}.": "F_U(e)=\\frac{U_{\\text{椭圆 Hertz}}}{U_H(R^*)}.", "U_{\\text{骨架}}=F_U\\cdot\\frac{8}{15}E^*\\sqrt{R_e}\\,\\delta^{5/2}.": "U_{\\text{骨架}}=F_U\\cdot\\frac{8}{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}.", "E_{\\text{contact}}=\\tfrac12\\,\\kappa\\sum_i a_i\\,\\max(0,\\,-d_i)^2.": "E_{\\text{contact}}=\\tfrac12\\,k_{\\text p}\\sum_i A_i\\,\\max(0,\\,-q_i)^2.", "\\color{#c0392b}{U_{\\text{contact}}=U_c-U_{0,1}-U_{0,2}},": "\\color{#c0392b}{U_{\\text{contact}}=U_c-U_{\\text{free},1}-U_{\\text{free},2}},", "\\color{#c0392b}{U=E^*\\cdot\\frac{8}{15}\\sqrt{R_{\\text{eff}}}\\,\\delta^{5/2}\\cdot\\exp(g)}.": "\\color{#c0392b}{U=E^*\\cdot\\frac{8}{15}\\sqrt{R^*}\\,\\delta^{5/2}\\cdot\\exp(\\phi)}.", "\\color{#c0392b}{u(r)=d-h(r)}": "\\color{#c0392b}{u(r)=\\delta-h(r)}", "\\cos\\theta\\ge0": "\\cos\\psi\\ge0", "\\sin^2\\theta+\\cos^2\\theta=1": "\\sin^2\\psi+\\cos^2\\psi=1", "dt=d\\rho": "dq=d\\rho"}, "text": {"是该节点受的力": "是该节点受的体力"}, "quote": [{"from": {"prefix": " 标签可信。 球、平底、圆锥、幂律压头、薄层、曲面块、斜压和", "exact": "两", "suffix": "压头同时压，标签与独立裁判的差都在 1%–2% 以内（斜压与"}, "to": {"prefix": " 标签可信。 球、平底、圆锥、幂律压头、薄层、曲面块、斜压和", "exact": "两", "suffix": "压头同时压，标签与独立裁判的差都在 1%–2% 以内（例外见"}}, {"from": {"prefix": ") 对 A、B 各写一次，由 (1) 两侧压力相同，相加： ", "exact": "左", "suffix": "边由 (4) 换成 ： 记合成模量，并代入 (3) ： 得到"}, "to": {"prefix": "积分里的压力是同一个 ： 两式相加，积分相同，提出公因子： ", "exact": "左", "suffix": "边由 (4) 换掉： 把括号记作 ，再代入 (3) ，即 ："}}, {"from": {"prefix": "由 (1) 两侧压力相同，相加： 左边由 (4) 换成 ： ", "exact": "记", "suffix": "合成模量，并代入 (3) ： 得到 结果。 这正是「形状为 "}, "to": {"prefix": "相加，积分相同，提出公因子： 左边由 (4) 换掉： 把括号", "exact": "记", "suffix": "作 ，再代入 (3) ，即 ： 上式括号换成 ： 结果。 这"}}, {"from": {"prefix": "由 (4) 换成 ： 记合成模量，并代入 (3) ： 得到 ", "exact": "结", "suffix": "果。 这正是「形状为 的刚体压硬度为 的半空间」的方程。所以"}, "to": {"prefix": " 把括号记作 ，再代入 (3) ，即 ： 上式括号换成 ： ", "exact": "结", "suffix": "果。 这正是「形状为 的刚体压硬度为 的半空间」的方程。所以"}}, {"from": {"prefix": " ： 记合成模量，并代入 (3) ： 得到 结果。 这正是「", "exact": "形", "suffix": "状为 的刚体压硬度为 的半空间」的方程。所以解只取决于缝隙 "}, "to": {"prefix": "再代入 (3) ，即 ： 上式括号换成 ： 结果。 这正是「", "exact": "形", "suffix": "状为 的刚体压硬度为 的半空间」的方程。所以解只取决于缝隙 "}}, {"from": {"prefix": " 左边由 (4) 换成 ： 记合成模量，并代入 (3) ： ", "exact": "得", "suffix": "到 结果。 这正是「形状为 的刚体压硬度为 的半空间」的方程"}, "to": {"prefix": "由 (4) 换掉： 把括号记作 ，再代入 (3) ，即 ： ", "exact": "上", "suffix": "式括号换成 ： 结果。 这正是「形状为 的刚体压硬度为 的半"}}, {"from": {"prefix": "节最后得到的方程 平底的底面是平的，接触区里缝隙 ，所以只要", "exact": "证", "suffix": "明：对圆盘上任意一点 ，左边都等于 。 (1) 一点的下沉。"}, "to": {"prefix": "，全部加起来。代入 ： 常数提到积分外面， 约掉： 所以只要", "exact": "证", "suffix": "明不管观察点在哪，。 观察点 的下沉是圆盘上所有小块共同压出"}}, {"from": {"prefix": "得到的方程 平底的底面是平的，接触区里缝隙 ，所以只要证明：", "exact": "对", "suffix": "圆盘上任意一点 ，左边都等于 。 (1) 一点的下沉。 在底"}, "to": {"prefix": "平底的底面是平的，接触区里缝隙 ，2.1 节最后的方程变成：", "exact": "对", "suffix": "圆盘上任意一点 （观察点）， 左边就是观察点的下沉 ： 是圆"}}, {"from": {"prefix": "；圆心叫 ， 到 的距离叫 。把圆盘切成很多小块，某一小块的", "exact": "位", "suffix": "置叫 ，面积叫 （ 只作微分号，表示「很小的一点」）；这一小"}, "to": {"prefix": "：对圆盘上任意一点 （观察点）， 左边就是观察点的下沉 ： ", "exact": "是", "suffix": "圆盘上的一小块，面积 ，离圆心 ，离观察点 ；每一小块让观察"}}, {"from": {"prefix": " ， 到 的距离叫 。把圆盘切成很多小块，某一小块的位置叫 ", "exact": "，", "suffix": "面积叫 （ 只作微分号，表示「很小的一点」）；这一小块到圆心"}, "to": {"prefix": "点 （观察点）， 左边就是观察点的下沉 ： 是圆盘上的一小块", "exact": "，", "suffix": "面积 ，离圆心 ，离观察点 ；每一小块让观察点陷下去「力 /"}}, {"from": {"prefix": "， 到 的距离叫 。把圆盘切成很多小块，某一小块的位置叫 ，", "exact": "面", "suffix": "积叫 （ 只作微分号，表示「很小的一点」）；这一小块到圆心 "}, "to": {"prefix": " （观察点）， 左边就是观察点的下沉 ： 是圆盘上的一小块，", "exact": "面", "suffix": "积 ，离圆心 ，离观察点 ；每一小块让观察点陷下去「力 /（"}}, {"from": {"prefix": "的距离叫 。把圆盘切成很多小块，某一小块的位置叫 ，面积叫 ", "exact": "（", "suffix": " 只作微分号，表示「很小的一点」）；这一小块到圆心 的距离就"}, "to": {"prefix": "（观察点）， 左边就是观察点的下沉 ： 是圆盘上的一小块，面", "exact": "积", "suffix": " ，离圆心 ，离观察点 ；每一小块让观察点陷下去「力 /（距"}}, {"from": {"prefix": "叫 ，面积叫 （ 只作微分号，表示「很小的一点」）；这一小块", "exact": "到", "suffix": "圆心 的距离就是压强公式里的 。小块上的力是 ，它到观察点的"}, "to": {"prefix": "）， 左边就是观察点的下沉 ： 是圆盘上的一小块，面积 ，离", "exact": "圆", "suffix": "心 ，离观察点 ；每一小块让观察点陷下去「力 /（距离）」，"}}, {"from": {"prefix": "示「很小的一点」）；这一小块到圆心 的距离就是压强公式里的 ", "exact": "。", "suffix": "小块上的力是 ，它到观察点的距离是 。上式左边就是观察点的下"}, "to": {"prefix": "左边就是观察点的下沉 ： 是圆盘上的一小块，面积 ，离圆心 ", "exact": "，", "suffix": "离观察点 ；每一小块让观察点陷下去「力 /（距离）」，全部加"}}, {"from": {"prefix": "一点」）；这一小块到圆心 的距离就是压强公式里的 。小块上的", "exact": "力", "suffix": "是 ，它到观察点的距离是 。上式左边就是观察点的下沉 ：所有"}, "to": {"prefix": "小块，面积 ，离圆心 ，离观察点 ；每一小块让观察点陷下去「", "exact": "力", "suffix": " /（距离）」，全部加起来。代入 ： 常数提到积分外面， 约"}}, {"from": {"prefix": "）；这一小块到圆心 的距离就是压强公式里的 。小块上的力是 ", "exact": "，", "suffix": "它到观察点的距离是 。上式左边就是观察点的下沉 ：所有小块各"}, "to": {"prefix": "，面积 ，离圆心 ，离观察点 ；每一小块让观察点陷下去「力 ", "exact": "/", "suffix": "（距离）」，全部加起来。代入 ： 常数提到积分外面， 约掉："}}, {"from": {"prefix": "这一小块到圆心 的距离就是压强公式里的 。小块上的力是 ，它", "exact": "到", "suffix": "观察点的距离是 。上式左边就是观察点的下沉 ：所有小块各自让"}, "to": {"prefix": "就是观察点的下沉 ： 是圆盘上的一小块，面积 ，离圆心 ，离", "exact": "观", "suffix": "察点 ；每一小块让观察点陷下去「力 /（距离）」，全部加起来"}}, {"from": {"prefix": "距离就是压强公式里的 。小块上的力是 ，它到观察点的距离是 ", "exact": "。", "suffix": "上式左边就是观察点的下沉 ：所有小块各自让观察点陷下去「力 "}, "to": {"prefix": "，2.1 节最后的方程变成：对圆盘上任意一点 （观察点）， ", "exact": "左", "suffix": "边就是观察点的下沉 ： 是圆盘上的一小块，面积 ，离圆心 ，"}}, {"from": {"prefix": "横向宽 （极坐标的面积元）： 面积里的 和距离里的 约掉： ", "exact": "剩", "suffix": "下的问题：根号里是 （小块到圆心），积分走的却是 （小块到观"}, "to": {"prefix": "从 走到圆盘边缘的长度记作 。代入 ： 分子分母的 约掉： ", "exact": "方", "suffix": "括号里是沿一条射线从 走到边缘的积分； 仍是小块到圆心的距离"}}, {"from": {"prefix": "小块沿弦挪一小段， 和 变化一样多，即 。所以一条弦上的积分", "exact": "是", "suffix": " 方向相反的两条射线拼成一条过观察点 的弦。从圆心 向弦作垂"}, "to": {"prefix": "（），这个负号和被积式里的负号相乘得正： 两段首尾在 接上，", "exact": "正", "suffix": "好是整条弦，观察点的位置 消失： 方向相反的两条射线拼成一条"}}, {"from": {"prefix": ") 一条弦的积分等于 。 把 (3) 最后那个积分记作 ： ", "exact": "弦", "suffix": "的两端被积函数趋于无穷，换元处理：在弦上立一个以 为圆心、半"}, "to": {"prefix": "根号里只剩弦上的量 和 。 ④ 一条弦的积分 。 时分母 ，", "exact": "被", "suffix": "积函数趋于无穷，直接看不出积分值，换一个变量。在弦上立一个以"}}, {"from": {"prefix": " 仍是到圆心 的距离，圆环宽 、面积 ，同一圈上压强相同： ", "exact": "令", "suffix": " （根号里那一项，算完就不用了），则 ， 从 到 时 从 到"}, "to": {"prefix": "面积」加起来： 、 不随 变，提到积分外面， 约掉： 换元：", "exact": "令", "suffix": " （就是根号里那一项）。对 求导： 是常数，导数为零； 的导"}}, {"from": {"prefix": "同一圈上压强相同： 令 （根号里那一项，算完就不用了），则 ", "exact": "，", "suffix": " 从 到 时 从 到 ： 所以 力与压深成正比，像一根弹簧，"}, "to": {"prefix": "那一项）。对 求导： 是常数，导数为零； 的导数是 ，所以 ", "exact": "上", "suffix": "下限跟着换： 时 ； 时 。代入： 从 走到 时， 是从 倒"}}, {"from": {"prefix": "令 （根号里那一项，算完就不用了），则 ， 从 到 时 从 ", "exact": "到", "suffix": " ： 所以 力与压深成正比，像一根弹簧，刚度 ；半径越大越硬"}, "to": {"prefix": "对 求导： 是常数，导数为零； 的导数是 ，所以 上下限跟着", "exact": "换", "suffix": "： 时 ； 时 。代入： 从 走到 时， 是从 倒着减到 ，"}}, {"from": {"prefix": "（根号里那一项，算完就不用了），则 ， 从 到 时 从 到 ", "exact": "：", "suffix": " 所以 力与压深成正比，像一根弹簧，刚度 ；半径越大越硬。这"}, "to": {"prefix": "负号： 求原函数： 对 求导得 ，所以 的原函数是 ： 代回", "exact": "：", "suffix": " 力与压深成正比，刚度 ，半径越大越硬；这与下面「越压越硬」"}}, {"from": {"prefix": "号里那一项，算完就不用了），则 ， 从 到 时 从 到 ： ", "exact": "所", "suffix": "以 力与压深成正比，像一根弹簧，刚度 ；半径越大越硬。这与下"}, "to": {"prefix": "面的负号： 求原函数： 对 求导得 ，所以 的原函数是 ： ", "exact": "代", "suffix": "回： 力与压深成正比，刚度 ，半径越大越硬；这与下面「越压越"}}, {"from": {"prefix": "里那一项，算完就不用了），则 ， 从 到 时 从 到 ： 所", "exact": "以", "suffix": " 力与压深成正比，像一根弹簧，刚度 ；半径越大越硬。这与下面"}, "to": {"prefix": "的负号： 求原函数： 对 求导得 ，所以 的原函数是 ： 代", "exact": "回", "suffix": "： 力与压深成正比，刚度 ，半径越大越硬；这与下面「越压越硬"}}, {"from": {"prefix": "， 从 到 时 从 到 ： 所以 力与压深成正比，像一根弹簧", "exact": "，", "suffix": "刚度 ；半径越大越硬。这与下面「越压越硬」里的 是同一个关系"}, "to": {"prefix": " 对 求导得 ，所以 的原函数是 ： 代回： 力与压深成正比", "exact": "，", "suffix": "刚度 ，半径越大越硬；这与下面「越压越硬」的 是同一个关系。"}}, {"from": {"prefix": "刚度 ；半径越大越硬。这与下面「越压越硬」里的 是同一个关系", "exact": "。", "suffix": " 左边：压强 沿半径的分布，中间最低、边缘冲到无穷；在它作用"}, "to": {"prefix": "，刚度 ，半径越大越硬；这与下面「越压越硬」的 是同一个关系", "exact": "。", "suffix": " 左边：压强 沿半径的分布，中间最低、边缘冲到无穷；在它作用"}}, {"from": {"prefix": " 时 从 到 ： 所以 力与压深成正比，像一根弹簧，刚度 ；", "exact": "半", "suffix": "径越大越硬。这与下面「越压越硬」里的 是同一个关系。 左边："}, "to": {"prefix": "得 ，所以 的原函数是 ： 代回： 力与压深成正比，刚度 ，", "exact": "半", "suffix": "径越大越硬；这与下面「越压越硬」的 是同一个关系。 左边：压"}}, {"from": {"prefix": " 到 ： 所以 力与压深成正比，像一根弹簧，刚度 ；半径越大", "exact": "越", "suffix": "硬。这与下面「越压越硬」里的 是同一个关系。 左边：压强 沿"}, "to": {"prefix": "以 的原函数是 ： 代回： 力与压深成正比，刚度 ，半径越大", "exact": "越", "suffix": "硬；这与下面「越压越硬」的 是同一个关系。 左边：压强 沿半"}}, {"from": {"prefix": "，但根号的尖峰很窄，积出来是有限的总力 。 一句话：根号 让", "exact": "每", "suffix": "条过观察点的弦上的积分都变成半圈角度 ，所以底面每一点都下沉"}, "to": {"prefix": "方向加起来。③ 的方括号就是 ，与 无关： 代回 ①： 底面", "exact": "处", "suffix": "处下沉 ，所以 就是平底的压强。边缘（）压强冲高，是因为底面"}}, {"from": {"prefix": "句话：根号 让每条过观察点的弦上的积分都变成半圈角度 ，所以", "exact": "底", "suffix": "面每一点都下沉同样的压深 。 同一个经典解给出平底外 处的下"}, "to": {"prefix": "所有方向加起来。③ 的方括号就是 ，与 无关： 代回 ①： ", "exact": "底", "suffix": "面处处下沉 ，所以 就是平底的压强。边缘（）压强冲高，是因为"}}, {"from": {"prefix": "角度 ，所以底面每一点都下沉同样的压深 。 同一个经典解给出", "exact": "平", "suffix": "底外 处的下沉 第二步：把一般压入拆成一串平底。 接触半径为"}, "to": {"prefix": " 在距离 处压出的下沉：离远了，整块平底就像一个点力。 所以", "exact": "平", "suffix": "底外离圆心 处（ 就是上面的 ）的下沉是 第二步：把一般压入"}}, {"from": {"prefix": "面每一点都下沉同样的压深 。 同一个经典解给出平底外 处的下", "exact": "沉", "suffix": " 第二步：把一般压入拆成一串平底。 接触半径为 时再多压 ，"}, "to": {"prefix": "底就像一个点力。 所以平底外离圆心 处（ 就是上面的 ）的下", "exact": "沉", "suffix": "是 第二步：把一般压入拆成一串平底。 接触半径为 时再多压 "}}, {"from": {"prefix": "一点都下沉同样的压深 。 同一个经典解给出平底外 处的下沉 ", "exact": "第", "suffix": "二步：把一般压入拆成一串平底。 接触半径为 时再多压 ，相当"}, "to": {"prefix": "一个点力。 所以平底外离圆心 处（ 就是上面的 ）的下沉是 ", "exact": "第", "suffix": "二步：把一般压入拆成一串平底。 接触半径为 时再多压 ，相当"}}]}</script>
+<script type="application/json" id="annot-renames">{"tex": {"J=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "K=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a1\\,dx.": "K=\\frac{dF}{d\\delta}=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a\\frac{\\partial}{\\partial\\delta}\\big(\\delta-g(x)\\big)dx.", "\\color{#c0392b}{U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}}.": "U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}.", "\\color{#c0392b}{\\frac{U_H}{E^*R^3}=\\frac{8}{15}\\cdot\\frac{\\sqrt R\\,\\delta^{5/2}}{R^3}=\\frac{8}{15}\\Big(\\frac{\\delta}{R}\\Big)^{5/2}}.": "\\frac{U_H}{E^*R^3}=\\frac{8}{15}\\cdot\\frac{\\sqrt R\\,\\delta^{5/2}}{R^3}.", "\\color{#c0392b}{c=\\frac{2\\cdot\\tfrac12F\\delta}{2\\cdot\\tfrac12F_1\\delta}=\\frac{F}{F_1}=\\frac{1}{1+\\dfrac{2a}{\\pi r}}}.": "c=\\frac{2\\cdot\\tfrac12F\\delta}{2\\cdot\\tfrac12F_1\\delta}=\\frac{F}{F_1}=\\frac{1}{1+\\dfrac{2a}{\\pi r}}.", "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}": "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}.", "\\color{#c0392b}{\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.": "\\color{#c0392b}{p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.", "\\color{#c0392b}{\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2}.": "\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2.", "\\frac{U_H'}{U_H}=\\frac{\\sqrt{R}}{\\sqrt{R/2}}=\\sqrt2,": "\\frac{U_H'}{U_H}=\\frac{\\frac8{15}E^*\\sqrt{R^{*\\prime}}\\,\\delta^{5/2}}{\\frac8{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}}=\\frac{\\sqrt{R}}{\\sqrt{R/2}}=\\sqrt2.", "\\langle U\\rangle=2\\pi R\\int_0^\\delta(\\delta-s)\\,\\bar p(s)\\,ds\\ \\propto\\ R.": "\\color{#c0392b}{\\langle U\\rangle=2\\pi R\\int_0^\\delta(\\delta-s)\\,\\bar p(s)\\,ds\\ \\propto\\ R};", "\\frac{1+\\varepsilon}{1-\\varepsilon}\\ge\\frac{2}{\\sqrt2}=\\sqrt2\\ \\Longrightarrow\\ \\varepsilon\\ge\\frac{\\sqrt2-1}{\\sqrt2+1}=17.16\\%.": "\\color{#c0392b}{\\varepsilon\\ge\\frac{\\sqrt2-1}{\\sqrt2+1}=17.16\\%};", "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}\\mathcal E\\,dV+\\int_{\\Omega_②}\\mathcal E\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②},", "\\color{#c0392b}{U_③=c\\,(U_①+U_②),\\qquad c<1}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②},", "\\color{#c0392b}{(1-\\varepsilon)\\,U_k\\le U^{\\text{hydro}}_k\\le(1+\\varepsilon)\\,U_k,\\qquad k=①,②,③}.": "\\color{#c0392b}{(1-\\varepsilon)\\,U_k\\le U^{\\text{hydro}}_k\\le(1+\\varepsilon)\\,U_k,\\qquad k=①,②,③};", "\\color{#c0392b}{1-\\varepsilon\\le c+c\\,\\varepsilon\\ \\Longrightarrow\\ \\varepsilon\\ge\\frac{1-c}{1+c}}.": "\\color{#c0392b}{\\varepsilon\\ge\\frac{1-c}{1+c}}.", "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\sigma\\sqrt s\\,ds=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},": "U=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\Big(\\frac23-\\frac25\\Big)\\delta^{5/2}=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}.", "\\color{#c0392b}{T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}}.": "T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}.", "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr=2E^*\\delta\\Big[-\\sqrt{\\tilde a^2-r^2}\\Big]_0^{\\tilde a}=2E^*\\tilde a\\,\\delta.": "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr.", "\\color{#c0392b}{p(r)=\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}}\\quad(r<\\tilde a),": "p(r)=\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\quad(r<\\tilde a).", "u(\\mathbf x)=\\frac{1}{\\pi E^*}\\int_{\\text{圆盘}}\\frac{p(\\mathbf x')}{|\\mathbf x-\\mathbf x'|}\\,d\\mathbf x'.": "\\frac1{E^*}\\cdot\\frac1\\pi\\int_{\\text{圆盘}}\\frac{p(\\mathbf x')}{|\\mathbf x-\\mathbf x'|}\\,d\\mathbf x'=\\delta.", "u(\\mathbf x)=\\frac{\\delta}{\\pi^2}\\,I,\\qquad I=\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}.": "u(\\mathbf x)=\\frac{E^*\\delta}{\\pi\\cdot\\pi E^*}\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}=\\frac{\\delta}{\\pi^2}\\,I,\\qquad I=\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}.", "\\color{#c0392b}{d\\mathbf x'=\\rho\\,d\\rho\\,d\\varphi,\\qquad|\\mathbf x-\\mathbf x'|=\\rho}.": "d\\mathbf x'=d\\rho\\cdot\\rho\\,d\\varphi=\\rho\\,d\\rho\\,d\\varphi.", "d\\mathbf x'=\\rho\\,d\\rho\\,d\\varphi,\\qquad|\\mathbf x-\\mathbf x'|=\\rho.": "d\\mathbf x'=d\\rho\\cdot\\rho\\,d\\varphi=\\rho\\,d\\rho\\,d\\varphi.", "I=\\int_0^{2\\pi}\\left[\\int_0^{\\text{边缘}}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}\\right]d\\varphi.": "I=\\int_0^{2\\pi}\\left[\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}\\right]d\\varphi.", "\\color{#c0392b}{r^2=m^2+t^2,\\qquad\\tilde a^2=m^2+c^2}.": "r^2=m^2+q^2,\\qquad\\tilde a^2=m^2+c^2.", "r^2=m^2+t^2,\\qquad\\tilde a^2=m^2+c^2.": "r^2=m^2+q^2,\\qquad\\tilde a^2=m^2+c^2.", "\\tilde a^2-r^2=c^2-t^2.": "\\tilde a^2-r^2=(m^2+c^2)-(m^2+q^2)=c^2-q^2.", "\\tilde a^2-r^2=(m^2+c^2)-(m^2+t^2)=c^2-t^2.": "\\tilde a^2-r^2=(m^2+c^2)-(m^2+q^2)=c^2-q^2.", "\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}.", "\\int_0^{L(\\varphi+\\pi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{t_{\\mathbf x}}^{-c}\\frac{-dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_0^{L(\\varphi+\\pi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{q_{\\mathbf x}}^{-c}\\frac{-dq}{\\sqrt{c^2-q^2}}.", "\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}+\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}+\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}\\equiv J.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "t=c\\sin\\theta,\\qquad\\sqrt{c^2-t^2}=c\\cos\\theta,\\qquad dt=c\\cos\\theta\\,d\\theta,": "q=c\\sin\\psi,\\qquad-\\frac{\\pi}{2}\\le\\psi\\le\\frac{\\pi}{2}.", "t=c\\sin\\theta.": "q=c\\sin\\psi,\\qquad-\\frac{\\pi}{2}\\le\\psi\\le\\frac{\\pi}{2}.", "\\sqrt{c^2-t^2}=\\sqrt{c^2-c^2\\sin^2\\theta}=c\\sqrt{1-\\sin^2\\theta}=c\\sqrt{\\cos^2\\theta}=c\\cos\\theta.": "\\sqrt{c^2-q^2}=\\sqrt{c^2-c^2\\sin^2\\psi}=c\\sqrt{\\cos^2\\psi}=c\\cos\\psi.", "\\sqrt{c^2-t^2}=\\sqrt{c^2-c^2\\sin^2\\theta}=c\\sqrt{\\cos^2\\theta}=c\\cos\\theta.": "\\sqrt{c^2-q^2}=\\sqrt{c^2-c^2\\sin^2\\psi}=c\\sqrt{\\cos^2\\psi}=c\\cos\\psi.", "dt=c\\cos\\theta\\,d\\theta.": "dq=c\\cos\\psi\\,d\\psi.", "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\theta\\,d\\theta}{c\\cos\\theta}=\\int_{-\\pi/2}^{\\pi/2}d\\theta=\\pi.": "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\psi\\,d\\psi}{c\\cos\\psi}=\\int_{-\\pi/2}^{\\pi/2}d\\psi=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.", "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\theta\\,d\\theta}{c\\cos\\theta}=\\int_{-\\pi/2}^{\\pi/2}d\\theta=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.": "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\psi\\,d\\psi}{c\\cos\\psi}=\\int_{-\\pi/2}^{\\pi/2}d\\psi=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.", "I=\\int_0^{\\pi}J\\,d\\varphi=\\int_0^{\\pi}\\pi\\,d\\varphi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "I=\\int_0^{\\pi}\\pi\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\cdot\\pi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\cdot\\pi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr=2E^*\\delta\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}.": "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr.", "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\int_{\\tilde a^2}^{0}\\frac{-\\tfrac12\\,dv}{\\sqrt v}=\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv.": "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\int_{\\tilde a^2}^{0}\\frac{-\\frac12\\,dv}{\\sqrt v}=-\\frac12\\int_{\\tilde a^2}^{0}\\frac{dv}{\\sqrt v}.", "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\Big[\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\sqrt{\\tilde a^2}-0=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "F_{\\text{平底}}=2E^*\\delta\\cdot\\tilde a=2E^*\\tilde a\\,\\delta.": "F_{\\text{平底}}=2E^*\\tilde a\\,\\delta.", "\\color{#c0392b}{d=g(a),\\qquad F=2E^*\\int_0^a\\big(d-g(x)\\big)dx,\\qquad U_0=E^*\\int_0^a\\big(d-g(x)\\big)^2dx}.": "\\color{#c0392b}{\\delta=g(a),\\qquad F=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx,\\qquad U_0=E^*\\int_0^a\\big(\\delta-g(x)\\big)^2dx}.", "w(r)=\\frac{2\\delta}{\\pi}\\arcsin\\frac{\\tilde a}{r}\\quad(r>\\tilde a).": "u(r)=\\frac{2\\delta}{\\pi}\\arcsin\\frac{\\tilde a}{r}\\quad(r>\\tilde a).", "F=2E^*\\Big[\\tilde a\\,g(\\tilde a)\\Big]_0^a-2E^*\\int_0^ag\\,d\\tilde a=2E^*\\Big(a\\,d-\\int_0^ag\\,d\\tilde a\\Big)=2E^*\\int_0^a\\big(d-g(x)\\big)dx.": "F=2E^*\\Big[\\tilde a\\,g(\\tilde a)\\Big]_0^a-2E^*\\int_0^ag\\,d\\tilde a=2E^*\\Big(a\\,\\delta-\\int_0^ag\\,d\\tilde a\\Big)=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx.", "w(a)=\\frac2\\pi\\int_0^a\\arcsin\\frac{\\tilde a}{a}\\;g'(\\tilde a)\\,d\\tilde a.": "u(a)=\\frac2\\pi\\int_0^a\\arcsin\\frac{\\tilde a}{a}\\;g'(\\tilde a)\\,d\\tilde a.", "w(a)=\\frac2\\pi\\Big[\\arcsin\\frac{\\tilde a}{a}\\,g(\\tilde a)\\Big]_0^a-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.": "u(a)=\\frac2\\pi\\Big[\\arcsin\\frac{\\tilde a}{a}\\,g(\\tilde a)\\Big]_0^a-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.", "w(a)=d-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.": "u(a)=\\delta-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.", "\\int_t^x\\frac{r\\,dr}{\\sqrt{x^2-r^2}\\,\\sqrt{r^2-t^2}}=\\frac12\\int_{t^2}^{x^2}\\frac{du}{\\sqrt{(x^2-u)(u-t^2)}}=\\frac12\\int_0^{\\pi/2}2\\,d\\theta=\\frac\\pi2.": "\\int_t^x\\frac{r\\,dr}{\\sqrt{x^2-r^2}\\,\\sqrt{r^2-t^2}}=\\frac12\\int_{t^2}^{x^2}\\frac{d\\tau}{\\sqrt{(x^2-\\tau)(\\tau-t^2)}}=\\frac12\\int_0^{\\pi/2}2\\,d\\theta=\\frac\\pi2.", "\\frac{dU_0}{dd}=E^*\\big(d-g(a)\\big)^2\\frac{da}{dd}+E^*\\int_0^a2\\big(d-g(x)\\big)dx.": "\\frac{dU_0}{d\\delta}=E^*\\big(\\delta-g(a)\\big)^2\\frac{da}{d\\delta}+E^*\\int_0^a2\\big(\\delta-g(x)\\big)dx.", "\\frac{dU_0}{dd}=2E^*\\int_0^a\\big(d-g(x)\\big)dx=F.": "\\frac{dU_0}{d\\delta}=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx=F.", "K=2E^*\\big(d-g(a)\\big)\\frac{da}{dd}+2E^*\\int_0^a1\\,dx.": "K=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a1\\,dx.", "\\color{#c0392b}{h=f_A+f_B=\\frac{r^2}{2R_A}+\\frac{r^2}{2R_B}=\\frac{r^2}{2}\\Big(\\frac1{R_A}+\\frac1{R_B}\\Big)=\\frac{r^2}{2R},\\qquad \\frac1R=\\frac1{R_A}+\\frac1{R_B}}.": "\\color{#c0392b}{h=f_A+f_B=\\frac{r^2}{2R_A}+\\frac{r^2}{2R_B}=\\frac{r^2}{2}\\Big(\\frac1{R_A}+\\frac1{R_B}\\Big)=\\frac{r^2}{2R^*},\\qquad \\frac1{R^*}=\\frac1{R_A}+\\frac1{R_B}}.", "g(x)=\\frac{|x|}{R}\\int_0^{|x|}\\frac{r}{\\sqrt{x^2-r^2}}\\,dr=\\frac{|x|}{R}\\Big[-\\sqrt{x^2-r^2}\\Big]_0^{|x|}=\\frac{|x|}{R}\\big(0+|x|\\big)=\\frac{x^2}{R}.": "g(x)=\\frac{|x|}{R^*}\\int_0^{|x|}\\frac{r}{\\sqrt{x^2-r^2}}\\,dr=\\frac{|x|}{R^*}\\Big[-\\sqrt{x^2-r^2}\\Big]_0^{|x|}=\\frac{|x|}{R^*}\\big(0+|x|\\big)=\\frac{x^2}{R^*}.", "\\color{#c0392b}{F=2E^*\\int_0^a\\Big(d-\\frac{x^2}{R}\\Big)dx=2E^*\\Big(ad-\\frac{a^3}{3R}\\Big)}.": "\\color{#c0392b}{F=2E^*\\int_0^a\\Big(\\delta-\\frac{x^2}{R^*}\\Big)dx=2E^*\\Big(a\\delta-\\frac{a^3}{3R^*}\\Big)}.", "\\color{#c0392b}{F=2E^*\\Big(\\sqrt R\\,d^{3/2}-\\frac13\\sqrt R\\,d^{3/2}\\Big)=2E^*\\cdot\\frac23\\sqrt R\\,d^{3/2}=\\frac43E^*\\sqrt R\\,d^{3/2}}.": "\\color{#c0392b}{F=2E^*\\Big(\\sqrt{R^*}\\,\\delta^{3/2}-\\frac13\\sqrt{R^*}\\,\\delta^{3/2}\\Big)=2E^*\\cdot\\frac23\\sqrt{R^*}\\,\\delta^{3/2}=\\frac43E^*\\sqrt{R^*}\\,\\delta^{3/2}}.", "\\color{#c0392b}{U_H=\\int_0^d\\frac43E^*\\sqrt R\\,s^{3/2}\\,ds=\\frac43E^*\\sqrt R\\cdot\\frac25d^{5/2}=\\frac{8}{15}E^*\\sqrt R\\,d^{5/2}}.": "\\color{#c0392b}{U_H=\\int_0^\\delta\\frac43E^*\\sqrt{R^*}\\,\\delta'^{3/2}\\,d\\delta'=\\frac43E^*\\sqrt{R^*}\\cdot\\frac25\\delta^{5/2}=\\frac{8}{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}}.", "g(x)=|x|\\int_0^{|x|}\\frac{c\\,n\\,r^{n-1}}{\\sqrt{x^2-r^2}}\\,dr.": "g(x)=|x|\\int_0^{|x|}\\frac{A\\,n\\,r^{n-1}}{\\sqrt{x^2-r^2}}\\,dr.", "\\begin{aligned}g(x)&=|x|\\int_0^1\\frac{c\\,n\\,|x|^{n-1}t^{n-1}}{|x|\\sqrt{1-t^2}}\\,|x|\\,dt\\\\&=c\\,|x|^n\\cdot n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt\\\\&=\\kappa_n\\,c\\,|x|^n,\\qquad \\kappa_n=n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt.\\end{aligned}": "\\begin{aligned}g(x)&=|x|\\int_0^1\\frac{A\\,n\\,|x|^{n-1}t^{n-1}}{|x|\\sqrt{1-t^2}}\\,|x|\\,dt\\\\&=A\\,|x|^n\\cdot n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt\\\\&=\\mu_n\\,A\\,|x|^n,\\qquad \\mu_n=n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt.\\end{aligned}", "d=\\kappa_n\\,c\\,a^n\\ \\Longrightarrow\\ a=\\Big(\\frac{d}{\\kappa_n c}\\Big)^{1/n}\\propto d^{1/n}.": "\\delta=\\mu_n\\,A\\,a^n\\ \\Longrightarrow\\ a=\\Big(\\frac{\\delta}{\\mu_n A}\\Big)^{1/n}\\propto \\delta^{1/n}.", "U_0=E^*\\int_0^ad^2\\Big(1-\\Big(\\frac xa\\Big)^n\\Big)^2dx.": "U_0=E^*\\int_0^a\\delta^2\\Big(1-\\Big(\\frac xa\\Big)^n\\Big)^2dx.", "U_0=E^*\\,a\\,d^2\\int_0^1\\big(1-s^n\\big)^2ds\\ \\propto\\ a\\,d^2.": "U_0=E^*\\,a\\,\\delta^2\\int_0^1\\big(1-\\xi^n\\big)^2d\\xi\\ \\propto\\ a\\,\\delta^2.", "\\color{#c0392b}{U_0\\propto d^{1/n}\\cdot d^2=d^{2+1/n}=d^{(2n+1)/n}}.": "\\color{#c0392b}{U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}}.", "\\color{#c0392b}{\\text{扁度}=\\ln\\frac{\\kappa_1}{\\kappa_2}},": "\\color{#c0392b}{e=\\ln\\frac{\\kappa_1}{\\kappa_2}},", "X_1=X_0+2k\\hat d_2,\\qquad X_2=X_0+k\\hat d_2.": "X_1=X_0+2\\alpha\\hat d_2,\\qquad X_2=X_0+\\alpha\\hat d_2.", "X_0=X_2-k\\hat d_2=X_2-(X_1-X_2)=2X_2-X_1.": "X_0=X_2-\\alpha\\hat d_2=X_2-(X_1-X_2)=2X_2-X_1.", "X(L_1)=X_\\infty+\\frac{k}{L_1},\\qquad X(L_2)=X_\\infty+\\frac{k}{2L_1}.": "X(L_1)=X_\\infty+\\frac{\\alpha}{L_1},\\qquad X(L_2)=X_\\infty+\\frac{\\alpha}{2L_1}.", "U_2=U_\\infty+C\\Big(\\frac h2\\Big)^p,\\qquad U_3=U_\\infty+C\\Big(\\frac h4\\Big)^p.": "U^{(2)}=U_\\infty+C\\Big(\\frac h2\\Big)^p,\\qquad U^{(3)}=U_\\infty+C\\Big(\\frac h4\\Big)^p.", "U_2-U_3=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h4\\Big)^p\\big(2^p-1\\big)\\ \\Longrightarrow\\ C\\Big(\\frac h4\\Big)^p=\\frac{U_2-U_3}{2^p-1}.": "U^{(2)}-U^{(3)}=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h4\\Big)^p\\big(2^p-1\\big)\\ \\Longrightarrow\\ C\\Big(\\frac h4\\Big)^p=\\frac{U^{(2)}-U^{(3)}}{2^p-1}.", "U_\\infty=U_3-\\frac{U_2-U_3}{2^p-1}": "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}", "\\color{#c0392b}{U_\\infty=U_3+\\frac{U_3-U_2}{2^p-1}}.": "\\color{#c0392b}{U_\\infty=U^{(3)}+\\frac{U^{(3)}-U^{(2)}}{2^p-1}}.", "\\begin{aligned}U_1-U_2&=C\\,h^p-C\\Big(\\frac h2\\Big)^p=C\\,h^p(1-2^{-p}),\\\\U_2-U_3&=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h2\\Big)^p(1-2^{-p}).\\end{aligned}": "\\begin{aligned}U^{(1)}-U^{(2)}&=C\\,h^p-C\\Big(\\frac h2\\Big)^p=C\\,h^p(1-2^{-p}),\\\\U^{(2)}-U^{(3)}&=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h2\\Big)^p(1-2^{-p}).\\end{aligned}", "\\frac{U_1-U_2}{U_2-U_3}=\\frac{h^p}{(h/2)^p}=2^p.": "\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=\\frac{h^p}{(h/2)^p}=2^p.", "\\color{#c0392b}{\\frac{U_1-U_2}{U_2-U_3}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U_1-U_2}{U_2-U_3}}.": "\\color{#c0392b}{\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.", "\\varepsilon\\approx\\frac{\\rho^2}{2R}.": "\\zeta\\approx\\frac{\\rho^2}{2R}.", "\\color{#c0392b}{F(c)=\\tfrac43E^*\\sqrt R\\,(c-g_0)^{3/2},\\qquad f_i=\\frac{m_i}{M}\\,F}.": "\\color{#c0392b}{F(\\delta_{\\text t})=\\tfrac43E^*\\sqrt R\\,(\\delta_{\\text t}-\\gamma_0)^{3/2},\\qquad F^{\\text b}_i=\\frac{m_i}{M}\\,F}.", "\\color{#c0392b}{y\\leftarrow y+f(r)\\Big(1-\\frac yD\\Big),\\qquad f(r)=R-\\sqrt{R^2-\\min(r,r_{\\text{cap}})^2}}.": "\\color{#c0392b}{y\\leftarrow y+f(r)\\Big(1-\\frac yH\\Big),\\qquad f(r)=R-\\sqrt{R^2-\\min(r,r_{\\text{cap}})^2}}.", "\\color{#c0392b}{s_{\\text{管顶}}=\\sqrt{r^2-\\Big(\\sqrt{(R_T-z)^2+x^2}-R_T\\Big)^2}-r,\\qquad s_{\\text{内圈}}=R_T-r-\\sqrt{\\Big(R_T-\\sqrt{r^2-z^2}\\Big)^2-x^2}}.": "\\color{#c0392b}{\\begin{aligned}\\eta_{\\text{管顶}}&=\\sqrt{r_T^2-\\Big(\\sqrt{(R_T-z)^2+x^2}-R_T\\Big)^2}-r_T,\\\\\\eta_{\\text{内圈}}&=R_T-r_T-\\sqrt{\\Big(R_T-\\sqrt{r_T^2-z^2}\\Big)^2-x^2}.\\end{aligned}}", "U=\\frac{\\pi E^*R}{b}\\int_0^\\delta(\\delta-u)^2\\,du=\\frac{\\pi E^*R}{b}\\cdot\\frac{\\delta^3}{3}=\\frac{\\pi E^*R\\,\\delta^3}{3b}.": "U=\\frac{\\pi E^*R}{b}\\int_0^\\delta(\\delta-\\tau)^2\\,d\\tau=\\frac{\\pi E^*R}{b}\\cdot\\frac{\\delta^3}{3}=\\frac{\\pi E^*R\\,\\delta^3}{3b}.", "\\color{#c0392b}{\\frac1{R_{\\text{合}}}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R_{\\text{合}}=\\frac R2}.": "\\color{#c0392b}{\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2}.", "\\color{#c0392b}{p=\\frac{E_h}{D}\\times s}.": "\\color{#c0392b}{p=\\frac{E_h}{D_h}\\times s}.", "\\color{#c0392b}{U^{\\text{hydro}}=\\int_{\\Omega}e\\big(s(\\mathbf x)\\big)\\,dV}.": "\\color{#c0392b}{U^{\\text{hydro}}=\\int_{\\Omega}\\mathcal E\\big(s(\\mathbf x)\\big)\\,dV}.", "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}e\\,dV+\\int_{\\Omega_②}e\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}\\mathcal E\\,dV+\\int_{\\Omega_②}\\mathcal E\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.", "\\color{#c0392b}{p=c\\,\\frac{s}{r}}": "\\color{#c0392b}{p=\\beta\\,\\frac{s}{r}}", "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\kappa\\sqrt s\\,ds=2\\pi R\\kappa\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\kappa\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},": "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\sigma\\sqrt s\\,ds=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},", "T_{ij}=\\kappa_{\\text{合},ij}^{-2}=\\kappa_{P_i}^{-2}+\\kappa_{B_j}^{-2}=u_i+v_j.": "T_{ij}=\\sigma_{\\text{合},ij}^{-2}=\\sigma_{P_i}^{-2}+\\sigma_{B_j}^{-2}=C^{\\text P}_i+C^{\\text B}_j.", "T_{11}=u_1+v_1,\\quad T_{22}=u_2+v_2,\\quad T_{12}=u_1+v_2,\\quad T_{21}=u_2+v_1.": "T_{11}=C^{\\text P}_1+C^{\\text B}_1,\\quad T_{22}=C^{\\text P}_2+C^{\\text B}_2,\\quad T_{12}=C^{\\text P}_1+C^{\\text B}_2,\\quad T_{21}=C^{\\text P}_2+C^{\\text B}_1.", "\\color{#c0392b}{T_{11}+T_{22}=u_1+u_2+v_1+v_2=T_{12}+T_{21}}.": "\\color{#c0392b}{T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}}.", "R_e=\\frac{1}{\\sqrt{c_1c_2}}.": "R^*=\\frac{1}{\\sqrt{\\kappa_1\\kappa_2}}.", "F_U(e)=\\frac{U_{\\text{椭圆 Hertz}}}{U_H(R_e)}.": "F_U(e)=\\frac{U_{\\text{椭圆 Hertz}}}{U_H(R^*)}.", "U_{\\text{骨架}}=F_U\\cdot\\frac{8}{15}E^*\\sqrt{R_e}\\,\\delta^{5/2}.": "U_{\\text{骨架}}=F_U\\cdot\\frac{8}{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}.", "E_{\\text{contact}}=\\tfrac12\\,\\kappa\\sum_i a_i\\,\\max(0,\\,-d_i)^2.": "E_{\\text{contact}}=\\tfrac12\\,k_{\\text p}\\sum_i A_i\\,\\max(0,\\,-q_i)^2.", "\\color{#c0392b}{U_{\\text{contact}}=U_c-U_{0,1}-U_{0,2}},": "\\color{#c0392b}{U_{\\text{contact}}=U_c-U_{\\text{free},1}-U_{\\text{free},2}},", "\\color{#c0392b}{U=E^*\\cdot\\frac{8}{15}\\sqrt{R_{\\text{eff}}}\\,\\delta^{5/2}\\cdot\\exp(g)}.": "\\color{#c0392b}{U=E^*\\cdot\\frac{8}{15}\\sqrt{R^*}\\,\\delta^{5/2}\\cdot\\exp(\\phi)}.", "\\color{#c0392b}{u(r)=d-h(r)}": "\\color{#c0392b}{u(r)=\\delta-h(r)}", "\\cos\\theta\\ge0": "\\cos\\psi\\ge0", "\\sin^2\\theta+\\cos^2\\theta=1": "\\sin^2\\psi+\\cos^2\\psi=1", "dt=d\\rho": "dq=d\\rho"}, "text": {"是该节点受的力": "是该节点受的体力"}}</script>
 <script>
 (() => {
   'use strict';
@@ -1583,13 +1587,6 @@ html.annot-on #annot-capture { display: block; }
     version: 1,
     colWidth: 920, asideWidth: 245, gap: 50, sidePad: 32, narrowPad: 16,   // 与 html_parts.PAGE_CSS 的桌面版式一致
     quoteLen: 30,        // TextQuote 前后各存多少字
-    seedLen: 8,          // 模糊匹配的种子：prefix 末尾 / suffix 开头各取几个字，与被锚字连成短串在全文里找候选
-    // 模糊匹配的接受阈值：prefix 与 suffix 两边相似度（1 - 编辑距离/长度）的平均。一边原文完整（1.0）、
-    // 另一边只剩一部分没改（≥ 0.1）就能认回；两边都改得面目全非（各 < 0.55）则判为「内容已变」。
-    fuzzyAccept: 0.55,
-    headingFuzzy: 0.7,   // 标题文字改了几个字仍认
-    texFuzzy: 0.8,       // 公式 TeX 小改（如改一个下标）仍认
-    blockHeadAccept: 0.6, // 块内偏移后备：块开头 40 字的相似度
     glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
     nearPx: 30,          // 笔没圈住任何内容（下划线、箭头、旁注）时，取离笔画这么近以内最近的那个字 / 符号
     coverCtxAccept: 0.3, // 圈住的关键词在页面上出现好几处时，周围文字与原段落的二元组相似度至少这么高才认
@@ -1598,6 +1595,8 @@ html.annot-on #annot-capture { display: block; }
     colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
   };
   const PAGE_NAME = location.pathname.split('/').pop() || 'index.html';
+  // 页面版本号（build_site 嵌入；快照页是笔当初画的那一版的版本号）：笔画下时记进 drawn.page，保存时记进 savedOn
+  const PAGE_VERSION = typeof window.NIPC_PAGE === 'string' ? window.NIPC_PAGE : '';
   const STORE_KEY = 'nipc-notes:' + location.pathname;
   const UI_KEY = 'nipc-notes-ui';
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1648,7 +1647,12 @@ html.annot-on #annot-capture { display: block; }
   /** 本页笔记的完整 JSON（本机保存、导出、同步共用）。tombstones = {被删笔画 id: 删除时刻 ms}，让删除能同步到别的设备。 */
   function payload() {
     return { format: 'nipc-notes', version: CFG.version, page: PAGE_NAME, path: location.pathname,
-             colWidth: CFG.colWidth, saved: new Date().toISOString(), strokes: S.strokes, tombstones: S.tombs };
+             colWidth: CFG.colWidth, saved: new Date().toISOString(), savedOn: PAGE_VERSION, strokes: S.strokes, tombstones: S.tombs };
+  }
+  /** 一笔此刻的样子作为「画的」原样（只在收笔、用户移动时调用；深拷贝，之后匹配字段怎么改都碰不到它）。 */
+  function drawnOf(s) {
+    return JSON.parse(JSON.stringify({ page: PAGE_VERSION, pts: s.pts, frame: s.frame, anchor: s.anchor, orig: s.orig,
+                                       ua: navigator.userAgent, at: new Date().toISOString() }));
   }
   function validStroke(s) {
     return !!(s && typeof s.id === 'string' && Array.isArray(s.pts) && s.pts.length && s.anchor && s.orig &&
@@ -1656,7 +1660,10 @@ html.annot-on #annot-capture { display: block; }
   }
   function validTombs(t) { return t && typeof t === 'object' && !Array.isArray(t) ? t : {}; }
   /** 本机存的 {strokes, tombs}。 */
+  // 只读快照页（snapshot/<n>/）：笔记就是页面里嵌的那份（某次画完时的原样），不读写本机存储、不同步笔记仓库
+  const SNAP = window.NIPC_SNAPSHOT && Array.isArray(window.NIPC_SNAPSHOT.strokes) ? window.NIPC_SNAPSHOT : null;
   function loadStored() {
+    if (SNAP) return { strokes: SNAP.strokes.filter(validStroke), tombs: validTombs(SNAP.tombstones) };
     try {
       const raw = localStorage.getItem(STORE_KEY);
       const d = raw ? JSON.parse(raw) : null;
@@ -1664,11 +1671,12 @@ html.annot-on #annot-capture { display: block; }
     } catch (e) { return { strokes: [], tombs: {} }; }
   }
   function saveStored() {
+    if (SNAP) return;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(payload())); }
     catch (e) { setStatus('本机保存失败（浏览器存储不可用），请及时导出笔记', true); }
   }
   function loadUi() { try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function saveUi(ui) { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
+  function saveUi(ui) { if (SNAP) return; try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
 
   /* ---------- 4. 版式固定与坐标换算 ---------- */
   function layoutLocked() { return S.on || S.strokes.length > 0; }
@@ -1911,16 +1919,6 @@ html.annot-on #annot-capture { display: block; }
       const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
       if (dx * dx + dy * dy < bestD) { bestD = dx * dx + dy * dy; best = i; }
     });
-    return best;
-  }
-  /** 公式里与符号锚点 q 最像的符号 {i, score}：score = 前、后符号串相似度的平均，被锚符号相同再加 0.01。 */
-  function matchGlyph(g, q) {
-    let best = { i: -1, score: -1 };
-    for (let i = 0; i < g.ch.length; i++) {
-      const c = glyphQuote(g, i);
-      const sc = (similarity(q.prefix, c.prefix) + similarity(q.suffix, c.suffix)) / 2 + (c.exact === q.exact ? 0.01 : 0);
-      if (sc > best.score) best = { i, score: sc };
-    }
     return best;
   }
   /** 按元素类型建锚点：媒体 / 陈列公式 / 表格单元格 / 标题 / 正文字符。返回 {anchor, frame, R} 或 null。 */
@@ -2208,10 +2206,9 @@ html.annot-on #annot-capture { display: block; }
   }
   /* ---------- 7b. 记号改名表：内容只是换了写法（如 d → δ），笔记跟着改名后的内容走 ----------
    * build_site 把 docs/drafts/notation_renames_<页>.json 嵌进页面 <script id="annot-renames">：
-   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。锚点按原样找不到时，先按改名表（可连续改名）换成新写法再精确找；
-   * 找到就把存的锚点改成新写法（之后同步）。改名表里没有的改动照旧走模糊匹配，再找不到就标灰。 */
+   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。只用于有圈住内容（cover）的笔：圈住的那串按原样找不到时，
+   * 按改名表（可连续改名）换成新写法再找（findCover / findCoverGlyph），找到就把存的锚点改成新写法；还找不到就隐藏。 */
   const collapse = s => (s || '').replace(/\s+/g, ' ');
-  const quoteKey = q => `${q.prefix}\u0001${q.exact}\u0001${q.suffix}`;
   function renameMap() {
     const el = document.getElementById('annot-renames');
     const raw = el ? el.textContent : '';
@@ -2220,11 +2217,8 @@ html.annot-on #annot-capture { display: block; }
       try { m = JSON.parse(raw || '{}') || {}; } catch (e) { m = {}; }
       const pick = (o, fn) => new Map(Object.entries(o && typeof o === 'object' ? o : {})
         .filter(([k, v]) => k && typeof v === 'string').map(([k, v]) => [fn(k), fn(v)]));
-      // quote：逐笔迁移（旧前后文整体 → 新前后文），用于句子被改写、字挪了位置、全局文字替换对不准的地方
-      const quote = new Map((Array.isArray(m.quote) ? m.quote : []).filter(e => e && e.from && e.to)
-        .map(e => [quoteKey(e.from), { prefix: e.to.prefix, exact: e.to.exact, suffix: e.to.suffix }]));
       renameMap.raw = raw;
-      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse), quote };
+      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse) };
     }
     return renameMap.val;
   }
@@ -2278,117 +2272,44 @@ html.annot-on #annot-capture { display: block; }
     }
     return changed ? { s, mark } : null;
   }
-  /** TextQuote 按改名表换成新写法后的锚点（prefix / suffix 仍各取 quoteLen 字）；没改名返回 null。 */
-  function renamedQuote(a) {
-    const r = renamedText(a.prefix + a.exact + a.suffix, a.prefix.length);
-    if (!r || r.mark >= r.s.length) return null;
-    return Object.assign({}, a, { prefix: r.s.slice(Math.max(0, r.mark - CFG.quoteLen), r.mark), exact: r.s[r.mark],
-                                  suffix: r.s.slice(r.mark + 1, r.mark + 1 + CFG.quoteLen) });
-  }
-
   function exactQuote(a, orig, f) {
     const hits = allIndexes(S.index.text, a.prefix + a.exact + a.suffix).map(i => i + a.prefix.length);
     return hits.length ? nearestPos(hits, orig, f) : -1;
   }
-  /** 正文锚点：① 原文精确匹配 → ② 按改名表换写法后精确匹配（返回 migrated = 新锚点）→ ③ 种子找候选 + 前后文相似度打分
-   * → ④ 块开头相似 + 块内偏移。返回 {pos, migrated?} 或 null。 */
-  function findQuote(a, orig, f) {
-    let p = exactQuote(a, orig, f);
-    if (p >= 0) return { pos: p };
-    const qa = renameMap().quote.get(quoteKey(a));
-    if (qa) {
-      const ma = Object.assign({}, a, qa);
-      if ((p = exactQuote(ma, orig, f)) >= 0) return { pos: p, migrated: ma };
-    }
-    const ra = renamedQuote(a);
-    if (ra && (p = exactQuote(ra, orig, f)) >= 0) return { pos: p, migrated: ra };
-    p = fuzzyQuote(ra || a, orig, f);
-    return p >= 0 ? { pos: p } : null;
-  }
-  function fuzzyQuote(a, orig, f) {
-    const t = S.index.text;
-    const cands = new Set();
-    const pSeed = a.prefix.slice(-CFG.seedLen) + a.exact, sSeed = a.exact + a.suffix.slice(0, CFG.seedLen);
-    for (const i of allIndexes(t, pSeed)) cands.add(i + pSeed.length - a.exact.length);
-    for (const i of allIndexes(t, sSeed)) cands.add(i);
-    let best = [], bestScore = -1;
-    for (const p of cands) {
-      const sc = (similarity(a.prefix, t.slice(Math.max(0, p - a.prefix.length), p)) +
-                  similarity(a.suffix, t.slice(p + 1, p + 1 + a.suffix.length))) / 2;
-      if (sc > bestScore + 1e-9) { bestScore = sc; best = [p]; } else if (Math.abs(sc - bestScore) <= 1e-9) best.push(p);
-    }
-    if (bestScore >= CFG.fuzzyAccept) return nearestPos(best, orig, f);
-    if (!a.blk) return -1;
-    let bestBlk = -1, bestSim = CFG.blockHeadAccept;
-    for (const el of article.querySelectorAll(a.blk.tag)) {
-      const start = posFromElement(el);
-      if (start < 0) continue;
-      let end = start;
-      while (end < t.length && end < start + 40 && el.contains(S.index.nodes[S.index.posNode[end]])) end++;
-      const sc = similarity(a.blk.head, t.slice(start, end));
-      if (sc >= bestSim) {
-        let blkEnd = end;
-        while (blkEnd < t.length && el.contains(S.index.nodes[S.index.posNode[blkEnd]])) blkEnd++;
-        bestSim = sc; bestBlk = Math.min(start + a.blk.off, blkEnd - 1);
-      }
-    }
-    return bestBlk;
-  }
-  /** 按锚点类型在当前页面找目标；返回 {el} 或 {pos}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
+  /** 按锚点类型在当前页面找目标：有圈住内容（cover）的跟着这串内容走，其余只按原样精确找。
+   * 返回 {el} / {pos} / {el, glyph}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
   function findTarget(a, orig, f) {
     if (a.type === 'page') return { el: main };
     if (a.type === 'text' && a.cover) return findCover(a, orig, f);
     if (a.type === 'math' && a.cover) return findCoverGlyph(a);
-    if (a.type === 'text') return findQuote(a, orig, f);
-    let cands = [], migrated = null;
-    const renamedOr = (s, fn) => { const r = fn(s); return r === null ? s : r; };
-    const rt = s => { const r = renamedText(s, -1); return r ? r.s : null; };
+    return findExact(a, orig, f);
+  }
+  /** 没有圈住内容（cover）的锚点（用户 10-25 确认过的第 2 次画完的笔，画笔时还没有 cover）：只按原样精确找——正文前后文
+   * 一字不差、公式 TeX 相同且符号前后文原样出现、图 src 相同、标题 / 表格文字相同；不用改名表、不模糊匹配。
+   * 找不到返回 null（这笔隐藏）。 */
+  function findExact(a, orig, f) {
+    if (a.gone) return null;   // 迁移时判出内容在新版里没了（repair_notes_positions --apply-snapshot），不画
+    if (a.type === 'text') { const p = exactQuote(a, orig, f); return p >= 0 ? { pos: p } : null; }
+    let cands = [];
     if (a.type === 'media') {
-      if (a.gone) return null;   // 图重画后标的那一小块没了（repair_notes_positions 配准判出），不画
       cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
     } else if (a.type === 'math') {
-      const all = displayMath();
-      cands = all.filter(m => m.tex === a.tex).map(m => m.el);
-      const t2 = cands.length ? null : renamedTex(a.tex);
-      if (t2) {
-        cands = all.filter(m => m.tex === t2).map(m => m.el);
-        if (cands.length) migrated = Object.assign({}, a, { tex: t2 });
-      }
-      if (!cands.length && a.g) {   // TeX 认不出（拆行、加了中间步骤）：按符号锚点在全部陈列公式里找最像的
-        let bestSc = CFG.fuzzyAccept;
-        for (const m of all) { const sc = matchGlyph(glyphList(m.el), a.g).score; if (sc >= bestSc) { bestSc = sc; cands = [m.el]; } }
-      }
-      if (!cands.length) {
-        let bestSim = CFG.texFuzzy;
-        for (const m of all) { const sc = similarity(t2 || a.tex, m.tex); if (sc >= bestSim) { bestSim = sc; cands = [m.el]; } }
+      const els = displayMath().filter(m => m.tex === a.tex).map(m => m.el);
+      if (!a.g) cands = els;
+      else {   // 符号锚点：前后各 glyphLen 个符号连同被锚符号原样出现在这个公式里，几处取第一处
+        const seq = Array.from(a.g.prefix + a.g.exact + a.g.suffix), k = Array.from(a.g.prefix).length;
+        const hits = els.map(el => { const g = glyphList(el), i = seqIndexes(g.ch, seq)[0]; return i === undefined ? null : { el, glyph: g.els[i + k] }; })
+                        .filter(Boolean);
+        const el = pickCandidate(hits.map(h => h.el), a, orig, f);
+        return el ? hits.find(h => h.el === el) : null;
       }
     } else if (a.type === 'cell') {
-      const findCells = (cell, head) => {
-        const cells = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === cell);
-        const withHead = cells.filter(c => headerText(c) === head);
-        return withHead.length ? withHead : cells;
-      };
-      cands = findCells(a.cell, a.head);
-      if (!cands.length && (rt(a.cell) !== null || rt(a.head) !== null)) {
-        const cell = renamedOr(a.cell, rt), head = renamedOr(a.head, rt);
-        cands = findCells(cell, head);
-        if (cands.length) migrated = Object.assign({}, a, { cell, head });
-      }
+      cands = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === a.cell && headerText(c) === a.head);
     } else if (a.type === 'heading') {
-      const hs = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')];
-      cands = hs.filter(h => plainText(h) === a.text);
-      const t2 = cands.length ? null : rt(a.text);
-      if (t2 !== null) {
-        cands = hs.filter(h => plainText(h) === t2);
-        if (cands.length) migrated = Object.assign({}, a, { text: t2 });
-      }
-      if (!cands.length) {
-        let bestSim = CFG.headingFuzzy;
-        for (const h of hs) { const sc = similarity(t2 || a.text, plainText(h)); if (sc >= bestSim) { bestSim = sc; cands = [h]; } }
-      }
+      cands = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(h => plainText(h) === a.text);
     }
     const el = pickCandidate(cands, a, orig, f);
-    return el ? (migrated ? { el, migrated } : { el }) : null;
+    return el ? { el } : null;
   }
   /** 一笔当前该画在哪：{state: 'ok' | 'hidden' | 'orphan', R（正文卡片内坐标的参考矩形）, el（所在元素）}。 */
   function place(s, f) {
@@ -2402,15 +2323,6 @@ html.annot-on #annot-capture { display: block; }
     if (t.el === main) return { state: 'ok', R: s.orig, el: main };
     if (t.glyph) {   // 圈住的公式符号串：画在找到的起始符号上
       const r = elementRect(t.glyph);
-      return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
-    }
-    if (s.anchor.type === 'math' && s.anchor.g) {   // 符号锚点：画在公式里对应的那个符号上
-      if (c.glyph === undefined) {
-        const g = glyphList(t.el), m = matchGlyph(g, s.anchor.g);
-        c.glyph = m.score >= CFG.fuzzyAccept ? g.els[m.i] : null;
-      }
-      if (!c.glyph) return { state: 'orphan', R: s.orig, el: main };
-      const r = elementRect(c.glyph);   // 收起的折叠里仍有布局矩形，elementRect 会判成不可见
       return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
     }
     if (t.pos !== undefined) {
@@ -2507,11 +2419,14 @@ html.annot-on #annot-capture { display: block; }
     renderQueued = true;
     requestAnimationFrame(() => { renderQueued = false; renderAll(); });
   }
+  // 核对页（check/<版本>/）：只显示在这一版上画的笔（NIPC_ONLY = 笔 id 列表），其余笔不画也不动
+  const ONLY = Array.isArray(window.NIPC_ONLY) ? new Set(window.NIPC_ONLY) : null;
   function renderAll() {
     ensureIndex();
     const f = frame(), alive = new Set();
     let orphans = 0, hidden = 0;
     for (const s of S.strokes) {
+      if (ONLY && !ONLY.has(s.id)) continue;
       alive.add(s.id);
       let d = S.drawn.get(s.id);
       if (!d) {
@@ -2523,21 +2438,42 @@ html.annot-on #annot-capture { display: block; }
       }
       const pl = place(s, f);
       d.state = pl.state; d.el = pl.el;
-      if (pl.state === 'hidden') { d.path.style.display = 'none'; d.abs = null; hidden++; continue; }
-      d.path.style.display = '';
-      if (pl.state === 'orphan') orphans++;
+      // 圈的内容在本页找不到（orphan）和在收起的折叠里（hidden）一样不画：任何页面都不显示灰色笔，也擦不到、拖不动、打印不出
       d.path.classList.toggle('orphan', pl.state === 'orphan');
-      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',') + pl.state;
+      if (pl.state !== 'ok') {
+        d.path.style.display = 'none'; d.abs = null; d.key = '';
+        if (pl.state === 'orphan') orphans++; else hidden++;
+        continue;
+      }
+      d.path.style.display = '';
+      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',');
       if (key !== d.key) {
         d.abs = absPoints(s, R); d.box = bbox(d.abs, 0); d.key = key;
         styleStrokePath(d.path, s, d.abs);
-        d.path.classList.toggle('orphan', pl.state === 'orphan');
       }
     }
     for (const [id, d] of S.drawn) if (!alive.has(id)) { d.path.remove(); S.drawn.delete(id); }
     S.orphans = orphans; S.hidden = hidden;
+    if (ONLY && !S.printing) {
+      // 核对页上（笔画的那一版、用户自己的设备和字体）：显示出来的笔就地算出圈住的内容，笔不动，存回笔记
+      const todo = S.strokes.filter(s => ONLY.has(s.id) && !s.coverOn && s.anchor.type !== 'media' && s.anchor.type !== 'page');
+      if (coverOnDevice(todo, window.NIPC_CHECK_VERSION || PAGE_VERSION).length) { commit(); return; }
+    }
     if (S.migrated) { S.migrated = false; saveStored(); schedulePush(); }
     updateStatus();
+  }
+
+  /** 在用户设备上（当前页面的排版、字体）把 list 里此刻显示着的笔按它们显示的位置重新算圈住的内容，只改匹配字段
+   * （anchor / frame / orig / pts）并记 coverOn = {page: 在哪一版上算的, at, ua}；drawn 不动。返回算了的笔。 */
+  function coverOnDevice(list, page) {
+    const todo = list.filter(s => { const d = S.drawn.get(s.id); return d && d.state === 'ok' && d.abs; });
+    S.geom = null; S.geomBatch = true;
+    for (const s of todo) {
+      reanchor(s, S.drawn.get(s.id).abs);
+      s.coverOn = { page, at: new Date().toISOString(), ua: navigator.userAgent };
+    }
+    S.geomBatch = false; S.geom = null;
+    return todo;
   }
 
   /* ---------- 10. 操作：书写、橡皮擦、移动、撤销、清空 ---------- */
@@ -2595,6 +2531,7 @@ html.annot-on #annot-capture { display: block; }
     const got = anchorForStroke(dr.abs);
     const s = Object.assign(dr.s, { id: newId(), updatedAt: Date.now(), anchor: got.anchor, frame: got.frame,
                                     orig: roundRect(got.R), pts: framePoints(dr.abs, got.R, got.frame) });
+    s.drawn = drawnOf(s);
     pushUndo(snapshot());
     S.strokes.push(s);
     commit();
@@ -2627,6 +2564,7 @@ html.annot-on #annot-capture { display: block; }
     d.path.removeAttribute('transform');
     if (Math.hypot(mv.dx, mv.dy) < 0.5 || !d.abs) return;
     reanchor(mv.s, d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]));
+    mv.s.drawn = drawnOf(mv.s);   // 用户移动 = 新的「画的」原样
     pushUndo(mv.snap);
     commit();
   }
@@ -2735,6 +2673,7 @@ html.annot-on #annot-capture { display: block; }
   const SY = { sha: null, timer: null, busy: false, again: false, dirty: false, state: '', warn: false };
 
   function syncCfg() {
+    if (SNAP) return { token: '', repo: DEFAULT_REPO };   // 快照页从不同步
     try { const c = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; return { token: c.token || '', repo: c.repo || DEFAULT_REPO }; }
     catch (e) { return { token: '', repo: DEFAULT_REPO }; }
   }
@@ -2785,7 +2724,9 @@ html.annot-on #annot-capture { display: block; }
     const remoteStrokes = remote && Array.isArray(remote.strokes) ? remote.strokes.filter(validStroke) : [];
     for (const s of local.strokes.concat(remoteStrokes)) {
       const o = byId.get(s.id);
-      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, s);
+      // drawn 只随用户画 / 移动产生：选中的那份没有 drawn（老格式）而另一份有，就带上另一份的，绝不丢
+      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, !s.drawn && o && o.drawn ? Object.assign({}, s, { drawn: o.drawn }) : s);
+      else if (!o.drawn && s.drawn) byId.set(s.id, Object.assign({}, o, { drawn: s.drawn }));
     }
     return { strokes: [...byId.values()].filter(s => !tombs[s.id]), tombs };
   }
@@ -2894,7 +2835,7 @@ html.annot-on #annot-capture { display: block; }
 
   /* ---------- 14. 工具栏 ---------- */
   const ui = document.createElement('div');
-  ui.className = 'annot-ui';
+  ui.className = SNAP ? 'annot-ui snap' : 'annot-ui';   // 快照页只读：CSS 藏掉画笔、撤销、导入、同步
   ui.id = 'annot-ui';
   ui.innerHTML = `
     <button type="button" id="annot-fab" aria-label="展开笔记工具栏">✎ 笔记</button>
@@ -3082,6 +3023,39 @@ html.annot-on #annot-capture { display: block; }
     }
     // 给自动化测试读状态用（tools/test_annotate.py）；页面本身不依赖它
     window.__nipcNotes = {
+      // 正文里全部公式（陈列 + 行内），按文档先后：[{el, tex, display}]
+      mathsInOrder() {
+        let out = [];
+        try {
+          out = [...MathJax.startup.document.math].filter(m => m.typesetRoot && article.contains(m.typesetRoot))
+            .map(m => ({ el: m.typesetRoot, tex: norm(m.math), display: !!m.display }));
+        } catch (e) { /* MathJax 没加载 */ }
+        return out.sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+      },
+      contentIndex() {
+        const ix = ensureIndex();
+        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el) })),
+                 media: [...article.querySelectorAll('img, video')].map(srcKey) };
+      },
+      where(ids) {
+        ensureIndex();
+        const f = frame(), M = this.mathsInOrder(), media = [...article.querySelectorAll('img, video')];
+        return Object.fromEntries(ids.map(id => {
+          const s = S.strokes.find(t => t.id === id);
+          if (!s) return [id, null];
+          if (!S.cache.get(id)) place(s, f);
+          const c = S.cache.get(id), t = c && c.target, d = S.drawn.get(id), state = d ? d.state : 'none';
+          if (!t) return [id, { state }];
+          if (t.el === main) return [id, { state, kind: 'page' }];
+          if (t.pos !== undefined) return [id, { state, kind: 'text', pos: t.pos }];
+          const k = M.findIndex(m => m.el === t.el), glyph = t.glyph || c.glyph;
+          if (k >= 0) return [id, { state, kind: glyph ? 'glyph' : 'math', math: k, gi: glyph ? glyphList(t.el).els.indexOf(glyph) : -1 }];
+          const mi = media.indexOf(t.el);
+          if (mi >= 0) return [id, { state, kind: 'media', src: srcKey(t.el), nth: media.slice(0, mi).filter(e => srcKey(e) === srcKey(t.el)).length }];
+          return [id, { state, kind: 'other' }];
+        }));
+      },
+
       strokes: () => S.strokes, render: renderAll, frame,
       placed: id => { const d = S.drawn.get(id); return d ? { state: d.state, abs: d.abs } : null; },
       status: () => ({ orphans: S.orphans, hidden: S.hidden, on: S.on, sync: SY.state, tombs: Object.keys(S.tombs).length }),
@@ -3107,6 +3081,13 @@ html.annot-on #annot-capture { display: block; }
         return out;
       },
       texList: () => allMath().map(m => m.tex),
+      // 核对字体排版用（只读）：每笔存的锚点此刻在本机排版下的参考矩形（正文卡片 px），与笔里存的画笔设备上的 orig 比
+      anchorRects: ids => Object.fromEntries(ids.map(id => {
+        const s = S.strokes.find(t => t.id === id);
+        if (!s) return [id, null];
+        const pl = place(s, frame());
+        return [id, pl.state === 'ok' ? { x: pl.R.x, y: pl.R.y, w: pl.R.w, h: pl.R.h, type: s.anchor.type } : null];
+      })),
       // 查原因用（只读）：一笔圈住的关键词在当前页面每一处出现的位置、所在段落相似度、是否在收起的折叠里
       explain: id => {
         const s = S.strokes.find(t => t.id === id);
