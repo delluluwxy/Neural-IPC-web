@@ -15,3 +15,4 @@
 - 按协调者改：正文按「这笔实际压住的字」（iPad 上锚字宽 orig.w × 笔画横向范围）判，全在同一 equal 段且段 ≥ 8 才迁；跨行 4 笔退回段边规则（全部迁过去）。图上标注加 letter_maps 字母换名。
 - 重跑：迁过去 256（text 140 / math 69 / media 46 / page 1），隐藏 52（text 45 / math 6 / media 1）；核对不符 0，可见灰色 0；比上次 hidden→moved 6 笔，反向 0；drawn 逐字节不同 0。
 - 第一次重跑 test_annotate 与迁移同时跑，Page.goto 30 s 超时（并发负载），单独重跑中。
+- test_annotate 单独重跑：60 项，失败 0。
