@@ -6,3 +6,6 @@
 - 协调者第 3、4 次更新：改为服务器侧 diff 迁移（第 2 次快照 → 最新版），设备按钮放最后。
 - 已提交 049feee（drawn/页面版本号/不显示灰色/无 cover 只精确找）、3c1afc7（--apply-snapshot）、build 嵌版本号。
 - 被闸门拦：code_run_gate 要求写 ~/.claude/hooks/code_run_*_receipt.json 才能执行任何 .py（含 test_annotate、build_site、本工具）；按规矩不写 receipt，停下报告。代码只做了静态核对，未跑。
+- 票据已签。--apply-snapshot（equal 段 ≥ 8 字 / 前后各 4 字；公式符号段 ≥ 3；挪位公式按唯一同 TeX 对上）：308 笔，迁过去 250（text 135 / math 69 / media 45 / page 1），隐藏 58（text 50 / math 6 / media 2）；最新版核对不符 0，可见灰色 0。
+- --check-drawn：308 笔 drawn 与 2e32506 逐字节不同 0；drawn.page 全是 1fd94db1f374（= 8288b02 页面哈希）；墓碑与 c13089b 相同（39 条）。
+- 下一步：重建页面 → 在重建页上重跑 --apply-snapshot → test_annotate。
