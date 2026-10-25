@@ -1420,6 +1420,211 @@ def check_hidden(args):
         print(f"  {i} {'相同' if ok else '不同'}：页面「{page_txt}」 报告「{rep_txt}」")
 
 
+# ---------- --consistency：同一个无头浏览器、同一视口宽度下比两页上每笔相对它圈住 / 靠近的内容的位置 ----------
+# 服务器字体与 iPad 不同，像素位置不能当 iPad 上的位置；但同一浏览器里两页比「笔相对它压住的字 / 符号 / 图」的偏移，
+# 只要两页内容在笔附近相同，偏移就应当相同（自检：snapshot 2 对它自己，应为 0）。只读页面（git 里的原样），不导入、不写存储。
+CONSIST_REFS = {"snap": ("origin/main:snapshot/2", "/_snap/"), "preview": ("origin/main:preview", "/_prev/")}
+CONSIST_NEAR = 40          # 笔外框外扩这么多 px 内算「附近」（用户规矩：笔画影响范围 40 px）
+CONSIST_TOL_PX, CONSIST_TOL_FRAC = 2.0, 0.10
+CONSIST_JS = r"""(near) => {
+  const art = document.querySelector('main article'), sx = scrollX, sy = scrollY;
+  const pg = q => ({ l: q.left + sx, t: q.top + sy, r: q.right + sx, b: q.bottom + sy });
+  // 正文文字串（与标注层 buildIndex 同规则：空白合并、跳过公式 / 脚本 / 标注层）与每个字的页面矩形
+  const walker = document.createTreeWalker(art, NodeFilter.SHOW_TEXT), rg = document.createRange();
+  const chars = [], rects = [];
+  let last = true;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const p = n.parentElement;
+    if (!p || p.closest('mjx-container, script, style, svg, .annot-ui')) continue;
+    const vis = !p.closest('details:not([open]) > :not(summary)');
+    for (let i = 0; i < n.data.length; i++) {
+      const sp = /\s/.test(n.data[i]);
+      if (sp && last) continue;
+      chars.push(sp ? ' ' : n.data[i]); last = sp;
+      let q = null;
+      if (!sp && vis) { rg.setStart(n, i); rg.setEnd(n, i + 1); for (const c of rg.getClientRects()) if (c.width || c.height) { q = pg(c); break; } }
+      rects.push(q);
+    }
+  }
+  let maths = [];
+  try { maths = [...MathJax.startup.document.math].filter(m => m.typesetRoot && art.contains(m.typesetRoot)); } catch (e) {}
+  maths.sort((a, b) => (a.typesetRoot.compareDocumentPosition(b.typesetRoot) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+  const M = maths.map(m => { const els = [...m.typesetRoot.querySelectorAll('[data-c]')];
+    return { tex: (m.math || '').replace(/\s+/g, ' ').trim(),
+             ch: els.map(e => { const c = parseInt(e.getAttribute('data-c'), 16); return Number.isFinite(c) ? String.fromCodePoint(c).normalize('NFKC') : '?'; }),
+             q: els.map(e => { const c = e.getBoundingClientRect(); return c.width || c.height ? pg(c) : null; }) }; });
+  const media = [...art.querySelectorAll('img, video')].map(e => ({ src: (e.getAttribute('src') || '').split('/').pop(), q: pg(e.getBoundingClientRect()) }));
+  const items = [];
+  rects.forEach((q, p) => { if (q) items.push({ k: 't', p, c: chars[p], q }); });
+  M.forEach((m, mi) => m.q.forEach((q, i) => { if (q) items.push({ k: 'g', m: mi, i, c: m.ch[i], q }); }));
+  const out = {};
+  for (const path of document.querySelectorAll('#annot-layer path[data-id]')) {
+    if (getComputedStyle(path).display === 'none') continue;
+    const c = path.getBoundingClientRect();
+    if (!c.width && !c.height) continue;
+    const B = pg(c), cx = q => (q.l + q.r) / 2, cy = q => (q.t + q.b) / 2;
+    const inB = q => cx(q) >= B.l && cx(q) <= B.r && cy(q) >= B.t && cy(q) <= B.b;
+    const dist = q => Math.hypot(Math.max(q.l - B.r, 0, B.l - q.r), Math.max(q.t - B.b, 0, B.t - q.b));
+    const zone = items.filter(it => dist(it.q) <= near);
+    let core = zone.filter(it => inB(it.q)), how = 'inside';
+    if (!core.length) { const d = Math.min(...zone.map(it => dist(it.q))); core = zone.filter(it => dist(it.q) <= d + 0.5); how = 'nearest'; }
+    const rel = it => [it.k, it.k === 't' ? it.p : [it.m, it.i], it.c, +(cx(it.q) - B.l).toFixed(2), +(cy(it.q) - B.t).toFixed(2)];
+    const med = media.findIndex(m => cx(B) >= m.q.l && cx(B) <= m.q.r && cy(B) >= m.q.t && cy(B) <= m.q.b);
+    out[path.dataset.id] = { box: [B.l, B.t, B.r - B.l, B.b - B.t].map(v => +v.toFixed(2)), how, core: core.map(rel), zone: zone.map(rel),
+      media: med < 0 ? null : { src: media[med].src, nth: media.slice(0, med).filter(m => m.src === media[med].src).length,
+        rel: [(B.l - media[med].q.l) / (media[med].q.r - media[med].q.l), (B.t - media[med].q.t) / (media[med].q.b - media[med].q.t)],
+        size: [media[med].q.r - media[med].q.l, media[med].q.b - media[med].q.t] } };
+  }
+  const all = (window.NIPC_SNAPSHOT || {}).strokes || [];
+  return { text: chars.join(''), maths: M.map(m => ({ tex: m.tex, ch: m.ch })), shown: out,
+           ids: all.map(s => s.id), anchors: Object.fromEntries(all.map(s => [s.id, { a: s.anchor, frame: s.frame }])),
+           width: innerWidth, zoom: document.querySelector('main').style.zoom || '' };
+}"""
+
+
+def consistency_probe(job):
+    """（子进程）job = (标签, 哪一页 snap / preview, 视口宽)：在无头浏览器里打开 git 里原样的那一页（笔记是页里嵌的那份），
+    展开全部折叠，跑 CONSIST_JS。返回 (标签, 结果)。"""
+    label, which, width = job
+    ref, prefix = CONSIST_REFS[which]
+    html = git_bytes(f"{ref}/week3_4.html").decode("utf-8")
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        base, srv = serve()
+        global VIEW
+        VIEW = {"width": width, "height": 900}
+        pg = open_served(browser, base, f"{prefix}week3_4.html", html, git_prefix=ref)
+        pg.wait_for_timeout(1000)
+        got = pg.evaluate(CONSIST_JS, CONSIST_NEAR)
+        browser.close()
+        srv.shutdown()
+    return label, got
+
+
+def ctx_of(res, it, k=10):
+    """一个内容项（CONSIST_JS 的 rel 记号）前后各 k 字的样子：正文「前文【字】后文」，公式「$TeX$ 里 前【符号】后」。"""
+    kind, where, c = it[0], it[1], it[2]
+    if kind == "t":
+        t = res["text"]
+        return f"{t[max(0, where - k):where]}【{t[where]}】{t[where + 1:where + 1 + k]}"
+    m = res["maths"][where[0]]
+    ch, i = m["ch"], where[1]
+    return f"${m['tex'][:60]}$ 里 {''.join(ch[max(0, i - k):i])}【{ch[i]}】{''.join(ch[i + 1:i + 1 + k])}"
+
+
+def core_text(res, core, k=10):
+    """一笔圈住的内容（按页面先后）连同前后各 k 字：正文按文字位置取连续一段，公式取符号串。"""
+    ts = sorted(it[1] for it in core if it[0] == "t")
+    gs = sorted(tuple(it[1]) for it in core if it[0] == "g")
+    out = []
+    if ts:
+        t, lo, hi = res["text"], ts[0], ts[-1] + 1
+        out.append(f"{t[max(0, lo - k):lo]}【{t[lo:hi]}】{t[hi:hi + k]}")
+    if gs:
+        mi = gs[0][0]
+        m, ii = res["maths"][mi], [g[1] for g in gs if g[0] == mi]
+        lo, hi = min(ii), max(ii) + 1
+        out.append(f"${m['tex'][:80]}$ 里 {''.join(m['ch'][max(0, lo - k):lo])}【{''.join(m['ch'][lo:hi])}】{''.join(m['ch'][hi:hi + k])}")
+    return " ／ ".join(out) or "（附近 40 px 内没有字或符号）"
+
+
+def compare_stroke(a, b):
+    """同一笔在两页上（CONSIST_JS 的 shown[id]）：圈住的内容串、每个内容项相对笔外框左上角的偏移、外框大小、图上相对位置。
+    返回 (是否一致, 最大偏差 px, 说明)。"""
+    if a["media"] or b["media"]:
+        if not (a["media"] and b["media"]) or a["media"]["src"] != b["media"]["src"]:
+            return False, None, f"图不同：{(a['media'] or {}).get('src')} → {(b['media'] or {}).get('src')}"
+        d = max(abs((x - y) * s) for x, y, s in zip(a["media"]["rel"], b["media"]["rel"], b["media"]["size"]))
+        dw = max(abs(x - y) for x, y in zip(a["box"][2:], b["box"][2:]))
+        tol = max(CONSIST_TOL_PX, CONSIST_TOL_FRAC * max(a["box"][2], a["box"][3]))
+        return d <= tol and dw <= tol, round(max(d, dw), 2), f"图上相对位置差 {d:.2f} px，外框大小差 {dw:.2f} px"
+    ca, cb = "".join(it[2] for it in a["core"]), "".join(it[2] for it in b["core"])
+    dw = max(abs(x - y) for x, y in zip(a["box"][2:], b["box"][2:]))
+    tol = max(CONSIST_TOL_PX, CONSIST_TOL_FRAC * max(a["box"][2], a["box"][3]))
+    if ca != cb or len(a["core"]) != len(b["core"]):
+        return False, None, f"圈住的内容不同：「{ca}」→「{cb}」（外框大小差 {dw:.2f} px）"
+    d = max((max(abs(x[3] - y[3]), abs(x[4] - y[4])) for x, y in zip(a["core"], b["core"])), default=0.0)
+    return d <= tol and dw <= tol, round(max(d, dw), 2), f"圈住「{ca}」，相对偏移最大差 {d:.2f} px，外框大小差 {dw:.2f} px"
+
+
+def still_there(a_res, a, b_res, k=10):
+    """snapshot 上显示、预览里隐藏的笔：它圈住的内容在预览页里还在不在。正文：圈住的那段连续文字（≥ 2 字）在新正文里原样出现，
+    且有一处前 k 字或后 k 字与原来相似度 ≥ 0.8；公式：原公式 TeX 原样还在，或圈住的符号串（≥ 2 个）原样出现在某个公式里。
+    返回 (在不在, 说明)。"""
+    import difflib
+    sim = lambda x, y: difflib.SequenceMatcher(None, x, y, autojunk=False).ratio() if x or y else 1.0
+    ts = sorted(it[1] for it in a["core"] if it[0] == "t")
+    if ts:
+        t, lo, hi = a_res["text"], ts[0], ts[-1] + 1
+        cov, pre, suf = t[lo:hi], t[max(0, lo - k):lo], t[hi:hi + k]
+        if len(cov.strip()) < 2:
+            return False, f"只圈住一个字「{cov}」，不判"
+        n, best = b_res["text"], None
+        for p in (m.start() for m in re.finditer(re.escape(cov), n)):
+            s = max(sim(pre, n[max(0, p - k):p]), sim(suf, n[p + len(cov):p + len(cov) + k]))
+            if best is None or s > best[0]:
+                best = (s, p)
+        if best and best[0] >= 0.8:
+            p = best[1]
+            return True, f"新正文里原样有：{n[max(0, p - k):p]}【{cov}】{n[p + len(cov):p + len(cov) + k]}（前后文相似 {best[0]:.2f}）"
+        return False, f"新正文里没有前后文对得上的「{cov}」" + (f"（有 {len(re.findall(re.escape(cov), n))} 处同字但前后文不像）" if best else "")
+    gs = sorted(tuple(it[1]) for it in a["core"] if it[0] == "g")
+    if gs:
+        m = a_res["maths"][gs[0][0]]
+        if any(x["tex"] == m["tex"] for x in b_res["maths"]):
+            return True, f"原公式 TeX 原样还在：${m['tex'][:80]}$"
+        ii = [g[1] for g in gs if g[0] == gs[0][0]]
+        seq = m["ch"][min(ii):max(ii) + 1]
+        if len(seq) >= 2:
+            for x in b_res["maths"]:
+                if any(x["ch"][i:i + len(seq)] == seq for i in range(len(x["ch"]) - len(seq) + 1)):
+                    return True, f"圈住的符号串「{''.join(seq)}」原样出现在 ${x['tex'][:80]}$"
+        return False, "原公式 TeX 没了，圈住的符号串也没有原样出现"
+    return False, "附近没有字或符号（图上的笔另判）"
+
+
+def consistency(args):
+    """--consistency：每个视口宽度下并行开 3 个无头浏览器：snapshot 2 两次（方法自检，偏差应为 0）、预览页一次；逐笔比
+    （compare_stroke），列偏差超阈值的笔与「预览里隐藏但圈的内容其实还在」的笔，结果写 --out（json），并打印摘要。只读。"""
+    import multiprocessing as mp
+    widths = args.consistency_widths
+    jobs = [(f"{w}:{lab}", which, w) for w in widths for lab, which in (("snap", "snap"), ("snap2", "snap"), ("preview", "preview"))]
+    with mp.get_context("spawn").Pool(len(jobs)) as pool:
+        res = dict(pool.map(consistency_probe, jobs))
+    rows_by = {r["id"]: r for r in json.loads((WORKTREES / "apply_snapshot2_report.json").read_text(encoding="utf-8"))["rows"]}
+    out = {}
+    for w in widths:
+        S, S2, P = res[f"{w}:snap"], res[f"{w}:snap2"], res[f"{w}:preview"]
+        self_bad = [i for i in S["shown"] if i in S2["shown"] and not compare_stroke(S["shown"][i], S2["shown"][i])[0]]
+        bad, mis, gone_ok = [], [], 0
+        for i in S["shown"]:
+            a = S["shown"][i]
+            if i in P["shown"]:
+                ok, d, why = compare_stroke(a, P["shown"][i])
+                if not ok:
+                    bad.append(dict(id=i, maxdiff=d, why=why, snap=core_text(S, a["core"]), preview=core_text(P, P["shown"][i]["core"]),
+                                    anchor_snap=S["anchors"].get(i), anchor_preview=P["anchors"].get(i),
+                                    migrate=rows_by.get(i, {}).get("rule"), report_new=rows_by.get(i, {}).get("new")))
+            elif a["media"] is None:
+                there, why = still_there(S, a, P)
+                if there:
+                    mis.append(dict(id=i, snap=core_text(S, a["core"]), why=why, report_why=rows_by.get(i, {}).get("why"),
+                                    anchor_snap=S["anchors"].get(i)))
+                else:
+                    gone_ok += 1
+        out[w] = dict(zoom={k: res[f"{w}:{k}"]["zoom"] for k in ("snap", "preview")},
+                      shown={k: len(res[f"{w}:{k}"]["shown"]) for k in ("snap", "snap2", "preview")},
+                      self_check_bad=self_bad, bad=bad, wrongly_hidden=mis, hidden_and_gone=gone_ok,
+                      shown_in_preview_not_snap=sorted(set(P["shown"]) - set(S["shown"])))
+        print(f"== 视口 {w}px：显示 snap {len(S['shown'])} / snap 第二次 {len(S2['shown'])} / 预览 {len(P['shown'])} 笔；"
+              f"自检不一致 {len(self_bad)} 笔；两页都显示但相对位置不一致 {len(bad)} 笔；预览里隐藏但内容还在 {len(mis)} 笔；"
+              f"隐藏且内容确实没了 {gone_ok} 笔；只在预览显示 {len(out[w]['shown_in_preview_not_snap'])} 笔", flush=True)
+    pathlib.Path(args.out).write_text(json.dumps(dict(out=out, raw={k: {kk: v[kk] for kk in ("shown", "anchors", "zoom", "width")}
+                                                                    for k, v in res.items()}), ensure_ascii=False, indent=1),
+                                      encoding="utf-8")
+    print(f"== 明细 {args.out}")
+
+
 def write_apply_report(args, rows, gray, bad, drawn_page):
     """--apply-snapshot 的结果表：json 原样逐笔，md 给人看（统计、与上一次运行相比变了的笔、挪位公式、隐藏清单）。"""
     import collections
@@ -1514,9 +1719,16 @@ def main():
                     help="只读预览页 preview/<页>（最新版 + 嵌入 NOTES_JSON，零写入不同步）和隐藏清单 preview/hidden.html，并核灰色 0")
     ap.add_argument("--check-hidden", action="store_true",
                     help="只读核对 preview/hidden.html（390px 宽）：条目数、每条三行、MathJax 无报错、无横向滚动、抽 5 条比黄底内容")
+    ap.add_argument("--consistency", action="store_true",
+                    help="只读：同一无头浏览器同一视口宽下比 snapshot/2 与 preview 上每笔相对它圈住 / 靠近的内容的偏移"
+                         "（snapshot/2 自己比自己做方法自检），列偏差笔与误隐藏笔，明细写 --out")
+    ap.add_argument("--consistency-widths", type=int, nargs="+", default=[1440, 820], help="配 --consistency：视口宽度")
     args = ap.parse_args()
     if args.check_hidden:
         check_hidden(args)
+        return
+    if args.consistency:
+        consistency(args)
         return
     if args.preview:
         preview(args)
