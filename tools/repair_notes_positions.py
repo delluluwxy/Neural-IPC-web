@@ -265,6 +265,34 @@ def hits(job):
     return got
 
 
+def with_new_layer(page_path):
+    """旧版页面换上当前的标注层（annotate.py 的 JS 与 CSS 各一整块替换），写到同目录 <页名>.newlayer.html 并返回路径。"""
+    from webgen.annotate import ANNOT_CSS, ANNOT_JS
+    h = page_path.read_text(encoding="utf-8")
+
+    def swap(h, marker, tag, new):
+        k = h.index(marker)
+        a = h.index(">", h.rindex(f"<{tag}", 0, k)) + 1
+        return h[:a] + new + h[h.index(f"</{tag}>", k):]
+    h = swap(swap(h, "window.__nipcNotes = {", "script", ANNOT_JS), "#annot-fab", "style", ANNOT_CSS)
+    out = page_path.with_name(page_path.stem + ".newlayer.html")
+    out.write_text(h, encoding="utf-8")
+    return out
+
+
+def reanchor_on_origin(job):
+    """一个进程处理一个原版页面：换上新标注层、导入当初的笔、展开折叠，按每笔此刻圈住的内容重新建锚点，返回这些笔。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = open_with_notes(browser, with_new_layer(checkout(job["sha"], job["worktrees"]) / job["page"]),
+                               dict(job["current"], strokes=job["strokes"]))
+        ids = [s["id"] for s in job["strokes"]]
+        n = page.evaluate("ids => window.__nipcNotes.reanchorAll(ids)", ids)
+        got = {s["id"]: s for s in page.evaluate("window.__nipcNotes.strokes()") if s["id"] in set(ids)}
+        browser.close()
+    return got, n
+
+
 def glyph_anchors(job):
     """一个进程处理一个原版页面上的公式笔：返回 {笔 id: 新的 tex / g / orig / pts 或 None}。"""
     with sync_playwright() as p:
@@ -326,6 +354,8 @@ def main():
                     help="精确核对：每笔在原版页面与「当前页面 + NOTES_JSON」上压住的字 / 公式符号 / 图位置；明细写到 --out")
     ap.add_argument("--shots-for", nargs=2, metavar=("IDS_TXT", "NOTES_JSON"),
                     help="只出对照图（要配 --shots）：这些笔在原版页面与「当前页面 + NOTES_JSON」上的样子")
+    ap.add_argument("--reanchor-origin", metavar="BASE_JSON",
+                    help="每笔在当初画的那版页面上（换上当前标注层）按圈住的内容重新建锚点，写进 BASE_JSON 的副本（--out）")
     ap.add_argument("--math-from-origin", metavar="BASE_JSON",
                     help="只做一件事：当初挂在公式上的笔，在各自原版页面上换成符号锚点，写进 BASE_JSON 的副本（--out）")
     args = ap.parse_args()
@@ -405,6 +435,23 @@ def main():
         with mp.get_context("spawn").Pool(len(chunks)) as pool:
             pool.map(shoot, [dict(common, groups=g, repaired=shown, shots=args.shots) for g in chunks])
         print(f"== 对照图 {len(want)} 笔，用 {time.time() - t0:.0f} s，写到 {args.shots}")
+        return
+    if args.reanchor_origin:
+        # 每笔在它当初画的那版页面上、按它圈住的内容重新建锚点（每个版本一个进程），写进底稿笔记
+        jobs = [dict(common, sha=sha, strokes=g) for sha, g in groups.items()]
+        with mp.get_context("spawn").Pool(len(jobs)) as pool:
+            outs = pool.map(reanchor_on_origin, jobs)
+        got = {k: v for r, _ in outs for k, v in r.items()}
+        base = json.loads(pathlib.Path(args.reanchor_origin).read_text(encoding="utf-8"))
+        kinds = {}
+        for s in base["strokes"]:
+            if s["id"] in got:
+                s.update({k: got[s["id"]][k] for k in ("anchor", "frame", "orig", "pts", "updatedAt")})
+                key = s["anchor"]["type"] + ("+cover" if s["anchor"].get("cover") else "")
+                kinds[key] = kinds.get(key, 0) + 1
+        pathlib.Path(args.out).write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+        print(f"== 在原版页面上按圈住的内容重新建锚点 {sum(n for _, n in outs)} 笔（锚点类型 {kinds}）；"
+              f"用 {time.time() - t0:.0f} s；写出 {args.out}")
         return
     if args.math_from_origin:
         # 当初挂在公式上的笔：在各自原版页面上换成符号锚点（每个版本一个进程），写进底稿笔记
