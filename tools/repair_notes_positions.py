@@ -689,7 +689,9 @@ def check_pages(args):
         t = first[i]
         k = max(j for j, (lt, _) in enumerate(distinct) if lt <= t)
         home[i] = [distinct[k][1]] + [s for _, s in sorted(((abs(j - k), s) for j, (_, s) in enumerate(distinct) if j != k))]
-    out_dir = ROOT / "check"
+    # 不删任何东西：最终核对页写到 check/，各轮试分组的页写到 NAS 测试目录 check_round<n>/（要清理就列清单请用户批准）
+    final_dir = ROOT / "check"
+    assert not final_dir.exists(), f"{final_dir} 已存在：先按删除流程清掉再重建"
     assign, todo = {}, {i: 0 for i in ids}
     for rnd in range(len(distinct)):
         if not todo:
@@ -698,7 +700,7 @@ def check_pages(args):
         for i, k in todo.items():
             if k < len(home[i]):
                 by.setdefault(home[i][k], []).append(i)
-        jobs = [dict(path=build_check_page(sha, g, out_dir, args.page), notes=notes, ids=g) for sha, g in by.items()]
+        jobs = [dict(path=build_check_page(sha, g, WORKTREES / f"check_round{rnd}", args.page), notes=notes, ids=g) for sha, g in by.items()]
         with mp.get_context("spawn").Pool(min(len(jobs), args.workers)) as pool:
             outs = pool.map(page_states, jobs)
         nxt = {}
@@ -713,14 +715,11 @@ def check_pages(args):
     groups = {}
     for i, sha in assign.items():
         groups.setdefault(sha, []).append(i)
-    import shutil
-    if out_dir.exists():
-        shutil.rmtree(out_dir)          # 只留最终分组的核对页（目录由本工具生成，可整个重建）
-    jobs = [dict(path=build_check_page(sha, g, out_dir, args.page), notes=notes, ids=g) for sha, g in groups.items()]
+    jobs = [dict(path=build_check_page(sha, g, final_dir, args.page), notes=notes, ids=g) for sha, g in groups.items()]
     with mp.get_context("spawn").Pool(min(len(jobs), args.workers)) as pool:
         outs = pool.map(page_states, jobs)
     import collections
-    print(f"== 核对页 {len(groups)} 个（{out_dir}），笔 {len(assign)} / {len(ids)}；找不到家的 {sorted(todo)}")
+    print(f"== 核对页 {len(groups)} 个（{final_dir}），笔 {len(assign)} / {len(ids)}；找不到家的 {sorted(todo)}")
     for (sha, g), st in zip(groups.items(), outs):
         print(f"  check/{sha[:7]}/{args.page}：{len(g)} 笔，状态 {dict(collections.Counter(st.values()))}")
     pathlib.Path(args.out).write_text(json.dumps({sha[:7]: g for sha, g in groups.items()}, indent=1), encoding="utf-8")
@@ -766,13 +765,11 @@ def snapshots(args):
     """--snapshots：每一次主动画笔之后的样子 = 那次最后一次保存的笔记（原样）+ 当时线上的页面，做成只读快照页
     snapshot/<次>/<页>（一次里页面换过版本的，前后各一页 snapshot/<次>a、<次>b）。逐页统计灰色（找不到锚点）笔数。"""
     import multiprocessing as mp
-    import shutil
     stem = pathlib.Path(args.page).stem
     history = note_history(stem)
     live = live_versions()
     out_dir = ROOT / "snapshot"
-    if out_dir.exists():
-        shutil.rmtree(out_dir)          # 目录只由本工具生成
+    assert not out_dir.exists(), f"{out_dir} 已存在：先按删除流程清掉再重建（本工具不删任何东西）"
     pages = []
     for k, ses in enumerate(drawing_sessions(history), 1):
         vers = []
