@@ -577,6 +577,40 @@ def publish(args):
     print(f"== 写入 notes/{stem}.json：{len(new['strokes'])} 笔，提交 {out['commit']['sha'][:7]}")
 
 
+def live_versions():
+    """GitHub Pages 每次部署：[(上线时间, 提交 sha)]，从早到晚（用部署记录的完成时间 updated_at，没完成的不算）。"""
+    out = gh("repos/delluluwxy/Neural-IPC-web/pages/builds?per_page=100", "--paginate",
+             "--jq", '.[] | select(.status == "built") | .commit + " " + .updated_at').split()
+    rows = [(datetime.datetime.fromisoformat(t.replace("Z", "+00:00")), s) for s, t in zip(out[::2], out[1::2])]
+    return sorted(rows)
+
+
+def origin_report(args):
+    """--origin-report：每笔第一次出现在笔记仓库的时间、那时线上部署的是哪一版、和按提交时间推的版本页面是否相同。"""
+    stem = pathlib.Path(args.page).stem
+    history = note_history(stem)
+    first = {}
+    for t, notes in history:
+        for s in notes["strokes"]:
+            first.setdefault(s["id"], t)
+    live = live_versions()
+    commits = page_versions(args.page)
+    blob = lambda sha: subprocess.run(["git", "-C", str(ROOT), "rev-parse", f"{sha}:{args.page}"],
+                                      capture_output=True, text=True).stdout.strip()
+    rows = []
+    for i, t in sorted(first.items(), key=lambda x: x[1]):
+        dep = next((s for lt, s in reversed(live) if lt <= t), None)
+        guess = next((v for v, vt in commits if vt <= t), commits[-1][0])
+        rows.append(dict(id=i, first_seen=t.isoformat(), live=dep, guessed=guess,
+                         same_page=bool(dep) and blob(dep) == blob(guess)))
+    pathlib.Path(args.out).write_text(json.dumps(rows, indent=1), encoding="utf-8")
+    import collections
+    c = collections.Counter((r["live"][:7] if r["live"] else None, r["guessed"][:7], r["same_page"]) for r in rows)
+    print(f"== {len(rows)} 笔：（画时线上版本, 之前按提交时间推的版本, 两版页面相同）→ 笔数")
+    for k, n in sorted(c.items(), key=lambda x: -x[1]):
+        print(f"  {k}  {n}")
+
+
 def restore(args):
     """--restore SHA：笔记仓库 notes/<页>.json 原样恢复成提交 SHA 时的内容（字节不改），带当前 sha 覆盖写。"""
     import base64
@@ -653,7 +687,12 @@ def main():
     ap.add_argument("--publish", nargs=2, metavar=("NEW_JSON", "BASE_JSON"),
                     help="把修好的笔记写回笔记仓库；线上那份和底稿 BASE_JSON 不同（用户又画过）就不写")
     ap.add_argument("--restore", metavar="SHA", help="笔记仓库这一页的笔记原样恢复成某个提交时的内容")
+    ap.add_argument("--origin-report", action="store_true",
+                    help="每笔画的时候线上部署的是哪一版（Pages 部署记录），和按提交时间推的版本比，写到 --out")
     args = ap.parse_args()
+    if args.origin_report:
+        origin_report(args)
+        return
     if args.restore:
         restore(args)
         return
