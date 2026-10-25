@@ -149,7 +149,9 @@ PROBE_API_JS = r"""
       },
       contentIndex() {
         const ix = ensureIndex();
-        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el) })),
+        const s = frame().s;   // width：公式在本机排版下的宽（正文卡片 px），只用来估一笔压住了几个记号
+        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el),
+                                                                     width: m.el.getBoundingClientRect().width / s })),
                  media: [...article.querySelectorAll('img, video')].map(srcKey) };
       },
       where(ids) {
@@ -162,7 +164,10 @@ PROBE_API_JS = r"""
           const c = S.cache.get(id), t = c && c.target, d = S.drawn.get(id), state = d ? d.state : 'none';
           if (!t) return [id, { state }];
           if (t.el === main) return [id, { state, kind: 'page' }];
-          if (t.pos !== undefined) return [id, { state, kind: 'text', pos: t.pos }];
+          if (t.pos !== undefined) {   // w：锚字在本机排版下的宽（正文卡片 px）
+            const r = charRect(t.pos);
+            return [id, { state, kind: 'text', pos: t.pos, w: r ? r.width / f.s : 0 }];
+          }
           const k = M.findIndex(m => m.el === t.el), glyph = t.glyph || c.glyph;
           if (k >= 0) return [id, { state, kind: glyph ? 'glyph' : 'math', math: k, gi: glyph ? glyphList(t.el).els.indexOf(glyph) : -1 }];
           const mi = media.indexOf(t.el);

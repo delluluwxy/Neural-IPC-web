@@ -19,7 +19,6 @@ import argparse
 import datetime
 import io
 import json
-import math
 import pathlib
 import re
 import subprocess
@@ -744,7 +743,7 @@ SNAP_STATE_JS = """() => { const N = window.__nipcNotes;
 
 
 def snapshot_states(path):
-    """（子进程）打开快照页（笔记嵌在页里，不导入）、展开全部折叠，返回每笔的显示状态。"""
+    """（子进程）打开快照页（笔记嵌在页里，不导入）、展开全部折叠，返回 (每笔的显示状态, 可见灰色笔数)。"""
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport=VIEW)
@@ -753,9 +752,22 @@ def snapshot_states(path):
         page.evaluate("MathJax.startup.promise")
         page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
         page.wait_for_timeout(1500)
-        got = page.evaluate(SNAP_STATE_JS)
+        got, gray = page.evaluate(SNAP_STATE_JS), page.evaluate(VISIBLE_GRAY_JS)
         browser.close()
-    return got
+    return got, gray
+
+
+def write_snapshot_page(d, page_file, h, notes, read_asset):
+    """只读快照页：页面 HTML h 里嵌入笔记 notes（window.NIPC_SNAPSHOT，标注层据此不读写存储、不同步），写到 d/<页>，
+    页面引用的 assets/… 由 read_asset(相对路径) 取字节拷到 d 下同一路径（取不到的跳过）。同名文件覆盖，不删任何东西。"""
+    snap = json.dumps(notes, ensure_ascii=False).replace("</", "<\\/")
+    h = inject_before_scripts(h, f"<script>window.NIPC_SNAPSHOT = {snap};</script>\n")
+    (d / page_file).write_text(h, encoding="utf-8")
+    for ref in sorted(set(re.findall(r'(?:src|href)="(assets/[^"#?]+)"', h))):
+        blob = read_asset(ref)
+        if blob is not None:
+            (d / ref).parent.mkdir(parents=True, exist_ok=True)
+            (d / ref).write_bytes(blob)
 
 
 def snapshots(args):
@@ -781,17 +793,10 @@ def snapshots(args):
             tmp = with_new_layer(checkout(sha, WORKTREES) / args.page)
             h = tmp.read_text(encoding="utf-8")
             tmp.unlink()
-            snap = json.dumps(ses["last_notes"], ensure_ascii=False).replace("</", "<\\/")
-            h = inject_before_scripts(h, f"<script>window.NIPC_SNAPSHOT = {snap};</script>\n")
-            (d / args.page).write_text(h, encoding="utf-8")
-            for ref in sorted(set(re.findall(r'(?:src|href)="(assets/[^"#?]+)"', h))):
-                blob = subprocess.run(["git", "-C", str(ROOT), "show", f"{sha}:{ref}"], capture_output=True)
-                if blob.returncode == 0:
-                    (d / ref).parent.mkdir(parents=True, exist_ok=True)
-                    (d / ref).write_bytes(blob.stdout)
+            write_snapshot_page(d, args.page, h, ses["last_notes"], lambda ref: git_bytes(f"{sha}:{ref}"))
             pages.append((name, ses, sha, d / args.page))
     with mp.get_context("spawn").Pool(len(pages)) as pool:
-        outs = pool.map(snapshot_states, [p for *_, p in pages])
+        outs = [st for st, _ in pool.map(snapshot_states, [p for *_, p in pages])]
     import collections
     pdt = lambda t: (t - datetime.timedelta(hours=7)).strftime("%m-%d %H:%M")
     rows = []
@@ -1010,12 +1015,76 @@ def pair_maths(old, new):
     return out, moved
 
 
-def sentence(text, pos):
-    """文字索引 text 里位置 pos 所在的整句（到前后最近的句末标点，各最多 120 字）。"""
-    lo = max(text.rfind(c, max(0, pos - 120), pos) for c in SENT_END) + 1
-    lo = max(lo, pos - 120, 0)
+def sentence_span(text, pos):
+    """文字索引 text 里位置 pos 所在整句的 [起, 止)（到前后最近的句末标点，各最多 120 字）。"""
+    lo = max(max(text.rfind(c, max(0, pos - 120), pos) for c in SENT_END) + 1, pos - 120, 0)
     ends = [i for i in (text.find(c, pos, pos + 120) for c in SENT_END) if i >= 0]
-    return text[lo:(min(ends) + 1 if ends else min(len(text), pos + 120))].strip()
+    return lo, (min(ends) + 1 if ends else min(len(text), pos + 120))
+
+
+def sentence(text, pos):
+    """文字索引 text 里位置 pos 所在的整句。"""
+    lo, hi = sentence_span(text, pos)
+    return text[lo:hi].strip()
+
+
+class Tokens:
+    """正文 diff 用的记号序列：文字索引的每个字一个记号，每个行内公式按 TeX 原文一个记号（插在它在文字索引里的位置前）。
+    行内公式不在文字索引里，单比文字时公式改了也看不出来；当作记号后，公式一改 equal 段就断开。
+    toks[i]：字本身或 "\\0" + TeX；pos[i]：记号对应的文字位置（公式为 None）；of[p]：文字位置 p 的记号下标；
+    width[i]：公式在本机排版下的宽（正文卡片 px，字为 None）。"""
+
+    def __init__(self, ix):
+        at = {}
+        for m in ix["maths"]:
+            if not m["display"]:
+                at.setdefault(m["pos"] if m["pos"] >= 0 else len(ix["text"]), []).append(m)
+        self.toks, self.pos, self.width, self.of = [], [], [], []
+        for p in range(len(ix["text"]) + 1):
+            for m in at.get(p, []):
+                self.toks.append("\0" + m["tex"])
+                self.pos.append(None)
+                self.width.append(m.get("width") or 0)
+            if p < len(ix["text"]):
+                self.of.append(len(self.toks))
+                self.toks.append(ix["text"][p])
+                self.pos.append(p)
+                self.width.append(None)
+
+    def show(self, i):
+        """记号给人看：字原样，公式写成 $TeX$。"""
+        return f"${self.toks[i][1:]}$" if self.toks[i].startswith("\0") else self.toks[i]
+
+    def span(self, lo, hi):
+        """文字位置 [lo, hi) 覆盖的记号下标 [起, 止)（含其间的行内公式）。"""
+        return self.of[lo] if lo < len(self.of) else len(self.toks), self.of[hi - 1] + 1 if hi > lo else self.of[lo]
+
+
+def pressed_tokens(s, T, ti, anchor_w):
+    """这笔从锚字（记号 ti）起压住了哪些记号：[t0, t1]（含两端）。用画笔设备上的量算——orig.w / orig.h 是锚字在她 iPad
+    上的宽高，pts 是相对锚字左上角的点（px）；字一个按 orig.w 宽，行内公式按「8288b02 页面上该公式宽 / 锚字宽 anchor_w」
+    × orig.w 估。笔画竖向跨度超过 CROSS_LINE × orig.h（跨行）或不是 px 坐标的返回 None（退回段边规则）。"""
+    o = s["orig"]
+    if s["frame"] != "px" or not o.get("w") or not o.get("h"):
+        return None
+    xs, ys = [p[0] for p in s["pts"]], [p[1] for p in s["pts"]]
+    if max(ys) - min(ys) > CROSS_LINE * o["h"]:
+        return None
+    wid = lambda i: o["w"] if T.width[i] is None else (T.width[i] / anchor_w * o["w"] if anchor_w else o["w"])
+    t0, x = ti, 0.0                                  # 往左：记号 t0-1 占 [x - 宽, x)
+    while t0 > 0 and x > min(xs):
+        x -= wid(t0 - 1)
+        t0 -= 1
+    t1, x = ti, wid(ti)                              # 往右：记号 t1+1 占 [x, x + 宽)
+    while t1 + 1 < len(T.toks) and x <= max(xs):
+        x += wid(t1 + 1)
+        t1 += 1
+    return t0, t1
+
+
+def render_tokens(T, lo, hi, mark=(None, None)):
+    """记号 [lo, hi) 给人看的样子：[[文字或 $TeX$, 是不是公式, 在不在 mark 范围（含两端）里], …]（hidden.html 用）。"""
+    return [[T.show(i), T.toks[i].startswith("\0"), mark[0] is not None and mark[0] <= i <= mark[1]] for i in range(lo, hi)]
 
 
 def most_similar_sentence(text, s):
@@ -1025,40 +1094,31 @@ def most_similar_sentence(text, s):
     return max(sents, key=lambda x: difflib.SequenceMatcher(None, s, x, autojunk=False).ratio(), default="")
 
 
-def pressed_chars(s):
-    """这笔从锚字起压住了哪几个字：[k0, k1]（相对锚字的字序号，含两端），用画笔设备上的量算——orig.w / orig.h 是锚字在
-    她 iPad 上的宽高，pts 是相对锚字左上角的点（px）；第 k 个字占横向 [k·w, (k+1)·w)。与服务器字体无关。
-    笔画竖向跨度超过 CROSS_LINE × orig.h（跨行）或不是 px 坐标的返回 None（退回段边规则）。"""
-    o = s["orig"]
-    if s["frame"] != "px" or not o.get("w") or not o.get("h"):
-        return None
-    xs, ys = [p[0] for p in s["pts"]], [p[1] for p in s["pts"]]
-    if max(ys) - min(ys) > CROSS_LINE * o["h"]:
-        return None
-    return math.floor(min(xs) / o["w"]), math.floor(max(xs) / o["w"])
-
-
-def migrate_text(s, w, old, new, cmap, row):
-    """正文笔：旧位置 w["pos"] 经字级映射到新位置 → 新 TextQuote 锚点；映射不到返回 (None, 原因)。
-    这笔压住的字（pressed_chars）全在同一个 equal 段里、且该段 ≥ TEXT_SEG_MIN 字才接受；跨行算不清的退回「锚字前后各
-    TEXT_SEG_MARGIN 字在同一段」（row["rule"] 记用的哪条）。row["seg"] 记锚字所在 equal 段长度。"""
-    p0, ks = w["pos"], pressed_chars(s)
+def migrate_text(s, w, old, new, To, Tn, tmap, row):
+    """正文笔：锚字（旧文字位置 w["pos"]）经记号级映射 tmap（opcode_map(To.toks, Tn.toks)）到新位置 → 新 TextQuote 锚点；
+    映射不到返回 (None, 原因)。这笔压住的记号（pressed_tokens）全在同一个 equal 段里、且该段 ≥ TEXT_SEG_MIN 个记号才接受；
+    跨行算不清的退回「锚字前后各 TEXT_SEG_MARGIN 个记号在同一段」（row["rule"] 记用的哪条）。row 里另记 seg（锚字所在
+    equal 段长）、pressed_old / pressed_new（压住的记号，给人看）、old_tokens（8288b02 里的整句，压住的标出，hidden.html 用）。"""
+    ti = To.of[w["pos"]]
+    ks = pressed_tokens(s, To, ti, w.get("w") or 0)
     row["rule"] = "pressed" if ks else "margin（跨行，退回段边规则）"
+    lo, hi = sentence_span(old["text"], w["pos"])
+    a0, a1 = To.span(lo, hi)
     if ks:
-        k0, k1 = ks
-        row["pressed_old"] = old["text"][max(0, p0 + k0):p0 + k1 + 1]
-        segs = {cmap[p0 + k][1:] if p0 + k in cmap else None for k in range(k0, k1 + 1)}
-        p, row["seg"] = mapped(cmap, p0, TEXT_SEG_MIN)
-        if p is not None:
-            row["pressed_new"] = new["text"][max(0, p + k0):p + k1 + 1]
-        if p is None or len(segs) != 1 or None in segs:
+        a0, a1 = min(a0, ks[0]), max(a1, ks[1] + 1)
+    row["old_tokens"] = render_tokens(To, a0, a1, ks or (ti, ti))
+    tj, row["seg"] = mapped(tmap, ti, TEXT_SEG_MIN, 0 if ks else TEXT_SEG_MARGIN)
+    if ks:
+        row["pressed_old"] = "".join(To.show(i) for i in range(ks[0], ks[1] + 1))
+        if tj is not None:
+            row["pressed_new"] = "".join(Tn.show(i) for i in range(tj + ks[0] - ti, tj + ks[1] - ti + 1))
+        segs = {tmap[i][1:] if i in tmap else None for i in range(ks[0], ks[1] + 1)}
+        if tj is None or len(segs) != 1 or None in segs:
             return None, ("圈住的字改了" if row["seg"] else "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）")
-    else:
-        p, row["seg"] = mapped(cmap, p0, TEXT_SEG_MIN, TEXT_SEG_MARGIN)
-    if p is None:
+    if tj is None:
         return None, ("所在原文被改写（锚点字所在 equal 段太短或锚点字离段边不足 "
-                      f"{TEXT_SEG_MARGIN} 字）" if row["seg"] else "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）")
-    L = 30   # annotate.py CFG.quoteLen
+                      f"{TEXT_SEG_MARGIN} 个记号）" if row["seg"] else "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）")
+    p, L = Tn.pos[tj], 30   # annotate.py CFG.quoteLen
     a = {"type": "text", "exact": new["text"][p], "prefix": new["text"][max(0, p - L):p], "suffix": new["text"][p + 1:p + 1 + L]}
     return dict(s, anchor=a), p
 
@@ -1135,7 +1195,8 @@ def apply_snapshot(args):
         pg = open_served(browser, base, f"/{args.page}", new_html)
         new = pg.evaluate("window.__nipcNotes.contentIndex()")
         pg.close()
-        cmap = opcode_map(old["text"], new["text"])
+        To, Tn = Tokens(old), Tokens(new)   # 正文 + 行内公式（按 TeX 一个记号）的序列，两版逐记号 diff
+        tmap = opcode_map(To.toks, Tn.toks)
         mpair, moved_tex = pair_maths(old["maths"], new["maths"])
         fig_labels = json.loads(pathlib.Path(args.fig_labels).read_text(encoding="utf-8"))
         from webgen.annotate import DRAFTS   # 图中标注的字母换名：只取改名表 tex 里只差字母一一换名的公式对（letter_maps）
@@ -1148,7 +1209,7 @@ def apply_snapshot(args):
             kind = w.get("kind")
             if kind == "text":
                 row["old"] = sentence(old["text"], w["pos"])
-                got, how = migrate_text(s, w, old, new, cmap, row)
+                got, how = migrate_text(s, w, old, new, To, Tn, tmap, row)
             elif kind in ("glyph", "math"):
                 row["old"] = old["maths"][w["math"]]["tex"]
                 got, how = migrate_math(s, w, old, new, mpair, row)
@@ -1163,9 +1224,12 @@ def apply_snapshot(args):
                 got, how = None, f"快照页上这笔没挂上（状态 {w['state']}）"
             if got is None:
                 row.update(result="hidden", why=how)
-                if kind == "text":
-                    q = max((i for i in cmap if i < w["pos"]), default=None)
-                    row["new_here"] = sentence(new["text"], cmap[q][0]) if q is not None else ""
+                if kind == "text":   # 最新版同一位置附近：锚字之前最近一个对上了的字所在的那句
+                    q = max((i for i in tmap if i <= To.of[w["pos"]] and Tn.pos[tmap[i][0]] is not None), default=None)
+                    if q is not None:
+                        lo, hi = sentence_span(new["text"], Tn.pos[tmap[q][0]])
+                        row["new_here"] = new["text"][lo:hi].strip()
+                        row["new_tokens"] = render_tokens(Tn, *Tn.span(lo, hi))
                     row["new_similar"] = most_similar_sentence(new["text"], row["old"])
                 elif kind in ("glyph", "math"):
                     import difflib
@@ -1227,6 +1291,94 @@ def check_drawn(args):
           f"墓碑与 {TOMBS_AT} 相同 {dump(got.get('tombstones')) == dump(tombs)}（{len(tombs)} 条）")
 
 
+PLAIN_WHY = [   # 隐藏原因 → 给用户看的话（按原因开头认）
+    ("圈住的字改了", "你圈的字在新版里改写了"),
+    ("锚点字在最新版里没有对应", "这句话在新版里改写或删掉了"),
+    ("所在原文被改写（公式改了", "公式改了，你标的那个符号新版里没有了"),
+    ("所在原文被改写", "这句话在新版里改写了"),
+    ("所在公式在最新版里没有对应", "这个公式在新版里改写或删掉了"),
+    ("公式对上了", "公式改了，你标的那个符号新版里没有了"),
+    ("图重画过，离笔最近的标注", "图重画了，你标的那个标注新版图里没有了"),
+    ("最新版里没有这张图", "这张图新版里没有了"),
+]
+HIDDEN_CSS = """
+:root { --ink: #1d232b; --muted: #5d6673; --line: #dde2e8; --bg: #f6f7f9; --card: #fff; --mark: #ffe58a; }
+@media (prefers-color-scheme: dark) { :root { --ink: #e8ebef; --muted: #a3acb8; --line: #333a44; --bg: #16191d;
+  --card: #1f2329; --mark: #7a6516; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.7 -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 6px; } p.lead { color: var(--muted); margin: 0 0 20px; }
+ol { padding: 0; list-style: none; counter-reset: n; }
+li { counter-increment: n; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 0 0 12px; }
+li::before { content: counter(n) "．" attr(data-kind); font-weight: 600; }
+.row { display: grid; grid-template-columns: 5.5em 1fr; gap: 2px 8px; margin-top: 6px; }
+.k { color: var(--muted); } mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2px; }
+.why { font-weight: 600; } code { font-size: 13px; word-break: break-all; }
+"""
+
+
+def tokens_html(toks):
+    """render_tokens 的结果 → HTML：字转义，行内公式交给 MathJax（\\( \\)），被圈住的套 <mark>。"""
+    import html
+    out = []
+    for text, is_math, marked in toks:
+        piece = f"\\({html.escape(text[1:-1])}\\)" if is_math else html.escape(text)
+        out.append(f"<mark>{piece}</mark>" if marked else piece)
+    return "".join(out).replace("</mark><mark>", "")
+
+
+def hidden_item(r):
+    """隐藏清单里的一条：原来（圈住的标出）、新版这里、为什么不显示。"""
+    import html
+    why = next((v for k, v in PLAIN_WHY if r["why"].startswith(k)), r["why"])
+    kind = {"text": "正文", "math": "公式", "media": "图"}.get(r["type"], r["type"])
+    if r["type"] == "text":
+        old = tokens_html(r.get("old_tokens") or [[r.get("old", ""), False, False]])
+        now = tokens_html(r["new_tokens"]) if r.get("new_tokens") else "（附近没有对得上的句子）"
+    elif r["type"] == "math":
+        old, now = f"\\[{html.escape(r.get('old', ''))}\\]", f"\\[{html.escape(r.get('new_similar', ''))}\\]（最像的公式）"
+    else:
+        old, now = f"<code>{html.escape(r.get('old', ''))}</code>", "—"
+    return (f'<li data-kind="{kind}"><div class="row"><span class="k">原来</span><span>{old}</span>'
+            f'<span class="k">新版这里</span><span>{now}</span>'
+            f'<span class="k">为什么</span><span class="why">{html.escape(why)}</span></div></li>')
+
+
+def write_hidden_page(path, rows):
+    """preview/hidden.html：每笔隐藏的笔一条，给用户在 iPad 上看（中文、外行能懂）。"""
+    hid = [r for r in rows if r["result"] == "hidden"]
+    body = "".join(hidden_item(r) for r in hid)
+    path.write_text(f"""<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>新版里不显示的笔</title><style>{HIDDEN_CSS}</style>
+<script>window.MathJax = {{tex: {{inlineMath: [["\\\\(", "\\\\)"]]}}, svg: {{fontCache: "global"}}}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
+<main><h1>新版里不显示的笔（{len(hid)} 笔）</h1>
+<p class="lead">每一条是你第 2 次画的一笔。它圈住的内容在新版里改了或删了，所以在新版页面上不显示（笔记本身还在）。
+黄色底的是你当时圈住的字。</p><ol>{body}</ol></main></html>
+""", encoding="utf-8")
+
+
+def preview(args):
+    """--preview NOTES_JSON：只读预览页 preview/<页>（工作区里 build_site 生成的最新版页面 + 嵌入 NOTES_JSON，快照模式：
+    不读写存储、不同步）和隐藏清单 preview/hidden.html（取 NOTES_JSON 同目录的 apply_snapshot2_report.json）。
+    生成后无头浏览器核：可见灰色 0、显示的笔数 = 报告里迁过去的笔数。同名文件覆盖，不删任何东西。"""
+    import collections
+    notes_path = pathlib.Path(args.preview)
+    notes = json.loads(notes_path.read_text(encoding="utf-8"))
+    rows = json.loads((notes_path.parent / "apply_snapshot2_report.json").read_text(encoding="utf-8"))["rows"]
+    d = ROOT / "preview"
+    d.mkdir(exist_ok=True)
+    write_snapshot_page(d, args.page, (ROOT / args.page).read_text(encoding="utf-8"), notes,
+                        lambda ref: (ROOT / ref).read_bytes() if (ROOT / ref).is_file() else None)
+    write_hidden_page(d / "hidden.html", rows)
+    states, gray = snapshot_states(d / args.page)
+    c = collections.Counter(states.values())
+    shown, want = sum(v != "orphan" for v in states.values()), sum(r["result"] == "moved" for r in rows)
+    print(f"== 预览页 {d / args.page}：{len(states)} 笔，状态 {dict(c)}；显示（含在折叠里的）{shown} 笔，报告里迁过去 {want} 笔，"
+          f"{'一致' if shown == want else '不一致'}；可见灰色 {gray}；隐藏清单 {d / 'hidden.html'}（{len(rows) - want} 条）")
+
+
 def write_apply_report(args, rows, gray, bad, drawn_page):
     """--apply-snapshot 的结果表：json 原样逐笔，md 给人看（统计、与上一次运行相比变了的笔、挪位公式、隐藏清单）。"""
     import collections
@@ -1240,9 +1392,11 @@ def write_apply_report(args, rows, gray, bad, drawn_page):
     flips = [r for r in rows if r["id"] in prev and prev[r["id"]] != r["result"]]
     md = [f"# 第 2 次快照的笔迁到最新版：结果表", "",
           f"基准：线上 snapshot/2（页面 {SNAP_PAGE}，笔记 {SNAP_NOTES}，按 {TOMBS_AT} 的墓碑去掉之后删的笔），共 {len(rows)} 笔。",
-          f"对应方法：difflib.SequenceMatcher(None, 旧, 新, autojunk=False)。正文：这笔实际压住的字（按画笔设备上锚字的宽 orig.w "
-          f"与笔画相对锚字的横向范围算出，与服务器字体无关）全部落在同一个 equal 段里、且该段 ≥ {TEXT_SEG_MIN} 字才接受；"
-          f"笔画竖向跨度超过 {CROSS_LINE} 倍锚字高（跨行）的退回「锚字前后各 {TEXT_SEG_MARGIN} 字在同一段」。"
+          f"对应方法：difflib.SequenceMatcher(None, 旧, 新, autojunk=False)。正文的 diff 序列 = 每个字一个记号、每个行内公式按 TeX "
+          f"原文一个记号（行内公式一改 equal 段就断开）。这笔实际压住的记号（画笔设备上锚字的宽 orig.w 与笔画相对锚字的横向范围算出；"
+          f"字按 orig.w 宽，行内公式按 8288b02 页面上「该公式宽 / 锚字宽」× orig.w 估——估出的是「圈住的字」那一列，判定看这些记号是否同在一个 equal 段）"
+          f"全部落在同一个 equal 段里、且该段 ≥ {TEXT_SEG_MIN} 个记号才接受；"
+          f"笔画竖向跨度超过 {CROSS_LINE} 倍锚字高（跨行）的退回「锚字前后各 {TEXT_SEG_MARGIN} 个记号在同一段」。"
           f"公式按 TeX 序列对应（改过的 TeX 相似度 ≥ {MATH_PAIR_MIN} 保序配对；剩下的里 TeX 原样相同且两边各唯一的算挪了位置），"
           f"TeX 改过的公式内锚点符号所在 equal 段 ≥ {GLYPH_SEG_MIN} 个符号才接受。图像素变了按图中文字标注（follow_label）：先要求标注"
           f"原样相同，没有再按讲稿改名表 tex 里只差字母一一换名的公式对（letter_maps）认换了字母的同一个标注。"
@@ -1315,7 +1469,12 @@ def main():
                          "apply_snapshot2_report.json / .md，并在最新版上核对（只读笔记仓库，不写）")
     ap.add_argument("--check-drawn", metavar="NOTES_JSON",
                     help="只读核对：NOTES_JSON 里每笔 drawn 与笔记仓库第 2 次快照那份逐字节比（配 --apply-snapshot 的输出用）")
+    ap.add_argument("--preview", metavar="NOTES_JSON",
+                    help="只读预览页 preview/<页>（最新版 + 嵌入 NOTES_JSON，零写入不同步）和隐藏清单 preview/hidden.html，并核灰色 0")
     args = ap.parse_args()
+    if args.preview:
+        preview(args)
+        return
     if args.check_drawn:
         check_drawn(args)
         return
