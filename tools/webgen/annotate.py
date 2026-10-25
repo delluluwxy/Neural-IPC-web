@@ -623,7 +623,8 @@ ANNOT_JS = r"""
   /** 公式里圈住的符号串：先在原公式（TeX 相同或按改名表换过）里找，找不到再在全页陈列公式里找；几处就挑整个公式与原公式
    * 最像的（符号二元组 Jaccard），一处都没有返回 null。返回 {el: 公式, glyph: 起始符号元素}。 */
   function findCoverGlyph(a) {
-    const all = allMath(), seq = Array.from(a.cover);
+    // 圈住的末尾标点（句号、逗号）不算内容：公式里「sin θ.」改成「sin ψ,」仍是同一处
+    const all = allMath(), seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover);
     const renamed = renamedTex(a.tex);
     const own = all.filter(m => m.tex === a.tex || (renamed && m.tex === renamed));
     const search = list => {
@@ -641,10 +642,15 @@ ANNOT_JS = r"""
       // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
       const m = own.find(o => glyphList(o.el).ch.length === a.gn);
       if (m && a.gi !== undefined) { const g = glyphList(m.el); return { el: m.el, glyph: g.els[a.gi] }; }
-      // 符号个数也变了（改名表把它连到改写后的公式）：只在这个公式里按前后符号找最像的位置，够像才认
-      let best = null, bestSc = CFG.fuzzyAccept;
-      for (const o of own) { const g = glyphList(o.el), r = matchGlyph(g, a.g); if (r.score >= bestSc) { bestSc = r.score; best = { el: o.el, glyph: g.els[r.i] }; } }
-      return best;
+      // 符号个数也变了（改名表把它连到改写后的公式）：圈住的符号串按改名表里的字母换名（t → q、θ → ψ，一次用一组）
+      // 换过后在这个公式里原样找；找不到就是圈的内容改了，不画
+      for (const lm of letterMaps()) {
+        const mseq = seq.map(c => lm.get(c) || c);
+        if (mseq.every((c, k) => c === seq[k])) continue;
+        const hs = own.flatMap(o => { const g = glyphList(o.el); return seqIndexes(g.ch, mseq).map(i => ({ m: o, g, i })); });
+        if (hs.length) { hits = hs; break; }
+      }
+      if (!hits.length) return null;
     }
     // 原公式没了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
     if (!hits.length && seq.length >= 2) hits = search(all);
@@ -740,6 +746,30 @@ ANNOT_JS = r"""
       renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse), quote };
     }
     return renameMap.val;
+  }
+  /** 改名表里「只差字母一一换名」的那些公式对，各自换了哪些字母（公式符号字符 → 新字符，如 t → q、θ → ψ）。
+   * 两边按 TeX 记号切开、记号数相同、不同处全是字母才算；每一对给一组，按出现顺序去重。 */
+  const GREEK = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ϵ', varepsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ',
+                  vartheta: 'ϑ', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ',
+                  phi: 'ϕ', varphi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω' };
+  function letterMaps() {
+    const raw = renameMap();
+    if (letterMaps.of === raw) return letterMaps.val;
+    const tok = s => s.match(/\\[A-Za-z]+|\S/g) || [];
+    const glyph = t => (/^[A-Za-z]$/.test(t) ? t : (t[0] === '\\' && GREEK[t.slice(1)]) || null);
+    const out = [], seen = new Set();
+    for (const [o, n] of raw.tex) {
+      const A = tok(o), B = tok(n);
+      if (A.length !== B.length) continue;
+      const m = new Map();
+      let ok = true;
+      A.forEach((x, k) => { if (!ok || x === B[k]) return; const gx = glyph(x), gy = glyph(B[k]);
+                            if (!gx || !gy || (m.has(gx) && m.get(gx) !== gy)) ok = false; else m.set(gx, gy); });
+      const key = [...m].join(';');
+      if (ok && m.size && !seen.has(key)) { seen.add(key); out.push(m); }
+    }
+    letterMaps.of = raw; letterMaps.val = out;
+    return out;
   }
   /** TeX 沿改名表走到底（a→b→c；有环就停）；没改名返回 null。 */
   function renamedTex(tex) {
@@ -1546,6 +1576,16 @@ ANNOT_JS = r"""
     const onPrintMq = () => (printMq.matches ? enterPrint() : exitPrint());
     if (printMq.addEventListener) printMq.addEventListener('change', onPrintMq); else printMq.addListener(onPrintMq);
 
+    /** 核对旁注用：这笔此刻挂在正文哪个字上——那个字前后各 10 字，和笔画起点相对它的位置（px）；不是挂在正文字上返回 null。 */
+    function anchorCtx(id, d) {
+      const c = S.cache.get(id), t = c && c.target;
+      if (!t || t.pos === undefined) return null;
+      const r = charRect(t.pos), f = frame();
+      if (!r) return null;
+      const R = localRect(r, f), tx = S.index.text;
+      return { ctx: tx.slice(Math.max(0, t.pos - 10), t.pos + 11),
+               off: [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2] };
+    }
     // 给自动化测试读状态用（tools/test_annotate.py）；页面本身不依赖它
     window.__nipcNotes = {
       strokes: () => S.strokes, render: renderAll, frame,
@@ -1563,7 +1603,7 @@ ANNOT_JS = r"""
           const got = anchorForStroke(d.abs), a = got.anchor;
           out[id] = { state: 'ok', type: a.type, cover: a.cover || a.src || a.text || a.cell || '',
                       hit: (got.hit || []).map(([c, x, y]) => [c, Math.round(x * 2) / 2, Math.round(y * 2) / 2]),
-                      exact: a.cover ? '' : (a.exact || ''), tex: a.tex || '',
+                      exact: a.cover ? '' : (a.exact || ''), tex: a.tex || '', at: anchorCtx(id, d),
                       off: [Math.round((d.abs[0][0] - got.R.x) * 2) / 2, Math.round((d.abs[0][1] - got.R.y) * 2) / 2],
                       rel: got.frame === 'norm' ? [Math.round((d.abs[0][0] - got.R.x) / got.R.w * 1000) / 1000,
                                                    Math.round((d.abs[0][1] - got.R.y) / got.R.h * 1000) / 1000] : null };

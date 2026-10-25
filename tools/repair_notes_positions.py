@@ -440,14 +440,16 @@ def cover_same(a, b, tex_renames):
         ok = a["rel"] is not None and b["rel"] is not None and a["cover"] == b["cover"] and near(a["rel"], b["rel"], 0.005)
         return "same" if ok else None
     if not a["cover"]:
-        return "anchor" if not b["cover"] and a["exact"] == b["exact"] and near(a["off"], b["off"]) else None
+        ok = a["at"] and b["at"] and a["at"]["ctx"] == b["at"]["ctx"] and near(a["at"]["off"], b["at"]["off"])
+        return "anchor" if ok else None
     if a["type"] == b["type"] and a["cover"] == b["cover"] and near(a["off"], b["off"]):
         return "same"
     ha, hb = a["hit"], b["hit"]
     for k in range(len(hb) - len(ha) + 1):
         if ha and all(x[0] == y[0] for x, y in zip(ha, hb[k:])) and near(ha[0][1:], hb[k][1:]):
             return "superset"
-    if (a["type"] == b["type"] == "math" and tex_renames.get(a.get("tex")) == b.get("tex") and len(ha) == len(hb) and ha
+    # 换名后字宽变了，压在笔画框边上的符号可能多一个少一个，所以只核起点相对第一个符号的位置
+    if (a["type"] == b["type"] == "math" and tex_renames.get(a.get("tex")) == b.get("tex") and ha and hb
             and near(ha[0][1:], hb[0][1:])):
         return "renamed"
     return None
@@ -619,10 +621,17 @@ def main():
         bad = [r for r in rows if not r["same"]]
         report = pathlib.Path(args.out)
         report.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(f"== 精确核对 {len(rows)} 笔：位置对上（影响范围 40 px 内的字 / 符号 ≥ 95% 一一对应、相对位置差 ≤ 1 px；"
-              f"图上的笔图内位置差 ≤ 0.01）"
-              f"{len(rows) - len(bad)} 笔，对不上 {len(bad)} 笔；"
-              f"用 {time.time() - t0:.0f} s；逐笔明细 {report}")
+        if args.verify_cover:
+            import collections
+            how = collections.Counter(r.get("how") for r in rows if r["same"])
+            hidden = sum(1 for r in bad if r["old"]["state"] == "ok" and r["new"]["state"] == "orphan")
+            print(f"== 精确核对 {len(rows)} 笔（判据见 cover_same）：对上 {len(rows) - len(bad)} 笔 {dict(how)}；"
+                  f"对不上 {len(bad)} 笔，其中现在隐藏（圈的内容找不到）{hidden} 笔；用 {time.time() - t0:.0f} s；逐笔明细 {report}")
+        else:
+            print(f"== 精确核对 {len(rows)} 笔：位置对上（影响范围 40 px 内的字 / 符号 ≥ 95% 一一对应、相对位置差 ≤ 1 px；"
+                  f"图上的笔图内位置差 ≤ 0.01）"
+                  f"{len(rows) - len(bad)} 笔，对不上 {len(bad)} 笔；"
+                  f"用 {time.time() - t0:.0f} s；逐笔明细 {report}")
         for r in bad:
             a, b = r["old"], r["new"]
             fmt = lambda h: (h["state"] if h["state"] != "ok" else
