@@ -623,6 +623,35 @@ def font_check(job):
     return got, fonts
 
 
+def write_original(args):
+    """--write-original BASE_SHA：用户自己画的原始位置。以笔记仓库 BASE_SHA 那份为准（哪些笔还在、墓碑），每一笔换回它
+    第一次存进仓库时的样子（画完那一刻设备上建的锚点和坐标，之后的任何迁移都不要），写回笔记仓库，并把写出的内容存 --out。"""
+    import base64
+    import tempfile
+    stem = pathlib.Path(args.page).stem
+    path = f"repos/{REPO}/contents/notes/{stem}.json"
+    history = note_history(stem)
+    first = {}
+    for _, notes in history:
+        for s in notes["strokes"]:
+            first.setdefault(s["id"], s)
+    base = json.loads(gh("-H", "Accept: application/vnd.github.raw", f"{path}?ref={args.write_original}"))
+    changed = sum(1 for s in base["strokes"] if first[s["id"]] != s)
+    base["strokes"] = [first[s["id"]] for s in base["strokes"]]
+    base["saved"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    pathlib.Path(args.out).write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
+    cur = json.loads(gh(path))
+    body = {"message": f"notes {stem}: every stroke back to its first saved form (as drawn), stroke set of {args.write_original[:7]}",
+            "content": base64.b64encode(json.dumps(base, ensure_ascii=False).encode()).decode(), "sha": cur["sha"]}
+    with tempfile.NamedTemporaryFile("w", suffix=".json", dir=WORKTREES, delete=False) as fh:
+        json.dump(body, fh)
+    try:
+        out = json.loads(gh("--method", "PUT", path, "--input", fh.name))
+    finally:
+        pathlib.Path(fh.name).unlink()
+    print(f"== {len(base['strokes'])} 笔换回各自第一次存下时的样子（其中 {changed} 笔之后被改过），提交 {out['commit']['sha'][:7]}")
+
+
 def restore(args):
     """--restore SHA：笔记仓库 notes/<页>.json 原样恢复成提交 SHA 时的内容（字节不改），带当前 sha 覆盖写。"""
     import base64
@@ -703,7 +732,12 @@ def main():
                     help="每笔画的时候线上部署的是哪一版（Pages 部署记录），和按提交时间推的版本比，写到 --out")
     ap.add_argument("--font-check", action="store_true",
                     help="每笔起笔那个字在画笔设备上量的宽高（orig）与本机排版下的比，判断两边字体排版是否一致，写到 --out")
+    ap.add_argument("--write-original", metavar="BASE_SHA",
+                    help="以笔记仓库 BASE_SHA 那份的笔为准，每笔换回第一次存下时的样子（用户画的原始位置），写回笔记仓库")
     args = ap.parse_args()
+    if args.write_original:
+        write_original(args)
+        return
     if args.origin_report:
         origin_report(args)
         return
