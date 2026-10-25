@@ -1,0 +1,2534 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neural-IPC 周汇报 · Week 3–4（第 3–4 周）</title>
+<style>
+:root {
+  color-scheme: light;
+  --ink: #202b3a; --muted: #637184; --line: #e2e7ed; --accent: #2563b8; --paper: #fff; --bg: #f7f8fa;
+  --soft: #f0f3f7; --good: #1f6b3a; --warn: #8a5a0b; --key: #354a63;
+  --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+          "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 100px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px;
+       line-height: 1.9; overflow-x: clip; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid #4b91ec; outline-offset: 4px; }
+#progress { position: fixed; left: 0; top: 0; height: 3px; background: var(--accent); width: 0; z-index: 30; }
+.skip { position: fixed; top: -100px; left: 10px; background: #fff; padding: 10px; z-index: 40; }
+.skip:focus { top: 10px; }
+
+/* 顶栏 */
+.topbar { height: 74px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between;
+          gap: 16px; padding: 0 5%; background: #ffffffed; backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 10; }
+.brand { display: flex; gap: 12px; align-items: center; font-weight: 750; color: var(--ink); letter-spacing: .01em; white-space: nowrap; }
+.brand:hover { text-decoration: none; }
+.brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--ink); color: #fff; display: grid; place-items: center;
+              font-size: 17px; line-height: 1; }
+.brand-separator { font-weight: 400; color: #bac3ce; }
+.brand-note { font-size: 13px; font-weight: 500; color: var(--muted); }
+.topbar nav { display: flex; gap: 25px; font-size: 13px; white-space: nowrap; }
+.topbar nav a { color: var(--muted); }
+.topbar nav a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+
+/* 左目录 + 正文卡片 */
+.layout { display: grid; grid-template-columns: 245px minmax(0, 920px); gap: 50px; max-width: 1320px; margin: 0 auto; padding: 45px 32px 0; }
+.layout.single { grid-template-columns: minmax(0, 920px); justify-content: center; }
+aside { position: sticky; top: 110px; align-self: start; max-height: calc(100vh - 140px); overflow: auto; padding-right: 16px;
+        font-size: 13px; scrollbar-width: thin; }
+#contents > summary { font-weight: 700; font-size: 12px; letter-spacing: .1em; color: var(--muted); margin-bottom: 18px; cursor: pointer; }
+#contents nav { display: flex; flex-direction: column; }
+#contents a { color: #5d6b7c; line-height: 1.65; padding: 6px 10px; border-left: 2px solid var(--line); }
+#contents a.toc-level-3 { font-size: 12px; padding-left: 22px; }
+#contents a.active { border-color: var(--accent); color: var(--accent); background: #eaf1fb; font-weight: 600; }
+#contents a:hover { color: var(--accent); background: #eef2f7; text-decoration: none; }
+main { position: relative; min-width: 0; background: var(--paper); padding: 44px 54px 24px; border: 1px solid var(--line); border-radius: 12px;
+       box-shadow: 0 4px 30px #22354b03; }
+.eyebrow { font-size: 10px; letter-spacing: .17em; color: var(--muted); font-weight: 650; }
+.eyebrow span { color: #91a7c2; padding: 0 9px; }
+article { overflow-wrap: break-word; }
+footer.pagefoot { border-top: 1px solid var(--line); margin-top: 52px; padding-top: 22px; font-size: 11px; color: var(--muted);
+                  display: flex; justify-content: space-between; gap: 16px; }
+
+/* 标题与正文 */
+h1 { font-size: 31px; line-height: 1.45; letter-spacing: -.035em; margin: 17px 0 0; }
+header.top { margin-bottom: 42px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+article .summary { color: var(--muted); margin: 12px 0 0; }
+h2 { font-size: 24px; line-height: 1.55; letter-spacing: -.02em; margin: 56px 0 20px; padding-top: 12px; }
+h3 { font-size: 19px; line-height: 1.6; margin: 32px 0 17px; }
+h4 { font-size: 17px; line-height: 1.6; margin: 26px 0 8px; font-weight: 650; }
+h5 { font-size: 16px; line-height: 1.6; margin: 20px 0 6px; font-weight: 650; }
+section h4, section h5 { color: var(--accent); }
+article { counter-reset: sec; }
+article section > h2 { counter-increment: sec; counter-reset: sub; }
+article section > h2::before { content: counter(sec) ". "; }
+article section > h3 { counter-increment: sub; }
+article section > h3::before { content: counter(sec) "." counter(sub) " "; }
+article section > h3.numbered::before { content: none; }
+p { margin: 16px 0; }
+li { margin: 6px 0; }
+ul, ol { padding-left: 1.5em; }
+strong, b { font-weight: 650; }
+code { font-size: .87em; background: var(--soft); padding: 2px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { overflow: auto; padding: 16px; background: var(--soft); border-radius: 8px; }
+pre code { padding: 0; }
+pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5;
+          padding: 10px 12px; margin: 6px 0; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+article .lead { padding: 8px 20px; margin: 24px 0; background: #f3f7fc; border: 1px solid #e1eaf6; border-radius: 8px; }
+article .kp { font-weight: 600; color: var(--key); }
+p.concl { color: var(--good); }
+p.expect { color: var(--accent); }
+p.setting { font-size: 13px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+blockquote { font-size: 13px; line-height: 1.85; margin: 12px 0 32px; padding: 4px 18px; border-left: 3px solid #b5cbe5;
+             background: #f7f9fc; color: #5a6879; border-radius: 0 5px 5px 0; }
+ul.obs { font-weight: 600; } ul.findings li { margin: 8px 0; }
+
+/* 配图与视频：没有行内宽度的占满所在列；有行内宽度的（build_site.size_media 按子图面积定）以行内宽度为准 */
+article img, article video { display: block; width: 100%; height: auto; max-width: 100%; margin: 26px auto 12px; }
+article img { border: 1px solid #edf0f4; border-radius: 6px; cursor: zoom-in; }
+article video { background: #101722; border-radius: 8px; }
+article figure { margin: 26px 0 32px !important; min-width: 0; }
+article figure img, article figure video { margin: 0 auto 12px; }
+article figcaption { font-size: 13px; line-height: 1.85; margin: 12px 0 0; padding: 12px 18px; border-left: 3px solid #b5cbe5;
+                     background: #f7f9fc; color: #5a6879; border-radius: 0 5px 5px 0; }
+img.initframe { max-width: 640px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px 18px; }
+.demo { min-width: 0; }
+.demo h3 { margin: 0 0 6px; font-size: 15px; }
+.demo h3 .key { color: var(--muted); font-weight: 400; font-size: 13px; }
+.demo p { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.demo video { margin: 0; }
+.novideo { padding: 22px 12px; background: var(--soft); color: var(--muted); border-radius: 6px; font-size: 13px; }
+
+/* 公式：MathJax 客户端渲染，保持正文字号；超宽的在讲稿里手动断行，这里只留横向滚动兜底 */
+mjx-container[display="true"] { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+
+/* 表格：带边框的滚动框 + 斑马纹 */
+.tablewrap { max-width: 100%; overflow: auto; margin: 24px 0; border: 1px solid var(--line); border-radius: 7px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; line-height: 1.75; }
+th { background: #f1f5fa; text-align: left; font-weight: 650; color: #354a63; }
+td, th { padding: 11px 14px; border-bottom: 1px solid var(--line); min-width: 90px; vertical-align: top; text-align: left; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:nth-child(even) { background: #fafbfd; }
+td { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+td.good { color: var(--good); }
+td.warn { color: var(--warn); }
+
+/* 折叠推导 */
+article details { margin: 22px 0; border: 1px solid var(--line); padding: 16px 18px; border-radius: 8px; }
+article details > summary { font-size: 14px; color: var(--accent); margin: 0; font-weight: 600; cursor: pointer; }
+article details[open] > summary { margin-bottom: 16px; }
+article details > :last-child { margin-bottom: 0; }
+
+/* 首页各周卡片 */
+nav.weeks { display: grid; gap: 14px; margin: 0 0 24px; }
+a.weekcard { display: block; padding: 16px 20px; border-radius: 8px; background: #f7f9fc; border: 1px solid var(--line);
+             border-left: 4px solid var(--accent); color: var(--ink); }
+a.weekcard:hover { text-decoration: none; background: #eef3fa; }
+a.weekcard b { font-size: 19px; color: var(--accent); }
+a.weekcard span { display: block; font-size: 13px; color: var(--muted); margin: 2px 0 6px; line-height: 1.7; }
+a.weekcard p { margin: 6px 0 0; }
+
+/* 点图放大 */
+dialog { border: 0; border-radius: 10px; max-width: 95vw; max-height: 94vh; padding: 40px 18px 8px; overflow: auto; background: #fff; }
+dialog::backdrop { background: #111c30c9; backdrop-filter: blur(3px); }
+dialog img { display: block; max-width: 88vw; max-height: 78vh; object-fit: contain; margin: auto; }
+dialog p { font-size: 12px; text-align: center; color: var(--muted); margin: 10px; }
+#close-viewer { position: absolute; right: 12px; top: 8px; background: #edf1f7; border: 0; padding: 6px 12px; border-radius: 5px;
+                cursor: pointer; color: var(--ink); }
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; padding: 28px 20px 0; }
+  .layout.single { grid-template-columns: minmax(0, 1fr); }
+  main { padding: 32px 28px; } h1 { font-size: 27px; }
+}
+@media (max-width: 720px) {
+  body { font-size: 15px; }
+  .topbar { height: 62px; padding: 0 18px; }
+  .brand { font-size: 15px; gap: 8px; } .brand-note, .brand-separator { display: none; }
+  .topbar nav { gap: 15px; font-size: 12px; overflow-x: auto; }
+  .layout { display: block; padding: 18px 12px 0; }
+  aside { position: static; max-height: none; padding: 0; margin-bottom: 16px; }
+  #contents { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 12px 14px; }
+  #contents > summary { margin: 0; } #contents[open] > summary { margin-bottom: 10px; }
+  #contents nav { max-height: 45vh; overflow: auto; }
+  main { padding: 28px 20px; border-radius: 8px; }
+  h1 { font-size: 25px; } header.top { margin-bottom: 30px; } h2 { font-size: 21px; margin-top: 40px; } h3 { font-size: 18px; }
+  td, th { padding: 9px 11px; } .eyebrow { font-size: 9px; letter-spacing: .1em; }
+  article figcaption { padding: 10px 12px; } article .lead { padding: 6px 14px; } article details { padding: 12px; }
+  footer.pagefoot { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+@media print {
+  .topbar, aside, #progress, .eyebrow, dialog { display: none; }
+  .layout { display: block; margin: 0; padding: 0; } main { border: 0; padding: 0; box-shadow: none; }
+  body { background: #fff; font-size: 11pt; } h2, h3 { break-after: avoid; } img, video, table { break-inside: avoid; }
+  a { color: inherit; } .tablewrap { overflow: visible; }
+}
+</style>
+<style>
+/* ===== 手写标注：版式固定（有笔迹或标注打开时，各设备正文排版一致） ===== */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html.annot-fixed .layout { grid-template-columns: 245px 920px; gap: 50px; padding: 45px 32px 0; display: grid; }
+html.annot-fixed .layout.single { grid-template-columns: 920px; }
+html.annot-fixed main { width: 920px; padding: 44px 54px 24px; border-radius: 12px; }
+html.annot-fixed body { font-size: 16px; }
+html.annot-fixed h1 { font-size: 31px; }
+html.annot-fixed h2 { font-size: 24px; margin-top: 56px; }
+html.annot-fixed h3 { font-size: 19px; }
+html.annot-fixed header.top { margin-bottom: 42px; }
+html.annot-fixed td, html.annot-fixed th { padding: 11px 14px; }
+html.annot-fixed .eyebrow { font-size: 10px; letter-spacing: .17em; }
+html.annot-fixed article figcaption { padding: 12px 18px; }
+html.annot-fixed article .lead { padding: 8px 20px; }
+html.annot-fixed article details { padding: 16px 18px; }
+/* 窗口放不下「目录 + 正文」：隐藏目录，正文居中；更窄时 JS 给 main 设 zoom 等比缩小 */
+html.annot-noaside .layout { display: block; padding: 45px 16px 0; }
+html.annot-noaside aside { display: none; }
+html.annot-noaside main { margin: 0 auto; }
+
+/* ===== 笔迹图层与输入层 ===== */
+#annot-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 5; }
+#annot-layer path.hl, svg.annot-print path.hl { mix-blend-mode: multiply; }
+#annot-layer path.orphan { display: none; }   /* 圈的内容改了 / 删了：不留标记（用户 10-25），数据仍保留 */
+#annot-capture { position: fixed; inset: 0; z-index: 45; display: none; touch-action: pan-x pan-y; cursor: crosshair;
+                 -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.annot-on #annot-capture { display: block; }
+#annot-capture.probe { visibility: hidden; }
+
+/* ===== 工具栏（右下角，可收成一个小按钮） ===== */
+.annot-ui { position: fixed; right: 16px; bottom: 16px; z-index: 50; font-size: 13px; line-height: 1.4; color: var(--ink);
+            -webkit-user-select: none; user-select: none; }
+.annot-ui button { font: inherit; min-height: 36px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 7px;
+                   background: #fff; color: var(--ink); cursor: pointer; touch-action: manipulation; }
+.annot-ui button[aria-pressed="true"] { background: #eaf1fb; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+#annot-fab { box-shadow: 0 4px 16px #1b2a4026; border-radius: 20px; padding: 6px 14px; }
+.annot-ui[data-collapsed="1"] #annot-panel, .annot-ui:not([data-collapsed="1"]) #annot-fab { display: none; }
+#annot-panel { background: #fffffff2; border: 1px solid var(--line); border-radius: 12px; padding: 10px; width: 300px;
+               box-shadow: 0 6px 26px #1b2a402e; backdrop-filter: blur(8px); }
+.annot-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.annot-row:last-of-type { margin-bottom: 0; }
+.annot-ui button.annot-swatch { width: 36px; padding: 0; }
+.annot-swatch::before { content: ""; display: block; width: 16px; height: 16px; margin: auto; border-radius: 50%; background: var(--c); }
+.annot-ui button.annot-swatch.hl::before { border-radius: 3px; width: 20px; height: 12px; opacity: .6; }
+#annot-status { font-size: 12px; color: var(--muted); margin-top: 6px; }
+#annot-status .warn { color: var(--warn); }
+#annot-choice { margin-top: 8px; padding: 8px; background: var(--soft); border-radius: 8px; }
+#annot-choice p { margin: 0 0 6px; }
+#annot-sync-panel { margin-top: 8px; padding: 8px; background: var(--soft); border-radius: 8px; }
+#annot-sync-panel label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
+#annot-sync-panel input { display: block; width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; margin-top: 2px;
+                          border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: #fff; }
+/* 只读快照页：不能画、不能改设置，只能看和导出 */
+.annot-ui.snap #annot-toggle, .annot-ui.snap #annot-tools,
+.annot-ui.snap #annot-undo, .annot-ui.snap #annot-clear, .annot-ui.snap #annot-import, .annot-ui.snap #annot-sync { display: none; }
+#annot-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* ===== 打印 / 生成 PDF：笔迹跟着各自的块走，正文保持 920px 排版再整体缩到纸宽 ===== */
+@media print {
+  .annot-ui, #annot-capture { display: none !important; }
+  html.annot-printing #annot-layer { display: none; }
+  .annot-host { position: relative; }
+  svg.annot-print { position: absolute; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 5; }
+  html.annot-fixed body { font-size: 16px; }
+  html.annot-fixed main { width: 920px; padding: 44px 54px 24px; zoom: .76; }
+  html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
+}
+</style>
+<script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
+<script>window.NIPC_PAGE = "b84b07d90827";</script>
+<script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
+<a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
+<header class="topbar"><a class="brand" href="../../index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="../../index.html">所有周</a><a href="week3_4.html" aria-current="page">Week 3–4</a><a href="../../week2.html">Week 2</a><a href="../../week1.html">Week 1</a></nav></header>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 要学的是什么</a>
+<a class="toc-level-2" href="#w2">2. hydro++ 能做什么、不能做什么</a>
+<a class="toc-level-3" href="#w2-1">2.1 hydro 与 hydro++</a>
+<a class="toc-level-3" href="#w2-2">2.2 例一：见过的配对能背下来，没见过的组合学不会</a>
+<a class="toc-level-3" href="#w2-3">2.3 例二：接触之间的相互影响</a>
+<a class="toc-level-3" href="#w2-4">2.4 小结：hydro++ 能做什么、不能做什么</a>
+<a class="toc-level-2" href="#w3">3. 我的软–软模型</a>
+<a class="toc-level-3" href="#w3-1">3.1 两个软体等于一个刚体压一块软平面</a>
+<a class="toc-level-3" href="#w3-2">3.2 降维法：三维接触变成一排独立弹簧</a>
+<a class="toc-level-3" href="#w3-3">3.3 不轴对称：椭圆接触</a>
+<a class="toc-level-3" href="#w3-4">3.4 多处接触之间的相互影响</a>
+<a class="toc-level-3" href="#w3-5">3.5 网络修什么</a>
+<a class="toc-level-3" href="#w3-6">3.6 结果</a>
+<a class="toc-level-2" href="#w4">4. 理想情况之外：在几种精确极限之间搭桥</a>
+<a class="toc-level-3" href="#w4-1">4.1 现有骨架管不到的三种情况</a>
+<a class="toc-level-3" href="#w4-2">4.2 以薄层为例：两头各有精确公式，中间两个都不准</a>
+<a class="toc-level-3" href="#w4-3">4.3 统一的结构：方格弹簧床 + 相互作用</a>
+<a class="toc-level-3" href="#w4-4">4.4 新的网络结构（设计，还没实现）</a>
+<a class="toc-level-3" href="#w4-5">4.5 目前验证到哪</a>
+<a class="toc-level-2" href="#w5">5. Huanyu 的方案与我的方案</a>
+<a class="toc-level-2" href="#w6">6. 想讨论的</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<header class="top"><h1>Week 3–4（第 3–4 周）</h1><p class="summary">要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。</p></header>
+<div class="lead"><ul>
+<li>这次讲三件事：hydro++ 能做到什么、做不到什么；我现在的软–软模型怎么搭；这套模型在哪些情况下不够用，以及接下来的做法。</li>
+</ul>
+<p class="kp">本页结论：hydro++ 每个物体各管一张场，表达不了接触之间的相互影响和两个物体凑在一起才有的量；我的模型用解析公式算主体、网络只修轮廓，在曲率准、符合 Hertz 前提的场景里已经很准；薄层、斜压、两处接触连成一片这些情况要换成一个能把几种精确极限统一起来的结构，网络学极限之间的过渡。</p></div>
+<section id="w1"><h2>要学的是什么</h2>
+<ul>
+<li><strong>粗模型只用很少几个数描述一个物体。</strong> 刚体 6 个（3 个平移、3 个转动），仿射体 12 个（还能整体拉伸、剪切），记作 \(z\)。粗模型不会局部变形，两个物体碰上时会互相穿进去。</li>
+<li>
+<p><strong>真实物体在接触处局部凹下去让开。</strong> 要学的就是这块凹陷里存的弹性能：</p>
+<p>\[\color{#c0392b}{U_c(z)=\min_{w}\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z)}\]</p>
+</li>
+</ul>
+<p>\(\Phi z\)：粗模型给出的形状，也就是粗状态 \(z\) 下物体的样子。</p>
+
+<p>\(\Psi w\)：叠加在上面的局部变形；\(\Psi\) 是一组局部变形的形状模板，\(w\) 是每个模板用多少。</p>
+
+<p>\(\Pi\)：弹性能；\(\min_w\) 在两物体不穿透的条件下取。</p>
+
+<p>直观地说：粗状态固定后，物体自己找最省能量的凹法避开穿透，凹完多出来的弹性能就是 \(U_c\)。穿得越深，要凹得越多，\(U_c\) 越大；接触力是 \(U_c\) 对位置的导数，能量随位置涨得越快，推力越大。</p>
+
+<figure style="margin:12px 0"><img src="assets/images/w34_fig01_collision_energy.png" width="2501" height="991" style="width:1060px;max-width:100%;height:auto" alt="左边是粗模型眼里的样子：绿色的球和下面的块都不会变形，两者直接互相穿进去，红色那片就是穿进去的部分。右边是真实物体：块在接触处凹下去把球让开，虚线是块原来的表面，蓝色是凹下去的那一块，里面存的弹性能就是 \(U_c\)。" loading="lazy"><figcaption class="small">左边是粗模型眼里的样子：绿色的球和下面的块都不会变形，两者直接互相穿进去，红色那片就是穿进去的部分。右边是真实物体：块在接触处凹下去把球让开，虚线是块原来的表面，蓝色是凹下去的那一块，里面存的弹性能就是 \(U_c\)。</figcaption></figure>
+<ul>
+<li><strong>标签（训练用的标准答案）由 IPC 加精细有限元算出。</strong> IPC 是保证不穿透的接触算法；把两物体放进精细有限元网格里压到给定深度，读出弹性能。</li>
+</ul>
+<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="../../assets/videos/w3i_exp1_soft_soft_press.mp4" style="width:542px;max-width:100%;height:auto"></video></figure>
+<p>造一条标签的过程：橙色软压头压同样软的蓝色块（过接触中心的剖面，竖直放大 4 倍，红线是受接触力的位置），用一对等大反向的力把两者挤在一起，依次压到六个深度，每次停稳读出两个物体的弹性能之和。后几段压头底部也被压平，能量有一部分存在压头里。</p>
+
+<p class="kp">我们要学的是粗状态下的接触能量 \(U_c(z)\)：它等于物体为避开穿透而局部变形所存的弹性能，力是它对位置的导数。</p></section>
+<section id="w2"><h2>hydro++ 能做什么、不能做什么</h2>
+<h3 id="w2-1">hydro 与 hydro++</h3>
+
+<ul>
+<li>
+<p><strong>hydro 在每个物体内部预先画好一张压力场。</strong> 表面为零，越往里越大。两个物体重叠时，在重叠区每一点取两侧压力中较小的那个，积分得到能量：</p>
+<p>\[\color{#c0392b}{U^{\text{hydro}}=\int_{\Omega}\min(p_A,p_B)\,dV}\]</p>
+</li>
+</ul>
+<p>\(\Omega\)：两物体的重叠区；\(p_A\)、\(p_B\)：两个物体各自的压力场在该点的值；\(dV\)：体积元。</p>
+
+<p>重叠得越深，重叠区里的点离表面越远，两侧压力都越大；重叠区越大，积分的范围越大。两者都让能量变大。</p>
+
+<figure style="margin:12px 0"><img src="assets/images/w34_fig07_hydro_pressure_field.png" width="1323" height="883" style="width:629px;max-width:100%;height:auto" alt="橙色的物体 A 和绿色的物体 B 各自带着一张预先画好的压力场，颜色越深压力越大：表面为零，随离表面的深度 \(s\) 增大。两物体重叠的那片透镜形区域是蓝色的，在这里每一点取两边压力中较小的那个，全部加起来就是 hydro 的能量。" loading="lazy"><figcaption class="small">橙色的物体 A 和绿色的物体 B 各自带着一张预先画好的压力场，颜色越深压力越大：表面为零，随离表面的深度 \(s\) 增大。两物体重叠的那片透镜形区域是蓝色的，在这里每一点取两边压力中较小的那个，全部加起来就是 hydro 的能量。</figcaption></figure>
+<ul>
+<li><strong>hydro++ 是 hydro 在自身定义内最强的版本。</strong> 每个物体（包括压头）的压力场都可以是任意三维形状，完全由数据拟合。</li>
+<li><strong>唯一保留的限制：场固定在物体上，不随对手、位置、时间变化。</strong> 场固定，能量就只由两物体当前的位置决定：物体绕一圈回到原处，能量也回到原值，仿真不会凭空多出或少掉能量。hydro 的能量守恒正是靠这一条，所以 hydro++ 也保留它。</li>
+<li>下面用两个例子说明：这条限制让它能做到一件事，也让它做不到两件事。</li>
+</ul>
+<h3 id="w2-2">例一：见过的配对能背下来，没见过的组合学不会</h3>
+
+<ul>
+<li><strong>实验。</strong> 15 个物体（5 种形状 × 3 种硬度）两两配对互压，答案用解析公式算。拿一部分配对拟合每个物体的场，另一部分配对只用来测试。测试的每一对里，两个物体各自都在拟合的配对里出现过，只是这两个从没一起出现过。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_08_pair_table.png" width="1000" height="940" style="width:447px;max-width:100%;height:auto" alt="每个格子是一对物体：行是压头，列是被压的块，每种形状占三行三列，三格依次是硬度 1、2、4 × 10⁵。绿色是拟合用的 68 对，灰色是挑模型用的 10 对验证，红色是 24 对测试，空白是不配的组合。随便看一个红格：它所在的那一行和那一列里都有绿格，也就是说测试里的每个物体都在拟合时出现过，只是这一对组合没出现过。" loading="lazy"><figcaption class="small">每个格子是一对物体：行是压头，列是被压的块，每种形状占三行三列，三格依次是硬度 1、2、4 × 10⁵。绿色是拟合用的 68 对，灰色是挑模型用的 10 对验证，红色是 24 对测试，空白是不配的组合。随便看一个红格：它所在的那一行和那一列里都有绿格，也就是说测试里的每个物体都在拟合时出现过，只是这一对组合没出现过。</figcaption></figure>
+<ul>
+<li><strong>结果。</strong> 拟合过的配对，误差只有百万分之几，几乎完全背下来；没见过的组合，最大误差要大好几个量级。拟合场是一个有很多局部最优的问题，正在从多个起点重跑复核。</li>
+<li><strong>为什么。</strong> 第 3 节会推出：真实答案只取决于两表面之间的缝隙和两侧合成的硬度。这两个量都要两个物体凑在一起才有；hydro++ 每个物体各管一张场，拼不出它们，只能把见过的每一对分别背下来。</li>
+</ul>
+<p class="setting muted">设置：拟合配对的最大误差 0.0003%（单起点拟合）；多起点重跑至今 0.0002%–0.001%。没见过的组合，旧的单起点拟合最大误差 12%；多起点复核尚未跑完。</p>
+<h3 id="w2-3">例二：接触之间的相互影响</h3>
+
+<ul>
+<li><strong>实验。</strong> 同一个块、两个平底压头 P、Q：① P 单独压；② Q 单独压；③ 一起压。三种情况里压头位置、压深都相同。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_fig08a_deadlock_three_cases.png" width="2170" height="882" style="width:1318px;max-width:100%;height:auto" alt="左边三幅是三种情况：① 只有 P 压，② 只有 Q 压，③ 两个一起压，虚线圈表示这次不压的那个。③ 里两个凹陷连在一起：P 压下去时把 Q 底下的表面也带低了一点。右边两根柱子比较 ③ 的能量：hydro 只能把 ① 和 ② 的能量叠起来，真实的能量少了约 14%。示意图把压头画成了球，实际算例是下一张图里的两个平底。" loading="lazy"><figcaption class="small">左边三幅是三种情况：① 只有 P 压，② 只有 Q 压，③ 两个一起压，虚线圈表示这次不压的那个。③ 里两个凹陷连在一起：P 压下去时把 Q 底下的表面也带低了一点。右边两根柱子比较 ③ 的能量：hydro 只能把 ① 和 ② 的能量叠起来，真实的能量少了约 14%。示意图把压头画成了球，实际算例是下一张图里的两个平底。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_t6p_pair4_scene.png" width="2068" height="970" style="width:895px;max-width:100%;height:auto" alt="实际算例的场景：两个平底凸台一起压同一块，中心距是平底半径的 4 倍。左边是过两个压头中心的剖面，竖直方向放大 5 倍，描红的是受接触力的位置，可以看到两个凹陷之间的表面也被带低了；右边是从上往下看块的顶面，粉色是两个接触区。" loading="lazy"><figcaption class="small">实际算例的场景：两个平底凸台一起压同一块，中心距是平底半径的 4 倍。左边是过两个压头中心的剖面，竖直方向放大 5 倍，描红的是受接触力的位置，可以看到两个凹陷之间的表面也被带低了；右边是从上往下看块的顶面，粉色是两个接触区。</figcaption></figure>
+<ul>
+<li>
+<p><strong>hydro++ 只能相加。</strong> 一起压时的重叠区就是两块单独的重叠区拼起来，场又不随对手变，所以 ③ 的能量只能是 ① 与 ② 之和。</p>
+<p>\[\color{#c0392b}{U^{\text{hydro}}_③=U^{\text{hydro}}_①+U^{\text{hydro}}_②}\]</p>
+</li>
+</ul>
+<details><summary>推导：hydro++ 只能相加</summary><p>两个压头离得开时，一起压的重叠区由两块互不相交的部分组成：</p>
+<p>\[\Omega_③=\Omega_①\cup\Omega_②,\qquad \Omega_①\cap\Omega_②=\varnothing.\]</p>
+<p>场固定在物体上，所以重叠区里每一点的被积函数 \(\min(p_A,p_B)\) 在 ③ 与在 ①（或 ②）中相同。积分区域拆成两块：</p>
+<p>\[U^{\text{hydro}}_③=\int_{\Omega_①\cup\Omega_②}\min(p_A,p_B)\,dV=\int_{\Omega_①}\min(p_A,p_B)\,dV+\int_{\Omega_②}\min(p_A,p_B)\,dV.\]</p>
+<p>右边两项分别就是 ① 和 ② 的能量：</p>
+<p>\[U^{\text{hydro}}_③=U^{\text{hydro}}_①+U^{\text{hydro}}_②.\]</p></details>
+<ul>
+<li>
+<p><strong>真实弹性体要打折。</strong> 在表面按一下，周围也跟着陷。P 压下去时 Q 那里已经被带低一点，Q 要自己压的量变少，力和能量都变少。条件是两条弹性力学的基本结论：</p>
+<p>\[\color{#c0392b}{\begin{aligned}&amp;(1)\quad u(r)=\frac{F}{\pi E&#x27;\,r}\\&amp;(2)\quad F_1=2E&#x27;a\,\delta\end{aligned}}\]</p>
+</li>
+</ul>
+<p>式 (1)：表面上一点受力 \(F\)，距离 \(r\) 处的表面下沉 \(u\)。\(E&#x27;=E/(1-\nu^2)\) 是被压物体的有效硬度，\(E\) 是杨氏模量，\(\nu\) 是泊松比。离得越远下沉越少，远一倍少一半；物体越硬，下沉越少。</p>
+
+<p>式 (2)：半径 \(a\) 的刚性平底单独压入深度 \(\delta\) 需要的力 \(F_1\)。力与压深成正比，平底越大、物体越硬，需要的力越大。</p>
+
+<p>结果：两个平底中心距为 \(r\)，同时压到同一深度时，总能量是各自单独压时之和的 \(c\) 倍：</p>
+
+<p>\[\color{#c0392b}{U_③=c\,(U_①+U_②),\qquad c=\frac{1}{1+\dfrac{2a}{\pi r}}&lt;1}\]</p>
+<p>两个压头离得越近（\(r\) 越小），互相带下去的越多，\(c\) 越小；离得很远时 \(c\to1\)，两者互不影响。中心距为半径 4 倍时式子给出 \(c=0.863\)；用边界元（只在物体表面划网格、精确求解接触的数值方法）独立求解得 \(c=0.861\)，两者一致。</p>
+
+<details><summary>推导：c 从哪里来</summary><ol>
+<li>
+<p>由式 (2)，单个平底受力 \(F\) 时自己要压的深度是</p>
+<p>\[\delta_e(F)=\frac{F}{2E&#x27;a}.\]</p>
+</li>
+<li>
+<p>一起压时每个平底受力 \(F\)。每个平底的压深 = 自己压的 + 对方把表面带下去的；对方离得远，可以看成一个点力，由式 (1) 带下去 \(F/(\pi E&#x27;r)\)：</p>
+<p>\[\delta=\frac{F}{2E&#x27;a}+\frac{F}{\pi E&#x27;r}.\]</p>
+</li>
+<li>
+<p>提出 \(\dfrac{F}{2E&#x27;a}\)：</p>
+<p>\[\delta=\frac{F}{2E&#x27;a}\Big(1+\frac{2a}{\pi r}\Big).\]</p>
+</li>
+<li>
+<p>两边乘 \(2E&#x27;a\)，再除以 \(1+\dfrac{2a}{\pi r}\)：</p>
+<p>\[F=\frac{2E&#x27;a\,\delta}{1+\dfrac{2a}{\pi r}}.\]</p>
+</li>
+<li>
+<p>平底的力与压深成正比，压到 \(\delta\) 存的能量是力–压深直线下的三角形面积：</p>
+<p>\[U=\int_0^\delta k\,s\,ds=\tfrac12k\delta^2=\tfrac12F\delta,\qquad k=F/\delta.\]</p>
+</li>
+<li>
+<p>① 与 ② 各自单独压时 \(U_①=U_②=\tfrac12F_1\delta\)；③ 里两个平底各存 \(\tfrac12F\delta\)。压深相同，所以</p>
+<p>\[c=\frac{U_③}{U_①+U_②}=\frac{2\cdot\tfrac12F\delta}{2\cdot\tfrac12F_1\delta}=\frac{F}{F_1}=\frac{2E&#x27;a\delta\big/\big(1+\frac{2a}{\pi r}\big)}{2E&#x27;a\delta}=\frac{1}{1+\dfrac{2a}{\pi r}}.\]</p>
+</li>
+</ol></details>
+<ul>
+<li>
+<p><strong>不管场怎么取，三种情况至少有一种错 \(\dfrac{1-c}{1+c}\)。</strong> hydro++ 只能相加，真实要打折，两者不可能三种情况同时对。条件是上面两个结果（hydro++ 的可加性、真实的 \(U_③=c(U_①+U_②)\)），再要求三种情况的相对误差都不超过 \(\varepsilon\)；结论是</p>
+<p>\[\color{#c0392b}{\varepsilon\ \ge\ \frac{1-c}{1+c}}\]</p>
+</li>
+</ul>
+<p>\(\varepsilon\)：三种情况里最大的相对误差。\(c\) 越小（两个压头越近、相互影响越强），下界越大；\(c\to1\) 时下界趋于 0。用边界元的 \(c=0.861\) 代入，下界是 7.49%；让三张场完全自由拟合去压低最大误差，结果停在 7.56%，和下界一致。</p>
+
+<details><summary>推导：误差下界</summary><ol>
+<li>
+<p>相对误差不超过 \(\varepsilon\)，即对 \(k=①,②,③\)：</p>
+<p>\[(1-\varepsilon)\,U_k\le U^{\text{hydro}}_k\le(1+\varepsilon)\,U_k.\]</p>
+</li>
+<li>
+<p>对 ① 和 ② 取左边的不等式再相加：</p>
+<p>\[(1-\varepsilon)(U_①+U_②)\le U^{\text{hydro}}_①+U^{\text{hydro}}_②.\]</p>
+</li>
+<li>
+<p>左边换成 hydro++ 的可加性 \(U^{\text{hydro}}_①+U^{\text{hydro}}_②=U^{\text{hydro}}_③\)，再对 ③ 取右边的不等式，并代入 \(U_③=c(U_①+U_②)\)：</p>
+<p>\[(1-\varepsilon)(U_①+U_②)\le U^{\text{hydro}}_③\le(1+\varepsilon)\,c\,(U_①+U_②).\]</p>
+</li>
+<li>
+<p>两边除以 \(U_①+U_②&gt;0\)：</p>
+<p>\[1-\varepsilon\le c+c\,\varepsilon.\]</p>
+</li>
+<li>
+<p>移项：</p>
+<p>\[1-c\le\varepsilon\,(1+c)\ \Longrightarrow\ \varepsilon\ge\frac{1-c}{1+c}.\]</p>
+</li>
+<li>
+<p>代入 \(c=0.861\)：</p>
+<p>\[\varepsilon\ge\frac{1-0.861}{1+0.861}=\frac{0.139}{1.861}=7.49\%.\]</p>
+</li>
+</ol></details>
+<p class="setting muted">设置：边界元 \(c=0.8606\)；下界按它算为 7.492%。拟合实验：块一张场、两个压头各一张场，全部自由拟合，最大误差 7.56%。</p>
+<h3 id="w2-4">小结：hydro++ 能做什么、不能做什么</h3>
+
+<ul>
+<li><strong>能做到：</strong> 能量守恒；见过的配对几乎完全背下来；每一点只看自己压多深，这正是很薄的软层的真实行为（第 4 节会用到）。</li>
+<li><strong>做不到：</strong> 同一物体上几处接触之间的相互影响；没见过的物体组合。</li>
+<li><strong>由此得到两条设计要求：</strong> ① 能量直接由「缝隙 + 合成硬度」决定，而不是由每个物体各自的属性拼起来；② 同一物体上几处接触之间要有相互影响。</li>
+</ul>
+<p class="kp">hydro++ 的场固定在单个物体上，所以它只能把多处接触的能量相加、只能背下见过的配对；任何场在两压头算例上都至少错 7.49%。</p></section>
+<section id="w3"><h2>我的软–软模型</h2>
+<ul>
+<li>按上面两条要求搭：先用解析公式算能量的主体（下文称<strong>骨架</strong>），网络只修骨架和真实之间剩下的一点。</li>
+</ul>
+<h3 id="w3-1">两个软体等于一个刚体压一块软平面</h3>
+
+<ul>
+<li><strong>条件：</strong> 接触区比物体小得多（两侧都可看成无限大的弹性体），变形小，无摩擦。</li>
+<li>
+<p><strong>结论：</strong> 两个软体相碰，在数学上等价于一个形状为缝隙 \(h\) 的刚体，压一块硬度为 \(E^*\) 的软平面：</p>
+<p>\[\color{#c0392b}{h=f_A+f_B,\qquad \frac1{E^*}=\frac{1-\nu_A^2}{E_A}+\frac{1-\nu_B^2}{E_B}}\]</p>
+</li>
+</ul>
+<p>\(f_A\)、\(f_B\)：两个表面在接触点附近各自弯离公共切平面的高度，相加就是两表面之间的缝隙 \(h\)。</p>
+
+<p>\(E^*\)：合成硬度；\(E_A\)、\(E_B\) 是两侧的杨氏模量，\(\nu_A\)、\(\nu_B\) 是泊松比。两侧的「软度」\((1-\nu^2)/E\) 相加：任何一侧变软，合成硬度都变小；一侧是刚体（\(E\to\infty\)）时，合成硬度就是另一侧的 \(E/(1-\nu^2)\)。</p>
+
+<p>所以答案只取决于 \(h\) 和 \(E^*\)，这两个量都要两个物体凑在一起才有，正好满足第一条要求，也说明了例一里 hydro++ 为什么学不会。</p>
+
+<figure style="margin:12px 0"><img src="assets/images/w34_fig02_two_soft_equals_rigid_flat.png" width="2023" height="991" style="width:857px;max-width:100%;height:auto" alt="左边是两个软体 A、B 在接触点附近的剖面，虚线是公共切平面，红色箭头是两个表面各自弯离切平面的高度 \(f_A\)、\(f_B\)，两个软体的软度分别是 \(1/E_A&#x27;\)、\(1/E_B&#x27;\)（\(E&#x27;=E/(1-\nu^2)\)）。右边是与它等价的问题：上面换成一个刚体，形状就是两侧高度相加的缝隙 \(h=f_A+f_B\)；下面换成一块平的软体，软度是两侧软度之和 \(1/E^*\)。" loading="lazy"><figcaption class="small">左边是两个软体 A、B 在接触点附近的剖面，虚线是公共切平面，红色箭头是两个表面各自弯离切平面的高度 \(f_A\)、\(f_B\)，两个软体的软度分别是 \(1/E_A&#x27;\)、\(1/E_B&#x27;\)（\(E&#x27;=E/(1-\nu^2)\)）。右边是与它等价的问题：上面换成一个刚体，形状就是两侧高度相加的缝隙 \(h=f_A+f_B\)；下面换成一块平的软体，软度是两侧软度之和 \(1/E^*\)。</figcaption></figure>
+<details><summary>推导：两个软体 → 刚体压软平面</summary><ol>
+<li>两侧在接触面上受同一个压力 \(p(\mathbf x)\)（作用与反作用）。</li>
+<li>
+<p>每侧表面的下沉由压力决定：在一点按一下，周围都跟着陷，陷的量与距离成反比（第 2 节例二的式 (1)：\(u(r)=F/(\pi E&#x27;r)\)）；各处的下陷直接相加，就是把点力换成每一小块面积上的力 \(p(\mathbf x&#x27;)\,d\mathbf x&#x27;\) 再对整个接触区积分。对 \(i=A,B\)：</p>
+<p>\[u_i(\mathbf x)=\frac{1}{E_i&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;,\qquad E_i&#x27;=\frac{E_i}{1-\nu_i^2}.\]</p>
+</li>
+</ol>
+<p>两侧的积分完全相同，只差系数 \(1/E_i&#x27;\)。</p>
+<ol>
+<li>
+<p>两物体远处推近 \(\delta\)。不变形时接触区里每一处会穿入 \(\delta-h(\mathbf x)\)；实际两侧各凹一点，合起来正好让出来：</p>
+<p>\[u_A(\mathbf x)+u_B(\mathbf x)=\delta-h(\mathbf x)\qquad(\mathbf x\ \text{在接触区内}).\]</p>
+</li>
+<li>
+<p>把第 2 步对 A、B 各写一次，代入第 3 步：</p>
+<p>\[\frac{1}{E_A&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;+\frac{1}{E_B&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h(\mathbf x).\]</p>
+</li>
+<li>
+<p>合并系数：</p>
+<p>\[\Big(\frac{1}{E_A&#x27;}+\frac{1}{E_B&#x27;}\Big)\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h(\mathbf x).\]</p>
+</li>
+<li>
+<p>记 \(\dfrac1{E^*}=\dfrac1{E_A&#x27;}+\dfrac1{E_B&#x27;}=\dfrac{1-\nu_A^2}{E_A}+\dfrac{1-\nu_B^2}{E_B}\)：</p>
+<p>\[\frac{1}{E^*}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h(\mathbf x).\]</p>
+</li>
+</ol>
+<p>这正是「形状为 \(h\) 的刚体压硬度为 \(E^*\) 的软平面」的方程：刚体不变形，只有软平面一侧下沉，下沉量必须补足 \(\delta-h\)。</p></details>
+<h3 id="w3-2">降维法：三维接触变成一排独立弹簧</h3>
+
+<ul>
+<li><strong>为什么需要。</strong> 三维里每一点的下沉都受所有点压力的影响，直接解要解一个积分方程。</li>
+<li>
+<p><strong>降维法（Popov）的结论。</strong> 对轴对称的缝隙 \(h(r)\)（绕接触中心转一圈形状不变，只随离中心的距离 \(r\) 变），先换算出一条一维的<strong>等效轮廓</strong> \(g(x)\)，再用形状为 \(g\) 的刚体去压一排互不相干的弹簧（每单位长度刚度 \(E^*\)），得到的力和能量与三维精确解完全相同：</p>
+<p>\[\color{#c0392b}{\begin{aligned}&amp;g(x)=|x|\int_0^{|x|}\frac{h&#x27;(r)}{\sqrt{x^2-r^2}}\,dr,\qquad g(a)=\delta,\\&amp;F=2E^*\int_0^a\big(\delta-g(x)\big)dx,\qquad U_0=E^*\int_0^a\big(\delta-g(x)\big)^2dx\end{aligned}}\]</p>
+</li>
+</ul>
+<p>\(x\)：一维弹簧排上的位置；\(h&#x27;(r)\)：缝隙随半径的斜率。</p>
+
+<p>\(\delta\)：压深；\(a\)：接触边缘，就是压缩量刚好为零的那根弹簧，所以 \(g(a)=\delta\)。</p>
+
+<p>\(F\)：总力，等于接触区里每根弹簧压缩量 \(\delta-g(x)\) 乘刚度 \(E^*\) 再加起来（左右对称，所以是 \(0\) 到 \(a\) 的两倍）。</p>
+
+<p>\(U_0\)：骨架能量，每根弹簧存 \(\tfrac12E^*(\delta-g)^2\)，左右两边加起来。</p>
+
+<figure style="margin:12px 0"><img src="assets/images/w34_fig04_mdr_springs.png" width="2205" height="1021" style="width:907px;max-width:100%;height:auto" alt="左边是三维问题的剖面：灰色刚体按缝隙 \(h(r)\) 的形状压软块，块上各点互相牵连。右边是降维以后的一维问题：灰色刚体的下表面换成等效轮廓 \(g(x)\)（球的情况是 \(x^2/R\)），下面是一排互不相干的弹簧。刚体压下压深 \(\delta\)，蓝色的弹簧被压着，灰色的没碰到；红色点线是接触边缘 \(a\)，那里的弹簧压缩量刚好为零，即 \(g(a)=\delta\)。" loading="lazy"><figcaption class="small">左边是三维问题的剖面：灰色刚体按缝隙 \(h(r)\) 的形状压软块，块上各点互相牵连。右边是降维以后的一维问题：灰色刚体的下表面换成等效轮廓 \(g(x)\)（球的情况是 \(x^2/R\)），下面是一排互不相干的弹簧。刚体压下压深 \(\delta\)，蓝色的弹簧被压着，灰色的没碰到；红色点线是接触边缘 \(a\)，那里的弹簧压缩量刚好为零，即 \(g(a)=\delta\)。</figcaption></figure>
+<ul>
+<li><strong>这个形式自带两条性质，后面网络的设计全靠它们：</strong><ul>
+<li><strong>力严格等于能量对压深的导数</strong>（\(dU_0/d\delta=F\)），所以能量和力自洽。</li>
+<li><strong>越压越硬：</strong> 刚度 \(dF/d\delta=2aE^*\)，接触越宽越硬；压深一增加，接触就变宽。</li>
+</ul>
+</li>
+</ul>
+<details><summary>推导：降维法的力、等效轮廓和能量</summary><p><strong>第一步：平底的解（已知）。</strong> 半径 \(\tilde a\) 的刚性平底压入 \(\delta\)，力和平底外 \(r\) 处的表面下沉分别为</p>
+<p>\[F_{\text{平底}}=2E^*\tilde a\,\delta,\qquad u(r)=\frac{2\delta}{\pi}\arcsin\frac{\tilde a}{r}\quad(r&gt;\tilde a).\]</p>
+<p><strong>第二步：把一般压入拆成一串平底。</strong> 压入过程中接触半径从 0 长到 \(a\)。接触半径为 \(\tilde a\) 时再多压 \(d\tilde\delta\)，新增的只是接触区里的一层，相当于半径 \(\tilde a\) 的平底多压 \(d\tilde\delta\)。记压深与接触半径的关系为 \(\tilde\delta=g(\tilde a)\)，则 \(d\tilde\delta=g&#x27;(\tilde a)\,d\tilde a\)，最后 \(\delta=g(a)\)。各步的力相加：</p>
+<p>\[F=\int_0^a2E^*\tilde a\,g&#x27;(\tilde a)\,d\tilde a.\]</p>
+<p>分部积分（\(\tilde a\) 求导得 1，\(g&#x27;\) 积分得 \(g\)）：</p>
+<p>\[F=2E^*\Big[\tilde a\,g(\tilde a)\Big]_0^a-2E^*\int_0^ag(\tilde a)\,d\tilde a=2E^*\,a\,g(a)-2E^*\int_0^ag(\tilde a)\,d\tilde a.\]</p>
+<p>代入 \(g(a)=\delta\)，并把 \(a\delta\) 写成 \(\int_0^a\delta\,dx\)：</p>
+<p>\[F=2E^*\int_0^a\delta\,dx-2E^*\int_0^ag(x)\,dx=2E^*\int_0^a\big(\delta-g(x)\big)dx.\]</p>
+<p><strong>第三步：用接触边缘的贴合条件定出 \(g\)。</strong> 在 \(r=a\) 处表面刚好贴着刚体，那里要让出的量是 \(\delta-h(a)\)；它等于各步平底在 \(r=a\) 处造成的下沉之和（第一步的 \(u\)，压深换成 \(d\tilde\delta=g&#x27;(\tilde a)d\tilde a\)）：</p>
+<p>\[\delta-h(a)=\frac2\pi\int_0^a\arcsin\frac{\tilde a}{a}\;g&#x27;(\tilde a)\,d\tilde a.\]</p>
+<p>分部积分：</p>
+<p>\[\frac2\pi\int_0^a\arcsin\frac{\tilde a}{a}\,g&#x27;(\tilde a)\,d\tilde a=\frac2\pi\Big[\arcsin\frac{\tilde a}{a}\,g(\tilde a)\Big]_0^a-\frac2\pi\int_0^a\frac{g(\tilde a)}{\sqrt{a^2-\tilde a^2}}\,d\tilde a.\]</p>
+<p>边界项：\(\tilde a=a\) 时 \(\arcsin1=\pi/2\)、\(g(a)=\delta\)，\(\tilde a=0\) 时为 0，所以边界项等于 \(\frac2\pi\cdot\frac\pi2\cdot\delta=\delta\)。代回：</p>
+<p>\[\delta-h(a)=\delta-\frac2\pi\int_0^a\frac{g(\tilde a)}{\sqrt{a^2-\tilde a^2}}\,d\tilde a\ \Longrightarrow\ h(a)=\frac2\pi\int_0^a\frac{g(\tilde a)}{\sqrt{a^2-\tilde a^2}}\,d\tilde a.\]</p>
+<p>这对每个 \(a\) 都成立，是关于 \(g\) 的 Abel 积分方程。它的解就是等效轮廓的定义式</p>
+<p>\[g(x)=|x|\int_0^{|x|}\frac{h&#x27;(r)}{\sqrt{x^2-r^2}}\,dr.\]</p>
+<p>（核对：把 \(g(x)=|x|\int_0^{|x|}h&#x27;(r)/\sqrt{x^2-r^2}\,dr\) 代回右边，交换积分次序后内层积分为 \(\int_r^a\frac{\tilde a\,d\tilde a}{\sqrt{a^2-\tilde a^2}\sqrt{\tilde a^2-r^2}}=\frac\pi2\)，右边化为 \(\int_0^ah&#x27;(r)\,dr=h(a)-h(0)=h(a)\)。）</p>
+<p><strong>第四步：能量。</strong> 对 \(U_0=E^*\int_0^a(\delta-g)^2dx\) 求导；上限 \(a\) 也随 \(\delta\) 变（Leibniz 法则）：</p>
+<p>\[\frac{dU_0}{d\delta}=E^*\big(\delta-g(a)\big)^2\frac{da}{d\delta}+E^*\int_0^a2\big(\delta-g(x)\big)dx.\]</p>
+<p>上限处 \(\delta-g(a)=0\)，第一项为零：</p>
+<p>\[\frac{dU_0}{d\delta}=2E^*\int_0^a\big(\delta-g(x)\big)dx=F.\]</p>
+<p>又 \(\delta=0\) 时没有接触、\(U_0=0\)，所以 \(U_0\) 就是外力做的功，即弹性能。</p></details>
+<details><summary>推导：越压越硬</summary><p>对 \(F=2E^*\int_0^a(\delta-g)\,dx\) 求导，上限 \(a\) 随 \(\delta\) 变：</p>
+<p>\[\frac{dF}{d\delta}=2E^*\big(\delta-g(a)\big)\frac{da}{d\delta}+2E^*\int_0^a\frac{\partial}{\partial\delta}\big(\delta-g(x)\big)dx.\]</p>
+<p>第一项里 \(\delta-g(a)=0\)；第二项里 \(\partial(\delta-g)/\partial\delta=1\)：</p>
+<p>\[\frac{dF}{d\delta}=0+2E^*\int_0^a1\,dx=2aE^*.\]</p>
+<p>直观地说：再压一点，接触区里每根弹簧都多压一点，多出来的力是 \(E^*\cdot2a\cdot\Delta\delta\)。</p></details>
+<ul>
+<li>
+<p><strong>代入球得到 Hertz。</strong> 两个球（半径 \(R_A\)、\(R_B\)）的缝隙是 \(h=r^2/(2R)\)，\(1/R=1/R_A+1/R_B\)；代入降维法得到</p>
+<p>\[\color{#c0392b}{g(x)=\frac{x^2}{R},\qquad U_H=\frac{8}{15}E^*\sqrt R\,\delta^{5/2}}\]</p>
+</li>
+</ul>
+<p>\(R\)：合成曲率半径，两个球越尖 \(R\) 越小。\(U_H\) 随压深按 2.5 次方涨，比普通弹簧的 2 次方快，这就是「越压越硬」：压深加倍，能量变为 \(2^{2.5}\approx5.7\) 倍。</p>
+
+<details><summary>推导：球 → Hertz</summary><ol>
+<li>
+<p><strong>缝隙。</strong> 半径 \(R_i\) 的球，离接触中心水平距离 \(r\) 处比最低点高 \(f_i\)。球心、该点和最低点正上方构成直角三角形：</p>
+<p>\[r^2+(R_i-f_i)^2=R_i^2\ \Longrightarrow\ r^2-2R_if_i+f_i^2=0.\]</p>
+</li>
+</ol>
+<p>接触区里 \(f_i\ll R_i\)，略去 \(f_i^2\)：</p>
+<p>\[f_i\approx\frac{r^2}{2R_i}.\]</p>
+<p>两侧相加：</p>
+<p>\[h=f_A+f_B=\frac{r^2}{2R_A}+\frac{r^2}{2R_B}=\frac{r^2}{2R},\qquad\frac1R=\frac1{R_A}+\frac1{R_B}.\]</p>
+<ol>
+<li>
+<p><strong>等效轮廓。</strong> \(h&#x27;(r)=r/R\)，代入定义式：</p>
+<p>\[g(x)=\frac{|x|}{R}\int_0^{|x|}\frac{r}{\sqrt{x^2-r^2}}\,dr=\frac{|x|}{R}\Big[-\sqrt{x^2-r^2}\Big]_0^{|x|}=\frac{|x|}{R}\big(0+|x|\big)=\frac{x^2}{R}.\]</p>
+</li>
+<li>
+<p><strong>接触半径。</strong> 由 \(g(a)=\delta\)：</p>
+<p>\[\frac{a^2}{R}=\delta\ \Longrightarrow\ a=\sqrt{R\delta}.\]</p>
+</li>
+<li>
+<p><strong>力。</strong></p>
+<p>\[F=2E^*\int_0^a\Big(\delta-\frac{x^2}{R}\Big)dx=2E^*\Big(a\delta-\frac{a^3}{3R}\Big).\]</p>
+</li>
+</ol>
+<p>代入 \(a=\sqrt{R\delta}\)：\(a\delta=\sqrt R\,\delta^{3/2}\)，\(a^3/(3R)=R^{3/2}\delta^{3/2}/(3R)=\tfrac13\sqrt R\,\delta^{3/2}\)：</p>
+<p>\[F=2E^*\Big(\sqrt R\,\delta^{3/2}-\frac13\sqrt R\,\delta^{3/2}\Big)=\frac43E^*\sqrt R\,\delta^{3/2}.\]</p>
+<ol>
+<li>
+<p><strong>能量。</strong> 力对压深积分：</p>
+<p>\[U_H=\int_0^\delta\frac43E^*\sqrt R\,s^{3/2}\,ds=\frac43E^*\sqrt R\cdot\frac25\delta^{5/2}=\frac{8}{15}E^*\sqrt R\,\delta^{5/2}.\]</p>
+</li>
+</ol></details>
+<h3 id="w3-3">不轴对称：椭圆接触</h3>
+
+<ul>
+<li>接触点上两个方向弯曲程度不同时，缝隙不是轴对称的，接触区是椭圆，降维法不能直接用。比如球压在游泳圈的内圈：沿管子绕一圈的方向是凸的，沿大圆环的方向是凹的。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_t5_ring_inner_overview.png" width="2068" height="970" style="width:895px;max-width:100%;height:auto" alt="灰色刚球压在环面（游泳圈）内圈上，画的是压到最深停稳后的样子。左边是沿内圈方向的竖直剖面，竖直方向放大 5 倍：块面两边翘起来托住球，描红的是受接触力的位置。右边是从正上方看块的顶面，灰点是网格点，粉色是接触区：它顺着内圈往里凹的方向拉得很长，是一个扁椭圆。这是数据里最扁的构型，两个方向的合成曲率差 3 倍。" loading="lazy"><figcaption class="small">灰色刚球压在环面（游泳圈）内圈上，画的是压到最深停稳后的样子。左边是沿内圈方向的竖直剖面，竖直方向放大 5 倍：块面两边翘起来托住球，描红的是受接触力的位置。右边是从正上方看块的顶面，灰点是网格点，粉色是接触区：它顺着内圈往里凹的方向拉得很长，是一个扁椭圆。这是数据里最扁的构型，两个方向的合成曲率差 3 倍。</figcaption></figure>
+<ul>
+<li><strong>做法。</strong> 这种情况 Hertz 有精确解（椭圆 Hertz）。骨架先取一个面积相同的等效圆，用降维法算；再乘一个只取决于「椭圆有多扁」的精确因子，补上椭圆和圆的差别。圆形时这个因子等于 1，所以圆和椭圆用同一套算法。</li>
+<li><strong>不乘这个因子会怎样。</strong> 直接把椭圆当圆算会少算能量：上图这个最扁的构型少算 2.4%。</li>
+</ul>
+<h3 id="w3-4">多处接触之间的相互影响</h3>
+
+<ul>
+<li>
+<p><strong>第二条要求的落实。</strong> 每处接触的压深 = 自己的力压出来的 + 其他接触的力把表面带下去的：</p>
+<p>\[\color{#c0392b}{\delta_i=\delta_{e,i}(F_i)+\sum_{j\ne i}\frac{F_j}{\pi E&#x27;\,r_{ij}}}\]</p>
+</li>
+</ul>
+<p>\(\delta_i\)：第 \(i\) 处接触的总压深；\(F_i\)：它的力；\(\delta_{e,i}(F_i)\)：只靠自身、力为 \(F_i\) 时需要的压深，由上面的单区骨架给出。</p>
+
+<p>\(F_j/(\pi E&#x27;r_{ij})\)：第 \(j\) 处的力在第 \(i\) 处造成的下沉，就是例二式 (1) 的点力解；\(r_{ij}\) 是两处接触的中心距，\(E&#x27;=E/(1-\nu^2)\) 是两处接触共同所在那个物体的有效硬度。</p>
+
+<p>别处的力越大、离得越近，本处被带下去越多，自己要压的就越少，同样的压深需要的力也越小。这一项不经过网络；例二里 hydro++ 做不到的「一起压要打折」，在这里是结构自带的。</p>
+
+<figure style="margin:12px 0"><img src="assets/images/w34_core_w34_5.2_d.png" width="1330" height="717" style="width:572px;max-width:100%;height:auto" alt="一块被压物体的竖直剖面，表面上有两个接触区 \(j\)（左）和 \(i\)（右），中心距 \(r_{ij}\)，各自被平底压头以力 \(F_j\)、\(F_i\) 压着；实线表面是两个压头各自造成的下沉直接相加的结果。深灰虚线是只看 \(j\) 区的力时整片表面的下沉 \(F_j/(\pi E&#x27;r)\)，离 \(j\) 区越远越浅，但一直延伸到 \(i\) 区底下。\(i\) 区压头上那根竖条是它的总压深 \(\delta_i\)，分成两段：上段绿色是被 \(j\) 区带下去的部分，正好到深灰虚线为止；下段蓝色是 \(i\) 区自己的力压出来的 \(\delta_{e,i}(F_i)\)。图中竖直方向放大显示。" loading="lazy"><figcaption class="small">一块被压物体的竖直剖面，表面上有两个接触区 \(j\)（左）和 \(i\)（右），中心距 \(r_{ij}\)，各自被平底压头以力 \(F_j\)、\(F_i\) 压着；实线表面是两个压头各自造成的下沉直接相加的结果。深灰虚线是只看 \(j\) 区的力时整片表面的下沉 \(F_j/(\pi E&#x27;r)\)，离 \(j\) 区越远越浅，但一直延伸到 \(i\) 区底下。\(i\) 区压头上那根竖条是它的总压深 \(\delta_i\)，分成两段：上段绿色是被 \(j\) 区带下去的部分，正好到深灰虚线为止；下段蓝色是 \(i\) 区自己的力压出来的 \(\delta_{e,i}(F_i)\)。图中竖直方向放大显示。</figcaption></figure>
+<h3 id="w3-5">网络修什么</h3>
+
+<ul>
+<li><strong>公式的前提在真实情况里总会偏离一点。</strong> 最明显的是压头本身也软的时候。下表是标签除以 Hertz 公式，等于 1 表示公式完全准：</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>压头 / 块的杨氏模量</th>
+<th>标签 ÷ Hertz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1e8 / 1e5（压头几乎刚）</td>
+<td>1.00–1.01</td>
+</tr>
+<tr>
+<td>1e5 / 1e6（软压头压硬块）</td>
+<td>0.976–0.986</td>
+</tr>
+</tbody>
+</table></div>
+<figure style="margin:12px 0"><img src="assets/images/w34_s33_soft_indenter_pressed.png" width="2578" height="2520" style="width:850px;max-width:100%;height:auto" alt="四种软硬组合压到最深时过接触中心的剖面，竖直方向放大 4 倍，红线是接触面。左上是几乎刚的压头（1e8）压软块（1e5），压头底部仍是圆弧；右上压头软一些（1e6）；左下两边一样软；右下是软压头（1e5）压硬块（1e6），被压扁的变成了压头自己，接触面几乎是平的。压头越软，自己被压平得越多。" loading="lazy"><figcaption class="small">四种软硬组合压到最深时过接触中心的剖面，竖直方向放大 4 倍，红线是接触面。左上是几乎刚的压头（1e8）压软块（1e5），压头底部仍是圆弧；右上压头软一些（1e6）；左下两边一样软；右下是软压头（1e5）压硬块（1e6），被压扁的变成了压头自己，接触面几乎是平的。压头越软，自己被压平得越多。</figcaption></figure>
+<ul>
+<li><strong>为什么会偏。</strong> 压头一软，被压扁的变成了本来就弯的那一侧，公式「变形小」的前提不太成立，偏了约 2%。合成硬度 \(E^*\) 相同时，软的是弯的一侧还是平的一侧结果不同（压头硬、块软几乎不偏），所以网络要分别知道两侧各自的软硬和弯曲。</li>
+<li><strong>网络的做法：在等效轮廓 \(g\) 的每个位置上，给它的斜率乘一个正数。</strong> 修正为 1 时就是公式。比如压头软、自己会被压扁，网络就把轮廓外圈调平，能量随之降下来。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_01_profile_correction.png" width="1114" height="965" style="width:485px;max-width:100%;height:auto" alt="还是降维法那排弹簧。灰色刚体的下表面是网络修正后的轮廓（实线），黑色虚线是公式给的轮廓 \(g=x^2/R\)。网络在每个位置给轮廓的斜率乘一个正数，这里外圈乘的数小于 1，轮廓外圈就变平了：压到同样的压深，接触边缘从灰色虚线 \(a\) 外移到红线 \(a&#x27;\)，更多弹簧被压到，但每根压得更浅，能量仍按同一个弹簧公式算。修正幅度为看清而放大，示意图。" loading="lazy"><figcaption class="small">还是降维法那排弹簧。灰色刚体的下表面是网络修正后的轮廓（实线），黑色虚线是公式给的轮廓 \(g=x^2/R\)。网络在每个位置给轮廓的斜率乘一个正数，这里外圈乘的数小于 1，轮廓外圈就变平了：压到同样的压深，接触边缘从灰色虚线 \(a\) 外移到红线 \(a&#x27;\)，更多弹簧被压到，但每根压得更浅，能量仍按同一个弹簧公式算。修正幅度为看清而放大，示意图。</figcaption></figure>
+<ul>
+<li><strong>输入：</strong> 轮廓上的位置；椭圆有多扁；两侧各自的泊松比、各占合起来曲率的比例（弯的是哪一侧）、各占合起来软度 \(1/E^*\) 的比例（软的是哪一侧）、到该侧物体边缘的距离。<strong>不输入压深。</strong></li>
+<li><strong>为什么改轮廓，而不是直接给能量乘系数：</strong><ul>
+<li>斜率乘的是正数，轮廓仍单调升高，能量仍由那排弹簧算出来，所以「力是能量的导数」「越压越硬」两条性质原样保留；</li>
+<li>修正系数为 1 时严格退回公式；</li>
+<li>网络只改轮廓的形状、不看压深，压深变化时能量怎么变仍由弹簧公式决定。压得比训练时更深，网络也不需要去猜。</li>
+</ul>
+</li>
+</ul>
+<p class="setting muted">设置：网络 2 层、每层 16 个神经元（tanh），共 497 个参数；输入共 12 维（两侧各 5 个 + 位置、椭圆扁度），两侧交换对称。</p>
+<h3 id="w3-6">结果</h3>
+
+<ul>
+<li><strong>检验方法：留一法。</strong> 每次拿掉一个构型（它的全部压深），用其余的训练，再预测拿掉的那个。数据是三类共 68 个标签：刚球压平块、压头软硬不同的球冠压块、刚球压曲面块。为了看网络到底多学到了什么，同样的检验下也比了只用骨架、以及骨架乘一个 2 参数的简单修正公式：</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数</th>
+<th>误差中位数</th>
+<th>最大误差</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只用骨架</td>
+<td>0</td>
+<td>0.44%</td>
+<td>2.47%</td>
+</tr>
+<tr>
+<td>骨架 × 简单修正公式</td>
+<td>2</td>
+<td>0.36%</td>
+<td>0.98%</td>
+</tr>
+<tr>
+<td>骨架 + 网络</td>
+<td>497</td>
+<td>0.21%</td>
+<td>1.05%</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>这张表说明三件事：</strong><ul>
+<li>骨架本身已经很准，误差中位数零点几个百分点；最大的 2.47% 出在压头软硬不同的那一组。</li>
+<li>唯一明显的规律就是这一组里的软压头：一个 2 参数公式就能把这一组修到 0.6%。</li>
+<li>网络的典型误差比简单公式好一截，最大误差相近。</li>
+</ul>
+</li>
+<li>也就是说，在这些曲率准、符合 Hertz 前提的数据上，网络能发挥的空间不大。网络真正需要的，是公式管不到的情况，这就是第 4 节。</li>
+</ul>
+<p class="setting muted">设置：网络一行是 3 个随机种子的中位数；三个种子的最大误差分别为 1.05%、2.57%、1.05%。68 个标签来自 18 个构型（刚球压平块 8、压头软硬四档 24、曲面块 36）。</p>
+<p class="kp">骨架（降维法 / 椭圆 Hertz + 1/距离 相互影响）在理想场景下误差中位数 0.44%；网络只乘轮廓斜率、不看压深，保留力–能量自洽和越压越硬，把中位数降到 0.21%。</p></section>
+<section id="w4"><h2>理想情况之外：在几种精确极限之间搭桥</h2>
+<h3 id="w4-1">现有骨架管不到的三种情况</h3>
+
+<ul>
+<li>骨架建立在「接触区远小于物体、物体可以看成无限厚」「接触区是一整块对称的形状」上。下面三种常见情况都违反它。</li>
+<li><strong>① 薄层（软垫、涂层、手指皮肤）。</strong> 骨架里没有层厚这个量。刚球压一层很薄的软层时，层下面就是硬底座，材料没处可让，比压一大块软材料硬得多；骨架照样按无限厚算，只算出真实能量的一到两成。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_02_thin_vs_thick.png" width="1930" height="885" style="width:916px;max-width:100%;height:auto" alt="同一个刚球压到同一个深度。左边是厚块：接触区外的表面也跟着陷下去，虚线是原来的表面，材料往四周让开。右边是厚度 \(t\) 的薄层，放在灰色的刚性底座上：层太薄，压力传不开，接触区底下的每一小柱材料只能被竖直压扁（蓝色小弹簧），接触区外的表面几乎不动。材料没处可让，所以同样的压深，薄层存的能量多得多。示意图。" loading="lazy"><figcaption class="small">同一个刚球压到同一个深度。左边是厚块：接触区外的表面也跟着陷下去，虚线是原来的表面，材料往四周让开。右边是厚度 \(t\) 的薄层，放在灰色的刚性底座上：层太薄，压力传不开，接触区底下的每一小柱材料只能被竖直压扁（蓝色小弹簧），接触区外的表面几乎不动。材料没处可让，所以同样的压深，薄层存的能量多得多。示意图。</figcaption></figure>
+<ul>
+<li><strong>② 斜着压的平底。</strong> 骨架把接触压成左右对称的一维轮廓，只记得「最深处压了多深」，不知道哪一边深。结果有两个：一是少算了压头倾斜本身存下的能量（整片贴住时少约 15%）；二是往左倾、往右倾，骨架都按同样方式改变能量，能量在「不倾斜」处出现一个尖角，对倾角求导就冒出一个本不存在的转动力矩。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_03_tilt.png" width="1865" height="897" style="width:873px;max-width:100%;height:auto" alt="左边是斜着压的刚性平底，一边压得深、一边压得浅（倾角放大画）。右边固定平底中心的压深，横轴是倾角，纵轴是能量除以不倾斜时的能量。绿线是精确解：倾斜本身要额外存能量，所以能量随倾角按抛物线增加，在 0° 处是光滑的底，那里力矩为零。红色虚线是现在的骨架：它只看最深处，向哪边倾都一样，在 0° 处是一个尖角，对倾角求导左右两边符号相反，就是那个不存在的力矩；倾角到 3° 时它比精确解少约 15%。" loading="lazy"><figcaption class="small">左边是斜着压的刚性平底，一边压得深、一边压得浅（倾角放大画）。右边固定平底中心的压深，横轴是倾角，纵轴是能量除以不倾斜时的能量。绿线是精确解：倾斜本身要额外存能量，所以能量随倾角按抛物线增加，在 0° 处是光滑的底，那里力矩为零。红色虚线是现在的骨架：它只看最深处，向哪边倾都一样，在 0° 处是一个尖角，对倾角求导左右两边符号相反，就是那个不存在的力矩；倾角到 3° 时它比精确解少约 15%。</figcaption></figure>
+<p class="setting muted">设置：平底半径 0.1，倾 3° 时整片刚好贴住的那一档；精确解 \(U=E^*a\delta_c^2+\tfrac23E^*a^3\theta^2\)（\(\delta_c\) 中心压深、\(\theta\) 倾角）；骨架与精确解之比 0.853（1°–10° 各档 0.848–0.854）。</p>
+<ul>
+<li><strong>③ 两处接触连成一片。</strong> 分开时按「两处 + 相互影响」算，连成一片后只能按「一处」算。两种算法在连上的那一刻给出的能量不一样，能量在这里跳一下，牛顿法可能因此不收敛。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_s7_scene.png" width="852" height="691" style="width:518px;max-width:100%;height:auto" alt="两个刚性平底并排压同一块，靠到中心距等于两倍半径，正好贴在一起；剖面上可以看到它们合起来像一个更宽的压头。" loading="lazy"><figcaption class="small">两个刚性平底并排压同一块，靠到中心距等于两倍半径，正好贴在一起；剖面上可以看到它们合起来像一个更宽的压头。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_s7_merge_jump.png" width="1276" height="855" style="width:627px;max-width:100%;height:auto" alt="横轴是两个平底的中心距除以半径，2 就是贴在一起；纵轴是骨架能量除以边界元精确解，灰色虚线 1 表示完全准。蓝线是按「两处 + 点力相互影响」算，绿线是把相互影响按分布压力算，分开时两者都在 1 附近。一贴上就只能按一处算，能量落到红点：从蓝线跳 6.8%，从绿线跳 4.2%。" loading="lazy"><figcaption class="small">横轴是两个平底的中心距除以半径，2 就是贴在一起；纵轴是骨架能量除以边界元精确解，灰色虚线 1 表示完全准。蓝线是按「两处 + 点力相互影响」算，绿线是把相互影响按分布压力算，分开时两者都在 1 附近。一贴上就只能按一处算，能量落到红点：从蓝线跳 6.8%，从绿线跳 4.2%。</figcaption></figure>
+<h3 id="w4-2">以薄层为例：两头各有精确公式，中间两个都不准</h3>
+
+<ul>
+<li><strong>很厚：</strong> Hertz 精确。</li>
+<li>
+<p><strong>很薄：</strong> 层太薄，压力传不开，每一小柱材料只能被竖直压扁，表面每一点就是一根独立的竖直弹簧，刚度与层厚成反比。这正是 hydro「每一点只看自己压多深」的行为。条件：每点压缩量 \(w\)、压强 \(p=k\,w\)（\(k\) 是单位面积的弹簧刚度）、球的缝隙 \(r^2/(2R)\)。结论：</p>
+<p>\[\color{#c0392b}{U_{\text{薄}}=\frac{\pi kR\,\delta^3}{3}}\]</p>
+</li>
+</ul>
+<p>\(k\)：单位面积的弹簧刚度，层越薄 \(k\) 越大；\(R\)：球的半径；\(\delta\)：压深。能量按压深的 3 次方涨，比 Hertz 的 2.5 次方快：薄层上压深加倍，能量变为 8 倍，厚块上只变为 5.7 倍。</p>
+
+<details><summary>推导：薄层能量</summary><ol>
+<li>
+<p>离中心 \(r\) 处的压缩量是压深减去球面抬起的高度：</p>
+<p>\[w(r)=\delta-\frac{r^2}{2R}.\]</p>
+</li>
+<li>
+<p>接触边缘是 \(w=0\) 处：</p>
+<p>\[\delta-\frac{a^2}{2R}=0\ \Longrightarrow\ a^2=2R\delta.\]</p>
+</li>
+<li>
+<p>每块面积 \(dA\) 上的弹簧存能 \(\tfrac12k\,w^2\,dA\)；取半径 \(r\)、宽 \(dr\) 的圆环，\(dA=2\pi r\,dr\)，全部加起来：</p>
+<p>\[U=\int_0^a\tfrac12k\,w^2\,2\pi r\,dr=\pi k\int_0^a\Big(\delta-\frac{r^2}{2R}\Big)^2r\,dr.\]</p>
+</li>
+<li>
+<p>换元 \(s=r^2/(2R)\)，则 \(ds=r\,dr/R\)，即 \(r\,dr=R\,ds\)；\(r=0\) 时 \(s=0\)，\(r=a\) 时 \(s=a^2/(2R)=\delta\)：</p>
+<p>\[U=\pi kR\int_0^\delta(\delta-s)^2\,ds.\]</p>
+</li>
+<li>
+<p>\(\int_0^\delta(\delta-s)^2ds=\Big[-\tfrac13(\delta-s)^3\Big]_0^\delta=0+\tfrac13\delta^3\)：</p>
+<p>\[U=\frac{\pi kR\,\delta^3}{3}.\]</p>
+</li>
+</ol></details>
+<ul>
+<li><strong>中间。</strong> 用「接触区大小 ÷ 层厚」\(\chi=\sqrt{R\delta}/t\) 表示走到了哪一头（\(t\) 是层厚）。用有限元从厚扫到薄，看两个公式各差多少：</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_04_layer_transition.png" width="1250" height="883" style="width:595px;max-width:100%;height:auto" alt="横轴是接触区大小除以层厚，往右越来越薄；纵轴是能量除以 Hertz，两个轴都是对数。黑线是有限元算出的真实能量。蓝色虚线是 Hertz，它按无限厚算，永远等于 1，左端很准、往右越来越差。红色虚线是薄层公式，右端和黑线重合，往左越来越差。灰色那一段（0.1 到 1）里两条虚线都离黑线很远：两者在 0.4 附近交叉，各差约 30%。" loading="lazy"><figcaption class="small">横轴是接触区大小除以层厚，往右越来越薄；纵轴是能量除以 Hertz，两个轴都是对数。黑线是有限元算出的真实能量。蓝色虚线是 Hertz，它按无限厚算，永远等于 1，左端很准、往右越来越差。红色虚线是薄层公式，右端和黑线重合，往左越来越差。灰色那一段（0.1 到 1）里两条虚线都离黑线很远：两者在 0.4 附近交叉，各差约 30%。</figcaption></figure>
+<p class="setting muted">设置：刚球压粘在刚性底座上的层，泊松比 0.3，轴对称有限元。Hertz 误差：\(\chi=0.01\) 时 −0.7%，0.1 时 −7.4%，1 时 −60%，3 时 −86%；薄层公式误差：0.01 时 −98%，0.1 时 −78%，1 时 −3.7%，3 时 +0.9%；\(\chi=0.4\) 不是扫描点，两条公式误差约 −30% 与 −33% 为插值。</p>
+<ul>
+<li><strong>结论。</strong> 两头各有一个公式精确，中间两个都差约 30%。这才是网络真正有东西可学的地方：两头用精确公式钉住，网络学中间怎么接过去。</li>
+</ul>
+<h3 id="w4-3">统一的结构：方格弹簧床 + 相互作用</h3>
+
+<ul>
+<li><strong>做法。</strong> 把接触面切成小方格，每格知道自己被穿进去多深（粗状态下两物体在这一格重叠多少），每格是一根弹簧；格与格之间通过一个「相互作用」互相牵连：一格受压时，其他格下沉多少。</li>
+<li><strong>相互作用取不同的形式，就落到不同的精确极限：</strong><ul>
+<li>相互作用为零：各压各的，就是薄层（hydro 在这一端）；</li>
+<li>相互作用按 1/距离 衰减：就是厚物体的精确解（我现在的骨架在这一端）；</li>
+<li>有限厚的层：一格受压时，离得近的格子像在厚物体上一样跟着陷，离得远的格子被底面顶住、几乎不受影响。这种「近处按 1/距离、远处被截断」的相互作用有精确公式（层核），层越薄截断得越早，一个式子就把厚、薄和中间全包含了。</li>
+</ul>
+</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_05_kernel_three.png" width="1596" height="498" style="width:752px;max-width:100%;height:auto" alt="三幅都是在同一个小格子上按一下（红箭头），看表面怎么下沉，各自按中间最深处归一。左边薄层：只有被按的那一格下沉，旁边完全不动。中间厚物体：周围一大片都跟着陷，离得越远陷得越少，但一直拖到很远。右边是有限厚的层：近处和厚物体差不多，离开一两个层厚，下沉就降到几乎为零，远处的表面不动。" loading="lazy"><figcaption class="small">三幅都是在同一个小格子上按一下（红箭头），看表面怎么下沉，各自按中间最深处归一。左边薄层：只有被按的那一格下沉，旁边完全不动。中间厚物体：周围一大片都跟着陷，离得越远陷得越少，但一直拖到很远。右边是有限厚的层：近处和厚物体差不多，离开一两个层厚，下沉就降到几乎为零，远处的表面不动。</figcaption></figure>
+<p class="setting muted">设置：右幅为层厚 1、底面能滑的层，按压格子半径 0.2；离中心半个层厚处下沉是厚物体的 48%，一个层厚处 14%，两个层厚以外约为 0。</p>
+<ul>
+<li>
+<p><strong>能量怎么从这张弹簧床算出来。</strong> 条件：方格上的穿入深度 \(o_k\)；格 \(l\) 上的压强 \(p_l\) 在格 \(k\) 造成的下沉是 \(C_{kl}\,p_l\)（\(C\) 就是上面的相互作用）；接触的格子下沉正好等于穿入深度，没接触的格子压强为零、表面不穿进对方。结论：</p>
+<p>\[\color{#c0392b}{U(o)=\max_{p\ge0}\Big[\sum_kp_k\,o_k-\frac12\sum_{k,l}p_k\,C_{kl}\,p_l\Big],\qquad \frac{\partial U}{\partial o_k}=p_k^\star}\]</p>
+</li>
+</ul>
+<p>\(o_k\)：第 \(k\) 格的穿入深度；\(p_k\)：第 \(k\) 格的压强（乘格子面积就是那根弹簧的力），只能推不能拉，所以 \(p\ge0\)；\(C_{kl}\)：相互作用，格 \(l\) 受单位压强时格 \(k\) 下沉多少。</p>
+
+<p>方括号里第一项是压强在穿入深度上做的功，第二项是表面变形存的弹性能；取最大值的那组压强 \(p^\star\) 就是真实的接触压强，最大值就是弹性能。</p>
+
+<p>能量对每格穿入深度的导数就是那一格的压强 \(p_k^\star\)：穿得越深的格子压强越大。力是能量对位置的导数，所以不需要另外算。</p>
+
+<details><summary>推导：弹簧床的能量</summary><ol>
+<li>记 \(f(p)=\sum_kp_ko_k-\tfrac12\sum_{k,l}p_kC_{kl}p_l\)。\(C\) 是对称正定的（任何不为零的压强分布都要付出正的弹性能），所以 \(f\) 是 \(p\) 的严格凹函数，在 \(p\ge0\) 上的最大值点 \(p^\star\) 唯一。</li>
+<li>
+<p>最大值点满足的条件（约束 \(p_k\ge0\) 下的最优性条件）：对每一格，</p>
+<p>\[o_k-\sum_lC_{kl}p_l^\star\le0,\qquad p_k^\star\ge0,\qquad p_k^\star\Big(o_k-\sum_lC_{kl}p_l^\star\Big)=0.\]</p>
+</li>
+<li>
+<p>记 \(u_k=\sum_lC_{kl}p_l^\star\) 为第 \(k\) 格的下沉。第 2 步就是：\(u_k\ge o_k\)（表面让开的量不少于穿入深度，不穿透）；\(p_k^\star\ge0\)（只能推）；两者至少一个取等号（有压强的格子刚好贴住，\(u_k=o_k\)；没贴住的格子没有压强）。这正是接触的条件，所以 \(p^\star\) 就是真实的接触压强。</p>
+</li>
+<li>
+<p>由第 2 步的第三式，对每一格 \(p_k^\star o_k=p_k^\star u_k\)，求和：</p>
+<p>\[\sum_kp_k^\star o_k=\sum_kp_k^\star u_k=\sum_{k,l}p_k^\star C_{kl}p_l^\star.\]</p>
+</li>
+<li>
+<p>代入 \(f\)：</p>
+<p>\[U=f(p^\star)=\sum_{k,l}p_k^\star C_{kl}p_l^\star-\frac12\sum_{k,l}p_k^\star C_{kl}p_l^\star=\frac12\sum_{k,l}p_k^\star C_{kl}p_l^\star=\frac12\sum_kp_k^\star u_k,\]</p>
+</li>
+</ol>
+<p>即压强乘下沉的一半，也就是线弹性表面存的弹性能。</p>
+<ol>
+<li>
+<p>对 \(o_k\) 求导：\(U(o)=f(p^\star(o);o)\)，而 \(p^\star\) 是最优点，\(p^\star\) 变化引起的一阶变化为零，只剩 \(f\) 对 \(o_k\) 的显式导数：</p>
+<p>\[\frac{\partial U}{\partial o_k}=\frac{\partial f}{\partial o_k}\Big|_{p=p^\star}=p_k^\star.\]</p>
+</li>
+<li>
+<p>\(f\) 对每个固定的 \(p\) 是 \(o\) 的线性函数，\(U\) 是一族线性函数的最大值，所以 \(U\) 是 \(o\) 的凸函数：穿得越深，能量涨得越快，即越压越硬。</p>
+</li>
+</ol></details>
+<ul>
+<li><strong>同一个结构顺带解决另外两个问题：</strong><ul>
+<li><strong>斜压：</strong> 每格单独知道自己压得多深，压得深的一边压强大，回正力矩自然就对了；不倾斜时左右对称，力矩为零。</li>
+<li><strong>连成一片：</strong> 没有「几处接触」的概念，只有一张图。两处靠近时，中间的格子从没碰到慢慢变成碰到，能量连续变化，没有切换，也就没有跳变。</li>
+</ul>
+</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_06_gap_grid.png" width="1481" height="525" style="width:705px;max-width:100%;height:auto" alt="三幅都是从上往下看的方格，每格的颜色是粗状态下两物体在这一格重叠多深，越红越深，白色是没有接触。左边是斜压的平底：整片圆都接触，右边深、左边浅，这个左右之差每格都记得，骨架记不住的「哪一边深」就在这里。中间是两个凸起压同一块，离得远，两片接触各自独立。右边两者靠近，蓝框里中间那一列格子开始有了一点重叠：它们是逐渐变红的，没有「两片突然变成一片」的切换。示意尺寸。" loading="lazy"><figcaption class="small">三幅都是从上往下看的方格，每格的颜色是粗状态下两物体在这一格重叠多深，越红越深，白色是没有接触。左边是斜压的平底：整片圆都接触，右边深、左边浅，这个左右之差每格都记得，骨架记不住的「哪一边深」就在这里。中间是两个凸起压同一块，离得远，两片接触各自独立。右边两者靠近，蓝框里中间那一列格子开始有了一点重叠：它们是逐渐变红的，没有「两片突然变成一片」的切换。示意尺寸。</figcaption></figure>
+<h3 id="w4-4">新的网络结构（设计，还没实现）</h3>
+
+<ul>
+<li><strong>和现在的网络比，变的是「网络改什么」：</strong></li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>现在</th>
+<th>新结构</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接触怎么表示</td>
+<td>每个接触区一条一维等效轮廓</td>
+<td>整个接触面一张方格图，每格一个穿入深度</td>
+</tr>
+<tr>
+<td>骨架怎么算能量</td>
+<td>一排独立弹簧压在轮廓上</td>
+<td>一床有相互作用的弹簧，按上面的求最大值式子解一次</td>
+</tr>
+<tr>
+<td>网络输出什么</td>
+<td>轮廓斜率的修正系数</td>
+<td>相互作用随距离怎么衰减</td>
+</tr>
+<tr>
+<td>几处接触之间</td>
+<td>另加一项 1/距离 的相互影响</td>
+<td>不需要另加，都在同一张图里</td>
+</tr>
+</tbody>
+</table></div>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_07_new_arch.png" width="1906" height="880" style="width:910px;max-width:100%;height:auto" alt="新结构的流程。左上是输入之一：两物体按粗状态摆好后的穿入深度方格图，两处接触在同一张图里。左下是另一组输入：物体在接触处下方多厚、泊松比、底面是粘住还是能滑，送进小网络。小网络输出一条曲线：对每一种起伏疏密（波长）给一个 0 到 1 之间的系数，蓝色曲线只是示意。方格图和这条曲线一起进弹簧床求解，格与格按这条曲线互相牵连，解出能量，力由能量对位置求导得到。" loading="lazy"><figcaption class="small">新结构的流程。左上是输入之一：两物体按粗状态摆好后的穿入深度方格图，两处接触在同一张图里。左下是另一组输入：物体在接触处下方多厚、泊松比、底面是粘住还是能滑，送进小网络。小网络输出一条曲线：对每一种起伏疏密（波长）给一个 0 到 1 之间的系数，蓝色曲线只是示意。方格图和这条曲线一起进弹簧床求解，格与格按这条曲线互相牵连，解出能量，力由能量对位置求导得到。</figcaption></figure>
+<ul>
+<li><strong>网络具体输出什么。</strong> 一格受压时周围下沉随距离怎么衰减，可以等价地按「波长」来描述：把表面上的压强分布拆成不同疏密的起伏，每种疏密的起伏各自对应一个下沉的强弱。<ul>
+<li>起伏很密（波长远小于层厚）时，下沉感觉不到底面，强弱等于厚物体的值；</li>
+<li>起伏很疏（波长远大于层厚）时，被底面顶住，强弱等于薄层的值；</li>
+<li>中间怎么过渡，就是网络要给出的：对每个波长输出一个 0 到 1 之间的系数，表示此刻离「厚物体」有多近。</li>
+</ul>
+</li>
+<li><strong>输入：</strong> 物体在接触点下方有多厚（到底座或到物体另一侧的距离）、泊松比、底面粘住还是能滑。真实物体不是平板，没有一个现成的「层厚」，网络要从这些几何量里学出一个等效的值。</li>
+<li><strong>结构上保证什么：</strong><ul>
+<li><strong>两头精确：</strong> 系数在很密的一端固定为 1，在很疏的一端固定为薄层的值，网络只能改中间，所以很厚、很薄时严格退回两个精确公式。</li>
+<li><strong>能量为正、解唯一：</strong> 每个波长的系数都为正，任何压强分布都要付出正的弹性能，上面的求最大值总有唯一解。</li>
+<li><strong>力是能量的导数、越压越硬：</strong> 由上面推导的第 6、7 步，不靠训练。</li>
+</ul>
+</li>
+<li><strong>轴对称时不必用二维：</strong> 只有一处、轴对称的接触可以精确地缩成沿半径的一维问题，算得更快；软压头那类小误差仍用现在「修正系数为正、为 1 时退回公式」的小修正补。</li>
+</ul>
+<h3 id="w4-5">目前验证到哪</h3>
+
+<ul>
+<li>还没训练网络，只验证了物理部分对不对、快不快：<ul>
+<li><strong>准：</strong> 有层厚时，在两个公式都差几十个百分点的中间位置（\(\chi=1\)），一维层核和有限元差 0.0002%（底面粘住）或 0.04%（底面能滑）。</li>
+<li><strong>格子要多细：</strong> 二维方格铺 16×16 已经够准，球的误差 0.19%。</li>
+<li><strong>快：</strong> GPU 上每个接触区 31 µs，和现在骨架的 26 µs 同一量级。</li>
+<li><strong>难点：</strong> 斜压压得很浅时接触区是一条很窄的月牙，需要局部加密格子。</li>
+</ul>
+</li>
+</ul>
+<p class="setting muted">设置：层核对照为两个线弹性解法互相核对（不是对 IPC 标签）；31 µs 为单精度，同为双精度时是 54 µs 对 26 µs；均为 1024 个接触区批量求解摊到每区，在共享 GPU 上测得，未含二阶导。</p>
+<p class="kp">薄层、斜压、两处连成一片都落在骨架的前提之外；方格弹簧床让相互作用在「各压各的」与「1/距离」之间连续变化，两个精确极限由结构钉住，网络只学中间的过渡，斜压和连成一片也自然解决。</p></section>
+<section id="w5"><h2>Huanyu 的方案与我的方案</h2>
+<ul>
+<li>两边都是「解析骨架 + 网络修正」，各自的尝试侧重点不同：</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Huanyu 的方案</th>
+<th>我的方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>物体</td>
+<td>两个完整的有限大球</td>
+<td>被压的块外推到无限大</td>
+</tr>
+<tr>
+<td>骨架</td>
+<td>Hertz 能量 × 网络输出的因子</td>
+<td>降维法 / 椭圆 Hertz，网络只修轮廓</td>
+</tr>
+<tr>
+<td>参数量</td>
+<td>约 9900</td>
+<td>497</td>
+</tr>
+<tr>
+<td>压深是否输入网络</td>
+<td>是：压深超出训练范围时输出不可靠，在小压深一端关掉修正</td>
+<td>否：越压越硬由结构保证</td>
+</tr>
+<tr>
+<td>多处接触的相互影响</td>
+<td>无（单个接触对）</td>
+<td>有（1/距离 叠加）</td>
+</tr>
+<tr>
+<td>有限大物体；碰撞前物体整体已被拉伸或压缩（预应变）</td>
+<td>有</td>
+<td>无</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>两边互补：</strong> 我的部分只看接触点附近，能跨形状推广；Huanyu 的数据里有有限大物体和预应变，正是我还没覆盖的（见下一节第 2 条）。</li>
+</ul>
+<p class="setting muted">设置：我的相互影响项已实现，但目前的网络只在单区数据上训练，相互影响没有参与训练。</p>
+<p class="kp">Huanyu 的方案覆盖有限大物体和预应变，我的方案覆盖跨形状的局部接触和多处接触之间的相互影响，两者可以合起来用。</p></section>
+<section id="w6"><h2>想讨论的</h2>
+<ol>
+<li><strong>方向：</strong> 把骨架从「一维降维法」扩展为「方格弹簧床 + 相互作用」，作为下一阶段主线，是否合适？</li>
+<li><strong>有限大物体：</strong> 我的标签用的是无限大的块，Huanyu 的方案用的是有限大的球；有限大的球被压时，除了接触处局部凹陷，整个球也会被压扁一点，多存一些能量。我打算把能量拆成「接触处局部的部分」（就是现在的模型）加「整个物体整体让开的部分」，后者只取决于物体自己的形状，可以对每个物体用有限元预先算一次存起来。能否用 Huanyu 的数据检验整体那部分？</li>
+<li><strong>速度目标：</strong> 每个接触区、每次牛顿迭代，多少时间算可以接受？</li>
+<li><strong>优先级：</strong> 先把网络接进 libuipc（Genesis 底层用的 GPU 版 IPC 求解器）跑通动力学，还是先做过渡区？</li>
+</ol></section>
+</article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
+<dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
+<script>
+(() => {
+  const contents = document.querySelector('#contents');
+  const desktop = matchMedia('(min-width: 721px)');
+  if (contents) {
+    const syncMenu = () => { contents.open = desktop.matches; };
+    syncMenu();
+    desktop.addEventListener('change', syncMenu);
+    contents.addEventListener('click', e => { if (e.target.closest('a') && !desktop.matches) contents.open = false; });
+  }
+  const links = [...document.querySelectorAll('#contents a[href^="#"]')];
+  const targets = links.map(a => document.getElementById(decodeURIComponent(a.hash.slice(1))));
+  const progress = document.querySelector('#progress');
+  let scheduled = false;
+  function update() {
+    scheduled = false;
+    const h = document.documentElement.scrollHeight - innerHeight;
+    progress.style.width = (h > 0 ? 100 * scrollY / h : 0) + '%';
+    let cur = 0;
+    targets.forEach((t, i) => { if (t && t.getBoundingClientRect().top <= 150) cur = i; });
+    links.forEach((a, i) => {
+      a.classList.toggle('active', i === cur);
+      if (i === cur) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+    });
+  }
+  addEventListener('scroll', () => { if (!scheduled) { scheduled = true; requestAnimationFrame(update); } }, { passive: true });
+  addEventListener('resize', update);
+  update();
+  const viewer = document.querySelector('#image-viewer');
+  let opener;
+  function openImage(img) {
+    opener = img;
+    viewer.querySelector('img').src = img.currentSrc || img.src;
+    viewer.querySelector('img').alt = img.alt;
+    viewer.showModal();
+  }
+  document.querySelectorAll('article img').forEach(img => {
+    img.tabIndex = 0;
+    img.setAttribute('role', 'button');
+    img.addEventListener('click', () => openImage(img));
+    img.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openImage(img); } });
+  });
+  document.querySelector('#close-viewer').addEventListener('click', () => viewer.close());
+  viewer.addEventListener('click', e => { if (e.target === viewer) viewer.close(); });
+  viewer.addEventListener('close', () => opener && opener.focus({ preventScroll: true }));
+})();
+</script>
+<script type="application/json" id="annot-renames">{"tex": {"J=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "K=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a1\\,dx.": "K=\\frac{dF}{d\\delta}=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a\\frac{\\partial}{\\partial\\delta}\\big(\\delta-g(x)\\big)dx.", "\\color{#c0392b}{U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}}.": "U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}.", "\\color{#c0392b}{\\frac{U_H}{E^*R^3}=\\frac{8}{15}\\cdot\\frac{\\sqrt R\\,\\delta^{5/2}}{R^3}=\\frac{8}{15}\\Big(\\frac{\\delta}{R}\\Big)^{5/2}}.": "\\frac{U_H}{E^*R^3}=\\frac{8}{15}\\cdot\\frac{\\sqrt R\\,\\delta^{5/2}}{R^3}.", "\\color{#c0392b}{c=\\frac{2\\cdot\\tfrac12F\\delta}{2\\cdot\\tfrac12F_1\\delta}=\\frac{F}{F_1}=\\frac{1}{1+\\dfrac{2a}{\\pi r}}}.": "c=\\frac{2\\cdot\\tfrac12F\\delta}{2\\cdot\\tfrac12F_1\\delta}=\\frac{F}{F_1}=\\frac{1}{1+\\dfrac{2a}{\\pi r}}.", "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}": "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}.", "\\color{#c0392b}{\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.": "\\color{#c0392b}{p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.", "\\color{#c0392b}{\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2}.": "\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2.", "\\frac{U_H'}{U_H}=\\frac{\\sqrt{R}}{\\sqrt{R/2}}=\\sqrt2,": "\\frac{U_H'}{U_H}=\\frac{\\frac8{15}E^*\\sqrt{R^{*\\prime}}\\,\\delta^{5/2}}{\\frac8{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}}=\\frac{\\sqrt{R}}{\\sqrt{R/2}}=\\sqrt2.", "\\langle U\\rangle=2\\pi R\\int_0^\\delta(\\delta-s)\\,\\bar p(s)\\,ds\\ \\propto\\ R.": "\\color{#c0392b}{\\langle U\\rangle=2\\pi R\\int_0^\\delta(\\delta-s)\\,\\bar p(s)\\,ds\\ \\propto\\ R};", "\\frac{1+\\varepsilon}{1-\\varepsilon}\\ge\\frac{2}{\\sqrt2}=\\sqrt2\\ \\Longrightarrow\\ \\varepsilon\\ge\\frac{\\sqrt2-1}{\\sqrt2+1}=17.16\\%.": "\\color{#c0392b}{\\varepsilon\\ge\\frac{\\sqrt2-1}{\\sqrt2+1}=17.16\\%};", "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}\\mathcal E\\,dV+\\int_{\\Omega_②}\\mathcal E\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②},", "\\color{#c0392b}{U_③=c\\,(U_①+U_②),\\qquad c<1}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②},", "\\color{#c0392b}{(1-\\varepsilon)\\,U_k\\le U^{\\text{hydro}}_k\\le(1+\\varepsilon)\\,U_k,\\qquad k=①,②,③}.": "\\color{#c0392b}{(1-\\varepsilon)\\,U_k\\le U^{\\text{hydro}}_k\\le(1+\\varepsilon)\\,U_k,\\qquad k=①,②,③};", "\\color{#c0392b}{1-\\varepsilon\\le c+c\\,\\varepsilon\\ \\Longrightarrow\\ \\varepsilon\\ge\\frac{1-c}{1+c}}.": "\\color{#c0392b}{\\varepsilon\\ge\\frac{1-c}{1+c}}.", "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\sigma\\sqrt s\\,ds=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},": "U=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\Big(\\frac23-\\frac25\\Big)\\delta^{5/2}=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}.", "\\color{#c0392b}{T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}}.": "T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}.", "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr=2E^*\\delta\\Big[-\\sqrt{\\tilde a^2-r^2}\\Big]_0^{\\tilde a}=2E^*\\tilde a\\,\\delta.": "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr.", "\\color{#c0392b}{p(r)=\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}}\\quad(r<\\tilde a),": "p(r)=\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\quad(r<\\tilde a).", "u(\\mathbf x)=\\frac{1}{\\pi E^*}\\int_{\\text{圆盘}}\\frac{p(\\mathbf x')}{|\\mathbf x-\\mathbf x'|}\\,d\\mathbf x'.": "\\frac1{E^*}\\cdot\\frac1\\pi\\int_{\\text{圆盘}}\\frac{p(\\mathbf x')}{|\\mathbf x-\\mathbf x'|}\\,d\\mathbf x'=\\delta.", "u(\\mathbf x)=\\frac{\\delta}{\\pi^2}\\,I,\\qquad I=\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}.": "u(\\mathbf x)=\\frac{E^*\\delta}{\\pi\\cdot\\pi E^*}\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}=\\frac{\\delta}{\\pi^2}\\,I,\\qquad I=\\int_{\\text{圆盘}}\\frac{d\\mathbf x'}{\\sqrt{\\tilde a^2-r^2}\\;|\\mathbf x-\\mathbf x'|}.", "\\color{#c0392b}{d\\mathbf x'=\\rho\\,d\\rho\\,d\\varphi,\\qquad|\\mathbf x-\\mathbf x'|=\\rho}.": "d\\mathbf x'=d\\rho\\cdot\\rho\\,d\\varphi=\\rho\\,d\\rho\\,d\\varphi.", "d\\mathbf x'=\\rho\\,d\\rho\\,d\\varphi,\\qquad|\\mathbf x-\\mathbf x'|=\\rho.": "d\\mathbf x'=d\\rho\\cdot\\rho\\,d\\varphi=\\rho\\,d\\rho\\,d\\varphi.", "I=\\int_0^{2\\pi}\\left[\\int_0^{\\text{边缘}}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}\\right]d\\varphi.": "I=\\int_0^{2\\pi}\\left[\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}\\right]d\\varphi.", "\\color{#c0392b}{r^2=m^2+t^2,\\qquad\\tilde a^2=m^2+c^2}.": "r^2=m^2+q^2,\\qquad\\tilde a^2=m^2+c^2.", "r^2=m^2+t^2,\\qquad\\tilde a^2=m^2+c^2.": "r^2=m^2+q^2,\\qquad\\tilde a^2=m^2+c^2.", "\\tilde a^2-r^2=c^2-t^2.": "\\tilde a^2-r^2=(m^2+c^2)-(m^2+q^2)=c^2-q^2.", "\\tilde a^2-r^2=(m^2+c^2)-(m^2+t^2)=c^2-t^2.": "\\tilde a^2-r^2=(m^2+c^2)-(m^2+q^2)=c^2-q^2.", "\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_0^{L(\\varphi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}.", "\\int_0^{L(\\varphi+\\pi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{t_{\\mathbf x}}^{-c}\\frac{-dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_0^{L(\\varphi+\\pi)}\\frac{d\\rho}{\\sqrt{\\tilde a^2-r^2}}=\\int_{q_{\\mathbf x}}^{-c}\\frac{-dq}{\\sqrt{c^2-q^2}}.", "\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}+\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "\\int_{-c}^{t_{\\mathbf x}}\\frac{dt}{\\sqrt{c^2-t^2}}+\\int_{t_{\\mathbf x}}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}=\\int_{-c}^{c}\\frac{dt}{\\sqrt{c^2-t^2}}\\equiv J.": "\\int_{-c}^{q_{\\mathbf x}}\\frac{dq}{\\sqrt{c^2-q^2}}+\\int_{q_{\\mathbf x}}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}=\\int_{-c}^{c}\\frac{dq}{\\sqrt{c^2-q^2}}\\equiv J.", "t=c\\sin\\theta,\\qquad\\sqrt{c^2-t^2}=c\\cos\\theta,\\qquad dt=c\\cos\\theta\\,d\\theta,": "q=c\\sin\\psi,\\qquad-\\frac{\\pi}{2}\\le\\psi\\le\\frac{\\pi}{2}.", "t=c\\sin\\theta.": "q=c\\sin\\psi,\\qquad-\\frac{\\pi}{2}\\le\\psi\\le\\frac{\\pi}{2}.", "\\sqrt{c^2-t^2}=\\sqrt{c^2-c^2\\sin^2\\theta}=c\\sqrt{1-\\sin^2\\theta}=c\\sqrt{\\cos^2\\theta}=c\\cos\\theta.": "\\sqrt{c^2-q^2}=\\sqrt{c^2-c^2\\sin^2\\psi}=c\\sqrt{\\cos^2\\psi}=c\\cos\\psi.", "\\sqrt{c^2-t^2}=\\sqrt{c^2-c^2\\sin^2\\theta}=c\\sqrt{\\cos^2\\theta}=c\\cos\\theta.": "\\sqrt{c^2-q^2}=\\sqrt{c^2-c^2\\sin^2\\psi}=c\\sqrt{\\cos^2\\psi}=c\\cos\\psi.", "dt=c\\cos\\theta\\,d\\theta.": "dq=c\\cos\\psi\\,d\\psi.", "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\theta\\,d\\theta}{c\\cos\\theta}=\\int_{-\\pi/2}^{\\pi/2}d\\theta=\\pi.": "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\psi\\,d\\psi}{c\\cos\\psi}=\\int_{-\\pi/2}^{\\pi/2}d\\psi=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.", "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\theta\\,d\\theta}{c\\cos\\theta}=\\int_{-\\pi/2}^{\\pi/2}d\\theta=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.": "J=\\int_{-\\pi/2}^{\\pi/2}\\frac{c\\cos\\psi\\,d\\psi}{c\\cos\\psi}=\\int_{-\\pi/2}^{\\pi/2}d\\psi=\\frac{\\pi}{2}-\\Big(-\\frac{\\pi}{2}\\Big)=\\pi.", "I=\\int_0^{\\pi}J\\,d\\varphi=\\int_0^{\\pi}\\pi\\,d\\varphi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "I=\\int_0^{\\pi}\\pi\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\cdot\\pi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\cdot\\pi=\\pi^2.": "I=\\int_0^{\\pi}J\\,d\\varphi=\\pi\\int_0^{\\pi}d\\varphi=\\pi\\Big[\\varphi\\Big]_0^{\\pi}=\\pi\\,(\\pi-0)=\\pi^2.", "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr=2E^*\\delta\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}.": "F_{\\text{平底}}=\\int_0^{\\tilde a}\\frac{E^*\\delta}{\\pi\\sqrt{\\tilde a^2-r^2}}\\,2\\pi r\\,dr.", "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\int_{\\tilde a^2}^{0}\\frac{-\\tfrac12\\,dv}{\\sqrt v}=\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv.": "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\int_{\\tilde a^2}^{0}\\frac{-\\frac12\\,dv}{\\sqrt v}=-\\frac12\\int_{\\tilde a^2}^{0}\\frac{dv}{\\sqrt v}.", "\\int_0^{\\tilde a}\\frac{r\\,dr}{\\sqrt{\\tilde a^2-r^2}}=\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\Big[\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\sqrt{\\tilde a^2}-0=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "\\frac12\\int_0^{\\tilde a^2}v^{-1/2}\\,dv=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\tilde a.": "\\frac12\\int_0^{\\tilde a^2}\\frac{dv}{\\sqrt v}=\\frac12\\Big[2\\sqrt v\\,\\Big]_0^{\\tilde a^2}=\\frac12\\big(2\\tilde a-0\\big)=\\tilde a.", "F_{\\text{平底}}=2E^*\\delta\\cdot\\tilde a=2E^*\\tilde a\\,\\delta.": "F_{\\text{平底}}=2E^*\\tilde a\\,\\delta.", "\\color{#c0392b}{d=g(a),\\qquad F=2E^*\\int_0^a\\big(d-g(x)\\big)dx,\\qquad U_0=E^*\\int_0^a\\big(d-g(x)\\big)^2dx}.": "\\color{#c0392b}{\\delta=g(a),\\qquad F=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx,\\qquad U_0=E^*\\int_0^a\\big(\\delta-g(x)\\big)^2dx}.", "w(r)=\\frac{2\\delta}{\\pi}\\arcsin\\frac{\\tilde a}{r}\\quad(r>\\tilde a).": "u(r)=\\frac{2\\delta}{\\pi}\\arcsin\\frac{\\tilde a}{r}\\quad(r>\\tilde a).", "F=2E^*\\Big[\\tilde a\\,g(\\tilde a)\\Big]_0^a-2E^*\\int_0^ag\\,d\\tilde a=2E^*\\Big(a\\,d-\\int_0^ag\\,d\\tilde a\\Big)=2E^*\\int_0^a\\big(d-g(x)\\big)dx.": "F=2E^*\\Big[\\tilde a\\,g(\\tilde a)\\Big]_0^a-2E^*\\int_0^ag\\,d\\tilde a=2E^*\\Big(a\\,\\delta-\\int_0^ag\\,d\\tilde a\\Big)=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx.", "w(a)=\\frac2\\pi\\int_0^a\\arcsin\\frac{\\tilde a}{a}\\;g'(\\tilde a)\\,d\\tilde a.": "u(a)=\\frac2\\pi\\int_0^a\\arcsin\\frac{\\tilde a}{a}\\;g'(\\tilde a)\\,d\\tilde a.", "w(a)=\\frac2\\pi\\Big[\\arcsin\\frac{\\tilde a}{a}\\,g(\\tilde a)\\Big]_0^a-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.": "u(a)=\\frac2\\pi\\Big[\\arcsin\\frac{\\tilde a}{a}\\,g(\\tilde a)\\Big]_0^a-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.", "w(a)=d-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.": "u(a)=\\delta-\\frac2\\pi\\int_0^a\\frac{g(\\tilde a)}{\\sqrt{a^2-\\tilde a^2}}\\,d\\tilde a.", "\\int_t^x\\frac{r\\,dr}{\\sqrt{x^2-r^2}\\,\\sqrt{r^2-t^2}}=\\frac12\\int_{t^2}^{x^2}\\frac{du}{\\sqrt{(x^2-u)(u-t^2)}}=\\frac12\\int_0^{\\pi/2}2\\,d\\theta=\\frac\\pi2.": "\\int_t^x\\frac{r\\,dr}{\\sqrt{x^2-r^2}\\,\\sqrt{r^2-t^2}}=\\frac12\\int_{t^2}^{x^2}\\frac{d\\tau}{\\sqrt{(x^2-\\tau)(\\tau-t^2)}}=\\frac12\\int_0^{\\pi/2}2\\,d\\theta=\\frac\\pi2.", "\\frac{dU_0}{dd}=E^*\\big(d-g(a)\\big)^2\\frac{da}{dd}+E^*\\int_0^a2\\big(d-g(x)\\big)dx.": "\\frac{dU_0}{d\\delta}=E^*\\big(\\delta-g(a)\\big)^2\\frac{da}{d\\delta}+E^*\\int_0^a2\\big(\\delta-g(x)\\big)dx.", "\\frac{dU_0}{dd}=2E^*\\int_0^a\\big(d-g(x)\\big)dx=F.": "\\frac{dU_0}{d\\delta}=2E^*\\int_0^a\\big(\\delta-g(x)\\big)dx=F.", "K=2E^*\\big(d-g(a)\\big)\\frac{da}{dd}+2E^*\\int_0^a1\\,dx.": "K=2E^*\\big(\\delta-g(a)\\big)\\frac{da}{d\\delta}+2E^*\\int_0^a1\\,dx.", "\\color{#c0392b}{h=f_A+f_B=\\frac{r^2}{2R_A}+\\frac{r^2}{2R_B}=\\frac{r^2}{2}\\Big(\\frac1{R_A}+\\frac1{R_B}\\Big)=\\frac{r^2}{2R},\\qquad \\frac1R=\\frac1{R_A}+\\frac1{R_B}}.": "\\color{#c0392b}{h=f_A+f_B=\\frac{r^2}{2R_A}+\\frac{r^2}{2R_B}=\\frac{r^2}{2}\\Big(\\frac1{R_A}+\\frac1{R_B}\\Big)=\\frac{r^2}{2R^*},\\qquad \\frac1{R^*}=\\frac1{R_A}+\\frac1{R_B}}.", "g(x)=\\frac{|x|}{R}\\int_0^{|x|}\\frac{r}{\\sqrt{x^2-r^2}}\\,dr=\\frac{|x|}{R}\\Big[-\\sqrt{x^2-r^2}\\Big]_0^{|x|}=\\frac{|x|}{R}\\big(0+|x|\\big)=\\frac{x^2}{R}.": "g(x)=\\frac{|x|}{R^*}\\int_0^{|x|}\\frac{r}{\\sqrt{x^2-r^2}}\\,dr=\\frac{|x|}{R^*}\\Big[-\\sqrt{x^2-r^2}\\Big]_0^{|x|}=\\frac{|x|}{R^*}\\big(0+|x|\\big)=\\frac{x^2}{R^*}.", "\\color{#c0392b}{F=2E^*\\int_0^a\\Big(d-\\frac{x^2}{R}\\Big)dx=2E^*\\Big(ad-\\frac{a^3}{3R}\\Big)}.": "\\color{#c0392b}{F=2E^*\\int_0^a\\Big(\\delta-\\frac{x^2}{R^*}\\Big)dx=2E^*\\Big(a\\delta-\\frac{a^3}{3R^*}\\Big)}.", "\\color{#c0392b}{F=2E^*\\Big(\\sqrt R\\,d^{3/2}-\\frac13\\sqrt R\\,d^{3/2}\\Big)=2E^*\\cdot\\frac23\\sqrt R\\,d^{3/2}=\\frac43E^*\\sqrt R\\,d^{3/2}}.": "\\color{#c0392b}{F=2E^*\\Big(\\sqrt{R^*}\\,\\delta^{3/2}-\\frac13\\sqrt{R^*}\\,\\delta^{3/2}\\Big)=2E^*\\cdot\\frac23\\sqrt{R^*}\\,\\delta^{3/2}=\\frac43E^*\\sqrt{R^*}\\,\\delta^{3/2}}.", "\\color{#c0392b}{U_H=\\int_0^d\\frac43E^*\\sqrt R\\,s^{3/2}\\,ds=\\frac43E^*\\sqrt R\\cdot\\frac25d^{5/2}=\\frac{8}{15}E^*\\sqrt R\\,d^{5/2}}.": "\\color{#c0392b}{U_H=\\int_0^\\delta\\frac43E^*\\sqrt{R^*}\\,\\delta'^{3/2}\\,d\\delta'=\\frac43E^*\\sqrt{R^*}\\cdot\\frac25\\delta^{5/2}=\\frac{8}{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}}.", "g(x)=|x|\\int_0^{|x|}\\frac{c\\,n\\,r^{n-1}}{\\sqrt{x^2-r^2}}\\,dr.": "g(x)=|x|\\int_0^{|x|}\\frac{A\\,n\\,r^{n-1}}{\\sqrt{x^2-r^2}}\\,dr.", "\\begin{aligned}g(x)&=|x|\\int_0^1\\frac{c\\,n\\,|x|^{n-1}t^{n-1}}{|x|\\sqrt{1-t^2}}\\,|x|\\,dt\\\\&=c\\,|x|^n\\cdot n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt\\\\&=\\kappa_n\\,c\\,|x|^n,\\qquad \\kappa_n=n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt.\\end{aligned}": "\\begin{aligned}g(x)&=|x|\\int_0^1\\frac{A\\,n\\,|x|^{n-1}t^{n-1}}{|x|\\sqrt{1-t^2}}\\,|x|\\,dt\\\\&=A\\,|x|^n\\cdot n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt\\\\&=\\mu_n\\,A\\,|x|^n,\\qquad \\mu_n=n\\int_0^1\\frac{t^{n-1}}{\\sqrt{1-t^2}}\\,dt.\\end{aligned}", "d=\\kappa_n\\,c\\,a^n\\ \\Longrightarrow\\ a=\\Big(\\frac{d}{\\kappa_n c}\\Big)^{1/n}\\propto d^{1/n}.": "\\delta=\\mu_n\\,A\\,a^n\\ \\Longrightarrow\\ a=\\Big(\\frac{\\delta}{\\mu_n A}\\Big)^{1/n}\\propto \\delta^{1/n}.", "U_0=E^*\\int_0^ad^2\\Big(1-\\Big(\\frac xa\\Big)^n\\Big)^2dx.": "U_0=E^*\\int_0^a\\delta^2\\Big(1-\\Big(\\frac xa\\Big)^n\\Big)^2dx.", "U_0=E^*\\,a\\,d^2\\int_0^1\\big(1-s^n\\big)^2ds\\ \\propto\\ a\\,d^2.": "U_0=E^*\\,a\\,\\delta^2\\int_0^1\\big(1-\\xi^n\\big)^2d\\xi\\ \\propto\\ a\\,\\delta^2.", "\\color{#c0392b}{U_0\\propto d^{1/n}\\cdot d^2=d^{2+1/n}=d^{(2n+1)/n}}.": "\\color{#c0392b}{U_0\\propto \\delta^{1/n}\\cdot \\delta^2=\\delta^{2+1/n}=\\delta^{(2n+1)/n}}.", "\\color{#c0392b}{\\text{扁度}=\\ln\\frac{\\kappa_1}{\\kappa_2}},": "\\color{#c0392b}{e=\\ln\\frac{\\kappa_1}{\\kappa_2}},", "X_1=X_0+2k\\hat d_2,\\qquad X_2=X_0+k\\hat d_2.": "X_1=X_0+2\\alpha\\hat d_2,\\qquad X_2=X_0+\\alpha\\hat d_2.", "X_0=X_2-k\\hat d_2=X_2-(X_1-X_2)=2X_2-X_1.": "X_0=X_2-\\alpha\\hat d_2=X_2-(X_1-X_2)=2X_2-X_1.", "X(L_1)=X_\\infty+\\frac{k}{L_1},\\qquad X(L_2)=X_\\infty+\\frac{k}{2L_1}.": "X(L_1)=X_\\infty+\\frac{\\alpha}{L_1},\\qquad X(L_2)=X_\\infty+\\frac{\\alpha}{2L_1}.", "U_2=U_\\infty+C\\Big(\\frac h2\\Big)^p,\\qquad U_3=U_\\infty+C\\Big(\\frac h4\\Big)^p.": "U^{(2)}=U_\\infty+C\\Big(\\frac h2\\Big)^p,\\qquad U^{(3)}=U_\\infty+C\\Big(\\frac h4\\Big)^p.", "U_2-U_3=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h4\\Big)^p\\big(2^p-1\\big)\\ \\Longrightarrow\\ C\\Big(\\frac h4\\Big)^p=\\frac{U_2-U_3}{2^p-1}.": "U^{(2)}-U^{(3)}=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h4\\Big)^p\\big(2^p-1\\big)\\ \\Longrightarrow\\ C\\Big(\\frac h4\\Big)^p=\\frac{U^{(2)}-U^{(3)}}{2^p-1}.", "U_\\infty=U_3-\\frac{U_2-U_3}{2^p-1}": "U_\\infty=U^{(3)}-\\frac{U^{(2)}-U^{(3)}}{2^p-1}", "\\color{#c0392b}{U_\\infty=U_3+\\frac{U_3-U_2}{2^p-1}}.": "\\color{#c0392b}{U_\\infty=U^{(3)}+\\frac{U^{(3)}-U^{(2)}}{2^p-1}}.", "\\begin{aligned}U_1-U_2&=C\\,h^p-C\\Big(\\frac h2\\Big)^p=C\\,h^p(1-2^{-p}),\\\\U_2-U_3&=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h2\\Big)^p(1-2^{-p}).\\end{aligned}": "\\begin{aligned}U^{(1)}-U^{(2)}&=C\\,h^p-C\\Big(\\frac h2\\Big)^p=C\\,h^p(1-2^{-p}),\\\\U^{(2)}-U^{(3)}&=C\\Big(\\frac h2\\Big)^p-C\\Big(\\frac h4\\Big)^p=C\\Big(\\frac h2\\Big)^p(1-2^{-p}).\\end{aligned}", "\\frac{U_1-U_2}{U_2-U_3}=\\frac{h^p}{(h/2)^p}=2^p.": "\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=\\frac{h^p}{(h/2)^p}=2^p.", "\\color{#c0392b}{\\frac{U_1-U_2}{U_2-U_3}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U_1-U_2}{U_2-U_3}}.": "\\color{#c0392b}{\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}=2^p\\ \\Longrightarrow\\ p=\\log_2\\frac{U^{(1)}-U^{(2)}}{U^{(2)}-U^{(3)}}}.", "\\varepsilon\\approx\\frac{\\rho^2}{2R}.": "\\zeta\\approx\\frac{\\rho^2}{2R}.", "\\color{#c0392b}{F(c)=\\tfrac43E^*\\sqrt R\\,(c-g_0)^{3/2},\\qquad f_i=\\frac{m_i}{M}\\,F}.": "\\color{#c0392b}{F(\\delta_{\\text t})=\\tfrac43E^*\\sqrt R\\,(\\delta_{\\text t}-\\gamma_0)^{3/2},\\qquad F^{\\text b}_i=\\frac{m_i}{M}\\,F}.", "\\color{#c0392b}{y\\leftarrow y+f(r)\\Big(1-\\frac yD\\Big),\\qquad f(r)=R-\\sqrt{R^2-\\min(r,r_{\\text{cap}})^2}}.": "\\color{#c0392b}{y\\leftarrow y+f(r)\\Big(1-\\frac yH\\Big),\\qquad f(r)=R-\\sqrt{R^2-\\min(r,r_{\\text{cap}})^2}}.", "\\color{#c0392b}{s_{\\text{管顶}}=\\sqrt{r^2-\\Big(\\sqrt{(R_T-z)^2+x^2}-R_T\\Big)^2}-r,\\qquad s_{\\text{内圈}}=R_T-r-\\sqrt{\\Big(R_T-\\sqrt{r^2-z^2}\\Big)^2-x^2}}.": "\\color{#c0392b}{\\begin{aligned}\\eta_{\\text{管顶}}&=\\sqrt{r_T^2-\\Big(\\sqrt{(R_T-z)^2+x^2}-R_T\\Big)^2}-r_T,\\\\\\eta_{\\text{内圈}}&=R_T-r_T-\\sqrt{\\Big(R_T-\\sqrt{r_T^2-z^2}\\Big)^2-x^2}.\\end{aligned}}", "U=\\frac{\\pi E^*R}{b}\\int_0^\\delta(\\delta-u)^2\\,du=\\frac{\\pi E^*R}{b}\\cdot\\frac{\\delta^3}{3}=\\frac{\\pi E^*R\\,\\delta^3}{3b}.": "U=\\frac{\\pi E^*R}{b}\\int_0^\\delta(\\delta-\\tau)^2\\,d\\tau=\\frac{\\pi E^*R}{b}\\cdot\\frac{\\delta^3}{3}=\\frac{\\pi E^*R\\,\\delta^3}{3b}.", "\\color{#c0392b}{\\frac1{R_{\\text{合}}}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R_{\\text{合}}=\\frac R2}.": "\\color{#c0392b}{\\frac1{R^*}=\\frac1R+\\frac1R=\\frac2R\\ \\Longrightarrow\\ R^*=\\frac R2}.", "\\color{#c0392b}{p=\\frac{E_h}{D}\\times s}.": "\\color{#c0392b}{p=\\frac{E_h}{D_h}\\times s}.", "\\color{#c0392b}{U^{\\text{hydro}}=\\int_{\\Omega}e\\big(s(\\mathbf x)\\big)\\,dV}.": "\\color{#c0392b}{U^{\\text{hydro}}=\\int_{\\Omega}\\mathcal E\\big(s(\\mathbf x)\\big)\\,dV}.", "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}e\\,dV+\\int_{\\Omega_②}e\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.": "\\color{#c0392b}{U^{\\text{hydro}}_③=\\int_{\\Omega_①}\\mathcal E\\,dV+\\int_{\\Omega_②}\\mathcal E\\,dV=U^{\\text{hydro}}_①+U^{\\text{hydro}}_②}.", "\\color{#c0392b}{p=c\\,\\frac{s}{r}}": "\\color{#c0392b}{p=\\beta\\,\\frac{s}{r}}", "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\kappa\\sqrt s\\,ds=2\\pi R\\kappa\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\kappa\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},": "U=\\int_0^\\delta2\\pi R(\\delta-s)\\,\\sigma\\sqrt s\\,ds=2\\pi R\\sigma\\Big(\\delta\\cdot\\frac23\\delta^{3/2}-\\frac25\\delta^{5/2}\\Big)=2\\pi R\\sigma\\cdot\\frac{4}{15}\\delta^{5/2}\\ \\propto\\ \\delta^{5/2},", "T_{ij}=\\kappa_{\\text{合},ij}^{-2}=\\kappa_{P_i}^{-2}+\\kappa_{B_j}^{-2}=u_i+v_j.": "T_{ij}=\\sigma_{\\text{合},ij}^{-2}=\\sigma_{P_i}^{-2}+\\sigma_{B_j}^{-2}=C^{\\text P}_i+C^{\\text B}_j.", "T_{11}=u_1+v_1,\\quad T_{22}=u_2+v_2,\\quad T_{12}=u_1+v_2,\\quad T_{21}=u_2+v_1.": "T_{11}=C^{\\text P}_1+C^{\\text B}_1,\\quad T_{22}=C^{\\text P}_2+C^{\\text B}_2,\\quad T_{12}=C^{\\text P}_1+C^{\\text B}_2,\\quad T_{21}=C^{\\text P}_2+C^{\\text B}_1.", "\\color{#c0392b}{T_{11}+T_{22}=u_1+u_2+v_1+v_2=T_{12}+T_{21}}.": "\\color{#c0392b}{T_{11}+T_{22}=C^{\\text P}_1+C^{\\text P}_2+C^{\\text B}_1+C^{\\text B}_2=T_{12}+T_{21}}.", "R_e=\\frac{1}{\\sqrt{c_1c_2}}.": "R^*=\\frac{1}{\\sqrt{\\kappa_1\\kappa_2}}.", "F_U(e)=\\frac{U_{\\text{椭圆 Hertz}}}{U_H(R_e)}.": "F_U(e)=\\frac{U_{\\text{椭圆 Hertz}}}{U_H(R^*)}.", "U_{\\text{骨架}}=F_U\\cdot\\frac{8}{15}E^*\\sqrt{R_e}\\,\\delta^{5/2}.": "U_{\\text{骨架}}=F_U\\cdot\\frac{8}{15}E^*\\sqrt{R^*}\\,\\delta^{5/2}.", "E_{\\text{contact}}=\\tfrac12\\,\\kappa\\sum_i a_i\\,\\max(0,\\,-d_i)^2.": "E_{\\text{contact}}=\\tfrac12\\,k_{\\text p}\\sum_i A_i\\,\\max(0,\\,-q_i)^2.", "\\color{#c0392b}{U_{\\text{contact}}=U_c-U_{0,1}-U_{0,2}},": "\\color{#c0392b}{U_{\\text{contact}}=U_c-U_{\\text{free},1}-U_{\\text{free},2}},", "\\color{#c0392b}{U=E^*\\cdot\\frac{8}{15}\\sqrt{R_{\\text{eff}}}\\,\\delta^{5/2}\\cdot\\exp(g)}.": "\\color{#c0392b}{U=E^*\\cdot\\frac{8}{15}\\sqrt{R^*}\\,\\delta^{5/2}\\cdot\\exp(\\phi)}.", "\\color{#c0392b}{u(r)=d-h(r)}": "\\color{#c0392b}{u(r)=\\delta-h(r)}", "\\cos\\theta\\ge0": "\\cos\\psi\\ge0", "\\sin^2\\theta+\\cos^2\\theta=1": "\\sin^2\\psi+\\cos^2\\psi=1", "dt=d\\rho": "dq=d\\rho"}, "text": {"是该节点受的力": "是该节点受的体力"}}</script>
+<script>
+(() => {
+  'use strict';
+  const main = document.querySelector('main');
+  const article = main && main.querySelector('article');
+  if (!article) return;
+
+  /* ---------- 1. 常量 ---------- */
+  const CFG = {
+    version: 1,
+    colWidth: 920, asideWidth: 245, gap: 50, sidePad: 32, narrowPad: 16,   // 与 html_parts.PAGE_CSS 的桌面版式一致
+    quoteLen: 30,        // TextQuote 前后各存多少字
+    glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
+    nearPx: 30,          // 笔没圈住任何内容（下划线、箭头、旁注）时，取离笔画这么近以内最近的那个字 / 符号
+    coverCtxAccept: 0.3, // 圈住的关键词在页面上出现好几处时，周围文字与原段落的二元组相似度至少这么高才认
+    coverNearAccept: 0.8, // ……或者紧挨着它的前 / 后 10 字与原来的相似度至少这么高（段落别处改了、这一句没改）
+    penWidth: 2.4, hlWidth: 16, eraseRadius: 12, undoLimit: 60,
+    colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
+  };
+  const PAGE_NAME = location.pathname.split('/').pop() || 'index.html';
+  // 页面版本号（build_site 嵌入；快照页是笔当初画的那一版的版本号）：笔画下时记进 drawn.page，保存时记进 savedOn
+  const PAGE_VERSION = typeof window.NIPC_PAGE === 'string' ? window.NIPC_PAGE : '';
+  const STORE_KEY = 'nipc-notes:' + location.pathname;
+  const UI_KEY = 'nipc-notes-ui';
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const TEXT_BLOCK_SEL = 'p, li, figcaption, blockquote, pre, summary, dt, dd, td, th, h1, h2, h3, h4, h5, h6, .lead, div';
+  const TARGET_SEL = 'img, video, mjx-container[display="true"], td, th, h1, h2, h3, h4, h5, h6, ' +
+                     'p, li, figcaption, blockquote, pre, summary, dt, dd, .lead';
+
+  const S = {
+    strokes: [], on: false, tool: 'pen', color: 'red', undo: [],
+    domVersion: 0, index: null, cache: new Map(), drawn: new Map(),
+    drawing: null, erasing: null, moving: null, printing: false, orphans: 0, hidden: 0,
+    tombs: {}, lastIds: new Set(),
+  };
+
+  /* ---------- 2. 小工具 ---------- */
+  const norm = s => (s || '').replace(/\s+/g, ' ').trim();
+  const round = (v, k) => Math.round(v * k) / k;
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  /** 两串的编辑距离（Levenshtein），只用于 ≤ 几百字的短串。 */
+  function editDistance(a, b) {
+    if (a === b) return 0;
+    let prev = new Array(b.length + 1), cur = new Array(b.length + 1);
+    for (let j = 0; j <= b.length; j++) prev[j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      cur[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      [prev, cur] = [cur, prev];
+    }
+    return prev[b.length];
+  }
+  /** 相似度 0–1：1 - 编辑距离 / 较长串长度；两串都空算 1。 */
+  function similarity(a, b) {
+    const n = Math.max(a.length, b.length);
+    return n === 0 ? 1 : 1 - editDistance(a, b) / n;
+  }
+  /** text 里 needle 的所有出现位置（最多 limit 个）。 */
+  function allIndexes(text, needle, limit = 200) {
+    const out = [];
+    if (!needle) return out;
+    for (let i = text.indexOf(needle); i >= 0 && out.length < limit; i = text.indexOf(needle, i + 1)) out.push(i);
+    return out;
+  }
+
+  /* ---------- 3. 本机保存（每页一个 localStorage 键） ---------- */
+  /** 本页笔记的完整 JSON（本机保存、导出、同步共用）。tombstones = {被删笔画 id: 删除时刻 ms}，让删除能同步到别的设备。 */
+  function payload() {
+    return { format: 'nipc-notes', version: CFG.version, page: PAGE_NAME, path: location.pathname,
+             colWidth: CFG.colWidth, saved: new Date().toISOString(), savedOn: PAGE_VERSION, strokes: S.strokes, tombstones: S.tombs };
+  }
+  /** 一笔此刻的样子作为「画的」原样（只在收笔、用户移动时调用；深拷贝，之后匹配字段怎么改都碰不到它）。 */
+  function drawnOf(s) {
+    return JSON.parse(JSON.stringify({ page: PAGE_VERSION, pts: s.pts, frame: s.frame, anchor: s.anchor, orig: s.orig,
+                                       ua: navigator.userAgent, at: new Date().toISOString() }));
+  }
+  function validStroke(s) {
+    return !!(s && typeof s.id === 'string' && Array.isArray(s.pts) && s.pts.length && s.anchor && s.orig &&
+              (s.frame === 'px' || s.frame === 'norm'));
+  }
+  function validTombs(t) { return t && typeof t === 'object' && !Array.isArray(t) ? t : {}; }
+  /** 本机存的 {strokes, tombs}。 */
+  // 只读快照页（snapshot/<n>/）：笔记就是页面里嵌的那份（某次画完时的原样），不读写本机存储、不同步笔记仓库
+  const SNAP = window.NIPC_SNAPSHOT && Array.isArray(window.NIPC_SNAPSHOT.strokes) ? window.NIPC_SNAPSHOT : null;
+  function loadStored() {
+    if (SNAP) return { strokes: SNAP.strokes.filter(validStroke), tombs: validTombs(SNAP.tombstones) };
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      const d = raw ? JSON.parse(raw) : null;
+      return { strokes: d && Array.isArray(d.strokes) ? d.strokes.filter(validStroke) : [], tombs: validTombs(d && d.tombstones) };
+    } catch (e) { return { strokes: [], tombs: {} }; }
+  }
+  function saveStored() {
+    if (SNAP) return;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(payload())); }
+    catch (e) { setStatus('本机保存失败（浏览器存储不可用），请及时导出笔记', true); }
+  }
+  function loadUi() { try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function saveUi(ui) { if (SNAP) return; try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
+
+  /* ---------- 4. 版式固定与坐标换算 ---------- */
+  function layoutLocked() { return S.on || S.strokes.length > 0; }
+  /** 有笔迹或标注打开时固定正文 920px；放不下目录就隐藏目录；再放不下就 zoom 等比缩小。 */
+  function applyLayout() {
+    const root = document.documentElement, locked = layoutLocked(), w = root.clientWidth;
+    root.classList.toggle('annot-fixed', locked);
+    root.classList.toggle('annot-on', S.on);
+    root.classList.toggle('annot-noaside', locked && w < CFG.asideWidth + CFG.gap + CFG.colWidth + 2 * CFG.sidePad);
+    const z = locked ? Math.min(1, (w - 2 * CFG.narrowPad) / CFG.colWidth) : 1;
+    main.style.zoom = z < 1 ? String(round(z, 1000)) : '';
+  }
+  /** 屏幕坐标 ↔ 正文卡片内未缩放坐标的换算参数：s = 缩放倍数，(x, y) = 图层左上角的屏幕坐标。 */
+  function frame() {
+    const mr = main.getBoundingClientRect(), lr = layer.getBoundingClientRect();
+    return { s: (mr.width / main.offsetWidth) || 1, x: lr.left, y: lr.top };
+  }
+  const toLocal = (cx, cy, f) => ({ x: (cx - f.x) / f.s, y: (cy - f.y) / f.s });
+  const toClient = (x, y, f) => ({ x: f.x + x * f.s, y: f.y + y * f.s });
+  const localRect = (r, f) => ({ x: (r.left - f.x) / f.s, y: (r.top - f.y) / f.s, w: r.width / f.s, h: r.height / f.s });
+  /** el 是否在某个收起的折叠框里（不算该框自己的标题 summary）。新版 Chromium 里收起内容仍有布局矩形，所以要显式判断。 */
+  function inClosedDetails(el) {
+    for (let d = el && el.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) {
+      if (d.open) continue;
+      const sum = el.closest('summary');
+      if (!(sum && sum.parentElement === d)) return true;
+    }
+    return false;
+  }
+  /** 元素的屏幕矩形；元素没渲染（如在收起的折叠框里）返回 null。 */
+  function elementRect(el) {
+    if (!el || !el.isConnected || inClosedDetails(el) || el.getClientRects().length === 0) return null;
+    const r = el.getBoundingClientRect();
+    return r.width || r.height ? r : null;
+  }
+
+  /* ---------- 5. 正文文字索引（空白合并成一个空格，跳过公式内部） ---------- */
+  function skipText(node) {
+    const p = node.parentElement;
+    return !p || !!p.closest('mjx-container, script, style, svg, .annot-ui');
+  }
+  /** 把正文所有文字连成一串 text，并记下每个字来自哪个文本节点的哪个位置。 */
+  function buildIndex() {
+    const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
+    const nodes = [], chars = [], posNode = [], posOff = [];
+    let lastSpace = true;
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (skipText(n)) continue;
+      const t = n.data, ni = nodes.length;
+      nodes.push(n);
+      for (let i = 0; i < t.length; i++) {
+        const space = /\s/.test(t[i]);
+        if (space && lastSpace) continue;
+        chars.push(space ? ' ' : t[i]);
+        lastSpace = space;
+        posNode.push(ni); posOff.push(i);
+      }
+    }
+    const nodeIdx = new Map(nodes.map((n, i) => [n, i]));
+    return { v: S.domVersion, text: chars.join(''), nodes, nodeIdx,
+             posNode: Int32Array.from(posNode), posOff: Int32Array.from(posOff) };
+  }
+  function ensureIndex() {
+    if (!S.index || S.index.v !== S.domVersion) { S.index = buildIndex(); S.cache.clear(); }
+    return S.index;
+  }
+  /** 第一个「节点序号 ≥ ni 且（同节点时）偏移 ≥ off」的字的位置；没有返回 -1。 */
+  function firstPos(ni, off) {
+    const { posNode, posOff } = S.index;
+    let lo = 0, hi = posNode.length;
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (posNode[m] < ni || (posNode[m] === ni && posOff[m] < off)) lo = m + 1; else hi = m;
+    }
+    return lo < posNode.length ? lo : -1;
+  }
+  /** 文本节点 node 的第 off 个字符对应的索引位置（被合并掉的空白取其后第一个字）。 */
+  function posOfCaret(node, off) {
+    const ni = S.index.nodeIdx.get(node);
+    return ni === undefined ? -1 : firstPos(ni, off);
+  }
+  /** el 开始处（el 内部或其后）第一个字的位置。 */
+  function posFromElement(el) {
+    const nodes = S.index.nodes;
+    let lo = 0, hi = nodes.length;
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (el.compareDocumentPosition(nodes[m]) & Node.DOCUMENT_POSITION_FOLLOWING) hi = m; else lo = m + 1;
+    }
+    return lo < nodes.length ? firstPos(lo, 0) : -1;
+  }
+  /** el 前面紧挨着的 quoteLen 个字：用来区分 src / TeX / 文字相同的几处。 */
+  function contextBefore(el) {
+    const p = posFromElement(el), t = S.index.text;
+    return p < 0 ? t.slice(-CFG.quoteLen) : t.slice(Math.max(0, p - CFG.quoteLen), p);
+  }
+  /** 位置 pos 的那个字的屏幕矩形；没渲染返回 null。 */
+  function charRect(pos) {
+    const ix = S.index, node = ix.nodes[ix.posNode[pos]];
+    if (!node || !node.isConnected || inClosedDetails(node.parentElement)) return null;
+    const r = document.createRange(), o = ix.posOff[pos];
+    r.setStart(node, o); r.setEnd(node, Math.min(o + 1, node.data.length));
+    for (const q of r.getClientRects()) if (q.width || q.height) return q;
+    return null;
+  }
+  /** 位置 pos 所在的文字块（段落、列表项、图注……）及其在 text 里的 [start, end)。 */
+  function blockSpan(pos) {
+    const ix = S.index, node = ix.nodes[ix.posNode[pos]];
+    const blk = (node.parentElement && node.parentElement.closest(TEXT_BLOCK_SEL)) || article;
+    const el = article.contains(blk) ? blk : article;
+    const start = posFromElement(el);
+    let end = start;
+    while (end >= 0 && end < ix.text.length && el.contains(ix.nodes[ix.posNode[end]])) end++;
+    return { el, start, end };
+  }
+
+  /* ---------- 6. 建锚点（起笔处的内容 → 锚点 + 参考矩形） ---------- */
+  function srcKey(el) {
+    const s = el.getAttribute('src') || el.currentSrc || '';
+    return s.split('#')[0].split('?')[0].split('/').pop();
+  }
+  /** 当前所有陈列公式：[{el, tex}]，TeX 取自 MathJax 的 math 列表。 */
+  /** 页面里全部公式（陈列 + 行内），{el, tex}：圈住的内容可以是行内公式里的符号。 */
+  function allMath() {
+    const out = [];
+    try {
+      for (const m of MathJax.startup.document.math) {
+        if (m.typesetRoot && article.contains(m.typesetRoot)) out.push({ el: m.typesetRoot, tex: norm(m.math) });
+      }
+    } catch (e) { /* MathJax 没加载 */ }
+    return out;
+  }
+  function displayMath() {
+    const out = [];
+    try {
+      for (const m of MathJax.startup.document.math) {
+        if (m.display && m.typesetRoot && article.contains(m.typesetRoot)) out.push({ el: m.typesetRoot, tex: norm(m.math) });
+      }
+    } catch (e) { /* MathJax 没加载：页面没有可锚的公式 */ }
+    return out;
+  }
+  function plainText(el) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let s = '';
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) if (!skipText(n)) s += n.data;
+    return norm(s);
+  }
+  function headerText(cell) {
+    const table = cell.closest('table');
+    const head = table && table.tHead && table.tHead.rows[0];
+    const th = head && head.cells[cell.cellIndex];
+    return th ? plainText(th) : '';
+  }
+  /** 屏幕点下最上面的正文元素（跳过工具栏）；调用前输入层已设为不可点中。 */
+  function topElement(cx, cy) {
+    for (const el of document.elementsFromPoint(cx, cy)) {
+      if (el.closest('.annot-ui')) continue;
+      return el;
+    }
+    return null;
+  }
+  /** 屏幕点处的字符位置（caretRangeFromPoint / caretPositionFromPoint），取点所在那个字而不是字间缝。 */
+  function charAtPoint(cx, cy) {
+    let node = null, off = 0;
+    if (document.caretRangeFromPoint) {
+      const r = document.caretRangeFromPoint(cx, cy);
+      if (r) { node = r.startContainer; off = r.startOffset; }
+    } else if (document.caretPositionFromPoint) {
+      const p = document.caretPositionFromPoint(cx, cy);
+      if (p) { node = p.offsetNode; off = p.offset; }
+    }
+    if (!node || node.nodeType !== Node.TEXT_NODE || !article.contains(node) || skipText(node)) return -1;
+    const after = posOfCaret(node, off);
+    const before = off > 0 ? posOfCaret(node, off - 1) : -1;
+    let best = -1, bestD = Infinity;
+    for (const p of [before, after]) {
+      if (p < 0) continue;
+      const r = charRect(p);
+      if (!r) continue;
+      const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
+      const d = dx * dx + dy * dy;
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best;
+  }
+  /** 离屏幕点最近的、当前可见的可锚元素；返回该元素和夹进其矩形内的点。 */
+  function nearestTarget(cx, cy) {
+    let best = null, bestD = Infinity;
+    const vw = innerWidth, vh = innerHeight;
+    for (const el of article.querySelectorAll(TARGET_SEL)) {
+      const r = elementRect(el);
+      if (!r || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
+      const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        const x = Math.min(Math.max(cx, r.left + 1, 1), r.right - 1, vw - 1);
+        const y = Math.min(Math.max(cy, r.top + 1, 1), r.bottom - 1, vh - 1);
+        best = { el, x, y };
+      }
+    }
+    return best;
+  }
+  function textAnchor(pos, f) {
+    const t = S.index.text, r = charRect(pos);
+    if (!r) return null;
+    const { start, end, el } = blockSpan(pos);
+    return {
+      anchor: { type: 'text', exact: t[pos], prefix: t.slice(Math.max(0, pos - CFG.quoteLen), pos),
+                suffix: t.slice(pos + 1, pos + 1 + CFG.quoteLen),
+                blk: { tag: el.tagName.toLowerCase(), head: t.slice(start, Math.min(end, start + 40)), off: pos - start } },
+      frame: 'px', R: localRect(r, f),
+    };
+  }
+  /* 陈列公式里的符号：MathJax SVG 每个字形是一个带 data-c（Unicode 编码，16 进制）的元素。公式上的笔锚到起笔处
+   * 最近的那个符号，存它前后各 glyphLen 个符号（同正文的 TextQuote），笔画坐标相对这个符号；公式别处增删、
+   * 整体变宽或拆成几行都不会把笔拉偏。没有符号锚点的老笔照旧按整块公式的比例坐标画。 */
+  function glyphList(mj) {
+    const els = [...mj.querySelectorAll('[data-c]')];
+    // NFKC：数学斜体 𝑡 → t，这样记号改名表（t → q）也能用在公式符号上
+    return { els, ch: els.map(e => { const c = parseInt(e.getAttribute('data-c'), 16);
+                                     return Number.isFinite(c) ? String.fromCodePoint(c).normalize('NFKC') : '?'; }) };
+  }
+  /** 符号序列 ch 里 seq（字符数组）出现的所有下标。 */
+  function seqIndexes(ch, seq) {
+    const out = [];
+    for (let i = 0; i + seq.length <= ch.length; i++) if (seq.every((c, k) => ch[i + k] === c)) out.push(i);
+    return out;
+  }
+  function glyphQuote(g, i) {
+    return { prefix: g.ch.slice(Math.max(0, i - CFG.glyphLen), i).join(''), exact: g.ch[i],
+             suffix: g.ch.slice(i + 1, i + 1 + CFG.glyphLen).join('') };
+  }
+  /** 公式里离 (cx, cy) 最近的可见符号的下标；没有返回 -1。 */
+  function glyphAt(g, cx, cy) {
+    let best = -1, bestD = Infinity;
+    g.els.forEach((e, i) => {
+      const r = e.getBoundingClientRect();
+      if (!r.width && !r.height) return;
+      const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
+      if (dx * dx + dy * dy < bestD) { bestD = dx * dx + dy * dy; best = i; }
+    });
+    return best;
+  }
+  /** 按元素类型建锚点：媒体 / 陈列公式 / 表格单元格 / 标题 / 正文字符。返回 {anchor, frame, R} 或 null。 */
+  function anchorForElement(el, cx, cy, f) {
+    const media = el.closest('img, video');
+    if (media && article.contains(media)) {
+      return { anchor: { type: 'media', src: srcKey(media), ctx: contextBefore(media) }, frame: 'norm',
+               R: localRect(media.getBoundingClientRect(), f) };
+    }
+    const mj = el.closest('mjx-container');
+    if (mj && mj.getAttribute('display') === 'true') {
+      const m = displayMath().find(d => d.el === mj);
+      if (m) {
+        const g = glyphList(mj), i = glyphAt(g, cx, cy);
+        if (i >= 0) return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj), g: glyphQuote(g, i) }, frame: 'px',
+                             R: localRect(g.els[i].getBoundingClientRect(), f) };
+        return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj) }, frame: 'norm',
+                 R: localRect(mj.getBoundingClientRect(), f) };
+      }
+    }
+    if (mj) {   // 行内公式：锚到公式后面紧挨着的那个字
+      const p = posFromElement(mj);
+      return p >= 0 ? textAnchor(p, f) : null;
+    }
+    const cell = el.closest('td, th');
+    if (cell && article.contains(cell)) {
+      return { anchor: { type: 'cell', cell: plainText(cell), head: headerText(cell), ctx: contextBefore(cell) },
+               frame: 'px', R: localRect(cell.getBoundingClientRect(), f) };
+    }
+    const h = el.closest('h1, h2, h3, h4, h5, h6');
+    if (h && article.contains(h)) {
+      return { anchor: { type: 'heading', text: plainText(h), ctx: contextBefore(h) }, frame: 'px',
+               R: localRect(h.getBoundingClientRect(), f) };
+    }
+    const p = charAtPoint(cx, cy);
+    return p >= 0 ? textAnchor(p, f) : null;
+  }
+  /* 一笔圈住了什么（用户 10-25：「我圈画就是圈画在内容上 内容变了没了那就不留那个标记」「这句话是axxxb我圈了ab
+   * 然后变成cxxxaxxxb那我圈的还要在ab上」）。圈住的内容 = 中心落在笔画外框里的正文字 / 公式符号；一个都没有（下划线、
+   * 箭头、旁注）就取离笔画最近、nearPx 以内的那一个。锚点存这串内容本身（cover）：还原时先在全页找它，几处一样再用
+   * 前后文挑，一处都没有就不画（findCover / findCoverGlyph）。主要圈在图上的笔照旧锚整张图。 */
+  /** 页面几何（页面坐标，不随滚动变）：陈列公式的外框与符号、正文文字节点的外框，单字矩形按需量、量过就记。
+   * 一批笔共用一份（reanchorAll），单独一笔现量；排版变了（DOM 版本或窗口宽度变）就重建。 */
+  function pageGeom() {
+    const key = `${S.domVersion}:${innerWidth}`;
+    if (S.geom && S.geom.key === key) return S.geom;
+    const page = q => ({ left: q.left + scrollX, top: q.top + scrollY, right: q.right + scrollX, bottom: q.bottom + scrollY,
+                         width: q.width, height: q.height });
+    const maths = allMath().filter(m => !inClosedDetails(m.el)).map(m => {
+      const g = glyphList(m.el);
+      return { m, g, box: page(m.el.getBoundingClientRect()), q: g.els.map(e => page(e.getBoundingClientRect())) };
+    });
+    const ix = ensureIndex(), rg = document.createRange();
+    const nodes = ix.nodes.map((n, ni) => {
+      if (!n.isConnected || inClosedDetails(n.parentElement)) return null;
+      rg.selectNodeContents(n);
+      return { ni, box: page(rg.getBoundingClientRect()) };
+    }).filter(Boolean);
+    S.geom = { key, page, maths, nodes, chars: new Map() };
+    return S.geom;
+  }
+  function strokeCover(abs, f, padPx = CFG.nearPx) {
+    const G = pageGeom();
+    const P = abs.map(p => { const c = toClient(p[0], p[1], f); return { x: c.x + scrollX, y: c.y + scrollY }; });
+    const l = Math.min(...P.map(p => p.x)), r = Math.max(...P.map(p => p.x));
+    const t = Math.min(...P.map(p => p.y)), b = Math.max(...P.map(p => p.y)), pad = padPx * f.s;
+    const near = q => q.right >= l - pad && q.left <= r + pad && q.bottom >= t - pad && q.top <= b + pad;
+    const inside = q => { const cx = (q.left + q.right) / 2, cy = (q.top + q.bottom) / 2; return cx >= l && cx <= r && cy >= t && cy <= b; };
+    const dist = q => Math.min(...P.map(p => Math.hypot(Math.max(q.left - p.x, 0, p.x - q.right), Math.max(q.top - p.y, 0, p.y - q.bottom))));
+    const items = [];
+    for (const { m, g, box, q } of G.maths) {
+      if (!near(box)) continue;
+      q.forEach((qi, i) => { if ((qi.width || qi.height) && near(qi)) items.push({ kind: 'g', m, g, i, q: qi }); });
+    }
+    const ix = S.index;
+    for (const { ni, box } of G.nodes) {
+      if (!near(box)) continue;
+      if (!G.chars.has(ni)) {
+        const cs = [];
+        for (let p = firstPos(ni, 0); p >= 0 && p < ix.text.length && ix.posNode[p] === ni; p++) {
+          const q = ix.text[p] === ' ' ? null : charRect(p);
+          if (q) cs.push([p, G.page(q)]);
+        }
+        G.chars.set(ni, cs);
+      }
+      for (const [p, q] of G.chars.get(ni)) if (near(q)) items.push({ kind: 't', pos: p, q });
+    }
+    let hit = items.filter(it => inside(it.q));
+    if (!hit.length) {   // 下划线 / 上划线：横向在笔画范围内、竖直方向离笔画最近的那一行
+      const over = items.filter(it => { const cx = (it.q.left + it.q.right) / 2; return cx >= l && cx <= r && dist(it.q) <= pad; });
+      if (over.length) {
+        const dmin = Math.min(...over.map(it => dist(it.q)));
+        hit = over.filter(it => dist(it.q) <= dmin + 0.5 * (it.q.bottom - it.q.top));
+      }
+    }
+    if (!hit.length) {   // 箭头、旁注：离笔画最近的那一个
+      const best = items.map(it => [dist(it.q), it]).filter(([d]) => d <= pad).sort((x, y) => x[0] - y[0])[0];
+      hit = best ? [best[1]] : [];
+    }
+    if (!hit.length) return null;
+    // 核对用：圈住的每个字 / 符号与笔画起点的相对位置（正文卡片 px），按页面上的先后排
+    const hitPos = hit.slice().sort((x, y) => (x.kind === 'g' && y.kind === 'g' && x.m === y.m) ? x.i - y.i : (x.q.top - y.q.top) || (x.q.left - y.q.left))
+      .map(it => [it.kind === 'g' ? it.g.ch[it.i] : ix.text[it.pos], (P[0].x - it.q.left) / f.s, (P[0].y - it.q.top) / f.s]);
+    const got = strokeCoverAnchor(hit, ix, f);
+    if (got) got.hit = hitPos;
+    return got;
+  }
+  /** strokeCover 的后半：圈住的那些字 / 符号 → 锚点（主要是公式符号就锚公式里那一串，否则锚正文那一段字）。 */
+  function strokeCoverAnchor(hit, ix, f) {
+    if (2 * hit.filter(it => it.kind === 'g').length >= hit.length) {   // 主要圈在公式上：符号最多的那个公式里第一个到最后一个
+      const by = new Map();
+      for (const it of hit) if (it.kind === 'g') by.set(it.m.el, (by.get(it.m.el) || []).concat([it]));
+      const gs = [...by.values()].sort((x, y) => y.length - x.length)[0], g = gs[0].g;
+      const i0 = Math.min(...gs.map(it => it.i)), i1 = Math.max(...gs.map(it => it.i));
+      const bp = posFromElement(gs[0].m.el), bs = bp >= 0 ? blockSpan(bp) : null;
+      return { anchor: { type: 'math', tex: gs[0].m.tex, ctx: contextBefore(gs[0].m.el), g: glyphQuote(g, i0),
+                         cover: g.ch.slice(i0, i1 + 1).join(''), gi: i0, gn: g.ch.length,
+                         block: bs ? ix.text.slice(bs.start, bs.end) : '' },
+               frame: 'px', R: localRect(g.els[i0].getBoundingClientRect(), f) };
+    }
+    const ps = hit.filter(it => it.kind === 't').map(it => it.pos), p0 = Math.min(...ps), p1 = Math.max(...ps);
+    const got = textAnchor(p0, f);
+    if (got) {
+      const { start, end } = blockSpan(p0);
+      Object.assign(got.anchor, { cover: ix.text.slice(p0, p1 + 1), block: ix.text.slice(start, end) });
+    }
+    return got;
+  }
+  /** 两段文字的字二元组 Jaccard 相似度（改写措辞、调换语序后仍然高，换成别的段落就低）。 */
+  function bigramSim(a, b) {
+    const grams = s => { const o = new Set(); for (let i = 0; i + 1 < s.length; i++) o.add(s.slice(i, i + 2)); return o; };
+    const A = grams(a), B = grams(b);
+    let n = 0;
+    for (const x of A) if (B.has(x)) n++;
+    return A.size + B.size ? n / (A.size + B.size - n) : 1;
+  }
+  /** 正文里圈住的关键词：全页找这串字（不行再按改名表换写法找），只有一处就是它；几处就挑所在段落与原段落最像的
+   * （coverCtxAccept 以上），同样像的取离原位置近的；一处都没有（关键词删了）返回 null，这笔不画。 */
+  function findCover(a, orig, f) {
+    const t = S.index.text;
+    let cover = a.cover, hits = allIndexes(t, cover, 2000);
+    if (!hits.length) { const r = renamedText(cover, 0); if (r) { cover = r.s; hits = allIndexes(t, cover, 2000); } }
+    if (!hits.length) return null;
+    const out = pos => {   // 关键词或它前后的字按改名表换了写法：存的锚点一并改成新写法
+      const rn = s => { const r = renamedText(s || '', 0); return r ? r.s : (s || ''); };
+      const m = { cover, exact: cover[0], prefix: rn(a.prefix), suffix: rn(a.suffix), block: rn(a.block) };
+      return Object.keys(m).every(k => m[k] === (a[k] || '')) ? { pos } : { pos, migrated: Object.assign({}, a, m) };
+    };
+    if (hits.length === 1 || !a.block) return out(nearestPos(hits, orig, f));
+    // 每一处比两样：紧挨着的前后各 10 字（只改了段落别处时原样不变），和周围与原段落等长的一段（改写、换语序、拆段也认得出）。
+    // 认它的条件：前或后 10 字几乎原样（≥ coverNearAccept），或段落相似（≥ coverCtxAccept）且前后 10 字也不差（≥ coverCtxAccept）。
+    // 几处都认：先挑前后 10 字原样的，再比段落相似度，再比前后 10 字
+    const L = 10, pre = a.prefix.slice(-L), suf = a.suffix.slice(cover.length - 1, cover.length - 1 + L);
+    const half = Math.max(40, a.block.length >> 1);
+    let best = null, key = null;
+    for (const p of hits) {
+      const sp = similarity(pre, t.slice(Math.max(0, p - L), p)), ss = similarity(suf, t.slice(p + cover.length, p + cover.length + L));
+      const sb = bigramSim(a.block, t.slice(Math.max(0, p - half), p + cover.length + half));
+      const near = Math.max(sp, ss) >= CFG.coverNearAccept;
+      if (!near && !(sb >= CFG.coverCtxAccept && (sp + ss) / 2 >= CFG.coverCtxAccept)) continue;
+      const k = [near ? 1 : 0, sb, sp + ss];
+      if (!key || k[0] > key[0] || (k[0] === key[0] && (k[1] > key[1] + 1e-9 || (Math.abs(k[1] - key[1]) <= 1e-9 && k[2] > key[2])))) { best = p; key = k; }
+    }
+    return key ? out(best) : null;
+  }
+  /** 公式里圈住的符号串：先在原公式（TeX 相同或按改名表换过）里找，找不到再在全页陈列公式里找；几处就挑整个公式与原公式
+   * 最像的（符号二元组 Jaccard），一处都没有返回 null。返回 {el: 公式, glyph: 起始符号元素}。 */
+  function findCoverGlyph(a) {
+    // 圈住的末尾标点（句号、逗号）不算内容：公式里「sin θ.」改成「sin ψ,」仍是同一处
+    const all = allMath(), seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover);
+    const renamed = renamedTex(a.tex);
+    const own = all.filter(m => m.tex === a.tex || (renamed && m.tex === renamed));
+    // 找到的位置（公式 m 的第 i 个符号）；公式换了（改名、并进别的公式）就把存的锚点一并改成新公式里的这一处
+    const found = (m, g, i) => {
+      const r = { el: m.el, glyph: g.els[i] };
+      if (m.tex === a.tex) return r;
+      const n = Array.from(a.cover).length, bp = posFromElement(m.el), bs = bp >= 0 ? blockSpan(bp) : null;
+      r.migrated = Object.assign({}, a, { tex: m.tex, ctx: contextBefore(m.el), g: glyphQuote(g, i), gi: i, gn: g.ch.length,
+                                           cover: g.ch.slice(i, i + n).join(''), block: bs ? S.index.text.slice(bs.start, bs.end) : a.block });
+      return r;
+    };
+    const search = list => {
+      const out = [];
+      for (const m of list) {
+        const g = glyphList(m.el);
+        let idx = seqIndexes(g.ch, seq);
+        if (!idx.length) { const r = renamedText(a.cover, 0); if (r) idx = seqIndexes(g.ch, Array.from(r.s)); }
+        for (const i of idx) out.push({ m, g, i });
+      }
+      return out;
+    };
+    let hits = search(own);
+    if (!hits.length && own.length) {
+      // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
+      const m = own.find(o => glyphList(o.el).ch.length === a.gn);
+      if (m && a.gi !== undefined) { const g = glyphList(m.el); return found(m, g, a.gi); }
+      // 符号个数也变了（改名表把它连到改写后的公式）：圈住的符号串按改名表里的字母换名（t → q、θ → ψ，一次用一组）
+      // 换过后在这个公式里原样找；找不到就是圈的内容改了，不画
+      for (const lm of letterMaps()) {
+        const mseq = seq.map(c => lm.get(c) || c);
+        if (mseq.every((c, k) => c === seq[k])) continue;
+        const hs = own.flatMap(o => { const g = glyphList(o.el); return seqIndexes(g.ch, mseq).map(i => ({ m: o, g, i })); });
+        if (hs.length) { hits = hs; break; }
+      }
+      if (!hits.length) return null;
+    }
+    // 原公式没了（并进了更长的公式）：原公式短到符号锚点存下了它的全部符号时，全页找这整串，恰好一处就按原序号放
+    if (!hits.length && a.g && a.gi !== undefined && a.g.prefix.length === a.gi && a.gi + 1 + a.g.suffix.length === a.gn) {
+      const whole = Array.from(a.g.prefix + a.g.exact + a.g.suffix);
+      const at = all.flatMap(m => { const g = glyphList(m.el); return seqIndexes(g.ch, whole).map(i => ({ m, g, i: i + a.gi })); });
+      if (at.length === 1) return found(at[0].m, at[0].g, at[0].i);
+    }
+    // 原公式改写了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
+    if (!hits.length && seq.length >= 2) hits = search(all);
+    if (!hits.length) return null;
+    // 几处一样（短的行内公式常见）：依次比所在段落、公式前面的字、公式里前后的符号
+    const origG = a.g.prefix + a.g.exact + a.g.suffix, t = S.index.text;
+    const score = h => {
+      const p = posFromElement(h.m.el), bs = p >= 0 ? blockSpan(p) : null, q = glyphQuote(h.g, h.i);
+      return [a.block && bs ? bigramSim(a.block, t.slice(bs.start, bs.end)) : 0,
+              similarity(a.ctx || '', contextBefore(h.m.el)), bigramSim(origG, q.prefix + q.exact + q.suffix)];
+    };
+    const keyed = hits.map(h => [score(h), h]);
+    keyed.sort((x, y) => (y[0][0] - x[0][0]) || (y[0][1] - x[0][1]) || (y[0][2] - x[0][2]));
+    const h = keyed[0][1];
+    return found(h.m, h.g, h.i);
+  }
+  /** 一整笔（正文卡片坐标的点）的锚点：主要落在图 / 视频里就锚整张图；否则锚圈住的内容；没圈住也不挨着内容（页边旁注）
+   * 就逐级放宽到离它最近的那个字 / 符号（按页面几何算，不靠屏幕上点到的元素：笔在视口外时点不到它）；都不行退回起笔点规则。 */
+  function anchorForStroke(abs) {
+    if (!S.geomBatch) S.geom = null;   // 单独一笔：现量（折叠框开合会改排版）；批量迁移时共用一份
+    const f = frame(), P = abs.map(p => toClient(p[0], p[1], f));
+    for (const m of article.querySelectorAll('img, video')) {
+      const q = elementRect(m);   // 收起的折叠里的图仍有布局矩形，要跳过（否则画在折叠框后面正文上的笔会挂到它上面）
+      if (q && 2 * P.filter(p => p.x >= q.left && p.x <= q.right && p.y >= q.top && p.y <= q.bottom).length > P.length) {
+        return { anchor: { type: 'media', src: srcKey(m), ctx: contextBefore(m) }, frame: 'norm', R: localRect(q, f) };
+      }
+    }
+    for (const px of [CFG.nearPx, 120, 480, 1920]) { const got = strokeCover(abs, f, px); if (got) return got; }
+    return anchorAt(Math.min(Math.max(P[0].x, 1), innerWidth - 1), Math.min(Math.max(P[0].y, 1), innerHeight - 1));
+  }
+  /** 起笔处（屏幕坐标）的锚点；点不在正文内容上就取最近的可锚元素；实在没有就锚到正文卡片本身。 */
+  function anchorAt(cx, cy) {
+    ensureIndex();
+    const f = frame();
+    capture.classList.add('probe');   // 让命中测试穿过输入层
+    try {
+      let el = topElement(cx, cy), got = null;
+      if (el && article.contains(el)) got = anchorForElement(el, cx, cy, f);
+      if (!got) {
+        const near = nearestTarget(cx, cy);
+        if (near) {
+          const inner = topElement(near.x, near.y);
+          got = anchorForElement(inner && near.el.contains(inner) ? inner : near.el, near.x, near.y, f);
+        }
+      }
+      return got || { anchor: { type: 'page' }, frame: 'px', R: { x: 0, y: 0, w: 1, h: 1 } };
+    } finally {
+      capture.classList.remove('probe');
+    }
+  }
+
+  /* ---------- 7. 还原锚点（锚点 → 当前页面上的元素 / 字符） ---------- */
+  /** 几个同样匹配的候选里挑一个：先比前文 ctx 的相似度，再比离原位置的竖直距离。 */
+  function pickCandidate(cands, a, orig, f) {
+    if (cands.length <= 1) return cands[0] || null;
+    let best = null, bestKey = null;
+    for (const el of cands) {
+      const sc = a.ctx ? similarity(a.ctx, contextBefore(el)) : 0;
+      const r = elementRect(el), dy = r ? Math.abs(localRect(r, f).y - orig.y) : Infinity;
+      if (!best || sc > bestKey[0] + 0.01 || (Math.abs(sc - bestKey[0]) <= 0.01 && dy < bestKey[1])) {
+        best = el; bestKey = [sc, dy];
+      }
+    }
+    return best;
+  }
+  function nearestPos(hits, orig, f) {
+    if (hits.length === 1) return hits[0];
+    let best = hits[0], bestD = Infinity;
+    for (const p of hits) {
+      const r = charRect(p), d = r ? Math.abs(localRect(r, f).y - orig.y) : Infinity;
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best;
+  }
+  /* ---------- 7b. 记号改名表：内容只是换了写法（如 d → δ），笔记跟着改名后的内容走 ----------
+   * build_site 把 docs/drafts/notation_renames_<页>.json 嵌进页面 <script id="annot-renames">：
+   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。只用于有圈住内容（cover）的笔：圈住的那串按原样找不到时，
+   * 按改名表（可连续改名）换成新写法再找（findCover / findCoverGlyph），找到就把存的锚点改成新写法；还找不到就隐藏。 */
+  const collapse = s => (s || '').replace(/\s+/g, ' ');
+  function renameMap() {
+    const el = document.getElementById('annot-renames');
+    const raw = el ? el.textContent : '';
+    if (renameMap.raw !== raw) {
+      let m = {};
+      try { m = JSON.parse(raw || '{}') || {}; } catch (e) { m = {}; }
+      const pick = (o, fn) => new Map(Object.entries(o && typeof o === 'object' ? o : {})
+        .filter(([k, v]) => k && typeof v === 'string').map(([k, v]) => [fn(k), fn(v)]));
+      renameMap.raw = raw;
+      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse) };
+    }
+    return renameMap.val;
+  }
+  /** 改名表里「只差字母一一换名」的那些公式对，各自换了哪些字母（公式符号字符 → 新字符，如 t → q、θ → ψ）。
+   * 两边按 TeX 记号切开、记号数相同、不同处全是字母才算；每一对给一组，按出现顺序去重。 */
+  const GREEK = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ϵ', varepsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ',
+                  vartheta: 'ϑ', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ',
+                  phi: 'ϕ', varphi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω' };
+  function letterMaps() {
+    const raw = renameMap();
+    if (letterMaps.of === raw) return letterMaps.val;
+    const tok = s => s.match(/\\[A-Za-z]+|\S/g) || [];
+    const glyph = t => (/^[A-Za-z]$/.test(t) ? t : (t[0] === '\\' && GREEK[t.slice(1)]) || null);
+    const out = [], seen = new Set();
+    for (const [o, n] of raw.tex) {
+      const A = tok(o), B = tok(n);
+      if (A.length !== B.length) continue;
+      const m = new Map();
+      let ok = true;
+      A.forEach((x, k) => { if (!ok || x === B[k]) return; const gx = glyph(x), gy = glyph(B[k]);
+                            if (!gx || !gy || (m.has(gx) && m.get(gx) !== gy)) ok = false; else m.set(gx, gy); });
+      const key = [...m].join(';');
+      if (ok && m.size && !seen.has(key)) { seen.add(key); out.push(m); }
+    }
+    letterMaps.of = raw; letterMaps.val = out;
+    return out;
+  }
+  /** TeX 沿改名表走到底（a→b→c；有环就停）；没改名返回 null。 */
+  function renamedTex(tex) {
+    const m = renameMap().tex, seen = new Set([tex]);
+    let t = tex;
+    while (m.has(t) && !seen.has(m.get(t))) { t = m.get(t); seen.add(t); }
+    return t === tex ? null : t;
+  }
+  /** 文字按改名表逐个替换、重复到不再变化（最多 20 轮）；mark = 被锚字在 s 里的位置，随替换平移
+   * （被锚字本身被替换时落到替换后的第一个字）。没有任何替换返回 null。 */
+  function renamedText(s, mark) {
+    const m = renameMap().text;
+    let changed = false;
+    for (let pass = 0; pass < 20 && m.size; pass++) {
+      let any = false;
+      for (const [o, n] of m) {
+        if (o === n) continue;
+        for (let i = s.indexOf(o); i >= 0; i = s.indexOf(o, i + n.length)) {
+          if (i + o.length <= mark) mark += n.length - o.length; else if (i <= mark) mark = i;
+          s = s.slice(0, i) + n + s.slice(i + o.length);
+          any = changed = true;
+        }
+      }
+      if (!any) break;
+    }
+    return changed ? { s, mark } : null;
+  }
+  function exactQuote(a, orig, f) {
+    const hits = allIndexes(S.index.text, a.prefix + a.exact + a.suffix).map(i => i + a.prefix.length);
+    return hits.length ? nearestPos(hits, orig, f) : -1;
+  }
+  /** 按锚点类型在当前页面找目标：有圈住内容（cover）的跟着这串内容走，其余只按原样精确找。
+   * 返回 {el} / {pos} / {el, glyph}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
+  function findTarget(a, orig, f) {
+    if (a.type === 'page') return { el: main };
+    if (a.type === 'text' && a.cover) return findCover(a, orig, f);
+    if (a.type === 'math' && a.cover) return findCoverGlyph(a);
+    return findExact(a, orig, f);
+  }
+  /** 没有圈住内容（cover）的锚点（用户 10-25 确认过的第 2 次画完的笔，画笔时还没有 cover）：只按原样精确找——正文前后文
+   * 一字不差、公式 TeX 相同且符号前后文原样出现、图 src 相同、标题 / 表格文字相同；不用改名表、不模糊匹配。
+   * 找不到返回 null（这笔隐藏）。 */
+  function findExact(a, orig, f) {
+    if (a.gone) return null;   // 迁移时判出内容在新版里没了（repair_notes_positions --apply-snapshot），不画
+    if (a.type === 'text') { const p = exactQuote(a, orig, f); return p >= 0 ? { pos: p } : null; }
+    let cands = [];
+    if (a.type === 'media') {
+      cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
+    } else if (a.type === 'math') {
+      const els = displayMath().filter(m => m.tex === a.tex).map(m => m.el);
+      if (!a.g) cands = els;
+      else {   // 符号锚点：前后各 glyphLen 个符号连同被锚符号原样出现在这个公式里，几处取第一处
+        const seq = Array.from(a.g.prefix + a.g.exact + a.g.suffix), k = Array.from(a.g.prefix).length;
+        const hits = els.map(el => { const g = glyphList(el), i = seqIndexes(g.ch, seq)[0]; return i === undefined ? null : { el, glyph: g.els[i + k] }; })
+                        .filter(Boolean);
+        const el = pickCandidate(hits.map(h => h.el), a, orig, f);
+        return el ? hits.find(h => h.el === el) : null;
+      }
+    } else if (a.type === 'cell') {
+      cands = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === a.cell && headerText(c) === a.head);
+    } else if (a.type === 'heading') {
+      cands = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(h => plainText(h) === a.text);
+    }
+    const el = pickCandidate(cands, a, orig, f);
+    return el ? { el } : null;
+  }
+  /** 一笔当前该画在哪：{state: 'ok' | 'hidden' | 'orphan', R（正文卡片内坐标的参考矩形）, el（所在元素）}。 */
+  function place(s, f) {
+    let c = S.cache.get(s.id);
+    if (!c) { c = { target: findTarget(s.anchor, s.orig, f) }; S.cache.set(s.id, c); }
+    const t = c.target;
+    if (t && t.migrated) {   // 按改名表迁到新写法：改存的锚点，渲染完统一保存并同步
+      s.anchor = t.migrated; s.updatedAt = Date.now(); delete t.migrated; S.migrated = true;
+    }
+    if (!t) return { state: 'orphan', R: s.orig, el: main };
+    if (t.el === main) return { state: 'ok', R: s.orig, el: main };
+    if (t.glyph) {   // 圈住的公式符号串：画在找到的起始符号上
+      const r = elementRect(t.glyph);
+      return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
+    }
+    if (t.pos !== undefined) {
+      const r = charRect(t.pos), node = S.index.nodes[S.index.posNode[t.pos]];
+      return r ? { state: 'ok', R: localRect(r, f), el: node.parentElement } : { state: 'hidden' };
+    }
+    const r = elementRect(t.el);
+    return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
+  }
+
+  /* ---------- 8. 笔画几何 ---------- */
+  /** 存储坐标 → 正文卡片内坐标 [x, y, 压感]。 */
+  function absPoints(s, R) {
+    return s.frame === 'norm' ? s.pts.map(p => [R.x + p[0] * R.w, R.y + p[1] * R.h, p[2]])
+                              : s.pts.map(p => [R.x + p[0], R.y + p[1], p[2]]);
+  }
+  /** 正文卡片内坐标 → 存储坐标（norm 存 4 位小数，px 存 2 位）。 */
+  function framePoints(abs, R, frameKind) {
+    if (frameKind === 'norm') {
+      return abs.map(p => [round((p[0] - R.x) / (R.w || 1), 1e4), round((p[1] - R.y) / (R.h || 1), 1e4), round(p[2], 100)]);
+    }
+    return abs.map(p => [round(p[0] - R.x, 100), round(p[1] - R.y, 100), round(p[2], 100)]);
+  }
+  /** 一点的半径：笔随压感变粗细（鼠标等无压感记作 -1，用固定粗细）；荧光笔固定。 */
+  function radius(s, p) {
+    if (s.tool === 'hl') return s.w / 2;
+    return p < 0 ? s.w / 2 : (s.w / 2) * (0.35 + 1.3 * Math.max(0.12, Math.min(1, p)));
+  }
+  const fmt = v => (Math.round(v * 10) / 10).toString();
+  /** 笔：每个点一个圆 + 相邻两点间一个梯形，全部同一绕向，nonzero 填充得到粗细可变的连续笔画。 */
+  function penPath(s, abs) {
+    let d = '';
+    for (let i = 0; i < abs.length; i++) {
+      const [x, y, p] = abs[i], r = radius(s, p);
+      d += `M${fmt(x - r)} ${fmt(y)}a${fmt(r)} ${fmt(r)} 0 1 0 ${fmt(2 * r)} 0a${fmt(r)} ${fmt(r)} 0 1 0 ${fmt(-2 * r)} 0Z`;
+      if (i === 0) continue;
+      const [x0, y0, p0] = abs[i - 1], r0 = radius(s, p0), len = Math.hypot(x - x0, y - y0);
+      if (len < 0.01) continue;
+      const nx = -(y - y0) / len, ny = (x - x0) / len;
+      let q = [[x0 + nx * r0, y0 + ny * r0], [x + nx * r, y + ny * r], [x - nx * r, y - ny * r], [x0 - nx * r0, y0 - ny * r0]];
+      let area = 0;
+      for (let k = 0; k < 4; k++) { const a = q[k], b = q[(k + 1) % 4]; area += a[0] * b[1] - b[0] * a[1]; }
+      if (area > 0) q = q.reverse();   // 与圆的绕向（面积为负）一致，避免重叠处出现空洞
+      d += 'M' + q.map(v => fmt(v[0]) + ' ' + fmt(v[1])).join('L') + 'Z';
+    }
+    return d;
+  }
+  /** 荧光笔：一条等宽折线。 */
+  function hlPath(abs) {
+    return abs.length === 1 ? `M${fmt(abs[0][0])} ${fmt(abs[0][1])}h0.1`
+                            : 'M' + abs.map(v => fmt(v[0]) + ' ' + fmt(v[1])).join('L');
+  }
+  function styleStrokePath(path, s, abs) {
+    if (s.tool === 'hl') {
+      path.setAttribute('d', hlPath(abs));
+      path.setAttribute('fill', 'none'); path.setAttribute('stroke', s.color); path.setAttribute('stroke-width', s.w);
+      path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute('opacity', '0.38');
+    } else {
+      path.setAttribute('d', penPath(s, abs));
+      path.setAttribute('fill', s.color); path.setAttribute('fill-rule', 'nonzero');
+    }
+    path.setAttribute('class', s.tool === 'hl' ? 'hl' : 'pen');
+  }
+  function bbox(abs, pad) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of abs) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    return { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad };
+  }
+  function segDist(px, py, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, ((px - a[0]) * dx + (py - a[1]) * dy) / l2)) : 0;
+    return Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy);
+  }
+  /** 正文卡片内坐标 (x, y) 半径 rad 内碰到的第一笔（只看当前显示的笔）。 */
+  function strokeAt(x, y, rad) {
+    for (let i = S.strokes.length - 1; i >= 0; i--) {
+      const s = S.strokes[i], d = S.drawn.get(s.id);
+      if (!d || !d.abs) continue;
+      const pad = rad + s.w;
+      const b = d.box;
+      if (x < b.x0 - pad || x > b.x1 + pad || y < b.y0 - pad || y > b.y1 + pad) continue;
+      const pts = d.abs;
+      if (pts.length === 1 && Math.hypot(x - pts[0][0], y - pts[0][1]) <= pad) return s;
+      for (let k = 1; k < pts.length; k++) if (segDist(x, y, pts[k - 1], pts[k]) <= rad + s.w / 2) return s;
+    }
+    return null;
+  }
+
+  /* ---------- 9. 渲染（锚点变化或排版变化时重放所有笔；书写中只重画当前这一笔） ---------- */
+  let renderQueued = false;
+  function scheduleRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(() => { renderQueued = false; renderAll(); });
+  }
+  // 核对页（check/<版本>/）：只显示在这一版上画的笔（NIPC_ONLY = 笔 id 列表），其余笔不画也不动
+  const ONLY = Array.isArray(window.NIPC_ONLY) ? new Set(window.NIPC_ONLY) : null;
+  function renderAll() {
+    ensureIndex();
+    const f = frame(), alive = new Set();
+    let orphans = 0, hidden = 0;
+    for (const s of S.strokes) {
+      if (ONLY && !ONLY.has(s.id)) continue;
+      alive.add(s.id);
+      let d = S.drawn.get(s.id);
+      if (!d) {
+        const path = document.createElementNS(SVGNS, 'path');
+        path.dataset.id = s.id;
+        layer.appendChild(path);
+        d = { path, key: '' };
+        S.drawn.set(s.id, d);
+      }
+      const pl = place(s, f);
+      d.state = pl.state; d.el = pl.el;
+      // 圈的内容在本页找不到（orphan）和在收起的折叠里（hidden）一样不画：任何页面都不显示灰色笔，也擦不到、拖不动、打印不出
+      d.path.classList.toggle('orphan', pl.state === 'orphan');
+      if (pl.state !== 'ok') {
+        d.path.style.display = 'none'; d.abs = null; d.key = '';
+        if (pl.state === 'orphan') orphans++; else hidden++;
+        continue;
+      }
+      d.path.style.display = '';
+      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',');
+      if (key !== d.key) {
+        d.abs = absPoints(s, R); d.box = bbox(d.abs, 0); d.key = key;
+        styleStrokePath(d.path, s, d.abs);
+      }
+    }
+    for (const [id, d] of S.drawn) if (!alive.has(id)) { d.path.remove(); S.drawn.delete(id); }
+    S.orphans = orphans; S.hidden = hidden;
+    if (ONLY && !S.printing) {
+      // 核对页上（笔画的那一版、用户自己的设备和字体）：显示出来的笔就地算出圈住的内容，笔不动，存回笔记
+      const todo = S.strokes.filter(s => ONLY.has(s.id) && !s.coverOn && s.anchor.type !== 'media' && s.anchor.type !== 'page');
+      if (coverOnDevice(todo, window.NIPC_CHECK_VERSION || PAGE_VERSION).length) { commit(); return; }
+    }
+    if (S.migrated) { S.migrated = false; saveStored(); schedulePush(); }
+    updateStatus();
+  }
+
+  /** 在用户设备上（当前页面的排版、字体）把 list 里此刻显示着的笔按它们显示的位置重新算圈住的内容，只改匹配字段
+   * （anchor / frame / orig / pts）并记 coverOn = {page: 在哪一版上算的, at, ua}；drawn 不动。返回算了的笔。 */
+  function coverOnDevice(list, page) {
+    const todo = list.filter(s => { const d = S.drawn.get(s.id); return d && d.state === 'ok' && d.abs; });
+    S.geom = null; S.geomBatch = true;
+    for (const s of todo) {
+      reanchor(s, S.drawn.get(s.id).abs);
+      s.coverOn = { page, at: new Date().toISOString(), ua: navigator.userAgent };
+    }
+    S.geomBatch = false; S.geom = null;
+    return todo;
+  }
+
+  /* ---------- 10. 操作：书写、橡皮擦、移动、撤销、清空 ---------- */
+  function snapshot() { return JSON.stringify(S.strokes); }
+  function pushUndo(snap) { S.undo.push(snap); if (S.undo.length > CFG.undoLimit) S.undo.shift(); }
+  /** 笔画集合变了：记删除（墓碑）、存本机、更新版式（第一笔会锁定版式）、重画，并安排同步。 */
+  function commit() { trackDeletions(); saveStored(); applyLayout(); S.cache.clear(); scheduleRender(); schedulePush(); }
+  /** 与上次提交相比消失的笔记墓碑；被撤销恢复、但已有墓碑的笔换新 id（否则同步时会被墓碑删掉）。 */
+  function trackDeletions() {
+    const now = Date.now(), ids = new Set();
+    for (const s of S.strokes) {
+      if (S.tombs[s.id]) { s.id = newId(); s.updatedAt = now; }
+      ids.add(s.id);
+    }
+    for (const id of S.lastIds) if (!ids.has(id)) S.tombs[id] = now;
+    S.lastIds = ids;
+  }
+  function forget(id) { S.cache.delete(id); const d = S.drawn.get(id); if (d) d.key = ''; }
+
+  function eventPoints(e) {
+    const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    return list.length ? list : [e];
+  }
+  function pressureOf(e) { return e.pointerType === 'pen' ? e.pressure : -1; }
+
+  function startStroke(e) {
+    const hl = S.tool === 'hl';
+    const s = { tool: hl ? 'hl' : 'pen', color: hl ? CFG.colors.yellow : CFG.colors[S.color], w: hl ? CFG.hlWidth : CFG.penWidth };
+    const path = document.createElementNS(SVGNS, 'path');
+    layer.appendChild(path);
+    const f = frame(), q = toLocal(e.clientX, e.clientY, f);
+    S.drawing = { id: e.pointerId, s, path, abs: [[q.x, q.y, pressureOf(e)]], queued: false };
+    drawActive();
+  }
+  function extendStroke(e) {
+    const dr = S.drawing, f = frame();
+    for (const ev of eventPoints(e)) {
+      const q = toLocal(ev.clientX, ev.clientY, f), last = dr.abs[dr.abs.length - 1];
+      if (Math.hypot(q.x - last[0], q.y - last[1]) < 0.6 / f.s) continue;   // 太密的点不要
+      dr.abs.push([q.x, q.y, pressureOf(ev)]);
+    }
+    if (!dr.queued) { dr.queued = true; requestAnimationFrame(drawActive); }
+  }
+  function drawActive() {
+    const dr = S.drawing;
+    if (!dr) return;
+    dr.queued = false;
+    styleStrokePath(dr.path, dr.s, dr.abs);
+  }
+  /** 收笔：按起笔点建锚点，把点换成锚点坐标存起来。 */
+  function finishStroke() {
+    const dr = S.drawing;
+    S.drawing = null;
+    dr.path.remove();
+    const got = anchorForStroke(dr.abs);
+    const s = Object.assign(dr.s, { id: newId(), updatedAt: Date.now(), anchor: got.anchor, frame: got.frame,
+                                    orig: roundRect(got.R), pts: framePoints(dr.abs, got.R, got.frame) });
+    s.drawn = drawnOf(s);
+    pushUndo(snapshot());
+    S.strokes.push(s);
+    commit();
+  }
+  const roundRect = R => ({ x: round(R.x, 100), y: round(R.y, 100), w: round(R.w, 100), h: round(R.h, 100) });
+
+  function eraseAt(e) {
+    const f = frame(), q = toLocal(e.clientX, e.clientY, f);
+    const s = strokeAt(q.x, q.y, CFG.eraseRadius / f.s);
+    if (!s) return;
+    S.strokes = S.strokes.filter(t => t !== s);
+    S.erasing.changed = true;
+    scheduleRender();
+  }
+  function startMove(e) {
+    const f = frame(), q = toLocal(e.clientX, e.clientY, f);
+    const s = strokeAt(q.x, q.y, CFG.eraseRadius / f.s);
+    if (s) S.moving = { id: e.pointerId, s, x: q.x, y: q.y, dx: 0, dy: 0, snap: snapshot() };
+  }
+  function dragMove(e) {
+    const mv = S.moving, q = toLocal(e.clientX, e.clientY, frame());
+    mv.dx = q.x - mv.x; mv.dy = q.y - mv.y;
+    S.drawn.get(mv.s.id).path.setAttribute('transform', `translate(${fmt(mv.dx)} ${fmt(mv.dy)})`);
+  }
+  /** 放下被拖动的笔：在新起笔点重新建锚点（灰色的笔拖到对应内容上就重新挂上）。 */
+  function finishMove() {
+    const mv = S.moving;
+    S.moving = null;
+    const d = S.drawn.get(mv.s.id);
+    d.path.removeAttribute('transform');
+    if (Math.hypot(mv.dx, mv.dy) < 0.5 || !d.abs) return;
+    reanchor(mv.s, d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]));
+    mv.s.drawn = drawnOf(mv.s);   // 用户移动 = 新的「画的」原样
+    pushUndo(mv.snap);
+    commit();
+  }
+  /** 一笔放到新位置 abs（正文卡片坐标）：按它在新位置圈住的内容重新建锚点，点换成新锚点坐标。 */
+  function reanchor(s, abs) {
+    const got = anchorForStroke(abs);
+    Object.assign(s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
+                       pts: framePoints(abs, got.R, got.frame) });
+    forget(s.id);
+  }
+  function undo() {
+    if (!S.undo.length) return setStatus('没有可以撤销的操作');
+    S.strokes = JSON.parse(S.undo.pop());
+    commit();
+  }
+  function clearPage() {
+    if (!S.strokes.length) return;
+    if (!confirm(`清空本页全部 ${S.strokes.length} 笔笔记？（之后仍可点「撤销」恢复）`)) return;
+    pushUndo(snapshot());
+    S.strokes = [];
+    commit();
+  }
+
+  /* ---------- 11. 输入：笔 / 鼠标画；手指交给浏览器原生滚动（带惯性） ----------
+   * 输入层是 touch-action: pan-x pan-y，手指拖动由浏览器自己滚页面，这里不处理手指的指针事件（浏览器开始滚动时会发
+   * pointercancel）。Apple Pencil 在 Safari 里的触摸 touchType 是 'stylus'：onTouch 只对笔触（以及正在写字时的任何触摸，
+   * 防手掌把页面拖走）调用 preventDefault，页面就不滚，笔的 pointer 事件照常用来画线。 */
+  function onDown(e) {
+    if (e.pointerType === 'touch') return;
+    if (e.button !== 0 || S.drawing || S.erasing || S.moving) return;
+    if (S.tool === 'eraser') { S.erasing = { id: e.pointerId, snap: snapshot(), changed: false }; eraseAt(e); }
+    else if (S.tool === 'move') { startMove(e); if (!S.moving) return; }
+    else startStroke(e);
+    e.preventDefault();
+    try { capture.setPointerCapture(e.pointerId); } catch (err) { /* 指针已结束 */ }
+  }
+  function onTouch(e) {
+    const stylus = Array.prototype.some.call(e.changedTouches, t => t.touchType === 'stylus');
+    if (stylus || S.drawing || S.erasing || S.moving) e.preventDefault();
+  }
+  function onMove(e) {
+    if (S.drawing && e.pointerId === S.drawing.id) extendStroke(e);
+    else if (S.erasing && e.pointerId === S.erasing.id) eraseAt(e);
+    else if (S.moving && e.pointerId === S.moving.id) dragMove(e);
+  }
+  function onUp(e) {
+    if (S.drawing && e.pointerId === S.drawing.id) finishStroke();
+    else if (S.erasing && e.pointerId === S.erasing.id) {
+      const er = S.erasing;
+      S.erasing = null;
+      if (er.changed) { pushUndo(er.snap); commit(); }
+    } else if (S.moving && e.pointerId === S.moving.id) finishMove();
+  }
+
+  /* ---------- 12. 导出 / 导入 ---------- */
+  function dateStamp() {
+    const d = new Date(), z = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+  }
+  /** 下载 <页面名>_notes_<日期>.json（iPad Safari 上会进「文件」App，可以 AirDrop）。 */
+  function exportNotes() {
+    const blob = new Blob([JSON.stringify(payload())], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${PAGE_NAME.replace(/\.html?$/, '')}_notes_${dateStamp()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 30000);
+    setStatus(`已导出 ${S.strokes.length} 笔：${a.download}`);
+  }
+  let pendingImport = null;
+  async function readImportFile(file) {
+    let data;
+    try { data = JSON.parse(await file.text()); } catch (e) { return setStatus('这个文件不是笔记 JSON', true); }
+    if (!data || data.format !== 'nipc-notes' || !Array.isArray(data.strokes) || data.version > CFG.version) {
+      return setStatus('这个文件不是本网页导出的笔记（或版本更新），没有导入', true);
+    }
+    if (data.page !== PAGE_NAME && !confirm(`这个笔记来自 ${data.page}，当前是 ${PAGE_NAME}，仍然导入？`)) return;
+    pendingImport = data.strokes.filter(validStroke);
+    choice.querySelector('p').textContent = `文件里有 ${pendingImport.length} 笔。本页现有 ${S.strokes.length} 笔：`;
+    choice.hidden = false;
+  }
+  /** mode = 'replace'：用文件里的笔替换本页；'merge'：加进本页（同一笔不重复）。 */
+  function applyImport(mode) {
+    choice.hidden = true;
+    const incoming = pendingImport;
+    pendingImport = null;
+    if (!incoming || mode === 'cancel') return;
+    pushUndo(snapshot());
+    if (mode === 'replace') S.strokes = incoming;
+    else { const have = new Set(S.strokes.map(s => s.id)); S.strokes = S.strokes.concat(incoming.filter(s => !have.has(s.id))); }
+    commit();
+    setStatus(`已导入 ${incoming.length} 笔（${mode === 'replace' ? '替换' : '合并'}）`);
+  }
+
+  /* ---------- 12b. 同步到 GitHub 私有仓库（填了 token 才启用；没填一切照旧只存本机） ----------
+   * 每页一个文件 notes/<页名>.json，内容 = payload()（含墓碑）。用 GitHub REST Contents API：
+   * GET /repos/{owner}/{repo}/contents/{path} 取 base64 内容和 sha；PUT 同一路径（message、base64 content、sha；新建不带 sha）。
+   * https://docs.github.com/en/rest/repos/contents
+   * 合并而不覆盖：按 id 取并集，同一 id 取 updatedAt 新的；墓碑（id → 删除时刻）胜过同 id 的笔。
+   * token 只存在 localStorage 的 SYNC_KEY 下，不写进日志、不进导出文件。 */
+  const SYNC_KEY = 'nipc-notes-sync';
+  const DEFAULT_REPO = 'delluluwxy/neural-ipc-notes';
+  const PUSH_DELAY_MS = 3000;
+  const SYNC_RETRIES = 3;
+  const SY = { sha: null, timer: null, busy: false, again: false, dirty: false, state: '', warn: false };
+
+  function syncCfg() {
+    if (SNAP) return { token: '', repo: DEFAULT_REPO };   // 快照页从不同步
+    try { const c = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; return { token: c.token || '', repo: c.repo || DEFAULT_REPO }; }
+    catch (e) { return { token: '', repo: DEFAULT_REPO }; }
+  }
+  function saveSyncCfg(cfg) {
+    try { localStorage.setItem(SYNC_KEY, JSON.stringify(cfg)); return true; } catch (e) { return false; }
+  }
+  const notesPath = () => 'notes/' + PAGE_NAME.replace(/\.html?$/, '') + '.json';
+  /** UTF-8 安全的 base64（笔记里有中文锚点文字，btoa 不能直接处理）。 */
+  function b64EncodeUtf8(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function b64DecodeUtf8(b64) {
+    const bin = atob(String(b64).replace(/\s/g, ''));
+    return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+  }
+  function ghRequest(cfg, init) {
+    return fetch(`https://api.github.com/repos/${cfg.repo}/contents/${notesPath()}`, Object.assign({
+      cache: 'no-store',
+      headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+    }, init));
+  }
+  /** 远端文件：{data（解析后的 JSON 或 null）, sha（不存在为 null）}。 */
+  async function ghGet(cfg) {
+    const r = await ghRequest(cfg, { method: 'GET' });
+    if (r.status === 404) return { data: null, sha: null };
+    if (!r.ok) throw new Error('读取 ' + r.status);
+    const j = await r.json();
+    return { data: JSON.parse(b64DecodeUtf8(j.content)), sha: j.sha };
+  }
+  /** 写远端文件；sha 过期（409 / 422）返回 {conflict: true}。 */
+  async function ghPut(cfg, data, sha, keepalive) {
+    const body = { message: `notes: ${PAGE_NAME} ${new Date().toISOString()}`, content: b64EncodeUtf8(JSON.stringify(data)) };
+    if (sha) body.sha = sha;
+    const r = await ghRequest(cfg, { method: 'PUT', body: JSON.stringify(body), keepalive: !!keepalive });
+    if (r.status === 409 || r.status === 422) return { conflict: true };
+    if (!r.ok) throw new Error('写入 ' + r.status);
+    const j = await r.json();
+    return { sha: j.content && j.content.sha };
+  }
+  /** 合并本机与远端：并集；同 id 取 updatedAt 新的；墓碑取较晚的删除时刻且胜过同 id 的笔。 */
+  function mergeNotes(local, remote) {
+    const tombs = Object.assign({}, validTombs(remote && remote.tombstones));
+    for (const [id, t] of Object.entries(local.tombs)) tombs[id] = Math.max(tombs[id] || 0, t);
+    const byId = new Map();
+    const remoteStrokes = remote && Array.isArray(remote.strokes) ? remote.strokes.filter(validStroke) : [];
+    for (const s of local.strokes.concat(remoteStrokes)) {
+      const o = byId.get(s.id);
+      // drawn 只随用户画 / 移动产生：选中的那份没有 drawn（老格式）而另一份有，就带上另一份的，绝不丢
+      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, !s.drawn && o && o.drawn ? Object.assign({}, s, { drawn: o.drawn }) : s);
+      else if (!o.drawn && s.drawn) byId.set(s.id, Object.assign({}, o, { drawn: s.drawn }));
+    }
+    return { strokes: [...byId.values()].filter(s => !tombs[s.id]), tombs };
+  }
+  /** 只比笔画和墓碑（忽略保存时间），判断远端是否已经是这个内容。 */
+  function sameNotes(a, b) {
+    const key = d => JSON.stringify([d.strokes.map(s => s.id + ':' + (s.updatedAt || 0)).sort(),
+                                     Object.keys(validTombs(d.tombstones || d.tombs)).sort()]);
+    return key(a) === key(b);
+  }
+  /** 把合并结果装进页面（不触发再次同步）。 */
+  function applyMerged(m) {
+    S.strokes = m.strokes; S.tombs = m.tombs; S.lastIds = new Set(m.strokes.map(s => s.id));
+    saveStored(); applyLayout(); S.cache.clear(); scheduleRender();
+  }
+  function setSync(state, warn) { SY.state = state; SY.warn = !!warn; updateStatus(); }
+  /** 拉取 → 合并 → 需要时推送；sha 冲突时重新拉取合并再推，最多重试 SYNC_RETRIES 次。 */
+  async function syncNow() {
+    const cfg = syncCfg();
+    if (!cfg.token) return;
+    if (SY.busy) { SY.again = true; return; }
+    clearTimeout(SY.timer);   // 这次同步已包含所有本机改动，取消还没到点的防抖推送
+    SY.busy = true; SY.dirty = false;
+    setSync('同步中');
+    try {
+      for (let attempt = 0; attempt <= SYNC_RETRIES; attempt++) {
+        const remote = await ghGet(cfg);
+        const merged = mergeNotes({ strokes: S.strokes, tombs: S.tombs }, remote.data);
+        applyMerged(merged);
+        if (remote.data && sameNotes(remote.data, merged)) { SY.sha = remote.sha; setSync('已同步'); return; }
+        const put = await ghPut(cfg, payload(), remote.sha, false);
+        if (!put.conflict) { SY.sha = put.sha; setSync('已同步'); return; }
+      }
+      throw new Error(`冲突重试 ${SYNC_RETRIES} 次仍失败`);
+    } catch (e) {
+      SY.dirty = true;
+      setSync('失败（' + (e && e.message ? e.message : '网络错误') + '）', true);
+    } finally {
+      SY.busy = false;
+      if (SY.again) { SY.again = false; schedulePush(); }
+    }
+  }
+  /** 本机改动后约 3 s 推送（连续改动只推一次）。 */
+  function schedulePush() {
+    if (!syncCfg().token) return;
+    SY.dirty = true;
+    clearTimeout(SY.timer);
+    SY.timer = setTimeout(syncNow, PUSH_DELAY_MS);
+  }
+  /** 页面切到后台：有没推的改动就立刻用 keepalive 推一次（按已知 sha；冲突留给下次打开时合并）。 */
+  function pushOnHide() {
+    const cfg = syncCfg();
+    if (document.visibilityState !== 'hidden' || !cfg.token || !SY.dirty || SY.busy) return;
+    clearTimeout(SY.timer);
+    ghPut(cfg, payload(), SY.sha, true).then(r => { if (!r.conflict) { SY.dirty = false; SY.sha = r.sha; } }, () => {});
+  }
+  function wireSync() {
+    const cfg = syncCfg();
+    $('#annot-token').value = cfg.token;
+    $('#annot-repo').value = cfg.repo;
+    $('#annot-sync').addEventListener('click', () => { $('#annot-sync-panel').hidden = !$('#annot-sync-panel').hidden; });
+    $('#annot-sync-save').addEventListener('click', () => {
+      const ok = saveSyncCfg({ token: $('#annot-token').value.trim(), repo: $('#annot-repo').value.trim() || DEFAULT_REPO });
+      setSync(ok ? (syncCfg().token ? '设置已保存' : '已清除 token，只存本机') : '设置保存失败（浏览器存储不可用）', !ok);
+      if (syncCfg().token) syncNow();
+    });
+    $('#annot-sync-now').addEventListener('click', syncNow);
+    document.addEventListener('visibilitychange', pushOnHide);
+  }
+
+  /* ---------- 13. 打印：每一笔挪进它所在的块，分页后仍跟着内容 ---------- */
+  function hostFor(el) {
+    if (!el || el === main) return main;
+    const wrap = el.closest('.tablewrap');
+    if (wrap) return wrap;
+    const h = el.closest('figure, p, li, h1, h2, h3, h4, h5, h6, blockquote, pre, summary, dt, dd, .demo, .lead');
+    return h && article.contains(h) ? h : main;
+  }
+  function enterPrint() {
+    if (S.printing) return;
+    renderAll();
+    S.printing = true;
+    const f = frame();
+    for (const s of S.strokes) {
+      const d = S.drawn.get(s.id);
+      if (!d || !d.abs) continue;
+      const host = hostFor(d.el);
+      const hr = localRect(host.getBoundingClientRect(), f);
+      const svg = document.createElementNS(SVGNS, 'svg');
+      svg.setAttribute('class', 'annot-print');
+      svg.style.left = fmt(-(hr.x + host.clientLeft)) + 'px';
+      svg.style.top = fmt(-(hr.y + host.clientTop)) + 'px';
+      svg.appendChild(d.path.cloneNode(true));
+      host.classList.add('annot-host');
+      host.appendChild(svg);
+    }
+    document.documentElement.classList.add('annot-printing');
+  }
+  function exitPrint() {
+    if (!S.printing) return;
+    document.querySelectorAll('svg.annot-print').forEach(n => n.remove());
+    document.querySelectorAll('.annot-host').forEach(n => n.classList.remove('annot-host'));
+    document.documentElement.classList.remove('annot-printing');
+    S.printing = false;
+    scheduleRender();
+  }
+
+  /* ---------- 14. 工具栏 ---------- */
+  const ui = document.createElement('div');
+  ui.className = SNAP ? 'annot-ui snap' : 'annot-ui';   // 快照页只读：CSS 藏掉画笔、撤销、导入、同步
+  ui.id = 'annot-ui';
+  ui.innerHTML = `
+    <button type="button" id="annot-fab" aria-label="展开笔记工具栏">✎ 笔记</button>
+    <div id="annot-panel" role="toolbar" aria-label="手写笔记">
+      <div class="annot-row">
+        <button type="button" id="annot-toggle" aria-pressed="false">标注 关</button>
+        <button type="button" id="annot-collapse" aria-label="收起工具栏">收起</button>
+      </div>
+      <div class="annot-row" id="annot-tools">
+        <button type="button" class="annot-swatch" data-tool="pen" data-color="red" style="--c:${CFG.colors.red}" aria-label="红笔"></button>
+        <button type="button" class="annot-swatch" data-tool="pen" data-color="blue" style="--c:${CFG.colors.blue}" aria-label="蓝笔"></button>
+        <button type="button" class="annot-swatch" data-tool="pen" data-color="black" style="--c:${CFG.colors.black}" aria-label="黑笔"></button>
+        <button type="button" class="annot-swatch hl" data-tool="hl" style="--c:${CFG.colors.yellow}" aria-label="荧光笔"></button>
+        <button type="button" data-tool="eraser">橡皮</button>
+        <button type="button" data-tool="move">移动</button>
+      </div>
+      <div class="annot-row">
+        <button type="button" id="annot-undo">撤销</button>
+        <button type="button" id="annot-clear">清空本页</button>
+        <button type="button" id="annot-export">导出</button>
+        <button type="button" id="annot-import">导入</button>
+        <button type="button" id="annot-sync">同步</button>
+        <input type="file" id="annot-file" accept=".json,application/json" tabindex="-1" aria-hidden="true">
+      </div>
+      <div id="annot-sync-panel" hidden>
+        <label>GitHub token <input type="password" id="annot-token" autocomplete="off" spellcheck="false"></label>
+        <label>仓库 <input type="text" id="annot-repo" autocomplete="off" spellcheck="false"></label>
+        <button type="button" id="annot-sync-save">保存</button>
+        <button type="button" id="annot-sync-now">立即同步</button>
+      </div>
+      <div id="annot-choice" hidden><p></p>
+        <button type="button" data-import="replace">替换</button>
+        <button type="button" data-import="merge">合并</button>
+        <button type="button" data-import="cancel">取消</button>
+      </div>
+      <div id="annot-status" aria-live="polite"></div>
+    </div>`;
+  const $ = sel => ui.querySelector(sel);
+  const choice = $('#annot-choice');
+  let statusMsg = '', statusWarn = false;
+
+  function setStatus(msg, warn) { statusMsg = msg; statusWarn = !!warn; updateStatus(); }
+  function updateStatus() {
+    const box = $('#annot-status');
+    box.textContent = '';
+    const line = document.createElement('div');
+    line.textContent = `本页 ${S.strokes.length} 笔` + (S.hidden ? `（${S.hidden} 笔在收起的折叠框里）` : '');
+    box.appendChild(line);
+    if (SY.state) {
+      const s = document.createElement('div');
+      s.id = 'annot-sync-state';
+      if (SY.warn) s.className = 'warn';
+      s.textContent = SY.state;
+      box.appendChild(s);
+    }
+    if (S.orphans) {
+      const w = document.createElement('div');
+      w.className = 'warn';
+      w.textContent = `有 ${S.orphans} 笔圈的内容已改或删，已隐藏`;
+      box.appendChild(w);
+    }
+    if (statusMsg) {
+      const m = document.createElement('div');
+      if (statusWarn) m.className = 'warn';
+      m.textContent = statusMsg;
+      box.appendChild(m);
+    }
+    $('#annot-fab').textContent = S.orphans ? `✎ 笔记 · ${S.orphans} 笔已隐藏` : '✎ 笔记';
+  }
+  function setOn(on) {
+    S.on = on;
+    const t = $('#annot-toggle');
+    t.setAttribute('aria-pressed', String(on));
+    t.textContent = on ? '标注 开' : '标注 关';
+    applyLayout();
+    scheduleRender();
+  }
+  function selectTool(tool, color) {
+    S.tool = tool;
+    if (color) S.color = color;
+    ui.querySelectorAll('[data-tool]').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.tool === tool && (tool !== 'pen' || b.dataset.color === S.color)));
+    });
+    if (!S.on) setOn(true);
+  }
+  function setCollapsed(c) {
+    ui.dataset.collapsed = c ? '1' : '0';
+    const pref = loadUi(); pref.collapsed = c; saveUi(pref);
+  }
+  function wireToolbar() {
+    $('#annot-fab').addEventListener('click', () => setCollapsed(false));
+    $('#annot-collapse').addEventListener('click', () => setCollapsed(true));
+    $('#annot-toggle').addEventListener('click', () => setOn(!S.on));
+    $('#annot-tools').addEventListener('click', e => {
+      const b = e.target.closest('[data-tool]');
+      if (b) selectTool(b.dataset.tool, b.dataset.color);
+    });
+    $('#annot-undo').addEventListener('click', undo);
+    $('#annot-clear').addEventListener('click', clearPage);
+    $('#annot-export').addEventListener('click', exportNotes);
+    $('#annot-import').addEventListener('click', () => $('#annot-file').click());
+    $('#annot-file').addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (file) readImportFile(file);
+    });
+    choice.addEventListener('click', e => { const b = e.target.closest('[data-import]'); if (b) applyImport(b.dataset.import); });
+  }
+
+  /* ---------- 15. 启动：等 MathJax 排完公式再挂图层（公式会改变正文文字和高度） ---------- */
+  const layer = document.createElementNS(SVGNS, 'svg');
+  layer.id = 'annot-layer';
+  layer.setAttribute('aria-hidden', 'true');
+  const capture = document.createElement('div');
+  capture.id = 'annot-capture';
+
+  function whenMathReady(cb) {
+    const t0 = Date.now();
+    let done = false;
+    const go = () => { if (!done) { done = true; cb(); } };
+    (function wait() {
+      const mj = window.MathJax;
+      if (mj && mj.startup && mj.startup.promise) mj.startup.promise.then(go, go);
+      else if (Date.now() - t0 > 15000) go();          // MathJax 没加载上（离线）：照样启用，只是没有公式锚点
+      else setTimeout(wait, 100);
+    })();
+  }
+  function start() {
+    main.appendChild(layer);
+    document.body.appendChild(capture);
+    document.body.appendChild(ui);
+    wireToolbar();
+    const pref = loadUi();
+    ui.dataset.collapsed = pref.collapsed === false ? '0' : '1';
+    selectTool('pen', 'red');
+    setOn(false);
+    const stored = loadStored();
+    S.strokes = stored.strokes; S.tombs = stored.tombs; S.lastIds = new Set(S.strokes.map(s => s.id));
+    wireSync();
+    applyLayout();
+    renderAll();
+    syncNow();   // 填了 token 才会联网：打开页面先拉取合并
+
+    capture.addEventListener('pointerdown', onDown);
+    capture.addEventListener('pointermove', onMove);
+    capture.addEventListener('pointerup', onUp);
+    capture.addEventListener('pointercancel', onUp);
+    capture.addEventListener('touchstart', onTouch, { passive: false });   // 非被动：preventDefault 才能阻止滚动
+    capture.addEventListener('touchmove', onTouch, { passive: false });
+    addEventListener('resize', () => { applyLayout(); scheduleRender(); });
+    new ResizeObserver(scheduleRender).observe(article);
+    article.addEventListener('toggle', scheduleRender, true);
+    new MutationObserver(() => { if (!S.printing) { S.domVersion++; scheduleRender(); } })
+      .observe(article, { childList: true, subtree: true, characterData: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleRender);
+    addEventListener('load', scheduleRender);
+    addEventListener('beforeprint', enterPrint);
+    addEventListener('afterprint', exitPrint);
+    const printMq = matchMedia('print');
+    const onPrintMq = () => (printMq.matches ? enterPrint() : exitPrint());
+    if (printMq.addEventListener) printMq.addEventListener('change', onPrintMq); else printMq.addListener(onPrintMq);
+
+    /** 核对旁注用：这笔此刻挂在正文哪个字上——那个字前后各 10 字，和笔画起点相对它的位置（px）；不是挂在正文字上返回 null。 */
+    /** 核对用：这笔此刻挂在哪——从挂靠点起、和圈住内容一样长的那串字 / 公式符号，和笔画起点相对第一个的位置（px）。 */
+    function targetOf(id, d, a) {
+      const c = S.cache.get(id), t = c && c.target, n = Array.from(a.cover || '').length;
+      if (!t || !n) return null;
+      const f = frame(), off = r => { const R = localRect(r, f); return [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2]; };
+      if (t.glyph) {
+        const g = glyphList(t.el), i = g.els.indexOf(t.glyph), r = elementRect(t.glyph);
+        return i >= 0 && r ? { ch: g.ch.slice(i, i + n).join(''), off: off(r) } : null;
+      }
+      if (t.pos === undefined) return null;
+      const r = charRect(t.pos);
+      return r ? { ch: S.index.text.slice(t.pos, t.pos + n), off: off(r) } : null;
+    }
+    function anchorCtx(id, d) {
+      const c = S.cache.get(id), t = c && c.target;
+      if (!t || t.pos === undefined) return null;
+      const r = charRect(t.pos), f = frame();
+      if (!r) return null;
+      const R = localRect(r, f), tx = S.index.text;
+      return { ctx: tx.slice(Math.max(0, t.pos - 10), t.pos + 11),
+               off: [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2] };
+    }
+    // 给自动化测试读状态用（tools/test_annotate.py）；页面本身不依赖它
+    window.__nipcNotes = {
+      // 正文里全部公式（陈列 + 行内），按文档先后：[{el, tex, display}]
+      mathsInOrder() {
+        let out = [];
+        try {
+          out = [...MathJax.startup.document.math].filter(m => m.typesetRoot && article.contains(m.typesetRoot))
+            .map(m => ({ el: m.typesetRoot, tex: norm(m.math), display: !!m.display }));
+        } catch (e) { /* MathJax 没加载 */ }
+        return out.sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+      },
+      contentIndex() {
+        const ix = ensureIndex();
+        const s = frame().s;   // width：公式在本机排版下的宽（正文卡片 px），只用来估一笔压住了几个记号
+        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el),
+                                                                     width: m.el.getBoundingClientRect().width / s })),
+                 media: [...article.querySelectorAll('img, video')].map(srcKey) };
+      },
+      where(ids) {
+        ensureIndex();
+        const f = frame(), M = this.mathsInOrder(), media = [...article.querySelectorAll('img, video')];
+        return Object.fromEntries(ids.map(id => {
+          const s = S.strokes.find(t => t.id === id);
+          if (!s) return [id, null];
+          if (!S.cache.get(id)) place(s, f);
+          const c = S.cache.get(id), t = c && c.target, d = S.drawn.get(id), state = d ? d.state : 'none';
+          if (!t) return [id, { state }];
+          if (t.el === main) return [id, { state, kind: 'page' }];
+          if (t.pos !== undefined) {   // w：锚字在本机排版下的宽（正文卡片 px）
+            const r = charRect(t.pos);
+            return [id, { state, kind: 'text', pos: t.pos, w: r ? r.width / f.s : 0 }];
+          }
+          const k = M.findIndex(m => m.el === t.el), glyph = t.glyph || c.glyph;
+          if (k >= 0) return [id, { state, kind: glyph ? 'glyph' : 'math', math: k, gi: glyph ? glyphList(t.el).els.indexOf(glyph) : -1 }];
+          const mi = media.indexOf(t.el);
+          if (mi >= 0) return [id, { state, kind: 'media', src: srcKey(t.el), nth: media.slice(0, mi).filter(e => srcKey(e) === srcKey(t.el)).length }];
+          return [id, { state, kind: 'other' }];
+        }));
+      },
+
+      strokes: () => S.strokes, render: renderAll, frame,
+      placed: id => { const d = S.drawn.get(id); return d ? { state: d.state, abs: d.abs } : null; },
+      status: () => ({ orphans: S.orphans, hidden: S.hidden, on: S.on, sync: SY.state, tombs: Object.keys(S.tombs).length }),
+      // 修位置用（tools/check_notes_anchors.py --repair）：同「移动」工具，把一笔平移 (dx, dy)（正文卡片坐标）后重新建锚点；
+      // 调用前要把新起笔点滚进视口。返回新锚点类型，找不到这一笔返回 null。
+      // 核对用（只读，不改笔记）：这些笔此刻各圈住了什么——锚点类型、圈住的内容串、笔画起点相对内容起点的位置（px）
+      coverOf: ids => {
+        S.geom = null; S.geomBatch = true;
+        const out = {};
+        for (const id of ids) {
+          const d = S.drawn.get(id);
+          if (!d || !d.abs || d.state !== 'ok') { out[id] = { state: d ? d.state : 'none' }; continue; }
+          const got = anchorForStroke(d.abs), a = got.anchor;
+          out[id] = { state: 'ok', type: a.type, cover: a.cover || a.src || a.text || a.cell || '',
+                      hit: (got.hit || []).map(([c, x, y]) => [c, Math.round(x * 2) / 2, Math.round(y * 2) / 2]),
+                      exact: a.cover ? '' : (a.exact || ''), tex: a.tex || '', at: anchorCtx(id, d),
+                      target: targetOf(id, d, (S.strokes.find(s => s.id === id) || {}).anchor || {}),
+                      off: [Math.round((d.abs[0][0] - got.R.x) * 2) / 2, Math.round((d.abs[0][1] - got.R.y) * 2) / 2],
+                      rel: got.frame === 'norm' ? [Math.round((d.abs[0][0] - got.R.x) / got.R.w * 1000) / 1000,
+                                                   Math.round((d.abs[0][1] - got.R.y) / got.R.h * 1000) / 1000] : null };
+        }
+        S.geomBatch = false; S.geom = null;
+        return out;
+      },
+      texList: () => allMath().map(m => m.tex),
+      // 核对字体排版用（只读）：每笔存的锚点此刻在本机排版下的参考矩形（正文卡片 px），与笔里存的画笔设备上的 orig 比
+      anchorRects: ids => Object.fromEntries(ids.map(id => {
+        const s = S.strokes.find(t => t.id === id);
+        if (!s) return [id, null];
+        const pl = place(s, frame());
+        return [id, pl.state === 'ok' ? { x: pl.R.x, y: pl.R.y, w: pl.R.w, h: pl.R.h, type: s.anchor.type } : null];
+      })),
+      // 查原因用（只读）：一笔圈住的关键词在当前页面每一处出现的位置、所在段落相似度、是否在收起的折叠里
+      explain: id => {
+        const s = S.strokes.find(t => t.id === id);
+        if (!s || !s.anchor.cover) return null;
+        ensureIndex();
+        const a = s.anchor, t = S.index.text, half = Math.max(40, (a.block || '').length >> 1);
+        if (a.type === 'math') {
+          const seq = Array.from(a.cover);
+          return { type: 'math', tex: a.tex, cover: a.cover, renamed: renamedTex(a.tex),
+                   own: allMath().filter(m => m.tex === a.tex).length,
+                   hits: allMath().filter(m => seqIndexes(glyphList(m.el).ch, seq).length).map(m => m.tex) };
+        }
+        return { type: 'text', cover: a.cover, hits: allIndexes(t, a.cover, 2000).map(p => ({
+          pos: p, sb: Math.round(bigramSim(a.block || '', t.slice(Math.max(0, p - half), p + a.cover.length + half)) * 1000) / 1000,
+          closed: !charRect(p), around: t.slice(Math.max(0, p - 15), p + a.cover.length + 15) })) };
+      },
+      // 旧笔迁移用（repair_notes_positions.py --reanchor-origin，在它当初画的那版页面上调）：这些笔原地不动，
+      // 按它们此刻圈住的内容重新建锚点。返回实际改了的笔的 id（此刻不在页面上显示的笔不动）。
+      reanchorAll: ids => {
+        const done = [];
+        S.geom = null; S.geomBatch = true;   // 这一批笔逐个处理时排版不变，页面几何只量一次
+        const byId = new Map(S.strokes.map(s => [s.id, s]));
+        for (const id of ids) {
+          const s = byId.get(id), d = S.drawn.get(id);
+          if (s && d && d.abs && d.state === 'ok') { reanchor(s, d.abs); done.push(id); }
+        }
+        S.geomBatch = false; S.geom = null;
+        commit();
+        return done;
+      },
+      moveBy: (id, dx, dy) => {
+        const s = S.strokes.find(t => t.id === id), d = S.drawn.get(id);
+        if (!s || !d || !d.abs) return null;
+        reanchor(s, d.abs.map(p => [p[0] + dx, p[1] + dy, p[2]]));
+        commit();
+        return s.anchor.type;
+      },
+      syncNow,
+    };
+  }
+  whenMathReady(start);
+})();
+</script>

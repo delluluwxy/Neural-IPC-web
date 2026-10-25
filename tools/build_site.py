@@ -127,8 +127,7 @@ SUBFIGS = {
     "t5_ring_inner_R45_overview.png": 2, "t5_footprint_flat_vs_ring.png": 2, "fig10a_ellipse_vs_circle.png": 2,
     "fig11a_similarity.png": 2, "e0e1_same_depth_ratio.png": 2, "fig09_network_diagram.png": 2,
     # week3_4 组会精简版新图（同 concept_figs.N_SUB）
-    "meeting_02_thin_vs_thick.png": 2, "meeting_03_tilt.png": 2, "meeting_05_kernel_three.png": 3,
-    "meeting_06_gap_grid.png": 3, "meeting_07_new_arch.png": 2,
+    "meeting_02_thin_vs_thick.png": 2, "meeting_03_tilt.png": 2, "meeting_07_new_arch.png": 2,   # meeting_05 / 06 三栏讲同一件事，按 1 个
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 
