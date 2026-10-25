@@ -126,7 +126,7 @@ ANNOT_JS = r"""
     blockHeadAccept: 0.6, // 块内偏移后备：块开头 40 字的相似度
     glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
     nearPx: 30,          // 笔没圈住任何内容（下划线、箭头、旁注）时，取离笔画这么近以内最近的那个字 / 符号
-    coverCtxAccept: 0.4, // 圈住的内容在页面上出现好几处时，前后文相似度（两边平均）至少这么高才认
+    coverCtxAccept: 0.3, // 圈住的关键词在页面上出现好几处时，周围文字与原段落的二元组相似度至少这么高才认
     penWidth: 2.4, hlWidth: 16, eraseRadius: 12, undoLimit: 60,
     colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
   };
@@ -561,7 +561,8 @@ ANNOT_JS = r"""
       const i0 = Math.min(...gs.map(it => it.i)), i1 = Math.max(...gs.map(it => it.i));
       const bp = posFromElement(gs[0].m.el), bs = bp >= 0 ? blockSpan(bp) : null;
       return { anchor: { type: 'math', tex: gs[0].m.tex, ctx: contextBefore(gs[0].m.el), g: glyphQuote(g, i0),
-                         cover: g.ch.slice(i0, i1 + 1).join(''), block: bs ? ix.text.slice(bs.start, bs.end) : '' },
+                         cover: g.ch.slice(i0, i1 + 1).join(''), gi: i0, gn: g.ch.length,
+                         block: bs ? ix.text.slice(bs.start, bs.end) : '' },
                frame: 'px', R: localRect(g.els[i0].getBoundingClientRect(), f) };
     }
     const ps = hit.filter(it => it.kind === 't').map(it => it.pos), p0 = Math.min(...ps), p1 = Math.max(...ps);
@@ -588,11 +589,12 @@ ANNOT_JS = r"""
     if (!hits.length) { const r = renamedText(cover, 0); if (r) { cover = r.s; hits = allIndexes(t, cover, 2000); } }
     if (!hits.length) return null;
     if (hits.length === 1 || !a.block) return { pos: nearestPos(hits, orig, f) };
-    // 先比所在段落（改写、换语序仍认得出），同一段里再比紧挨着的前后各 10 字
+    // 先比关键词周围与原段落等长的一段文字（改写、换语序、段落被拆开都认得出），再比紧挨着的前后各 10 字
     const L = 10, pre = a.prefix.slice(-L), suf = a.suffix.slice(cover.length - 1, cover.length - 1 + L);
+    const half = Math.max(40, a.block.length >> 1);
     let best = null, key = [-1, -1];
     for (const p of hits) {
-      const { start, end } = blockSpan(p), sb = bigramSim(a.block, t.slice(start, end));
+      const sb = bigramSim(a.block, t.slice(Math.max(0, p - half), p + cover.length + half));
       const sl = similarity(pre, t.slice(Math.max(0, p - L), p)) + similarity(suf, t.slice(p + cover.length, p + cover.length + L));
       if (sb > key[0] + 1e-9 || (Math.abs(sb - key[0]) <= 1e-9 && sl > key[1])) { best = p; key = [sb, sl]; }
     }
@@ -615,7 +617,13 @@ ANNOT_JS = r"""
       return out;
     };
     let hits = search(own);
-    if (!hits.length) hits = search(all);
+    if (!hits.length && own.length) {
+      // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
+      const m = own.find(o => glyphList(o.el).ch.length === a.gn);
+      if (m && a.gi !== undefined) { const g = glyphList(m.el); return { el: m.el, glyph: g.els[a.gi] }; }
+      return null;
+    }
+    if (!hits.length) hits = search(all);   // 原公式改写了（拆行、加步骤）：全页找这串符号
     if (!hits.length) return null;
     // 几处一样（短的行内公式常见）：依次比所在段落、公式前面的字、公式里前后的符号
     const origG = a.g.prefix + a.g.exact + a.g.suffix, t = S.index.text;
@@ -801,6 +809,7 @@ ANNOT_JS = r"""
     const renamedOr = (s, fn) => { const r = fn(s); return r === null ? s : r; };
     const rt = s => { const r = renamedText(s, -1); return r ? r.s : null; };
     if (a.type === 'media') {
+      if (a.gone) return null;   // 图重画后标的那一小块没了（repair_notes_positions 配准判出），不画
       cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
     } else if (a.type === 'math') {
       const all = displayMath();
@@ -1537,18 +1546,18 @@ ANNOT_JS = r"""
         return out;
       },
       // 旧笔迁移用（repair_notes_positions.py --reanchor-origin，在它当初画的那版页面上调）：这些笔原地不动，
-      // 按它们此刻圈住的内容重新建锚点。返回改了几笔。
+      // 按它们此刻圈住的内容重新建锚点。返回实际改了的笔的 id（此刻不在页面上显示的笔不动）。
       reanchorAll: ids => {
-        let n = 0;
+        const done = [];
         S.geom = null; S.geomBatch = true;   // 这一批笔逐个处理时排版不变，页面几何只量一次
         const byId = new Map(S.strokes.map(s => [s.id, s]));
         for (const id of ids) {
           const s = byId.get(id), d = S.drawn.get(id);
-          if (s && d && d.abs && d.state === 'ok') { reanchor(s, d.abs); n++; }
+          if (s && d && d.abs && d.state === 'ok') { reanchor(s, d.abs); done.push(id); }
         }
         S.geomBatch = false; S.geom = null;
         commit();
-        return n;
+        return done;
       },
       moveBy: (id, dx, dy) => {
         const s = S.strokes.find(t => t.id === id), d = S.drawn.get(id);

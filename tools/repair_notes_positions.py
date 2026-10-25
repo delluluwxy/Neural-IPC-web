@@ -307,10 +307,10 @@ def reanchor_on_origin(job):
         page = open_with_notes(browser, with_new_layer(checkout(job["sha"], job["worktrees"]) / job["page"]),
                                dict(job["current"], strokes=job["strokes"]))
         ids = [s["id"] for s in job["strokes"]]
-        n = page.evaluate("ids => window.__nipcNotes.reanchorAll(ids)", ids)
-        got = {s["id"]: s for s in page.evaluate("window.__nipcNotes.strokes()") if s["id"] in set(ids)}
+        done = set(page.evaluate("ids => window.__nipcNotes.reanchorAll(ids)", ids))
+        got = {s["id"]: s for s in page.evaluate("window.__nipcNotes.strokes()") if s["id"] in done}
         browser.close()
-    return got, n
+    return got, len(done)
 
 
 def glyph_anchors(job):
@@ -354,6 +354,71 @@ def best_match(search, tmpl):
     return k // score.shape[1], k % score.shape[1], float(score.flat[k])
 
 
+def register(old, new):
+    """同一张图的两个版本（同一脚本画，只差标签 / 裁边）：在缩放 0.85–1.15 内找使归一化互相关最大的 (缩放 s, 平移 dx, dy)，
+    新图像素 = s × 旧图像素 + (dx, dy)。先 1/4 分辨率粗搜，再在全分辨率 ±0.01 内细搜。返回 (s, dx, dy, 相关系数)。"""
+    def search(o, n, scales):
+        best = None
+        for s in scales:
+            h, w = int(round(o.shape[0] * s)), int(round(o.shape[1] * s))
+            if h < 8 or w < 8:
+                continue
+            o2 = np.asarray(Image.fromarray(o.astype(np.uint8)).resize((w, h), Image.BILINEAR), dtype=float)
+            pad = np.full((max(n.shape[0], h) + h, max(n.shape[1], w) + w), 255.0)
+            pad[h // 2:h // 2 + n.shape[0], w // 2:w // 2 + n.shape[1]] = n     # 允许旧图超出新图边缘半个图宽
+            m = best_match(pad, o2)
+            if m and (best is None or m[2] > best[3]):
+                best = (s, m[1] - w // 2, m[0] - h // 2, m[2])
+        return best
+    q = 4
+    small = lambda a: np.asarray(Image.fromarray(a.astype(np.uint8)).resize((a.shape[1] // q, a.shape[0] // q), Image.BILINEAR), dtype=float)
+    s0 = search(small(old), small(new), np.arange(0.85, 1.1501, 0.01))[0]
+    return search(old, new, np.arange(s0 - 0.01, s0 + 0.0101, 0.002))
+
+
+def remap_media(base, version, worktrees, root, page_file):
+    """图上的笔：画笔时那版（version[笔 id]）的图与现在的图文件不同，就按配准把笔换算到新图；笔画所在小块在两版图里
+    不一样（标的东西没了）就标 gone（标注层不画）。改 base 里的笔，返回 [(笔 id, 图, 结果)]。"""
+    report, cache = [], {}
+    by_id = {s["id"]: s for s in base["strokes"]}
+    for i, sha in version.items():
+        s = by_id.get(i)
+        if not s or s["anchor"].get("type") != "media" or s.get("frame") != "norm":
+            continue
+        src = s["anchor"]["src"]
+        old_p, new_p = checkout(sha, worktrees) / "assets/images" / src, root / "assets/images" / src
+        if not old_p.exists() or not new_p.exists() or old_p.read_bytes() == new_p.read_bytes():
+            continue
+        if (sha, src) not in cache:
+            old = np.asarray(Image.open(old_p).convert("L"), dtype=float)
+            new = np.asarray(Image.open(new_p).convert("L"), dtype=float)
+            cache[(sha, src)] = (old, new, register(old, new))
+        old, new, (sc, dx, dy, r) = cache[(sha, src)]
+        P = np.array([[p[0] * old.shape[1], p[1] * old.shape[0]] for p in s["pts"]])
+        Q = P * sc + [dx, dy]
+        x0, y0 = np.floor(P.min(0) - 12).astype(int)
+        x1, y1 = np.ceil(P.max(0) + 12).astype(int)
+        x0, y0 = max(x0, 0), max(y0, 0)
+        patch = old[y0:y1, x0:x1]
+        X0, Y0 = int(round(x0 * sc + dx)), int(round(y0 * sc + dy))
+        h, w = int(round(patch.shape[0] * sc)), int(round(patch.shape[1] * sc))
+        cand = new[max(Y0, 0):Y0 + h, max(X0, 0):X0 + w]
+        ok = False
+        if cand.shape == (h, w) and h > 4 and w > 4:
+            pr = np.asarray(Image.fromarray(patch.astype(np.uint8)).resize((w, h), Image.BILINEAR), dtype=float)
+            a, b = pr - pr.mean(), cand - cand.mean()
+            den = np.sqrt((a * a).sum() * (b * b).sum())
+            ok = den > 0 and (a * b).sum() / den >= 0.8
+        if ok:
+            s["pts"] = [[round(q[0] / new.shape[1], 4), round(q[1] / new.shape[0], 4), p[2]] for q, p in zip(Q, s["pts"])]
+            s["anchor"].pop("gone", None)
+            report.append((i, src, f"换算到新图（整图配准 缩放 {sc:.3f} 平移 {dx:+.0f},{dy:+.0f} 相关 {r:.3f}）"))
+        else:
+            s["anchor"]["gone"] = True
+            report.append((i, src, "标的那一小块在新图里不一样了，隐藏"))
+    return report
+
+
 def side_by_side(left, right, path):
     h = max(left.height, right.height)
     out = Image.new("RGB", (left.width + right.width + 12, h), "white")
@@ -393,10 +458,11 @@ def main():
             if s["id"] in ids and s["id"] not in origin:
                 origin[s["id"]] = (t, s)
     versions = page_versions(args.page)
-    groups = {}
+    groups, version = {}, {}
     for i, (t, s) in origin.items():
         sha = next((v for v, vt in versions if vt <= t), versions[-1][0])
         groups.setdefault(sha, []).append(s)
+        version[i] = sha
     print(f"== {len(ids)} 笔，原始版本分布：" + "，".join(f"{v[:7]} {len(g)}" for v, g in groups.items()), flush=True)
 
     import multiprocessing as mp
@@ -408,6 +474,14 @@ def main():
     if args.verify:
         # 精确核对：每笔在原版页面（原始笔画）与当前页面（VERIFY_JSON 的笔画）上压住的字 / 公式符号 / 图位置是否相同
         shown = json.loads(pathlib.Path(args.verify).read_text(encoding="utf-8"))
+        vfile = pathlib.Path(args.verify + ".versions.json")
+        if vfile.exists():   # 迁移时实际用的原版（换过版本的笔按它分组）
+            version = json.loads(vfile.read_text(encoding="utf-8"))
+            by = {s["id"]: s for g in groups.values() for s in g}
+            groups = {}
+            for i, sha in version.items():
+                if i in by:
+                    groups.setdefault(sha, []).append(by[i])
         jobs = [dict(common, sha=sha, strokes=g, cover=args.verify_cover) for sha, g in groups.items()]
         jobs.append(dict(common, sha=None, current=shown, strokes=[s for s in shown["strokes"] if s["id"] in ids],
                          cover=args.verify_cover))
@@ -474,6 +548,17 @@ def main():
         with mp.get_context("spawn").Pool(len(jobs)) as pool:
             outs = pool.map(reanchor_on_origin, jobs)
         got = {k: v for r, _ in outs for k, v in r.items()}
+        # 推定的原版上挂不上的笔（实际是在别的版本上画的）：在其余各版上再试，取第一版能挂上的
+        miss = [s for g in groups.values() for s in g if s["id"] not in got]
+        if miss:
+            with mp.get_context("spawn").Pool(len(groups)) as pool:
+                more = pool.map(reanchor_on_origin, [dict(common, sha=sha, strokes=miss) for sha in groups])
+            for sha, (r, _) in zip(groups, more):
+                for k, v in r.items():
+                    if k not in got:
+                        got[k], version[k] = v, sha
+            outs = outs + more
+            print(f"  推定原版上挂不上 {len(miss)} 笔，换版本后挂上 {sum(1 for s in miss if s['id'] in got)} 笔", flush=True)
         base = json.loads(pathlib.Path(args.reanchor_origin).read_text(encoding="utf-8"))
         kinds = {}
         for s in base["strokes"]:
@@ -481,9 +566,13 @@ def main():
                 s.update({k: got[s["id"]][k] for k in ("anchor", "frame", "orig", "pts", "updatedAt")})
                 key = s["anchor"]["type"] + ("+cover" if s["anchor"].get("cover") else "")
                 kinds[key] = kinds.get(key, 0) + 1
+        media = remap_media(base, version, common["worktrees"], ROOT, args.page)
+        pathlib.Path(args.out + ".versions.json").write_text(json.dumps(version), encoding="utf-8")   # 核对按同一张表取原版
         pathlib.Path(args.out).write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
         print(f"== 在原版页面上按圈住的内容重新建锚点 {sum(n for _, n in outs)} 笔（锚点类型 {kinds}）；"
-              f"用 {time.time() - t0:.0f} s；写出 {args.out}")
+              f"图换过的图上笔 {len(media)} 笔；用 {time.time() - t0:.0f} s；写出 {args.out}")
+        for i, src, what in media:
+            print(f"  图 {src}  {i}  {what}")
         return
     if args.math_from_origin:
         # 当初挂在公式上的笔：在各自原版页面上换成符号锚点（每个版本一个进程），写进底稿笔记
