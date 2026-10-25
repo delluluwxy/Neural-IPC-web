@@ -577,6 +577,26 @@ def publish(args):
     print(f"== 写入 notes/{stem}.json：{len(new['strokes'])} 笔，提交 {out['commit']['sha'][:7]}")
 
 
+def restore(args):
+    """--restore SHA：笔记仓库 notes/<页>.json 原样恢复成提交 SHA 时的内容（字节不改），带当前 sha 覆盖写。"""
+    import base64
+    import tempfile
+    stem = pathlib.Path(args.page).stem
+    path = f"repos/{REPO}/contents/notes/{stem}.json"
+    old = json.loads(gh(f"{path}?ref={args.restore}"))
+    cur = json.loads(gh(path))
+    body = {"message": f"notes {stem}: restore to {args.restore[:7]}", "content": old["content"].replace("\n", ""),
+            "sha": cur["sha"]}
+    with tempfile.NamedTemporaryFile("w", suffix=".json", dir=WORKTREES, delete=False) as fh:
+        json.dump(body, fh)
+    try:
+        out = json.loads(gh("--method", "PUT", path, "--input", fh.name))
+    finally:
+        pathlib.Path(fh.name).unlink()
+    print(f"== notes/{stem}.json 恢复成 {args.restore[:7]} 的内容，提交 {out['commit']['sha'][:7]}；"
+          f"内容一致：{base64.b64decode(old['content']) == base64.b64decode(json.loads(gh(path))['content'])}")
+
+
 def explain(args):
     """--explain：当前页面换上当前标注层，导入 NOTES_JSON，对 IDS_TXT 里每笔调 __nipcNotes.explain，结果写 --out。"""
     ids = pathlib.Path(args.explain[0]).read_text(encoding="utf-8").split()
@@ -632,7 +652,11 @@ def main():
                     help="配 --explain：把只差字母一一换名（θ→ψ、t→q）的公式对补进讲稿目录的 notation_renames_<页>.json")
     ap.add_argument("--publish", nargs=2, metavar=("NEW_JSON", "BASE_JSON"),
                     help="把修好的笔记写回笔记仓库；线上那份和底稿 BASE_JSON 不同（用户又画过）就不写")
+    ap.add_argument("--restore", metavar="SHA", help="笔记仓库这一页的笔记原样恢复成某个提交时的内容")
     args = ap.parse_args()
+    if args.restore:
+        restore(args)
+        return
     if args.publish:
         publish(args)
         return
