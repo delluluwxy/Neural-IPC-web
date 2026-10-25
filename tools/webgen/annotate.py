@@ -54,16 +54,12 @@ def with_page_version(html):
 
 def renames_script(page_file):
     """记号改名表，嵌成 <script type="application/json" id="annot-renames">，供笔记把旧写法的锚点迁到新写法。
-    读讲稿目录里的 notation_renames_<页名>.json（{"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字},
-    "quote": [{"from": 旧正文锚点, "to": 新正文锚点}]}，锚点 = {prefix, exact, suffix}，由改讲稿的人维护）；
-    没有这个文件时用空表。文件不是合法 JSON 时直接报错停止生成。"""
+    读讲稿目录里的 notation_renames_<页名>.json 的 "tex"（{旧 TeX: 新 TeX}）与 "text"（{旧文字: 新文字}），由改讲稿的人维护
+    （文件里的 "quote" 逐笔对应表不再使用）；没有这个文件时用空表。文件不是合法 JSON 时直接报错停止生成。"""
     path = DRAFTS / f"notation_renames_{Path(page_file).stem}.json"
     data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     table = {k: {o: n for o, n in (data.get(k) or {}).items() if isinstance(o, str) and isinstance(n, str)}
              for k in ("tex", "text")}
-    keys = ("prefix", "exact", "suffix")
-    table["quote"] = [{side: {k: e[side][k] for k in keys} for side in ("from", "to")} for e in data.get("quote") or []
-                      if all(isinstance(e.get(side, {}).get(k), str) for side in ("from", "to") for k in keys)]
     body = json.dumps(table, ensure_ascii=False).replace("</", "<\\/")
     return f'<script type="application/json" id="annot-renames">{body}</script>\n'
 
@@ -188,13 +184,6 @@ ANNOT_JS = r"""
     version: 1,
     colWidth: 920, asideWidth: 245, gap: 50, sidePad: 32, narrowPad: 16,   // 与 html_parts.PAGE_CSS 的桌面版式一致
     quoteLen: 30,        // TextQuote 前后各存多少字
-    seedLen: 8,          // 模糊匹配的种子：prefix 末尾 / suffix 开头各取几个字，与被锚字连成短串在全文里找候选
-    // 模糊匹配的接受阈值：prefix 与 suffix 两边相似度（1 - 编辑距离/长度）的平均。一边原文完整（1.0）、
-    // 另一边只剩一部分没改（≥ 0.1）就能认回；两边都改得面目全非（各 < 0.55）则判为「内容已变」。
-    fuzzyAccept: 0.55,
-    headingFuzzy: 0.7,   // 标题文字改了几个字仍认
-    texFuzzy: 0.8,       // 公式 TeX 小改（如改一个下标）仍认
-    blockHeadAccept: 0.6, // 块内偏移后备：块开头 40 字的相似度
     glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
     nearPx: 30,          // 笔没圈住任何内容（下划线、箭头、旁注）时，取离笔画这么近以内最近的那个字 / 符号
     coverCtxAccept: 0.3, // 圈住的关键词在页面上出现好几处时，周围文字与原段落的二元组相似度至少这么高才认
@@ -529,16 +518,6 @@ ANNOT_JS = r"""
     });
     return best;
   }
-  /** 公式里与符号锚点 q 最像的符号 {i, score}：score = 前、后符号串相似度的平均，被锚符号相同再加 0.01。 */
-  function matchGlyph(g, q) {
-    let best = { i: -1, score: -1 };
-    for (let i = 0; i < g.ch.length; i++) {
-      const c = glyphQuote(g, i);
-      const sc = (similarity(q.prefix, c.prefix) + similarity(q.suffix, c.suffix)) / 2 + (c.exact === q.exact ? 0.01 : 0);
-      if (sc > best.score) best = { i, score: sc };
-    }
-    return best;
-  }
   /** 按元素类型建锚点：媒体 / 陈列公式 / 表格单元格 / 标题 / 正文字符。返回 {anchor, frame, R} 或 null。 */
   function anchorForElement(el, cx, cy, f) {
     const media = el.closest('img, video');
@@ -824,10 +803,9 @@ ANNOT_JS = r"""
   }
   /* ---------- 7b. 记号改名表：内容只是换了写法（如 d → δ），笔记跟着改名后的内容走 ----------
    * build_site 把 docs/drafts/notation_renames_<页>.json 嵌进页面 <script id="annot-renames">：
-   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。锚点按原样找不到时，先按改名表（可连续改名）换成新写法再精确找；
-   * 找到就把存的锚点改成新写法（之后同步）。改名表里没有的改动照旧走模糊匹配，再找不到就标灰。 */
+   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。只用于有圈住内容（cover）的笔：圈住的那串按原样找不到时，
+   * 按改名表（可连续改名）换成新写法再找（findCover / findCoverGlyph），找到就把存的锚点改成新写法；还找不到就隐藏。 */
   const collapse = s => (s || '').replace(/\s+/g, ' ');
-  const quoteKey = q => `${q.prefix}\u0001${q.exact}\u0001${q.suffix}`;
   function renameMap() {
     const el = document.getElementById('annot-renames');
     const raw = el ? el.textContent : '';
@@ -836,11 +814,8 @@ ANNOT_JS = r"""
       try { m = JSON.parse(raw || '{}') || {}; } catch (e) { m = {}; }
       const pick = (o, fn) => new Map(Object.entries(o && typeof o === 'object' ? o : {})
         .filter(([k, v]) => k && typeof v === 'string').map(([k, v]) => [fn(k), fn(v)]));
-      // quote：逐笔迁移（旧前后文整体 → 新前后文），用于句子被改写、字挪了位置、全局文字替换对不准的地方
-      const quote = new Map((Array.isArray(m.quote) ? m.quote : []).filter(e => e && e.from && e.to)
-        .map(e => [quoteKey(e.from), { prefix: e.to.prefix, exact: e.to.exact, suffix: e.to.suffix }]));
       renameMap.raw = raw;
-      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse), quote };
+      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse) };
     }
     return renameMap.val;
   }
@@ -894,69 +869,17 @@ ANNOT_JS = r"""
     }
     return changed ? { s, mark } : null;
   }
-  /** TextQuote 按改名表换成新写法后的锚点（prefix / suffix 仍各取 quoteLen 字）；没改名返回 null。 */
-  function renamedQuote(a) {
-    const r = renamedText(a.prefix + a.exact + a.suffix, a.prefix.length);
-    if (!r || r.mark >= r.s.length) return null;
-    return Object.assign({}, a, { prefix: r.s.slice(Math.max(0, r.mark - CFG.quoteLen), r.mark), exact: r.s[r.mark],
-                                  suffix: r.s.slice(r.mark + 1, r.mark + 1 + CFG.quoteLen) });
-  }
-
   function exactQuote(a, orig, f) {
     const hits = allIndexes(S.index.text, a.prefix + a.exact + a.suffix).map(i => i + a.prefix.length);
     return hits.length ? nearestPos(hits, orig, f) : -1;
   }
-  /** 正文锚点：① 原文精确匹配 → ② 按改名表换写法后精确匹配（返回 migrated = 新锚点）→ ③ 种子找候选 + 前后文相似度打分
-   * → ④ 块开头相似 + 块内偏移。返回 {pos, migrated?} 或 null。 */
-  function findQuote(a, orig, f) {
-    let p = exactQuote(a, orig, f);
-    if (p >= 0) return { pos: p };
-    const qa = renameMap().quote.get(quoteKey(a));
-    if (qa) {
-      const ma = Object.assign({}, a, qa);
-      if ((p = exactQuote(ma, orig, f)) >= 0) return { pos: p, migrated: ma };
-    }
-    const ra = renamedQuote(a);
-    if (ra && (p = exactQuote(ra, orig, f)) >= 0) return { pos: p, migrated: ra };
-    p = fuzzyQuote(ra || a, orig, f);
-    return p >= 0 ? { pos: p } : null;
-  }
-  function fuzzyQuote(a, orig, f) {
-    const t = S.index.text;
-    const cands = new Set();
-    const pSeed = a.prefix.slice(-CFG.seedLen) + a.exact, sSeed = a.exact + a.suffix.slice(0, CFG.seedLen);
-    for (const i of allIndexes(t, pSeed)) cands.add(i + pSeed.length - a.exact.length);
-    for (const i of allIndexes(t, sSeed)) cands.add(i);
-    let best = [], bestScore = -1;
-    for (const p of cands) {
-      const sc = (similarity(a.prefix, t.slice(Math.max(0, p - a.prefix.length), p)) +
-                  similarity(a.suffix, t.slice(p + 1, p + 1 + a.suffix.length))) / 2;
-      if (sc > bestScore + 1e-9) { bestScore = sc; best = [p]; } else if (Math.abs(sc - bestScore) <= 1e-9) best.push(p);
-    }
-    if (bestScore >= CFG.fuzzyAccept) return nearestPos(best, orig, f);
-    if (!a.blk) return -1;
-    let bestBlk = -1, bestSim = CFG.blockHeadAccept;
-    for (const el of article.querySelectorAll(a.blk.tag)) {
-      const start = posFromElement(el);
-      if (start < 0) continue;
-      let end = start;
-      while (end < t.length && end < start + 40 && el.contains(S.index.nodes[S.index.posNode[end]])) end++;
-      const sc = similarity(a.blk.head, t.slice(start, end));
-      if (sc >= bestSim) {
-        let blkEnd = end;
-        while (blkEnd < t.length && el.contains(S.index.nodes[S.index.posNode[blkEnd]])) blkEnd++;
-        bestSim = sc; bestBlk = Math.min(start + a.blk.off, blkEnd - 1);
-      }
-    }
-    return bestBlk;
-  }
-  /** 按锚点类型在当前页面找目标；返回 {el} 或 {pos}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
+  /** 按锚点类型在当前页面找目标：有圈住内容（cover）的跟着这串内容走，其余只按原样精确找。
+   * 返回 {el} / {pos} / {el, glyph}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
   function findTarget(a, orig, f) {
     if (a.type === 'page') return { el: main };
     if (a.type === 'text' && a.cover) return findCover(a, orig, f);
     if (a.type === 'math' && a.cover) return findCoverGlyph(a);
-    if (!a.cover) return findExact(a, orig, f);
-    return findLoose(a, orig, f);
+    return findExact(a, orig, f);
   }
   /** 没有圈住内容（cover）的锚点（用户 10-25 确认过的第 2 次画完的笔，画笔时还没有 cover）：只按原样精确找——正文前后文
    * 一字不差、公式 TeX 相同且符号前后文原样出现、图 src 相同、标题 / 表格文字相同；不用改名表、不模糊匹配。
@@ -985,59 +908,6 @@ ANNOT_JS = r"""
     const el = pickCandidate(cands, a, orig, f);
     return el ? { el } : null;
   }
-  /** 旧的宽松还原（改名表、quote 对应表、模糊匹配）：现在不再被 findTarget 调用，留作对照，确认无用后按删除流程删掉。 */
-  function findLoose(a, orig, f) {
-    if (a.type === 'text') return findQuote(a, orig, f);
-    let cands = [], migrated = null;
-    const renamedOr = (s, fn) => { const r = fn(s); return r === null ? s : r; };
-    const rt = s => { const r = renamedText(s, -1); return r ? r.s : null; };
-    if (a.type === 'media') {
-      if (a.gone) return null;   // 图重画后标的那一小块没了（repair_notes_positions 配准判出），不画
-      cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
-    } else if (a.type === 'math') {
-      const all = displayMath();
-      cands = all.filter(m => m.tex === a.tex).map(m => m.el);
-      const t2 = cands.length ? null : renamedTex(a.tex);
-      if (t2) {
-        cands = all.filter(m => m.tex === t2).map(m => m.el);
-        if (cands.length) migrated = Object.assign({}, a, { tex: t2 });
-      }
-      if (!cands.length && a.g) {   // TeX 认不出（拆行、加了中间步骤）：按符号锚点在全部陈列公式里找最像的
-        let bestSc = CFG.fuzzyAccept;
-        for (const m of all) { const sc = matchGlyph(glyphList(m.el), a.g).score; if (sc >= bestSc) { bestSc = sc; cands = [m.el]; } }
-      }
-      if (!cands.length) {
-        let bestSim = CFG.texFuzzy;
-        for (const m of all) { const sc = similarity(t2 || a.tex, m.tex); if (sc >= bestSim) { bestSim = sc; cands = [m.el]; } }
-      }
-    } else if (a.type === 'cell') {
-      const findCells = (cell, head) => {
-        const cells = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === cell);
-        const withHead = cells.filter(c => headerText(c) === head);
-        return withHead.length ? withHead : cells;
-      };
-      cands = findCells(a.cell, a.head);
-      if (!cands.length && (rt(a.cell) !== null || rt(a.head) !== null)) {
-        const cell = renamedOr(a.cell, rt), head = renamedOr(a.head, rt);
-        cands = findCells(cell, head);
-        if (cands.length) migrated = Object.assign({}, a, { cell, head });
-      }
-    } else if (a.type === 'heading') {
-      const hs = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')];
-      cands = hs.filter(h => plainText(h) === a.text);
-      const t2 = cands.length ? null : rt(a.text);
-      if (t2 !== null) {
-        cands = hs.filter(h => plainText(h) === t2);
-        if (cands.length) migrated = Object.assign({}, a, { text: t2 });
-      }
-      if (!cands.length) {
-        let bestSim = CFG.headingFuzzy;
-        for (const h of hs) { const sc = similarity(t2 || a.text, plainText(h)); if (sc >= bestSim) { bestSim = sc; cands = [h]; } }
-      }
-    }
-    const el = pickCandidate(cands, a, orig, f);
-    return el ? (migrated ? { el, migrated } : { el }) : null;
-  }
   /** 一笔当前该画在哪：{state: 'ok' | 'hidden' | 'orphan', R（正文卡片内坐标的参考矩形）, el（所在元素）}。 */
   function place(s, f) {
     let c = S.cache.get(s.id);
@@ -1050,15 +920,6 @@ ANNOT_JS = r"""
     if (t.el === main) return { state: 'ok', R: s.orig, el: main };
     if (t.glyph) {   // 圈住的公式符号串：画在找到的起始符号上
       const r = elementRect(t.glyph);
-      return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
-    }
-    if (s.anchor.type === 'math' && s.anchor.g) {   // 符号锚点：画在公式里对应的那个符号上
-      if (c.glyph === undefined) {
-        const g = glyphList(t.el), m = matchGlyph(g, s.anchor.g);
-        c.glyph = m.score >= CFG.fuzzyAccept ? g.els[m.i] : null;
-      }
-      if (!c.glyph) return { state: 'orphan', R: s.orig, el: main };
-      const r = elementRect(c.glyph);   // 收起的折叠里仍有布局矩形，elementRect 会判成不可见
       return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
     }
     if (t.pos !== undefined) {

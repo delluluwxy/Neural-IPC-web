@@ -891,6 +891,8 @@ def explain(args):
 SNAP_REF = "origin/main:snapshot/2"        # 线上快照页（git 里的原样，与 GitHub Pages 上的逐字节相同）
 SNAP_NOTES, SNAP_PAGE, TOMBS_AT = "2e32506", "8288b02", "c13089b"
 MATH_PAIR_MIN = 0.5
+TEXT_SEG_MIN, TEXT_SEG_MARGIN = 8, 4   # 正文：锚点字所在 equal 段 ≥ 8 字，且它前后各 4 字也在这一段里，才接受
+GLYPH_SEG_MIN = 3                      # 公式（TeX 改过的）：锚点符号所在 equal 段 ≥ 3 个符号才接受
 SENT_END = "。！？；!?;"
 # 可见的灰色笔：找不到圈的内容（orphan）的笔却还显示着（屏幕图层或打印副本里），任何页面任何状态都必须是 0
 VISIBLE_GRAY_JS = """() => [...document.querySelectorAll('#annot-layer path.orphan, svg.annot-print path.orphan')]
@@ -946,13 +948,23 @@ def open_served(browser, base, path, html, git_prefix=None, notes=None):
 
 
 def opcode_map(a, b):
-    """序列 a → b 的逐项对应（difflib.SequenceMatcher(None, a, b, autojunk=False) 的 equal 段）：{a 下标: b 下标}。"""
+    """序列 a → b 的逐项对应（difflib.SequenceMatcher(None, a, b, autojunk=False) 的 equal 段）：
+    {a 下标: (b 下标, 所在 equal 段在 a 里的 [起, 止))}。"""
     import difflib
     out = {}
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
         if tag == "equal":
-            out.update(zip(range(i1, i2), range(j1, j2)))
+            out.update((i, (j, i1, i2)) for i, j in zip(range(i1, i2), range(j1, j2)))
     return out
+
+
+def mapped(m, i, seg_min, margin=0):
+    """i 经 opcode_map 结果 m 映射到的新下标；所在 equal 段短于 seg_min、或 i 前后 margin 项不在同一段里返回 None
+    （防误配：改写区里碰巧相同的零星单字 / 符号不算对应）。另返回所在 equal 段长度（没对上为 0）。"""
+    if i not in m:
+        return None, 0
+    j, i1, i2 = m[i]
+    return (j if i2 - i1 >= seg_min and i - margin >= i1 and i + margin < i2 else None), i2 - i1
 
 
 def pair_maths(old, new):
@@ -1000,19 +1012,21 @@ def most_similar_sentence(text, s):
     return max(sents, key=lambda x: difflib.SequenceMatcher(None, s, x, autojunk=False).ratio(), default="")
 
 
-def migrate_text(s, w, old, new, cmap):
-    """正文笔：旧位置 w["pos"] 经字级映射到新位置 → 新 TextQuote 锚点；映射不到返回 (None, 原因)。"""
-    p = cmap.get(w["pos"])
+def migrate_text(s, w, old, new, cmap, row):
+    """正文笔：旧位置 w["pos"] 经字级映射到新位置 → 新 TextQuote 锚点；映射不到返回 (None, 原因)。row["seg"] 记所在 equal 段长度。"""
+    p, row["seg"] = mapped(cmap, w["pos"], TEXT_SEG_MIN, TEXT_SEG_MARGIN)
     if p is None:
-        return None, "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）"
+        return None, ("所在原文被改写（锚点字所在 equal 段太短或锚点字离段边不足 "
+                      f"{TEXT_SEG_MARGIN} 字）" if row["seg"] else "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）")
     L = 30   # annotate.py CFG.quoteLen
     a = {"type": "text", "exact": new["text"][p], "prefix": new["text"][max(0, p - L):p], "suffix": new["text"][p + 1:p + 1 + L]}
     return dict(s, anchor=a), p
 
 
-def migrate_math(s, w, old, new, mpair):
+def migrate_math(s, w, old, new, mpair, row):
     """公式笔：旧公式（序号）经公式对应、旧符号经符号 diff 映射 → 新公式 TeX + 新符号锚点；整块公式锚点（没有符号）
-    只对应公式。映射不到返回 (None, 原因)。"""
+    只对应公式。TeX 原样相同的公式符号逐个对应（row["seg"] = 整个公式的符号数）；TeX 变了的按符号 diff，
+    equal 段 ≥ GLYPH_SEG_MIN 个符号才算。映射不到返回 (None, 原因)。"""
     k = mpair.get(w["math"])
     if k is None:
         return None, "所在公式在最新版里没有对应"
@@ -1020,9 +1034,13 @@ def migrate_math(s, w, old, new, mpair):
     ctx = new["text"][max(0, nm["pos"] - 30):nm["pos"]] if nm["pos"] >= 0 else ""
     a = {"type": "math", "tex": nm["tex"], "ctx": ctx}
     if w["kind"] == "glyph":
-        gi = (dict(enumerate(range(len(om["ch"])))) if om["tex"] == nm["tex"] else opcode_map(om["ch"], nm["ch"])).get(w["gi"])
+        if om["tex"] == nm["tex"]:
+            gi, row["seg"] = w["gi"], len(om["ch"])
+        else:
+            gi, row["seg"] = mapped(opcode_map(om["ch"], nm["ch"]), w["gi"], GLYPH_SEG_MIN)
         if gi is None:
-            return None, "公式对上了，但锚点符号在新公式里没有对应"
+            return None, ("所在原文被改写（公式改了，锚点符号所在 equal 段不足 "
+                          f"{GLYPH_SEG_MIN} 个符号）" if row["seg"] else "公式对上了，但锚点符号在新公式里没有对应")
         ch = nm["ch"]
         a["g"] = {"prefix": "".join(ch[max(0, gi - L):gi]), "exact": ch[gi], "suffix": "".join(ch[gi + 1:gi + 1 + L])}
     return dict(s, anchor=a), (k, gi if w["kind"] == "glyph" else -1)
@@ -1083,10 +1101,10 @@ def apply_snapshot(args):
             kind = w.get("kind")
             if kind == "text":
                 row["old"] = sentence(old["text"], w["pos"])
-                got, how = migrate_text(s, w, old, new, cmap)
+                got, how = migrate_text(s, w, old, new, cmap, row)
             elif kind in ("glyph", "math"):
                 row["old"] = old["maths"][w["math"]]["tex"]
-                got, how = migrate_math(s, w, old, new, mpair)
+                got, how = migrate_math(s, w, old, new, mpair, row)
             elif kind == "media":
                 row["old"] = w["src"]
                 got, how = migrate_media(s, w, fig_labels)
@@ -1098,7 +1116,7 @@ def apply_snapshot(args):
                 row.update(result="hidden", why=how)
                 if kind == "text":
                     q = max((i for i in cmap if i < w["pos"]), default=None)
-                    row["new_here"] = sentence(new["text"], cmap[q]) if q is not None else ""
+                    row["new_here"] = sentence(new["text"], cmap[q][0]) if q is not None else ""
                     row["new_similar"] = most_similar_sentence(new["text"], row["old"])
                 elif kind in ("glyph", "math"):
                     import difflib
@@ -1152,12 +1170,15 @@ def write_apply_report(args, rows, gray, bad, drawn_page):
     hid = [r for r in rows if r["result"] == "hidden"]
     md = [f"# 第 2 次快照的笔迁到最新版：结果表", "",
           f"基准：线上 snapshot/2（页面 {SNAP_PAGE}，笔记 {SNAP_NOTES}，按 {TOMBS_AT} 的墓碑去掉之后删的笔），共 {len(rows)} 笔。",
+          f"对应方法：difflib.SequenceMatcher(None, 旧, 新, autojunk=False)。正文锚点字所在 equal 段 ≥ {TEXT_SEG_MIN} 字且前后各 "
+          f"{TEXT_SEG_MARGIN} 字在同一段才接受；公式按 TeX 序列对应（改过的 TeX 相似度 ≥ {MATH_PAIR_MIN} 保序配对），TeX 改过的公式内"
+          f"锚点符号所在 equal 段 ≥ {GLYPH_SEG_MIN} 个符号才接受；图像素变了按图中文字标注（follow_label）。不用任何手写对应表。",
           f"迁过去 {sum(r['result'] == 'moved' for r in rows)} 笔，隐藏 {len(hid)} 笔；最新版上核对不符 {len(bad)} 笔；可见灰色 {gray} 笔。", "",
           "| 类型 | 迁过去 | 隐藏 |", "|---|---|---|"]
     md += [f"| {t} | {c[(t, 'moved')]} | {c[(t, 'hidden')]} |" for t in sorted({r['type'] for r in rows})]
     md += ["", "## 隐藏的笔（内容在最新版里找不到对应）", ""]
     for r in hid:
-        md += [f"- `{r['id']}`（{r['type']}）{r['why']}", f"  - 8288b02 里：{r.get('old', '')}",
+        md += [f"- `{r['id']}`（{r['type']}，所在 equal 段长 {r.get('seg', '—')}）{r['why']}", f"  - 8288b02 里：{r.get('old', '')}",
                f"  - 最新版同一位置附近：{r.get('new_here', '')}", f"  - 最新版最像的一句：{r.get('new_similar', '')}"]
     (d / "apply_snapshot2_report.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print(f"== {len(rows)} 笔：{dict(c)}；核对不符 {len(bad)}；可见灰色 {gray}；报告 {d / 'apply_snapshot2_report.md'}")
