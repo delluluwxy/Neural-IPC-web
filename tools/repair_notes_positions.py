@@ -51,11 +51,13 @@ def note_history(stem):
     """这一页的全部笔记存档，从早到晚：[(时间, 笔记 dict)]。"""
     lines = gh(f"repos/{REPO}/commits?path=notes/{stem}.json&per_page=100", "--paginate",
                "--jq", '.[] | .sha + " " + .commit.committer.date').split()
-    out = []
-    for sha, t in zip(lines[::2], lines[1::2]):
-        raw = gh("-H", "Accept: application/vnd.github.raw", f"repos/{REPO}/contents/notes/{stem}.json?ref={sha}")
-        out.append((datetime.datetime.fromisoformat(t.replace("Z", "+00:00")), json.loads(raw)))
-    return sorted(out, key=lambda x: x[0])
+    from concurrent.futures import ThreadPoolExecutor
+    fetch = lambda sha: json.loads(gh("-H", "Accept: application/vnd.github.raw",
+                                      f"repos/{REPO}/contents/notes/{stem}.json?ref={sha}"))
+    with ThreadPoolExecutor(8) as pool:      # 各存档互不相关，并行拉
+        notes = list(pool.map(fetch, lines[::2]))
+    times = [datetime.datetime.fromisoformat(t.replace("Z", "+00:00")) for t in lines[1::2]]
+    return sorted(zip(times, notes), key=lambda x: x[0])
 
 
 def page_versions(page_file):
