@@ -252,6 +252,8 @@ def main():
     ap.add_argument("--worktrees", default=str(WORKTREES), help="旧版页面 worktree 放哪")
     ap.add_argument("--only", nargs="+", help="只修这几笔（冒烟用；其余笔原样写出）")
     ap.add_argument("--workers", type=int, default=8, help="并行进程数（每个进程一个 chromium）")
+    ap.add_argument("--shots-for", nargs=2, metavar=("IDS_TXT", "NOTES_JSON"),
+                    help="只出对照图（要配 --shots）：这些笔在原版页面与「当前页面 + NOTES_JSON」上的样子")
     ap.add_argument("--math-from-origin", metavar="BASE_JSON",
                     help="只做一件事：当初挂在公式上的笔，在各自原版页面上换成符号锚点，写进 BASE_JSON 的副本（--out）")
     args = ap.parse_args()
@@ -279,6 +281,15 @@ def main():
     common = dict(page=args.page, worktrees=pathlib.Path(args.worktrees), root=ROOT, current=current)
     for sha in groups:
         checkout(sha, common["worktrees"])          # 先检出，免得几个进程同时 git worktree add
+    if args.shots_for:
+        # 只出对照图：给定的笔（id 列表文件），左原版页面 + 原笔画，右当前页面 + NOTES_JSON 里的笔画
+        want = set(pathlib.Path(args.shots_for[0]).read_text().split())
+        shown = json.loads(pathlib.Path(args.shots_for[1]).read_text(encoding="utf-8"))
+        chunks = split(groups, want, args.workers)
+        with mp.get_context("spawn").Pool(len(chunks)) as pool:
+            pool.map(shoot, [dict(common, groups=g, repaired=shown, shots=args.shots) for g in chunks])
+        print(f"== 对照图 {len(want)} 笔，用 {time.time() - t0:.0f} s，写到 {args.shots}")
+        return
     if args.math_from_origin:
         # 当初挂在公式上的笔：在各自原版页面上换成符号锚点（每个版本一个进程），写进底稿笔记
         jobs = [dict(common, sha=sha, strokes=[s for s in g if s["anchor"].get("type") == "math"]) for sha, g in groups.items()]
