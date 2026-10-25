@@ -241,7 +241,7 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "88b6d76d36fe";</script>
+<script>window.NIPC_PAGE = "3732648739a2";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -261,7 +261,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-2" href="#w5">5. Huanyu 的方案与我的方案</a>
 <a class="toc-level-2" href="#w6">6. 想讨论的</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>Week 3–4（第 3–4 周）</h1><p class="summary">要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。</p></header>
-<div class="lead"><p class="kp">本页结论：hydro++ 给不出接触间的相互影响；我的模型公式为主、网络修轮廓，理想场景已很准；非理想情况要统一几种精确极限；与 Huanyu 的方案互补。</p></div>
+<div class="lead"><p class="kp">本页结论：hydro++ 给不出接触间的相互影响；我的模型理想场景已很准，非理想情况要统一几种精确极限；与 Huanyu 的方案互补。</p></div>
 <section id="w1"><h2>要学的是什么</h2>
 <ul>
 <li>
@@ -273,12 +273,12 @@ html.annot-on #annot-capture { display: block; }
 
 <figure style="margin:12px 0"><img src="assets/images/w34_fig01_collision_energy.png" width="2501" height="991" style="width:1060px;max-width:100%;height:auto" alt="左边粗模型互相穿进去（红色）；右边真实物体凹下去让开，蓝色凹陷里存的能量就是 \(U_c\)。" loading="lazy"><figcaption class="small">左边粗模型互相穿进去（红色）；右边真实物体凹下去让开，蓝色凹陷里存的能量就是 \(U_c\)。</figcaption></figure>
 <ul>
-<li>粗状态下的重叠深度即压深 \(\delta\)，两表面形状给出缝隙 \(h\)，下文都用它们；标签由 IPC 加精细有限元算。</li>
+<li>粗状态下的重叠深度即压深 \(\delta\)，两表面形状给出缝隙 \(h\)，下文都用它们。</li>
 </ul></section>
 <section id="w2"><h2>hydro++ 能做什么、不能做什么</h2>
 <ul>
 <li>
-<p>hydro 即 hydroelastic 接触模型（Drake 在用）：每个物体预先画一张压力场，每点只看自己离表面多深；重叠区取较小压力积分：</p>
+<p>hydro（hydroelastic，Drake 在用）：每个物体预画压力场，每点只看自己多深；重叠区取较小压力积分：</p>
 <p>\[\color{#c0392b}{U^{\text{hydro}}=\int_{\Omega}\min(p_A,p_B)\,dV}\]</p>
 </li>
 </ul>
@@ -294,13 +294,13 @@ html.annot-on #annot-capture { display: block; }
 </ul>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_08_pair_table.png" width="1000" height="940" style="width:447px;max-width:100%;height:auto" alt="每格一对物体：绿色拟合，灰色挑模型，红色测试；红格的两个物体各自都在绿格里出现过。幂律是高度按半径某次方升高的凸起。" loading="lazy"><figcaption class="small">每格一对物体：绿色拟合，灰色挑模型，红色测试；红格的两个物体各自都在绿格里出现过。幂律是高度按半径某次方升高的凸起。</figcaption></figure>
 <ul>
-<li>见过的配对误差百万分之几；没见过的组合单起点拟合 12%，多起点复核中更大。真实能量是两侧量先相加、再非线性组合（\(E^*\) 是两侧柔度相加后取倒数），「取较小压力积分」给不出这种组合，只能逐对背。</li>
+<li>见过的配对误差百万分之几；没见过的单起点 12%，多起点复核中更大。真实能量是两侧量相加后再非线性组合（\(E^*\) 是柔度相加取倒数），取较小压力积分给不出，只能逐对背。</li>
 </ul>
 <h3 id="w2-2">例二：接触之间的相互影响</h3>
 
 <ul>
 <li>
-<p>两个平底压头：① 单压 P，② 单压 Q，③ 一起压。hydro++ 重叠区直接拼起来，\(U^{\text{hydro}}_③=U^{\text{hydro}}_①+U^{\text{hydro}}_②\)；真实物体里 P 把 Q 底下带低，要打折：</p>
+<p>两平底：① 单压 P，② 单压 Q，③ 一起压。hydro++ 只能 \(U^{\text{hydro}}_③=U^{\text{hydro}}_①+U^{\text{hydro}}_②\)；真实的 P 把 Q 底下带低，要打折：</p>
 <p>\[\color{#c0392b}{U_③=c\,(U_①+U_②),\qquad c=\frac{1}{1+\dfrac{2a}{\pi r}}}\]</p>
 </li>
 </ul>
@@ -376,15 +376,15 @@ html.annot-on #annot-capture { display: block; }
 </li>
 </ol></details>
 <ul>
-<li><strong>小结：</strong> hydro++ 能背见过的配对，不能给出相互影响和新组合。由此两条要求：① 主体由缝隙和合成硬度决定，剩余修正再看两侧；② 接触间要有相互影响。（hydro「每点只看自己」恰是薄层行为，见第 4 节。）</li>
+<li><strong>小结：</strong> hydro++ 能背见过的配对，不能给出相互影响和新组合。由此两条要求：① 主体由缝隙和合成硬度决定，剩余修正再看两侧；② 接触间要有相互影响。</li>
 </ul>
-<p class="kp">场各自固定在单个物体上，hydro++ 多处接触只能相加，两压头算例上至少错 7.49%。</p></section>
+<p class="kp">场固定在单个物体上，hydro++ 多处接触只能相加，至少错 7.49%。</p></section>
 <section id="w3"><h2>我的软–软模型</h2>
 <h3 id="w3-1">骨架：两软体 → 刚体压软平面 → 一排弹簧</h3>
 
 <ul>
 <li>
-<p><strong>条件：</strong> 接触区远小于物体、变形小、无摩擦。<strong>结论：</strong> 两软体 = 形状为缝隙 \(h\) 的刚体压合成硬度 \(E^*\) 的软平面：</p>
+<p>接触区远小于物体、变形小、无摩擦时，两软体 = 形状为缝隙 \(h\) 的刚体压合成硬度 \(E^*\) 的软平面：</p>
 <p>\[\color{#c0392b}{h=f_A+f_B,\qquad \frac1{E^*}=\frac{1-\nu_A^2}{E_A}+\frac{1-\nu_B^2}{E_B}}\]</p>
 </li>
 </ul>
@@ -420,7 +420,7 @@ html.annot-on #annot-capture { display: block; }
 <p>\[\color{#c0392b}{\begin{aligned}&amp;g(x)=|x|\int_0^{|x|}\frac{h&#x27;(r)}{\sqrt{x^2-r^2}}\,dr,\qquad g(a)=\delta,\\&amp;U_0=E^*\int_0^a\big(\delta-g(x)\big)^2dx\end{aligned}}\]</p>
 </li>
 </ul>
-<p>\(x\) 弹簧位置，\(h&#x27;(r)\) 缝隙斜率，\(a\) 接触边缘，\(\delta-g\) 每根弹簧的压缩量。\(U_0\) 是 \(U_c\) 的解析近似，自带「力是能量导数」「越压越硬」；球代入得 Hertz \(U_H=\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)。</p>
+<p>\(x\) 弹簧位置，\(h&#x27;(r)\) 缝隙斜率，\(a\) 接触边缘，\(\delta-g\) 每根弹簧的压缩量。\(U_0\) 是 \(U_c\) 的解析近似，力是它的导数、越压越硬；球代入得 Hertz \(U_H=\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)。</p>
 
 <figure style="margin:12px 0"><img src="assets/images/w34_fig04_mdr_springs.png" width="2205" height="1021" style="width:907px;max-width:100%;height:auto" alt="左边三维各点互相牵连；右边换成等效轮廓压独立弹簧，红线处 \(g(a)=\delta\)。" loading="lazy"><figcaption class="small">左边三维各点互相牵连；右边换成等效轮廓压独立弹簧，红线处 \(g(a)=\delta\)。</figcaption></figure>
 <details><summary>推导：降维法的力、等效轮廓和能量</summary><p><strong>第一步：平底的解（已知）。</strong> 半径 \(\tilde a\) 的刚性平底压入 \(\delta\)，力和平底外 \(r\) 处的表面下沉分别为</p>
@@ -465,26 +465,26 @@ html.annot-on #annot-capture { display: block; }
 </li>
 </ol></details>
 <ul>
-<li><strong>椭圆：</strong> 比如球压游泳圈内圈。骨架按等面积圆算，再乘 \(F_U(e)\) = 椭圆 Hertz 能量 ÷ 等面积圆能量（\(e\) 为两方向曲率比的对数）；两者随硬度、压深、尺寸的变化相同，比值只看 \(e\)。不乘少算 2.4%。</li>
+<li><strong>椭圆：</strong> 比如球压游泳圈内圈。按等面积圆算，再乘 \(F_U(e)\) = 椭圆 Hertz 能量 ÷ 等面积圆能量（\(e\) 为曲率比的对数）；两者随硬度、压深、尺寸变化相同，比值只看 \(e\)。不乘少算 2.4%。</li>
 </ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_t5_ring_inner_overview.png" width="2068" height="970" style="width:895px;max-width:100%;height:auto" alt="刚球压环面内圈；右边俯视，灰点是表面网格点，粉色接触区拉成扁椭圆（曲率差 3 倍）。" loading="lazy"><figcaption class="small">刚球压环面内圈；右边俯视，灰点是表面网格点，粉色接触区拉成扁椭圆（曲率差 3 倍）。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_t5_ring_inner_overview.png" width="2068" height="970" style="width:895px;max-width:100%;height:auto" alt="刚球压环面内圈；右边俯视，灰点是网格点，粉色接触区是扁椭圆。" loading="lazy"><figcaption class="small">刚球压环面内圈；右边俯视，灰点是网格点，粉色接触区是扁椭圆。</figcaption></figure>
 <ul>
 <li><strong>多处接触：</strong> 每处压深 = 自己压的 + 别处按 \(F_j/(\pi E&#x27;r_{ij})\) 带下去的，即例二与边界元一致的打折公式，不经过网络。</li>
 </ul>
 <h3 id="w3-2">网络修什么</h3>
 
 <ul>
-<li>合成硬度相同的两组，标签 ÷ Hertz：硬压头压软块（1e6/1e5）1.000–1.007，软压头压硬块（1e5/1e6）0.976–0.986。软在哪侧结果不同，所以剩余修正要看两侧各自的量。</li>
+<li>合成硬度相同，标签 ÷ Hertz：硬压头压软块 1.000–1.007，软压头压硬块 0.976–0.986。软在哪侧结果不同，所以修正要看两侧各自的量。</li>
 </ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_s33_soft_indenter_pressed.png" width="2578" height="2520" style="width:850px;max-width:100%;height:auto" alt="压头 / 块杨氏模量四种组合的剖面。看右上 1e6/1e5 与右下 1e5/1e6：前者凹的是块，后者压平的是压头。" loading="lazy"><figcaption class="small">压头 / 块杨氏模量四种组合的剖面。看右上 1e6/1e5 与右下 1e5/1e6：前者凹的是块，后者压平的是压头。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_s33_soft_indenter_pressed.png" width="2578" height="2520" style="width:850px;max-width:100%;height:auto" alt="看右上 1e6/1e5 与右下 1e5/1e6（压头 / 块杨氏模量）：前者凹的是块，后者压平的是压头。" loading="lazy"><figcaption class="small">看右上 1e6/1e5 与右下 1e5/1e6（压头 / 块杨氏模量）：前者凹的是块，后者压平的是压头。</figcaption></figure>
 <ul>
-<li><strong>做法：</strong> 网络给轮廓每处斜率乘一个正数，能量仍由弹簧算。比如软压头低于 Hertz，网络就调大外圈斜率：接触变窄，能量降下来。</li>
+<li><strong>做法：</strong> 网络给轮廓每处斜率乘一个正数，能量仍由弹簧算。比如软压头低于 Hertz，就调大外圈斜率，接触变窄、能量降低。</li>
 </ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_01_profile_correction.png" width="1113" height="965" style="width:484px;max-width:100%;height:auto" alt="虚线是公式轮廓，实线外圈变陡：接触边缘从 \(a\) 收到 \(a&#x27;\)，弹簧更浅、能量更小。示意，幅度放大。" loading="lazy"><figcaption class="small">虚线是公式轮廓，实线外圈变陡：接触边缘从 \(a\) 收到 \(a&#x27;\)，弹簧更浅、能量更小。示意，幅度放大。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_01_profile_correction.png" width="1113" height="965" style="width:484px;max-width:100%;height:auto" alt="实线外圈比公式（虚线）陡，接触边缘从 \(a\) 收到 \(a&#x27;\)，能量更小。示意。" loading="lazy"><figcaption class="small">实线外圈比公式（虚线）陡，接触边缘从 \(a\) 收到 \(a&#x27;\)，能量更小。示意。</figcaption></figure>
 <ul>
-<li><strong>输入：</strong> 两侧各自的曲率占比、软度占比、泊松比、到边缘距离，加位置和扁度；不输入压深。497 个参数。</li>
+<li><strong>输入：</strong> 两侧的曲率占比、软度占比、泊松比、到边缘距离，加位置、扁度；不含压深。497 个参数。</li>
 </ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_09_arch_v1.png" width="1975" height="899" style="width:923px;max-width:100%;height:auto" alt="公式给轮廓，网络按两侧的量调斜率，弹簧算每处能量；各处按 1/距离 互相带下去，合成总能量。" loading="lazy"><figcaption class="small">公式给轮廓，网络按两侧的量调斜率，弹簧算每处能量；各处按 1/距离 互相带下去，合成总能量。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_09_arch_v1.png" width="1975" height="899" style="width:923px;max-width:100%;height:auto" alt="公式给轮廓，网络调斜率，弹簧算能量；各处按 1/距离 互相带下去。" loading="lazy"><figcaption class="small">公式给轮廓，网络调斜率，弹簧算能量；各处按 1/距离 互相带下去。</figcaption></figure>
 <h3 id="w3-3">结果</h3>
 
 <ul>
@@ -524,20 +524,20 @@ html.annot-on #annot-capture { display: block; }
 <li>骨架已很准，网络空间不大；它要学的是公式管不到的情况。</li>
 </ul>
 <p class="setting muted">设置：简单公式为 能量 × exp(c₁·压头软度占比·接触半径 / 压头球冠半径 + c₂·压深 / 等效半径)，把软压头组修到 0.6%；网络三个种子的最大误差 1.05%、2.57%、1.05%；留一拿掉的是整个构型（含曲面块）。</p>
-<p class="kp">骨架在理想场景误差中位数 0.44%；网络只调轮廓斜率、不看压深，降到 0.21%。</p></section>
+<p class="kp">骨架在理想场景误差中位数 0.44%，网络只调轮廓、降到 0.21%。</p></section>
 <section id="w4"><h2>理想情况之外：在精确极限之间搭桥</h2>
 <h3 id="w4-1">骨架管不到的三种情况</h3>
 
 <ul>
 <li>骨架假设物体无限厚、接触区一整块且左右对称。</li>
 <li><strong>① 薄层</strong>（软垫、皮肤）：底座让它硬得多，骨架没有层厚，只算出一到两成。</li>
-<li><strong>② 斜压平底：</strong> 骨架把倾斜读成「最深处更深、边上一圈很浅」，丢了哪边深，少算约 15%，0° 有尖角、冒出假力矩。</li>
+<li><strong>② 斜压平底：</strong> 骨架把倾斜读成「最深处更深、边上一圈很浅」，丢了哪边深，0° 有尖角、冒出假力矩。</li>
 </ul>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_03_tilt.png" width="1865" height="897" style="width:873px;max-width:100%;height:auto" alt="固定中心压深：精确解（绿）是光滑抛物线；骨架（红虚线）0° 处尖角，3° 时少约 15%。" loading="lazy"><figcaption class="small">固定中心压深：精确解（绿）是光滑抛物线；骨架（红虚线）0° 处尖角，3° 时少约 15%。</figcaption></figure>
 <ul>
 <li><strong>③ 两处连成一片：</strong> 从「两处 + 相互影响」切成「一处」，能量跳一下。</li>
 </ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_s7_merge_jump.png" width="1276" height="855" style="width:627px;max-width:100%;height:auto" alt="两平底贴上（横轴 2）切成一处，能量掉到红点：点力算相互影响跳 6.8%，改用分布压力也跳 4.2%。" loading="lazy"><figcaption class="small">两平底贴上（横轴 2）切成一处，能量掉到红点：点力算相互影响跳 6.8%，改用分布压力也跳 4.2%。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_s7_merge_jump.png" width="1276" height="855" style="width:627px;max-width:100%;height:auto" alt="两平底贴上（横轴 2）切成一处，能量跳 6.8%；相互影响改用分布压力算也跳 4.2%。" loading="lazy"><figcaption class="small">两平底贴上（横轴 2）切成一处，能量跳 6.8%；相互影响改用分布压力算也跳 4.2%。</figcaption></figure>
 <h3 id="w4-2">以薄层为例：两头精确，中间都不准</h3>
 
 <ul>
@@ -571,13 +571,13 @@ html.annot-on #annot-capture { display: block; }
 <p>\[U=\frac{\pi kR\,\delta^3}{3}.\]</p>
 </li>
 </ol></details>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_04_layer_transition.png" width="1250" height="883" style="width:595px;max-width:100%;height:auto" alt="越往右越薄，黑线有限元。Hertz（蓝）左端准，薄层（红）右端准；交叉处都差约 30%，离开更差。" loading="lazy"><figcaption class="small">越往右越薄，黑线有限元。Hertz（蓝）左端准，薄层（红）右端准；交叉处都差约 30%，离开更差。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_04_layer_transition.png" width="1250" height="883" style="width:595px;max-width:100%;height:auto" alt="往右越薄，黑线有限元；Hertz（蓝）左端准，薄层（红）右端准，交叉处都差约 30%。" loading="lazy"><figcaption class="small">往右越薄，黑线有限元；Hertz（蓝）左端准，薄层（红）右端准，交叉处都差约 30%。</figcaption></figure>
 <p class="setting muted">设置：刚球压粘在刚性底座上的层，泊松比 0.3，轴对称有限元；Hertz 误差在接触区 ÷ 层厚 = 0.1 / 1 / 3 时为 −7.4% / −60% / −86%，薄层公式为 −78% / −3.7% / +0.9%。</p>
 <h3 id="w4-3">统一结构：方格弹簧床</h3>
 
 <ul>
 <li>
-<p>接触面切成方格，每格按穿入深度是一根弹簧，第 3 节的「相互影响」推广到格与格：不牵连是薄层（hydro 端），按 1/距离 是厚物体（现骨架端），有限厚层近处 1/距离、远处截断，称层核，有精确公式。</p>
+<p>接触面切成方格，每格一根弹簧，相互影响推广到格与格：不牵连是薄层，按 1/距离 是厚物体，有限厚层近处 1/距离、远处截断（层核，有精确公式）。</p>
 <p>\[\color{#c0392b}{U(o)=\max_{p\ge0}\Big[\sum_mp_m\,o_m-\frac12\sum_{m,n}p_m\,C_{mn}\,p_n\Big]}\]</p>
 </li>
 </ul>
@@ -616,11 +616,11 @@ html.annot-on #annot-capture { display: block; }
 </ul>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_06_gap_grid.png" width="1481" height="525" style="width:705px;max-width:100%;height:auto" alt="颜色是每格穿入深度：斜压平底右深左浅；两处靠近时蓝框里的格子逐渐接触，没有切换。" loading="lazy"><figcaption class="small">颜色是每格穿入深度：斜压平底右深左浅；两处靠近时蓝框里的格子逐渐接触，没有切换。</figcaption></figure>
 <ul>
-<li><strong>网络（设计）：</strong> 输出衰减曲线，两头钉住只改中间；输入下方多厚、泊松比、底面条件；轮廓修正留在每格。</li>
-<li><strong>速度：</strong> 每个接触区双精度约 54 µs，现骨架 26 µs，慢约一倍；斜压很浅时窄月牙要局部加密。</li>
+<li><strong>网络（设计）：</strong> 输出衰减曲线，两头钉住只改中间；输入下方多厚、泊松比、底面条件。</li>
+<li><strong>速度：</strong> 每个接触区约 54 µs，现骨架 26 µs，慢约一倍。</li>
 </ul>
 <p class="setting muted">设置：54 / 26 µs 为 1024 个接触区批量求解摊到每区，共享 GPU，不含二阶导；单精度时 31 µs。</p>
-<p class="kp">方格弹簧床把薄层和厚物体两个精确极限钉在两头，网络只学中间的过渡，斜压和连成一片也随之解决。</p></section>
+<p class="kp">方格弹簧床把薄、厚两个精确极限钉在两头，网络只学中间的过渡。</p></section>
 <section id="w5"><h2>Huanyu 的方案与我的方案</h2>
 <div class="tablewrap"><table>
 <thead>
@@ -633,13 +633,13 @@ html.annot-on #annot-capture { display: block; }
 <tbody>
 <tr>
 <td>物体</td>
-<td>两个有限大球</td>
-<td>被压块取得足够大，等效无限大</td>
+<td>有限大球</td>
+<td>块足够大，视为无限大</td>
 </tr>
 <tr>
 <td>骨架</td>
-<td>Hertz 能量 × 网络因子</td>
-<td>降维法 / 椭圆 Hertz，网络调轮廓</td>
+<td>Hertz × 网络因子</td>
+<td>降维法，网络调轮廓</td>
 </tr>
 <tr>
 <td>参数量</td>
@@ -647,30 +647,30 @@ html.annot-on #annot-capture { display: block; }
 <td>497</td>
 </tr>
 <tr>
-<td>压深输入网络</td>
-<td>是；训练范围外输出不可靠，小压深端关掉修正</td>
-<td>否，越压越硬由结构保证</td>
+<td>输入压深</td>
+<td>是（范围外不可靠，小压深关修正）</td>
+<td>否</td>
 </tr>
 <tr>
-<td>多处接触相互影响</td>
+<td>多处相互影响</td>
 <td>无</td>
-<td>有（已实现，尚未训练）</td>
+<td>有（未训练）</td>
 </tr>
 <tr>
-<td>有限大物体、预应变</td>
+<td>有限大、预应变</td>
 <td>有</td>
 <td>无</td>
 </tr>
 </tbody>
 </table></div>
 <ul>
-<li>两边数据不同，还没在同一组数据上比精度。我的能跨形状推广，Huanyu 的覆盖有限大物体和预应变。</li>
+<li>两边数据不同，还没同数据比精度；我的能跨形状推广，Huanyu 的覆盖有限大和预应变。</li>
 </ul>
 <p class="kp">两个方案覆盖的情况不同，可以合起来用。</p></section>
 <section id="w6"><h2>想讨论的</h2>
 <ol>
 <li>方格弹簧床作为下一阶段主线是否合适？</li>
-<li>有限大物体整体被压扁的部分只和自身形状有关，可单独预算；能否用 Huanyu 的数据检验它，并同数据比精度？</li>
+<li>有限大物体整体被压扁的部分只和自身形状有关、可预算；能否用 Huanyu 的数据检验并比精度？</li>
 <li>每个接触区每次牛顿迭代多少时间可接受？</li>
 <li>先接进 libuipc（Genesis 底层的 GPU IPC 求解器）跑动力学，还是先做过渡区？</li>
 </ol></section>
