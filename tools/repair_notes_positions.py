@@ -626,6 +626,13 @@ def font_check(job):
 STATE_JS = "ids => Object.fromEntries(ids.map(id => [id, (window.__nipcNotes.placed(id) || {state: 'none'}).state]))"
 
 
+def inject_before_scripts(h, snippet):
+    """把 snippet 插到页面第一个 <script 之前（页面文件没有 <head>，标注层脚本在后面，先设好的全局量它才读得到）。"""
+    i = h.find("<script")
+    assert i >= 0, "页面里没有 <script>"
+    return h[:i] + snippet + h[i:]
+
+
 def build_check_page(sha, ids, out_dir, page_file):
     """核对页 check/<sha7>/<页>：那一版页面原样（只换上当前标注层），只显示 ids 这些笔；页面引用的图 / 视频按那一版拷过来。"""
     d = out_dir / sha[:7]
@@ -635,7 +642,7 @@ def build_check_page(sha, ids, out_dir, page_file):
     h = tmp.read_text(encoding="utf-8")
     tmp.unlink()
     pre = (f"<script>window.NIPC_ONLY = {json.dumps(sorted(ids))}; window.NIPC_CHECK_VERSION = '{sha[:7]}';</script>\n")
-    h = h.replace("<head>", "<head>\n" + pre, 1)
+    h = inject_before_scripts(h, pre)
     (d / page_file).write_text(h, encoding="utf-8")
     for ref in sorted(set(re.findall(r'(?:src|href)="(assets/[^"#?]+)"', h))):
         p = d / ref
@@ -781,7 +788,7 @@ def snapshots(args):
             h = tmp.read_text(encoding="utf-8")
             tmp.unlink()
             snap = json.dumps(ses["last_notes"], ensure_ascii=False).replace("</", "<\\/")
-            h = h.replace("<head>", f"<head>\n<script>window.NIPC_SNAPSHOT = {snap};</script>\n", 1)
+            h = inject_before_scripts(h, f"<script>window.NIPC_SNAPSHOT = {snap};</script>\n")
             (d / args.page).write_text(h, encoding="utf-8")
             for ref in sorted(set(re.findall(r'(?:src|href)="(assets/[^"#?]+)"', h))):
                 blob = subprocess.run(["git", "-C", str(ROOT), "show", f"{sha}:{ref}"], capture_output=True)
