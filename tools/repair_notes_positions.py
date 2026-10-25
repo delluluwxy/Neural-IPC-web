@@ -95,14 +95,86 @@ def open_with_notes(browser, path, notes):
     return page
 
 
-def grab(page, x, y, w, h, clean=True):
-    """页面坐标里一块区域的灰度图（clean：不画笔记和页面浮层）。返回 (数组, 实际左上角)。"""
+def grab(page, x, y, w, h):
+    """页面坐标里一块区域的灰度图（调用前已加 HIDE_CSS，不画笔记和页面浮层）。返回 (数组, 实际左上角)。"""
     x, y = max(0, int(x)), max(0, int(y))
-    tag = page.add_style_tag(content=HIDE_CSS) if clean else None
     png = page.screenshot(full_page=True, clip=dict(x=x, y=y, width=int(w), height=int(h)))
-    if tag:
-        tag.evaluate("e => e.remove()")
     return np.asarray(Image.open(io.BytesIO(png)).convert("L"), dtype=float), (x, y)
+
+
+def measure(job):
+    """一个进程里量一批笔：原版页面上截模板，当前页面上找最像的位置。不挪笔，只返回
+    {笔 id: ("move", dx, dy, 相关系数) | ("keep", 相关系数) | ("lost", 原因)} 与各段耗时。"""
+    import time
+    t0, res, tmpl, tm = time.time(), {}, {}, {}
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for sha, strokes in job["groups"].items():
+            old = open_with_notes(browser, checkout(sha, job["worktrees"]) / job["page"], dict(job["current"], strokes=strokes))
+            boxes = old.evaluate(BOX_JS, [s["id"] for s in strokes])
+            old.add_style_tag(content=HIDE_CSS)
+            for s in strokes:
+                b = boxes.get(s["id"])
+                if b:
+                    tmpl[s["id"]] = grab(old, b[0] - MARGIN, b[1] - MARGIN, b[2] + 2 * MARGIN, b[3] + 2 * MARGIN)[0]
+            old.close()
+        tm["templates"] = time.time() - t0
+        new = open_with_notes(browser, job["root"] / job["page"], job["current"])
+        ids = sorted(s["id"] for g in job["groups"].values() for s in g)
+        boxes = new.evaluate(BOX_JS, ids)
+        new.add_style_tag(content=HIDE_CSS)
+        tm["new_page"] = time.time() - t0 - tm["templates"]
+        for i in ids:
+            b, t = boxes.get(i), tmpl.get(i)
+            if b is None or t is None:
+                res[i] = ("lost", "原位置或现位置看不到")
+                continue
+            search, (sx, sy) = grab(new, b[0] - MARGIN - SEARCH_X, b[1] - MARGIN - SEARCH_Y,
+                                    b[2] + 2 * (MARGIN + SEARCH_X), b[3] + 2 * (MARGIN + SEARCH_Y))
+            m = best_match(search, t)
+            if m is None:
+                res[i] = ("lost", "原位置下面是空白，认不出")
+            elif m[2] < MIN_SCORE:
+                res[i] = ("lost", f"最像处相关系数只有 {m[2]:.2f}")
+            else:
+                dx, dy = sx + m[1] + MARGIN - b[0], sy + m[0] + MARGIN - b[1]
+                res[i] = ("keep", m[2]) if abs(dx) <= 1 and abs(dy) <= 1 else ("move", dx, dy, m[2])
+        browser.close()
+    tm["match"] = time.time() - t0 - tm["templates"] - tm["new_page"]
+    return res, tm
+
+
+def shoot(job):
+    """一个进程里给一批挪动过的笔出左右对照图（左：原版页面 + 原笔画；右：当前页面 + 修好的笔画）。"""
+    clip = lambda b: dict(x=max(0, b[0] - 150), y=max(0, b[1] - 150), width=b[2] + 300, height=b[3] + 300)
+    before = {}
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for sha, strokes in job["groups"].items():
+            old = open_with_notes(browser, checkout(sha, job["worktrees"]) / job["page"], dict(job["current"], strokes=strokes))
+            boxes = old.evaluate(BOX_JS, [s["id"] for s in strokes])
+            for s in strokes:
+                if boxes.get(s["id"]):
+                    before[s["id"]] = Image.open(io.BytesIO(old.screenshot(full_page=True, clip=clip(boxes[s["id"]])))).convert("RGB")
+            old.close()
+        new = open_with_notes(browser, job["root"] / job["page"], job["repaired"])
+        boxes = new.evaluate(BOX_JS, list(before))
+        for i, img in before.items():
+            if boxes.get(i):
+                after = Image.open(io.BytesIO(new.screenshot(full_page=True, clip=clip(boxes[i])))).convert("RGB")
+                side_by_side(img, after, f"{job['shots']}/{i}.png")
+        browser.close()
+
+
+def split(groups, ids, n):
+    """把要处理的笔轮流分成 n 份，每份仍按原始版本分组。"""
+    by_id = {s["id"]: (sha, s) for sha, g in groups.items() for s in g}
+    out = [dict() for _ in range(n)]
+    for k, i in enumerate(sorted(ids)):
+        if i in by_id:
+            sha, s = by_id[i]
+            out[k % n].setdefault(sha, []).append(s)
+    return [g for g in out if g]
 
 
 def best_match(search, tmpl):
@@ -139,6 +211,7 @@ def main():
     ap.add_argument("--shots", help="挪动过的笔的左右对照图目录")
     ap.add_argument("--worktrees", default=str(WORKTREES), help="旧版页面 worktree 放哪")
     ap.add_argument("--only", nargs="+", help="只修这几笔（冒烟用；其余笔原样写出）")
+    ap.add_argument("--workers", type=int, default=8, help="并行进程数（每个进程一个 chromium）")
     args = ap.parse_args()
     stem = pathlib.Path(args.page).stem
     if args.shots:
@@ -158,52 +231,33 @@ def main():
         groups.setdefault(sha, []).append(s)
     print(f"== {len(ids)} 笔，原始版本分布：" + "，".join(f"{v[:7]} {len(g)}" for v, g in groups.items()), flush=True)
 
+    import multiprocessing as mp
+    import time
+    t0 = time.time()
+    common = dict(page=args.page, worktrees=pathlib.Path(args.worktrees), root=ROOT, current=current)
+    for sha in groups:
+        checkout(sha, common["worktrees"])          # 先检出，免得几个进程同时 git worktree add
+    chunks = split(groups, ids, args.workers)
+    with mp.get_context("spawn").Pool(len(chunks)) as pool:   # 各笔互不相关：每个进程自己的浏览器量一批
+        outs = pool.map(measure, [dict(common, groups=g) for g in chunks])
+    res = {k: v for r, _ in outs for k, v in r.items()}
+    print(f"  测量 {len(res)} 笔用 {time.time() - t0:.0f} s（{len(chunks)} 个进程；各进程 模板 / 当前页 / 匹配 秒："
+          + "，".join("/".join(f"{tm[k]:.0f}" for k in ("templates", "new_page", "match")) for _, tm in outs) + "）",
+          flush=True)
+    moved = [(i, v[1], v[2], v[3]) for i, v in sorted(res.items()) if v[0] == "move"]
+    kept = [i for i, v in res.items() if v[0] == "keep"]
+    lost = [(i, v[1]) for i, v in sorted(res.items()) if v[0] == "lost"]
+
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        tmpl, before = {}, {}
-        for sha, strokes in groups.items():
-            d = checkout(sha, pathlib.Path(args.worktrees))
-            old = open_with_notes(browser, d / args.page, dict(current, strokes=strokes))
-            boxes = old.evaluate(BOX_JS, [s["id"] for s in strokes])
-            for s in strokes:
-                b = boxes.get(s["id"])
-                if not b:
-                    continue
-                tmpl[s["id"]] = grab(old, b[0] - MARGIN, b[1] - MARGIN, b[2] + 2 * MARGIN, b[3] + 2 * MARGIN)[0]
-                if args.shots:
-                    png = old.screenshot(full_page=True, clip=dict(x=max(0, b[0] - 150), y=max(0, b[1] - 150),
-                                                                   width=b[2] + 300, height=b[3] + 300))
-                    before[s["id"]] = Image.open(io.BytesIO(png)).convert("RGB")
-            old.close()
-            print(f"  {sha[:7]}：取到 {sum(1 for s in strokes if s['id'] in tmpl)}/{len(strokes)} 笔的原位置", flush=True)
-
         new = open_with_notes(browser, ROOT / args.page, current)
         scale = new.evaluate("window.__nipcNotes.frame().s")
-        boxes = new.evaluate(BOX_JS, sorted(ids))
-        moved, kept, lost = [], [], []
-        for i in sorted(ids):
-            b, t = boxes.get(i), tmpl.get(i)
-            if b is None or t is None:
-                lost.append((i, "原位置或现位置看不到"))
-                continue
-            search, (sx, sy) = grab(new, b[0] - MARGIN - SEARCH_X, b[1] - MARGIN - SEARCH_Y,
-                                    b[2] + 2 * (MARGIN + SEARCH_X), b[3] + 2 * (MARGIN + SEARCH_Y))
-            m = best_match(search, t)
-            if m is None:
-                lost.append((i, "原位置下面是空白，认不出"))
-                continue
-            r, c, score = m
-            if score < MIN_SCORE:
-                lost.append((i, f"最像处相关系数只有 {score:.2f}"))
-                continue
-            dx, dy = sx + c + MARGIN - b[0], sy + r + MARGIN - b[1]
-            if abs(dx) <= 1 and abs(dy) <= 1:
-                kept.append(i)
-                continue
+        boxes = new.evaluate(BOX_JS, [m[0] for m in moved])
+        for i, dx, dy, _ in moved:
+            b = boxes[i]
             new.evaluate(f"window.scrollTo(0, {max(0, b[1] + dy - 300)})")
             new.wait_for_timeout(100)
             new.evaluate("([i, dx, dy]) => window.__nipcNotes.moveBy(i, dx, dy)", [i, dx / scale, dy / scale])
-            moved.append((i, dx, dy, score))
         # 公式上还没有符号锚点的笔：原地重新建锚点，换成按符号挂靠
         legacy = [i for i in new.evaluate("window.__nipcNotes.strokes().filter(s => s.anchor.type === 'math' && "
                                           "!s.anchor.g).map(s => s.id)") if i in ids]
@@ -215,18 +269,14 @@ def main():
                 new.evaluate("i => window.__nipcNotes.moveBy(i, 0, 0)", i)
         repaired = dict(current, strokes=new.evaluate("window.__nipcNotes.strokes()"),
                         saved=datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"))
-        if args.shots:
-            new.wait_for_timeout(500)
-            after = new.evaluate(BOX_JS, [m[0] for m in moved])
-            for i, *_ in moved:
-                b = after.get(i)
-                if b and i in before:
-                    png = new.screenshot(full_page=True, clip=dict(x=max(0, b[0] - 150), y=max(0, b[1] - 150),
-                                                                   width=b[2] + 300, height=b[3] + 300))
-                    side_by_side(before[i], Image.open(io.BytesIO(png)).convert("RGB"), f"{args.shots}/{i}.png")
         browser.close()
-
     pathlib.Path(args.out).write_text(json.dumps(repaired, ensure_ascii=False), encoding="utf-8")
+    print(f"  挪笔并导出：到 {time.time() - t0:.0f} s", flush=True)
+    if args.shots and moved:
+        shot_chunks = split(groups, {m[0] for m in moved}, args.workers)
+        with mp.get_context("spawn").Pool(len(shot_chunks)) as pool:
+            pool.map(shoot, [dict(common, groups=g, repaired=repaired, shots=args.shots) for g in shot_chunks])
+        print(f"  对照图：到 {time.time() - t0:.0f} s", flush=True)
     print(f"== 挪动 {len(moved)} 笔，原位不动 {len(kept)} 笔，认不出 {len(lost)} 笔；公式笔改符号锚点 {len(legacy)} 笔；"
           f"写出 {args.out}")
     for i, dx, dy, sc in moved:
