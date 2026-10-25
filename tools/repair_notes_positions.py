@@ -19,6 +19,7 @@ import argparse
 import datetime
 import io
 import json
+import math
 import pathlib
 import re
 import subprocess
@@ -893,6 +894,7 @@ SNAP_NOTES, SNAP_PAGE, TOMBS_AT = "2e32506", "8288b02", "c13089b"
 MATH_PAIR_MIN = 0.5
 TEXT_SEG_MIN, TEXT_SEG_MARGIN = 8, 4   # 正文：锚点字所在 equal 段 ≥ 8 字，且它前后各 4 字也在这一段里，才接受
 GLYPH_SEG_MIN = 3                      # 公式（TeX 改过的）：锚点符号所在 equal 段 ≥ 3 个符号才接受
+CROSS_LINE = 1.5                       # 笔画竖向跨度超过锚字高的这么多倍，算跨行（压住哪些字算不清）
 SENT_END = "。！？；!?;"
 # 可见的灰色笔：找不到圈的内容（orphan）的笔却还显示着（屏幕图层或打印副本里），任何页面任何状态都必须是 0
 VISIBLE_GRAY_JS = """() => [...document.querySelectorAll('#annot-layer path.orphan, svg.annot-print path.orphan')]
@@ -969,7 +971,8 @@ def mapped(m, i, seg_min, margin=0):
 
 def pair_maths(old, new):
     """两版公式（[{tex, ...}] 按文档顺序）的对应 {旧序号: 新序号}：TeX 序列 diff 的 equal 段原样对上；replace 段里按 TeX
-    相似度（≥ MATH_PAIR_MIN）做保序配对（动态规划取相似度之和最大）；最后剩下的里 TeX 原样相同且两边各唯一的（挪了位置）对上。"""
+    相似度（≥ MATH_PAIR_MIN）做保序配对（动态规划取相似度之和最大）；最后剩下的里 TeX 原样相同且两边各唯一的（挪了位置）对上。
+    返回 (对应, 按最后这条对上的旧序号集合)。"""
     import difflib
     out = {}
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, [m["tex"] for m in old], [m["tex"] for m in new],
@@ -997,12 +1000,14 @@ def pair_maths(old, new):
     # 挪了位置的公式（保序 diff 认不出挪动）：剩下没对上的里，TeX 原样相同、且在两边剩下的里各只有一个的，对上
     left_old = [i for i in range(len(old)) if i not in out]
     left_new = [j for j in range(len(new)) if j not in set(out.values())]
+    moved = set()
     count = lambda idx, seq, tex: sum(seq[k]["tex"] == tex for k in idx)
     for i in left_old:
         hit = [j for j in left_new if new[j]["tex"] == old[i]["tex"]]
         if len(hit) == 1 and count(left_old, old, old[i]["tex"]) == 1:
             out[i] = hit[0]
-    return out
+            moved.add(i)
+    return out, moved
 
 
 def sentence(text, pos):
@@ -1020,9 +1025,36 @@ def most_similar_sentence(text, s):
     return max(sents, key=lambda x: difflib.SequenceMatcher(None, s, x, autojunk=False).ratio(), default="")
 
 
+def pressed_chars(s):
+    """这笔从锚字起压住了哪几个字：[k0, k1]（相对锚字的字序号，含两端），用画笔设备上的量算——orig.w / orig.h 是锚字在
+    她 iPad 上的宽高，pts 是相对锚字左上角的点（px）；第 k 个字占横向 [k·w, (k+1)·w)。与服务器字体无关。
+    笔画竖向跨度超过 CROSS_LINE × orig.h（跨行）或不是 px 坐标的返回 None（退回段边规则）。"""
+    o = s["orig"]
+    if s["frame"] != "px" or not o.get("w") or not o.get("h"):
+        return None
+    xs, ys = [p[0] for p in s["pts"]], [p[1] for p in s["pts"]]
+    if max(ys) - min(ys) > CROSS_LINE * o["h"]:
+        return None
+    return math.floor(min(xs) / o["w"]), math.floor(max(xs) / o["w"])
+
+
 def migrate_text(s, w, old, new, cmap, row):
-    """正文笔：旧位置 w["pos"] 经字级映射到新位置 → 新 TextQuote 锚点；映射不到返回 (None, 原因)。row["seg"] 记所在 equal 段长度。"""
-    p, row["seg"] = mapped(cmap, w["pos"], TEXT_SEG_MIN, TEXT_SEG_MARGIN)
+    """正文笔：旧位置 w["pos"] 经字级映射到新位置 → 新 TextQuote 锚点；映射不到返回 (None, 原因)。
+    这笔压住的字（pressed_chars）全在同一个 equal 段里、且该段 ≥ TEXT_SEG_MIN 字才接受；跨行算不清的退回「锚字前后各
+    TEXT_SEG_MARGIN 字在同一段」（row["rule"] 记用的哪条）。row["seg"] 记锚字所在 equal 段长度。"""
+    p0, ks = w["pos"], pressed_chars(s)
+    row["rule"] = "pressed" if ks else "margin（跨行，退回段边规则）"
+    if ks:
+        k0, k1 = ks
+        row["pressed_old"] = old["text"][max(0, p0 + k0):p0 + k1 + 1]
+        segs = {cmap[p0 + k][1:] if p0 + k in cmap else None for k in range(k0, k1 + 1)}
+        p, row["seg"] = mapped(cmap, p0, TEXT_SEG_MIN)
+        if p is not None:
+            row["pressed_new"] = new["text"][max(0, p + k0):p + k1 + 1]
+        if p is None or len(segs) != 1 or None in segs:
+            return None, ("圈住的字改了" if row["seg"] else "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）")
+    else:
+        p, row["seg"] = mapped(cmap, p0, TEXT_SEG_MIN, TEXT_SEG_MARGIN)
     if p is None:
         return None, ("所在原文被改写（锚点字所在 equal 段太短或锚点字离段边不足 "
                       f"{TEXT_SEG_MARGIN} 字）" if row["seg"] else "锚点字在最新版里没有对应（diff 里属于改写 / 删除的那段）")
@@ -1054,8 +1086,10 @@ def migrate_math(s, w, old, new, mpair, row):
     return dict(s, anchor=a), (k, gi if w["kind"] == "glyph" else -1)
 
 
-def migrate_media(s, w, fig_labels):
-    """图上的笔：快照里那张图与最新版同名图像素相同 → 原样；像素变了 → follow_label（不用改名表）。返回 (新笔 / None, 说明)。"""
+def migrate_media(s, w, fig_labels, maps):
+    """图上的笔：快照里那张图与最新版同名图像素相同 → 原样；像素变了 → follow_label：先要求标注文字原样相同，
+    最近的标注新图里没有时，再按 maps（讲稿改名表 tex 里只差字母一一换名的那些对，letter_maps）认换了字母的同一个标注。
+    返回 (新笔 / None, 说明)。"""
     sys.path.insert(0, str(ROOT.parent / "Neural-IPC-sandbox/tools/figs"))
     from fig_label_boxes import pixel_hash
     old_b = git_bytes(f"{SNAP_REF}/assets/images/{w['src']}")
@@ -1068,10 +1102,13 @@ def migrate_media(s, w, fig_labels):
     by_hash = {v["pixels"]: v for d in fig_labels.values() for v in d.values()}
     if ho not in by_hash or hn not in by_hash:
         return None, "图重画过，但 fig_labels 里认不出两版是哪个提交画的"
-    r = follow_label(s["pts"], by_hash[ho], by_hash[hn], [])
+    r, how = follow_label(s["pts"], by_hash[ho], by_hash[hn], []), "原样相同"
     if r["gone"]:
-        return None, f"图重画过，离笔最近的标注「{r['label']}」新图里没了"
-    return dict(s, pts=[q + [p[2]] for q, p in zip(r["pts"], s["pts"])]), f"图重画过，跟着标注「{r['label']}」走"
+        r, how = follow_label(s["pts"], by_hash[ho], by_hash[hn], maps), "按改名表的字母换名（letter_maps + same_label）认出"
+    if r["gone"]:
+        return None, f"图重画过，离笔最近的标注「{r['label']}」新图里没了（原样、按改名表字母换名都没有）"
+    return (dict(s, pts=[q + [p[2]] for q, p in zip(r["pts"], s["pts"])]),
+            f"图重画过，跟着标注「{r['label']}」走（新图里的同一个标注{how}）")
 
 
 def apply_snapshot(args):
@@ -1099,8 +1136,10 @@ def apply_snapshot(args):
         new = pg.evaluate("window.__nipcNotes.contentIndex()")
         pg.close()
         cmap = opcode_map(old["text"], new["text"])
-        mpair = pair_maths(old["maths"], new["maths"])
+        mpair, moved_tex = pair_maths(old["maths"], new["maths"])
         fig_labels = json.loads(pathlib.Path(args.fig_labels).read_text(encoding="utf-8"))
+        from webgen.annotate import DRAFTS   # 图中标注的字母换名：只取改名表 tex 里只差字母一一换名的公式对（letter_maps）
+        maps = letter_maps(json.loads((DRAFTS / f"notation_renames_{stem}.json").read_text(encoding="utf-8")).get("tex", {}))
         out, rows, expect, now_ms = [], [], {}, int(datetime.datetime.now().timestamp() * 1000)
         for s in strokes:
             w, row = w_old.get(s["id"]) or {"state": "none"}, {"id": s["id"], "type": s["anchor"]["type"]}
@@ -1113,9 +1152,11 @@ def apply_snapshot(args):
             elif kind in ("glyph", "math"):
                 row["old"] = old["maths"][w["math"]]["tex"]
                 got, how = migrate_math(s, w, old, new, mpair, row)
+                if w["math"] in moved_tex:
+                    row["math_pair"] = "挪了位置：TeX 原样相同、两边剩下的里各唯一"
             elif kind == "media":
                 row["old"] = w["src"]
-                got, how = migrate_media(s, w, fig_labels)
+                got, how = migrate_media(s, w, fig_labels, maps)
             elif kind == "page":
                 got, how = dict(s), "页边（锚到正文卡片本身）"
             else:
@@ -1187,27 +1228,44 @@ def check_drawn(args):
 
 
 def write_apply_report(args, rows, gray, bad, drawn_page):
-    """--apply-snapshot 的结果表：json 原样逐笔，md 给人看（统计 + 隐藏清单）。"""
+    """--apply-snapshot 的结果表：json 原样逐笔，md 给人看（统计、与上一次运行相比变了的笔、挪位公式、隐藏清单）。"""
     import collections
     d = pathlib.Path(args.out).parent
-    (d / "apply_snapshot2_report.json").write_text(json.dumps(dict(drawn_page=drawn_page, gray_visible=gray, rows=rows),
-                                                              ensure_ascii=False, indent=1), encoding="utf-8")
+    path = d / "apply_snapshot2_report.json"
+    prev = {r["id"]: r["result"] for r in json.loads(path.read_text(encoding="utf-8"))["rows"]} if path.exists() else {}
+    path.write_text(json.dumps(dict(drawn_page=drawn_page, gray_visible=gray, rows=rows), ensure_ascii=False, indent=1),
+                    encoding="utf-8")
     c = collections.Counter((r["type"], r["result"]) for r in rows)
     hid = [r for r in rows if r["result"] == "hidden"]
+    flips = [r for r in rows if r["id"] in prev and prev[r["id"]] != r["result"]]
     md = [f"# 第 2 次快照的笔迁到最新版：结果表", "",
           f"基准：线上 snapshot/2（页面 {SNAP_PAGE}，笔记 {SNAP_NOTES}，按 {TOMBS_AT} 的墓碑去掉之后删的笔），共 {len(rows)} 笔。",
-          f"对应方法：difflib.SequenceMatcher(None, 旧, 新, autojunk=False)。正文锚点字所在 equal 段 ≥ {TEXT_SEG_MIN} 字且前后各 "
-          f"{TEXT_SEG_MARGIN} 字在同一段才接受；公式按 TeX 序列对应（改过的 TeX 相似度 ≥ {MATH_PAIR_MIN} 保序配对），TeX 改过的公式内"
-          f"锚点符号所在 equal 段 ≥ {GLYPH_SEG_MIN} 个符号才接受；图像素变了按图中文字标注（follow_label）。不用任何手写对应表。",
+          f"对应方法：difflib.SequenceMatcher(None, 旧, 新, autojunk=False)。正文：这笔实际压住的字（按画笔设备上锚字的宽 orig.w "
+          f"与笔画相对锚字的横向范围算出，与服务器字体无关）全部落在同一个 equal 段里、且该段 ≥ {TEXT_SEG_MIN} 字才接受；"
+          f"笔画竖向跨度超过 {CROSS_LINE} 倍锚字高（跨行）的退回「锚字前后各 {TEXT_SEG_MARGIN} 字在同一段」。"
+          f"公式按 TeX 序列对应（改过的 TeX 相似度 ≥ {MATH_PAIR_MIN} 保序配对；剩下的里 TeX 原样相同且两边各唯一的算挪了位置），"
+          f"TeX 改过的公式内锚点符号所在 equal 段 ≥ {GLYPH_SEG_MIN} 个符号才接受。图像素变了按图中文字标注（follow_label）：先要求标注"
+          f"原样相同，没有再按讲稿改名表 tex 里只差字母一一换名的公式对（letter_maps）认换了字母的同一个标注。"
+          f"不用改名表的 quote / text 和任何逐笔对应表。",
           f"迁过去 {sum(r['result'] == 'moved' for r in rows)} 笔，隐藏 {len(hid)} 笔；最新版上核对不符 {len(bad)} 笔；可见灰色 {gray} 笔。", "",
           "| 类型 | 迁过去 | 隐藏 |", "|---|---|---|"]
     md += [f"| {t} | {c[(t, 'moved')]} | {c[(t, 'hidden')]} |" for t in sorted({r['type'] for r in rows})]
+    md += ["", f"## 与上一次运行相比结果变了的笔（{len(flips)} 笔）", ""]
+    md += [f"- `{r['id']}`（{r['type']}）{prev[r['id']]} → {r['result']}：{r.get('why') or r.get('new', '')}" for r in flips]
+    md += ["", "## 按「挪了位置的同 TeX 公式」对上的笔", ""]
+    md += [f"- `{r['id']}`（{r['result']}）{r['old']}" for r in rows if r.get("math_pair")]
     md += ["", "## 隐藏的笔（内容在最新版里找不到对应）", ""]
     for r in hid:
-        md += [f"- `{r['id']}`（{r['type']}，所在 equal 段长 {r.get('seg', '—')}）{r['why']}", f"  - 8288b02 里：{r.get('old', '')}",
-               f"  - 最新版同一位置附近：{r.get('new_here', '')}", f"  - 最新版最像的一句：{r.get('new_similar', '')}"]
+        md += [f"- `{r['id']}`（{r['type']}，所在 equal 段长 {r.get('seg', '—')}，判据 {r.get('rule', '—')}）{r['why']}",
+               f"  - 8288b02 里：{r.get('old', '')}"]
+        if "pressed_old" in r:
+            md += [f"  - 圈住的字：旧「{r['pressed_old']}」→ 新位置「{r.get('pressed_new', '（锚字没有对应）')}」"]
+        md += [f"  - 最新版同一位置附近：{r.get('new_here', '')}", f"  - 最新版最像的一句：{r.get('new_similar', '')}"]
     (d / "apply_snapshot2_report.md").write_text("\n".join(md) + "\n", encoding="utf-8")
-    print(f"== {len(rows)} 笔：{dict(c)}；核对不符 {len(bad)}；可见灰色 {gray}；报告 {d / 'apply_snapshot2_report.md'}")
+    print(f"== {len(rows)} 笔：{dict(c)}；核对不符 {len(bad)}；可见灰色 {gray}；与上一次相比变了 {len(flips)} 笔；"
+          f"报告 {d / 'apply_snapshot2_report.md'}")
+    for r in flips:
+        print(f"  变了 {r['id']} {r['type']} {prev[r['id']]} → {r['result']}：{r.get('why') or r.get('new', '')}")
     for r in bad[:20]:
         print(f"  不符 {r['id']} {r['check']}")
 
