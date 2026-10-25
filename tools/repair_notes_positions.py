@@ -136,13 +136,14 @@ def main():
     ap.add_argument("--out", required=True, help="修好的笔记 json")
     ap.add_argument("--shots", help="挪动过的笔的左右对照图目录")
     ap.add_argument("--worktrees", default=str(WORKTREES), help="旧版页面 worktree 放哪")
+    ap.add_argument("--only", nargs="+", help="只修这几笔（冒烟用；其余笔原样写出）")
     args = ap.parse_args()
     stem = pathlib.Path(args.page).stem
     if args.shots:
         pathlib.Path(args.shots).mkdir(parents=True, exist_ok=True)
     history = note_history(stem)
     current = history[-1][1]
-    ids = {s["id"] for s in current["strokes"]}
+    ids = {s["id"] for s in current["strokes"]} & set(args.only or [s["id"] for s in current["strokes"]])
     origin = {}
     for t, notes in history:
         for s in notes["strokes"]:
@@ -202,8 +203,8 @@ def main():
             new.evaluate("([i, dx, dy]) => window.__nipcNotes.moveBy(i, dx, dy)", [i, dx / scale, dy / scale])
             moved.append((i, dx, dy, score))
         # 公式上还没有符号锚点的笔：原地重新建锚点，换成按符号挂靠
-        legacy = new.evaluate("window.__nipcNotes.strokes().filter(s => s.anchor.type === 'math' && !s.anchor.g)"
-                              ".map(s => s.id)")
+        legacy = [i for i in new.evaluate("window.__nipcNotes.strokes().filter(s => s.anchor.type === 'math' && "
+                                          "!s.anchor.g).map(s => s.id)") if i in ids]
         boxes = new.evaluate(BOX_JS, legacy)
         for i in legacy:
             if boxes.get(i):
