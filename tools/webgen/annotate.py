@@ -10,16 +10,46 @@
 - 锚点跟内容走（参考 W3C Web Annotation 的 TextQuoteSelector、Hypothesis 的 text-quote 锚定）：每一笔按起笔处的内容存锚点——
   图片/视频按 src 文件名、陈列公式按 TeX 源码（这两种坐标按元素宽高归一化）、表格按单元格文字 + 表头文字、标题按标题文字、
   正文按起笔处最近的一个字（该字 + 前后各 30 字原文，外加块内字符偏移作后备），坐标存相对该字/该元素左上角的偏移。
-  还原时先精确匹配，再模糊匹配，最后块内偏移；都找不到的笔按原位置标灰显示并计数，不删除（可用「移动」拖回或橡皮擦删）。
+  还原时先精确匹配，再模糊匹配，最后块内偏移；都找不到的笔隐藏并计数（任何页面都不显示灰色笔），数据不删。
+- 画的与匹配的分开存：每笔的 drawn = 画完（或用户移动）那一刻的原样（页面版本号、pts、frame、anchor、orig、设备 UA、时间），
+  之后任何代码都不改它；anchor / frame / orig / pts 是匹配结果（迁移、改名、设备上算的圈住内容），可以重算。
 - 笔迹画在正文卡片 <main> 里的一个 SVG 图层上，坐标单位是未缩放的 CSS px（正文卡片内坐标），所以 zoom 不影响存储。
 - 打印时把每一笔挪进它所在的块（段落、图、表格），这样分页后笔迹仍跟着内容。
 不依赖任何外部库；只用 iPad Safari 支持的 Pointer Events、Blob + a[download]、localStorage（读写都包 try/catch）。
 """
 
+import hashlib
 import json
+import re
 from pathlib import Path
 
 from .config import DRAFTS
+
+# 页面版本号：<script>window.NIPC_PAGE = "…";</script>，插在页面第一个 <script 之前（标注层读 window.NIPC_PAGE）
+VERSION_TAG = re.compile(r'<script>window\.NIPC_PAGE = "[0-9a-f]*";</script>\n')
+
+
+def page_version(html):
+    """页面版本号 = 去掉版本号标签后整页 HTML 的 sha256 前 12 位（老页面没有标签，就是整页的哈希）。
+    笔画下时写进 drawn.page，服务器按它认出笔是在哪一版页面上画的。"""
+    return hashlib.sha256(VERSION_TAG.sub("", html).encode("utf-8")).hexdigest()[:12]
+
+
+def version_tag(version):
+    return f'<script>window.NIPC_PAGE = "{version}";</script>\n'
+
+
+def inject_before_scripts(html, snippet):
+    """把 snippet 插到页面第一个 <script 之前（页面没有 <head>，标注层脚本在后面，先设好的全局量它才读得到）。"""
+    i = html.find("<script")
+    assert i >= 0, "页面里没有 <script>"
+    return html[:i] + snippet + html[i:]
+
+
+def with_page_version(html):
+    """给带标注层的页面嵌入版本号（已有的旧标签先去掉）。"""
+    html = VERSION_TAG.sub("", html)
+    return inject_before_scripts(html, version_tag(page_version(html)))
 
 
 def renames_script(page_file):
@@ -91,6 +121,9 @@ html.annot-on #annot-capture { display: block; }
 #annot-sync-panel label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
 #annot-sync-panel input { display: block; width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; margin-top: 2px;
                           border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: #fff; }
+/* 只读快照页：不能画、不能改设置，只有「确认位置并保存」和导出 */
+.annot-ui:not(.snap) #annot-confirm, .annot-ui.snap #annot-toggle, .annot-ui.snap #annot-tools,
+.annot-ui.snap #annot-undo, .annot-ui.snap #annot-clear, .annot-ui.snap #annot-import, .annot-ui.snap #annot-sync { display: none; }
 #annot-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* ===== 打印 / 生成 PDF：笔迹跟着各自的块走，正文保持 920px 排版再整体缩到纸宽 ===== */
@@ -132,6 +165,8 @@ ANNOT_JS = r"""
     colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
   };
   const PAGE_NAME = location.pathname.split('/').pop() || 'index.html';
+  // 页面版本号（build_site 嵌入；快照页是笔当初画的那一版的版本号）：笔画下时记进 drawn.page，保存时记进 savedOn
+  const PAGE_VERSION = typeof window.NIPC_PAGE === 'string' ? window.NIPC_PAGE : '';
   const STORE_KEY = 'nipc-notes:' + location.pathname;
   const UI_KEY = 'nipc-notes-ui';
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -182,7 +217,12 @@ ANNOT_JS = r"""
   /** 本页笔记的完整 JSON（本机保存、导出、同步共用）。tombstones = {被删笔画 id: 删除时刻 ms}，让删除能同步到别的设备。 */
   function payload() {
     return { format: 'nipc-notes', version: CFG.version, page: PAGE_NAME, path: location.pathname,
-             colWidth: CFG.colWidth, saved: new Date().toISOString(), strokes: S.strokes, tombstones: S.tombs };
+             colWidth: CFG.colWidth, saved: new Date().toISOString(), savedOn: PAGE_VERSION, strokes: S.strokes, tombstones: S.tombs };
+  }
+  /** 一笔此刻的样子作为「画的」原样（只在收笔、用户移动时调用；深拷贝，之后匹配字段怎么改都碰不到它）。 */
+  function drawnOf(s) {
+    return JSON.parse(JSON.stringify({ page: PAGE_VERSION, pts: s.pts, frame: s.frame, anchor: s.anchor, orig: s.orig,
+                                       ua: navigator.userAgent, at: new Date().toISOString() }));
   }
   function validStroke(s) {
     return !!(s && typeof s.id === 'string' && Array.isArray(s.pts) && s.pts.length && s.anchor && s.orig &&
@@ -206,7 +246,7 @@ ANNOT_JS = r"""
     catch (e) { setStatus('本机保存失败（浏览器存储不可用），请及时导出笔记', true); }
   }
   function loadUi() { try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function saveUi(ui) { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
+  function saveUi(ui) { if (SNAP) return; try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
 
   /* ---------- 4. 版式固定与坐标换算 ---------- */
   function layoutLocked() { return S.on || S.strokes.length > 0; }
@@ -877,6 +917,38 @@ ANNOT_JS = r"""
     if (a.type === 'page') return { el: main };
     if (a.type === 'text' && a.cover) return findCover(a, orig, f);
     if (a.type === 'math' && a.cover) return findCoverGlyph(a);
+    if (!a.cover) return findExact(a, orig, f);
+    return findLoose(a, orig, f);
+  }
+  /** 没有圈住内容（cover）的锚点（用户 10-25 确认过的第 2 次画完的笔，画笔时还没有 cover）：只按原样精确找——正文前后文
+   * 一字不差、公式 TeX 相同且符号前后文原样出现、图 src 相同、标题 / 表格文字相同；不用改名表、不模糊匹配。
+   * 找不到返回 null（这笔隐藏）。 */
+  function findExact(a, orig, f) {
+    if (a.type === 'text') { const p = exactQuote(a, orig, f); return p >= 0 ? { pos: p } : null; }
+    let cands = [];
+    if (a.type === 'media') {
+      if (a.gone) return null;
+      cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
+    } else if (a.type === 'math') {
+      const els = displayMath().filter(m => m.tex === a.tex).map(m => m.el);
+      if (!a.g) cands = els;
+      else {   // 符号锚点：前后各 glyphLen 个符号连同被锚符号原样出现在这个公式里，几处取第一处
+        const seq = Array.from(a.g.prefix + a.g.exact + a.g.suffix), k = Array.from(a.g.prefix).length;
+        const hits = els.map(el => { const g = glyphList(el), i = seqIndexes(g.ch, seq)[0]; return i === undefined ? null : { el, glyph: g.els[i + k] }; })
+                        .filter(Boolean);
+        const el = pickCandidate(hits.map(h => h.el), a, orig, f);
+        return el ? hits.find(h => h.el === el) : null;
+      }
+    } else if (a.type === 'cell') {
+      cands = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === a.cell && headerText(c) === a.head);
+    } else if (a.type === 'heading') {
+      cands = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(h => plainText(h) === a.text);
+    }
+    const el = pickCandidate(cands, a, orig, f);
+    return el ? { el } : null;
+  }
+  /** 旧的宽松还原（改名表、quote 对应表、模糊匹配）：现在不再被 findTarget 调用，留作对照，确认无用后按删除流程删掉。 */
+  function findLoose(a, orig, f) {
     if (a.type === 'text') return findQuote(a, orig, f);
     let cands = [], migrated = null;
     const renamedOr = (s, fn) => { const r = fn(s); return r === null ? s : r; };
@@ -1064,34 +1136,42 @@ ANNOT_JS = r"""
       }
       const pl = place(s, f);
       d.state = pl.state; d.el = pl.el;
-      if (pl.state === 'hidden') { d.path.style.display = 'none'; d.abs = null; hidden++; continue; }
-      d.path.style.display = '';
-      if (pl.state === 'orphan') orphans++;
+      // 圈的内容在本页找不到（orphan）和在收起的折叠里（hidden）一样不画：任何页面都不显示灰色笔，也擦不到、拖不动、打印不出
       d.path.classList.toggle('orphan', pl.state === 'orphan');
-      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',') + pl.state;
+      if (pl.state !== 'ok') {
+        d.path.style.display = 'none'; d.abs = null; d.key = '';
+        if (pl.state === 'orphan') orphans++; else hidden++;
+        continue;
+      }
+      d.path.style.display = '';
+      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',');
       if (key !== d.key) {
         d.abs = absPoints(s, R); d.box = bbox(d.abs, 0); d.key = key;
         styleStrokePath(d.path, s, d.abs);
-        d.path.classList.toggle('orphan', pl.state === 'orphan');
       }
     }
     for (const [id, d] of S.drawn) if (!alive.has(id)) { d.path.remove(); S.drawn.delete(id); }
     S.orphans = orphans; S.hidden = hidden;
     if (ONLY && !S.printing) {
       // 核对页上（笔画的那一版、用户自己的设备和字体）：显示出来的笔就地算出圈住的内容，笔不动，存回笔记
-      const todo = S.strokes.filter(s => ONLY.has(s.id) && !s.coverOn && s.anchor.type !== 'media' && s.anchor.type !== 'page'
-                                         && (S.drawn.get(s.id) || {}).state === 'ok' && S.drawn.get(s.id).abs);
-      if (todo.length) {
-        S.geom = null; S.geomBatch = true;
-        // coverOn：在哪一版、什么设备上算的圈住内容（只算一次）
-        for (const s of todo) { reanchor(s, S.drawn.get(s.id).abs); s.coverOn = { page: window.NIPC_CHECK_VERSION || '', at: new Date().toISOString(), ua: navigator.userAgent }; }
-        S.geomBatch = false; S.geom = null;
-        commit();
-        return;
-      }
+      const todo = S.strokes.filter(s => ONLY.has(s.id) && !s.coverOn && s.anchor.type !== 'media' && s.anchor.type !== 'page');
+      if (coverOnDevice(todo, window.NIPC_CHECK_VERSION || PAGE_VERSION).length) { commit(); return; }
     }
     if (S.migrated) { S.migrated = false; saveStored(); schedulePush(); }
     updateStatus();
+  }
+
+  /** 在用户设备上（当前页面的排版、字体）把 list 里此刻显示着的笔按它们显示的位置重新算圈住的内容，只改匹配字段
+   * （anchor / frame / orig / pts）并记 coverOn = {page: 在哪一版上算的, at, ua}；drawn 不动。返回算了的笔。 */
+  function coverOnDevice(list, page) {
+    const todo = list.filter(s => { const d = S.drawn.get(s.id); return d && d.state === 'ok' && d.abs; });
+    S.geom = null; S.geomBatch = true;
+    for (const s of todo) {
+      reanchor(s, S.drawn.get(s.id).abs);
+      s.coverOn = { page, at: new Date().toISOString(), ua: navigator.userAgent };
+    }
+    S.geomBatch = false; S.geom = null;
+    return todo;
   }
 
   /* ---------- 10. 操作：书写、橡皮擦、移动、撤销、清空 ---------- */
@@ -1149,6 +1229,7 @@ ANNOT_JS = r"""
     const got = anchorForStroke(dr.abs);
     const s = Object.assign(dr.s, { id: newId(), updatedAt: Date.now(), anchor: got.anchor, frame: got.frame,
                                     orig: roundRect(got.R), pts: framePoints(dr.abs, got.R, got.frame) });
+    s.drawn = drawnOf(s);
     pushUndo(snapshot());
     S.strokes.push(s);
     commit();
@@ -1181,6 +1262,7 @@ ANNOT_JS = r"""
     d.path.removeAttribute('transform');
     if (Math.hypot(mv.dx, mv.dy) < 0.5 || !d.abs) return;
     reanchor(mv.s, d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]));
+    mv.s.drawn = drawnOf(mv.s);   // 用户移动 = 新的「画的」原样
     pushUndo(mv.snap);
     commit();
   }
@@ -1340,7 +1422,9 @@ ANNOT_JS = r"""
     const remoteStrokes = remote && Array.isArray(remote.strokes) ? remote.strokes.filter(validStroke) : [];
     for (const s of local.strokes.concat(remoteStrokes)) {
       const o = byId.get(s.id);
-      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, s);
+      // drawn 只随用户画 / 移动产生：选中的那份没有 drawn（老格式）而另一份有，就带上另一份的，绝不丢
+      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, !s.drawn && o && o.drawn ? Object.assign({}, s, { drawn: o.drawn }) : s);
+      else if (!o.drawn && s.drawn) byId.set(s.id, Object.assign({}, o, { drawn: s.drawn }));
     }
     return { strokes: [...byId.values()].filter(s => !tombs[s.id]), tombs };
   }
