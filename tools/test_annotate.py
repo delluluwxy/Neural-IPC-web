@@ -358,6 +358,8 @@ def test_week2_details(browser, rep, out):
     sid = strokes(page)[-1]["id"]
     spec = {"id": sid, "kind": "char", "needle": pick["after"]}
     ref = page.evaluate(MEASURE_JS, spec)
+    rep.check("c0 刚画的笔立刻显示", ref.get("shown") is True,
+              f"anchor={strokes(page)[-1]['anchor']}，explain={page.evaluate('id => window.__nipcNotes.explain(id)', sid)}")
 
     set_annotation(page, False)
     page.evaluate(f"{det}.scrollIntoView({{block: 'center', behavior: 'instant'}})")

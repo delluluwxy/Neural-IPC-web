@@ -627,6 +627,15 @@ ANNOT_JS = r"""
     const all = allMath(), seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover);
     const renamed = renamedTex(a.tex);
     const own = all.filter(m => m.tex === a.tex || (renamed && m.tex === renamed));
+    // 找到的位置（公式 m 的第 i 个符号）；公式换了（改名、并进别的公式）就把存的锚点一并改成新公式里的这一处
+    const found = (m, g, i) => {
+      const r = { el: m.el, glyph: g.els[i] };
+      if (m.tex === a.tex) return r;
+      const n = Array.from(a.cover).length, bp = posFromElement(m.el), bs = bp >= 0 ? blockSpan(bp) : null;
+      r.migrated = Object.assign({}, a, { tex: m.tex, ctx: contextBefore(m.el), g: glyphQuote(g, i), gi: i, gn: g.ch.length,
+                                           cover: g.ch.slice(i, i + n).join(''), block: bs ? S.index.text.slice(bs.start, bs.end) : a.block });
+      return r;
+    };
     const search = list => {
       const out = [];
       for (const m of list) {
@@ -641,7 +650,7 @@ ANNOT_JS = r"""
     if (!hits.length && own.length) {
       // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
       const m = own.find(o => glyphList(o.el).ch.length === a.gn);
-      if (m && a.gi !== undefined) { const g = glyphList(m.el); return { el: m.el, glyph: g.els[a.gi] }; }
+      if (m && a.gi !== undefined) { const g = glyphList(m.el); return found(m, g, a.gi); }
       // 符号个数也变了（改名表把它连到改写后的公式）：圈住的符号串按改名表里的字母换名（t → q、θ → ψ，一次用一组）
       // 换过后在这个公式里原样找；找不到就是圈的内容改了，不画
       for (const lm of letterMaps()) {
@@ -652,7 +661,13 @@ ANNOT_JS = r"""
       }
       if (!hits.length) return null;
     }
-    // 原公式没了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
+    // 原公式没了（并进了更长的公式）：原公式短到符号锚点存下了它的全部符号时，全页找这整串，恰好一处就按原序号放
+    if (!hits.length && a.g && a.gi !== undefined && a.g.prefix.length === a.gi && a.gi + 1 + a.g.suffix.length === a.gn) {
+      const whole = Array.from(a.g.prefix + a.g.exact + a.g.suffix);
+      const at = all.flatMap(m => { const g = glyphList(m.el); return seqIndexes(g.ch, whole).map(i => ({ m, g, i: i + a.gi })); });
+      if (at.length === 1) return found(at[0].m, at[0].g, at[0].i);
+    }
+    // 原公式改写了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
     if (!hits.length && seq.length >= 2) hits = search(all);
     if (!hits.length) return null;
     // 几处一样（短的行内公式常见）：依次比所在段落、公式前面的字、公式里前后的符号
@@ -665,7 +680,7 @@ ANNOT_JS = r"""
     const keyed = hits.map(h => [score(h), h]);
     keyed.sort((x, y) => (y[0][0] - x[0][0]) || (y[0][1] - x[0][1]) || (y[0][2] - x[0][2]));
     const h = keyed[0][1];
-    return { el: h.m.el, glyph: h.g.els[h.i] };
+    return found(h.m, h.g, h.i);
   }
   /** 一整笔（正文卡片坐标的点）的锚点：主要落在图 / 视频里就锚整张图；否则锚圈住的内容；没圈住也不挨着内容（页边旁注）
    * 就逐级放宽到离它最近的那个字 / 符号（按页面几何算，不靠屏幕上点到的元素：笔在视口外时点不到它）；都不行退回起笔点规则。 */
