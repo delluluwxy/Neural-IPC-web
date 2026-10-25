@@ -516,11 +516,11 @@ ANNOT_JS = r"""
     S.geom = { key, page, maths, nodes, chars: new Map() };
     return S.geom;
   }
-  function strokeCover(abs, f) {
+  function strokeCover(abs, f, padPx = CFG.nearPx) {
     const G = pageGeom();
     const P = abs.map(p => { const c = toClient(p[0], p[1], f); return { x: c.x + scrollX, y: c.y + scrollY }; });
     const l = Math.min(...P.map(p => p.x)), r = Math.max(...P.map(p => p.x));
-    const t = Math.min(...P.map(p => p.y)), b = Math.max(...P.map(p => p.y)), pad = CFG.nearPx * f.s;
+    const t = Math.min(...P.map(p => p.y)), b = Math.max(...P.map(p => p.y)), pad = padPx * f.s;
     const near = q => q.right >= l - pad && q.left <= r + pad && q.bottom >= t - pad && q.top <= b + pad;
     const inside = q => { const cx = (q.left + q.right) / 2, cy = (q.top + q.bottom) / 2; return cx >= l && cx <= r && cy >= t && cy <= b; };
     const dist = q => Math.min(...P.map(p => Math.hypot(Math.max(q.left - p.x, 0, p.x - q.right), Math.max(q.top - p.y, 0, p.y - q.bottom))));
@@ -598,10 +598,10 @@ ANNOT_JS = r"""
     let cover = a.cover, hits = allIndexes(t, cover, 2000);
     if (!hits.length) { const r = renamedText(cover, 0); if (r) { cover = r.s; hits = allIndexes(t, cover, 2000); } }
     if (!hits.length) return null;
-    const out = pos => {   // 按改名表换了写法才找到：存的锚点一并改成新写法
-      if (cover === a.cover) return { pos };
+    const out = pos => {   // 关键词或它前后的字按改名表换了写法：存的锚点一并改成新写法
       const rn = s => { const r = renamedText(s || '', 0); return r ? r.s : (s || ''); };
-      return { pos, migrated: Object.assign({}, a, { cover, exact: cover[0], prefix: rn(a.prefix), suffix: rn(a.suffix), block: rn(a.block) }) };
+      const m = { cover, exact: cover[0], prefix: rn(a.prefix), suffix: rn(a.suffix), block: rn(a.block) };
+      return Object.keys(m).every(k => m[k] === (a[k] || '')) ? { pos } : { pos, migrated: Object.assign({}, a, m) };
     };
     if (hits.length === 1 || !a.block) return out(nearestPos(hits, orig, f));
     // 每一处比两样：紧挨着的前后各 10 字（只改了段落别处时原样不变），和周围与原段落等长的一段（改写、换语序、拆段也认得出）。
@@ -667,7 +667,8 @@ ANNOT_JS = r"""
     const h = keyed[0][1];
     return { el: h.m.el, glyph: h.g.els[h.i] };
   }
-  /** 一整笔（正文卡片坐标的点）的锚点：主要落在图 / 视频里就锚整张图；否则锚圈住的内容；都不行退回起笔点规则。 */
+  /** 一整笔（正文卡片坐标的点）的锚点：主要落在图 / 视频里就锚整张图；否则锚圈住的内容；没圈住也不挨着内容（页边旁注）
+   * 就逐级放宽到离它最近的那个字 / 符号（按页面几何算，不靠屏幕上点到的元素：笔在视口外时点不到它）；都不行退回起笔点规则。 */
   function anchorForStroke(abs) {
     if (!S.geomBatch) S.geom = null;   // 单独一笔：现量（折叠框开合会改排版）；批量迁移时共用一份
     const f = frame(), P = abs.map(p => toClient(p[0], p[1], f));
@@ -677,8 +678,7 @@ ANNOT_JS = r"""
         return { anchor: { type: 'media', src: srcKey(m), ctx: contextBefore(m) }, frame: 'norm', R: localRect(q, f) };
       }
     }
-    const got = strokeCover(abs, f);
-    if (got) return got;
+    for (const px of [CFG.nearPx, 120, 480, 1920]) { const got = strokeCover(abs, f, px); if (got) return got; }
     return anchorAt(Math.min(Math.max(P[0].x, 1), innerWidth - 1), Math.min(Math.max(P[0].y, 1), innerHeight - 1));
   }
   /** 起笔处（屏幕坐标）的锚点；点不在正文内容上就取最近的可锚元素；实在没有就锚到正文卡片本身。 */
@@ -1577,6 +1577,19 @@ ANNOT_JS = r"""
     if (printMq.addEventListener) printMq.addEventListener('change', onPrintMq); else printMq.addListener(onPrintMq);
 
     /** 核对旁注用：这笔此刻挂在正文哪个字上——那个字前后各 10 字，和笔画起点相对它的位置（px）；不是挂在正文字上返回 null。 */
+    /** 核对用：这笔此刻挂在哪——从挂靠点起、和圈住内容一样长的那串字 / 公式符号，和笔画起点相对第一个的位置（px）。 */
+    function targetOf(id, d, a) {
+      const c = S.cache.get(id), t = c && c.target, n = Array.from(a.cover || '').length;
+      if (!t || !n) return null;
+      const f = frame(), off = r => { const R = localRect(r, f); return [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2]; };
+      if (t.glyph) {
+        const g = glyphList(t.el), i = g.els.indexOf(t.glyph), r = elementRect(t.glyph);
+        return i >= 0 && r ? { ch: g.ch.slice(i, i + n).join(''), off: off(r) } : null;
+      }
+      if (t.pos === undefined) return null;
+      const r = charRect(t.pos);
+      return r ? { ch: S.index.text.slice(t.pos, t.pos + n), off: off(r) } : null;
+    }
     function anchorCtx(id, d) {
       const c = S.cache.get(id), t = c && c.target;
       if (!t || t.pos === undefined) return null;
@@ -1604,6 +1617,7 @@ ANNOT_JS = r"""
           out[id] = { state: 'ok', type: a.type, cover: a.cover || a.src || a.text || a.cell || '',
                       hit: (got.hit || []).map(([c, x, y]) => [c, Math.round(x * 2) / 2, Math.round(y * 2) / 2]),
                       exact: a.cover ? '' : (a.exact || ''), tex: a.tex || '', at: anchorCtx(id, d),
+                      target: targetOf(id, d, (S.strokes.find(s => s.id === id) || {}).anchor || {}),
                       off: [Math.round((d.abs[0][0] - got.R.x) * 2) / 2, Math.round((d.abs[0][1] - got.R.y) * 2) / 2],
                       rel: got.frame === 'norm' ? [Math.round((d.abs[0][0] - got.R.x) / got.R.w * 1000) / 1000,
                                                    Math.round((d.abs[0][1] - got.R.y) / got.R.h * 1000) / 1000] : null };

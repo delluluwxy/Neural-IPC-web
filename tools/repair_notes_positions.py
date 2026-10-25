@@ -355,32 +355,54 @@ def best_match(search, tmpl):
     return k // score.shape[1], k % score.shape[1], float(score.flat[k])
 
 
-def register(old, new):
-    """同一张图的两个版本（同一脚本画，只差标签 / 裁边）：在缩放 0.85–1.15 内找使归一化互相关最大的 (缩放 s, 平移 dx, dy)，
-    新图像素 = s × 旧图像素 + (dx, dy)。先 1/4 分辨率粗搜，再在全分辨率 ±0.01 内细搜。返回 (s, dx, dy, 相关系数)。"""
-    def search(o, n, scales):
-        best = None
-        for s in scales:
-            h, w = int(round(o.shape[0] * s)), int(round(o.shape[1] * s))
-            if h < 8 or w < 8:
-                continue
-            o2 = np.asarray(Image.fromarray(o.astype(np.uint8)).resize((w, h), Image.BILINEAR), dtype=float)
-            pad = np.full((max(n.shape[0], h) + h, max(n.shape[1], w) + w), 255.0)
-            pad[h // 2:h // 2 + n.shape[0], w // 2:w // 2 + n.shape[1]] = n     # 允许旧图超出新图边缘半个图宽
-            m = best_match(pad, o2)
-            if m and (best is None or m[2] > best[3]):
-                best = (s, m[1] - w // 2, m[0] - h // 2, m[2])
-        return best
-    q = 4
-    small = lambda a: np.asarray(Image.fromarray(a.astype(np.uint8)).resize((a.shape[1] // q, a.shape[0] // q), Image.BILINEAR), dtype=float)
-    s0 = search(small(old), small(new), np.arange(0.85, 1.1501, 0.01))[0]
-    return search(old, new, np.arange(s0 - 0.01, s0 + 0.0101, 0.002))
+def letter_maps(table):
+    """改名表里只差字母一一换名的公式对各自换了哪些 TeX 记号（同 annotate.py letterMaps），每对一组。"""
+    out = []
+    for o, n in table.items():
+        A, B = TEX_TOKEN.findall(o), TEX_TOKEN.findall(n)
+        if len(A) != len(B):
+            continue
+        m, ok = {}, True
+        for x, y in zip(A, B):
+            if x != y and (not (LETTER.fullmatch(x) and LETTER.fullmatch(y)) or m.setdefault(x, y) != y):
+                ok = False
+                break
+        if ok and m and m not in out:
+            out.append(m)
+    return out
 
 
-def remap_media(base, version, worktrees, root, page_file):
-    """图上的笔：画笔时那版（version[笔 id]）的图与现在的图文件不同，就按配准把笔换算到新图；笔画所在小块在两版图里
-    不一样（标的东西没了）就标 gone（标注层不画）。改 base 里的笔，返回 [(笔 id, 图, 结果)]。"""
-    report, cache = [], {}
+GREEK_CHAR = {"\\" + k: v for k, v in dict(  # 同 annotate.py GREEK（MathJax 符号经 NFKC 后的字符）
+    alpha="α", beta="β", gamma="γ", delta="δ", epsilon="ϵ", varepsilon="ε", zeta="ζ", eta="η", theta="θ", vartheta="ϑ",
+    kappa="κ", lambda_="λ", mu="μ", nu="ν", xi="ξ", pi="π", rho="ρ", sigma="σ", tau="τ", phi="ϕ", varphi="φ", chi="χ",
+    psi="ψ", omega="ω").items()}
+GREEK_CHAR["\\lambda"] = GREEK_CHAR.pop("\\lambda_")
+
+
+def same_label(old, new, maps):
+    """图里两个文字标注是不是同一个：原样相同，或按改名表的一组字母换名（TeX 记号与对应的希腊字母一起换）后相同。"""
+    if old == new:
+        return True
+    tok = re.findall(r"\\[A-Za-z]+|.", old, flags=re.S)
+    for m in maps:
+        mm = dict(m, **{GREEK_CHAR[k]: GREEK_CHAR[v] for k, v in m.items() if k in GREEK_CHAR and v in GREEK_CHAR})
+        if "".join(mm.get(t, t) for t in tok) == new:
+            return True
+    return False
+
+
+def remap_media(base, version, worktrees, root, fig_labels, maps):
+    """图上的笔：画笔时那版（version[笔 id]）的图与现在的图像素不同，就跟着离笔最近的那个文字标注走。
+    fig_labels = sandbox tools/figs/fig_label_boxes.py 的输出（各提交重画的图：像素哈希 + 每个标注在最终 PNG 上的框）；
+    两版图都按像素哈希认出是哪个提交画的（认不出就不动并报出来）。两版里都只出现一次的同名标注（按改名表换名后相同也算）
+    逐轴线性拟合出整张图的缩放；笔 = 新标注中心 + 缩放 ×（笔 − 旧标注中心）。最近的标注在新图里没了就标 gone。
+    改 base 里的笔，返回 [(笔 id, 图, 结果)]。"""
+    sys.path.insert(0, str(root.parent / "Neural-IPC-sandbox/tools/figs"))
+    from fig_label_boxes import pixel_hash
+    by_hash = {v["pixels"]: v for d in fig_labels.values() for v in d.values()}
+    inside = lambda L: [l for l in L if l["box"][0] >= 0 and l["box"][1] >= 0 and l["box"][2] <= 1 and l["box"][3] <= 1]
+    cen = lambda l, W, H: np.array([(l["box"][0] + l["box"][2]) / 2 * W, (l["box"][1] + l["box"][3]) / 2 * H])
+    report = []
     by_id = {s["id"]: s for s in base["strokes"]}
     for i, sha in version.items():
         s = by_id.get(i)
@@ -388,35 +410,41 @@ def remap_media(base, version, worktrees, root, page_file):
             continue
         src = s["anchor"]["src"]
         old_p, new_p = checkout(sha, worktrees) / "assets/images" / src, root / "assets/images" / src
-        if not old_p.exists() or not new_p.exists() or old_p.read_bytes() == new_p.read_bytes():
+        if not old_p.exists() or not new_p.exists():
             continue
-        if (sha, src) not in cache:
-            old = np.asarray(Image.open(old_p).convert("L"), dtype=float)
-            new = np.asarray(Image.open(new_p).convert("L"), dtype=float)
-            cache[(sha, src)] = (old, new, register(old, new))
-        old, new, (sc, dx, dy, r) = cache[(sha, src)]
-        P = np.array([[p[0] * old.shape[1], p[1] * old.shape[0]] for p in s["pts"]])
-        Q = P * sc + [dx, dy]
-        x0, y0 = np.floor(P.min(0) - 12).astype(int)
-        x1, y1 = np.ceil(P.max(0) + 12).astype(int)
-        x0, y0 = max(x0, 0), max(y0, 0)
-        patch = old[y0:y1, x0:x1]
-        X0, Y0 = int(round(x0 * sc + dx)), int(round(y0 * sc + dy))
-        h, w = int(round(patch.shape[0] * sc)), int(round(patch.shape[1] * sc))
-        cand = new[max(Y0, 0):Y0 + h, max(X0, 0):X0 + w]
-        ok = False
-        if cand.shape == (h, w) and h > 4 and w > 4:
-            pr = np.asarray(Image.fromarray(patch.astype(np.uint8)).resize((w, h), Image.BILINEAR), dtype=float)
-            a, b = pr - pr.mean(), cand - cand.mean()
-            den = np.sqrt((a * a).sum() * (b * b).sum())
-            ok = den > 0 and (a * b).sum() / den >= 0.8
-        if ok:
-            s["pts"] = [[round(q[0] / new.shape[1], 4), round(q[1] / new.shape[0], 4), p[2]] for q, p in zip(Q, s["pts"])]
-            s["anchor"].pop("gone", None)
-            report.append((i, src, f"换算到新图（整图配准 缩放 {sc:.3f} 平移 {dx:+.0f},{dy:+.0f} 相关 {r:.3f}）"))
-        else:
+        ho, hn = pixel_hash(old_p), pixel_hash(new_p)
+        if ho == hn:
+            continue
+        if ho not in by_hash or hn not in by_hash:
+            report.append((i, src, "图改过，但认不出是哪个提交画的（fig_labels 里没有同像素的图），没动"))
+            continue
+        old, new = by_hash[ho], by_hash[hn]
+        (W0, H0), (W1, H1) = old["size"], new["size"]
+        lo, ln = inside(old["labels"]), inside(new["labels"])
+        pairs = []
+        for l in lo:
+            m = [k for k in ln if same_label(l["text"], k["text"], maps)]
+            if len(m) == 1 and sum(x["text"] == l["text"] for x in lo) == 1:
+                pairs.append((cen(l, W0, H0), cen(m[0], W1, H1)))
+        A, B = np.array([p for p, _ in pairs]), np.array([q for _, q in pairs])
+        sc = np.array([np.polyfit(A[:, k], B[:, k], 1)[0] for k in (0, 1)]) if len(pairs) >= 2 else np.array([W1 / W0, H1 / H0])
+        P = np.array([[p[0] * W0, p[1] * H0] for p in s["pts"]])
+        dist = lambda l: np.hypot(np.maximum(0, np.maximum(l["box"][0] * W0 - P[:, 0], P[:, 0] - l["box"][2] * W0)),
+                                  np.maximum(0, np.maximum(l["box"][1] * H0 - P[:, 1], P[:, 1] - l["box"][3] * H0))).min()
+        near = min(lo, key=dist)
+        cands = [k for k in ln if same_label(near["text"], k["text"], maps)]
+        if not cands:
             s["anchor"]["gone"] = True
-            report.append((i, src, "标的那一小块在新图里不一样了，隐藏"))
+            report.append((i, src, f"最近的标注「{near['text']}」（距笔 {dist(near):.0f} px）在新图里没了，隐藏"))
+            continue
+        c0 = cen(near, W0, H0)
+        guess = B.mean(0) + sc * (c0 - A.mean(0)) if len(pairs) >= 2 else c0 * [W1 / W0, H1 / H0]
+        tgt = min(cands, key=lambda k: np.hypot(*(cen(k, W1, H1) - guess)))
+        Q = cen(tgt, W1, H1) + sc * (P - c0)
+        s["pts"] = [[round(q[0] / W1, 4), round(q[1] / H1, 4), p[2]] for q, p in zip(Q, s["pts"])]
+        s["anchor"].pop("gone", None)
+        report.append((i, src, f"跟着标注「{near['text']}」（距笔 {dist(near):.0f} px）走：缩放 {sc[0]:.4f} / {sc[1]:.4f}，"
+                               f"{len(pairs)} 对同名标注拟合"))
     return report
 
 
@@ -428,9 +456,11 @@ def side_by_side(left, right, path):
     out.save(path)
 
 
-def cover_same(a, b, tex_renames):
+def cover_same(a, b, tex_renames, char_maps=()):
     """一笔在原版页面（a）与当前页面（b）上圈住的是不是同一处内容（两边都由标注层 coverOf 算）。是就返回判据名，否则 None。
     图上的笔：同一张图、图内相对位置差 ≤ 0.005。其余（off / hit 都是笔画起点相对内容的 px）：
+      target   现在挂靠点起那串字 / 符号就是原来圈住的内容（或按改名表一组字母换名后的），起点相对它第一个差 ≤ 1 px
+               ——圈仍在关键词上；现在笔画范围里另有别的内容挤进来不算错（排版变紧）；
       same     圈住的内容串、锚点类型相同，起点相对内容起点差 ≤ 1 px；
       superset 原来圈住的那串字 / 符号原样连续出现在现在圈住的里面，且起点相对它们第一个的位置差 ≤ 1 px（新排版里别的字挪近了）；
       renamed  公式按改名表换了写法（t → q），圈住的符号个数相同、起点相对第一个符号差 ≤ 1 px；
@@ -444,6 +474,9 @@ def cover_same(a, b, tex_renames):
         return "anchor" if ok else None
     if a["type"] == b["type"] and a["cover"] == b["cover"] and near(a["off"], b["off"]):
         return "same"
+    t = b.get("target")
+    if t and near(a["off"], t["off"]) and any("".join(m.get(c, c) for c in a["cover"]) == t["ch"] for m in ({}, *char_maps)):
+        return "target"
     ha, hb = a["hit"], b["hit"]
     for k in range(len(hb) - len(ha) + 1):
         if ha and all(x[0] == y[0] for x, y in zip(ha, hb[k:])) and near(ha[0][1:], hb[k][1:]):
@@ -535,6 +568,8 @@ def main():
                     help="只做一件事：当初挂在公式上的笔，在各自原版页面上换成符号锚点，写进 BASE_JSON 的副本（--out）")
     ap.add_argument("--explain", nargs=2, metavar=("IDS_TXT", "NOTES_JSON"),
                     help="只读查原因：这些笔圈住的关键词在当前页面（换上当前标注层）每一处出现的位置与段落相似度，写到 --out")
+    ap.add_argument("--fig-labels", default=str(WORKTREES / "fig_labels/labels.json"),
+                    help="配 --reanchor-origin：sandbox tools/figs/fig_label_boxes.py 输出的各版图文字标注框（图上的笔跟着标注走）")
     ap.add_argument("--write-renames", action="store_true",
                     help="配 --explain：把只差字母一一换名（θ→ψ、t→q）的公式对补进讲稿目录的 notation_renames_<页>.json")
     args = ap.parse_args()
@@ -586,6 +621,9 @@ def main():
                 t = table[t]
                 seen.add(t)
             tex_renames[k] = t
+        # 字母换名换成公式符号字符（t → q、\theta → θ → ψ），和标注层 glyphList 的 NFKC 字符一致
+        glyph = lambda tok: GREEK_CHAR.get(tok, tok)
+        char_maps = [{glyph(x): glyph(y) for x, y in m.items()} for m in letter_maps(table)]
         jobs = [dict(common, sha=sha, strokes=g, cover=args.verify_cover) for sha, g in groups.items()]
         jobs.append(dict(common, sha=None, current=shown, strokes=[s for s in shown["strokes"] if s["id"] in ids],
                          cover=args.verify_cover))
@@ -601,7 +639,7 @@ def main():
                 continue
             if args.verify_cover:
                 # 新判据（标注层 coverOf 算）：圈住的内容串与锚点类型相同；笔画起点相对内容起点差 ≤ 1 px，图上的笔比图内相对位置差 ≤ 0.005
-                rows.append(dict(id=i, same=False, match=None, old=a, new=b, how=cover_same(a, b, tex_renames)))
+                rows.append(dict(id=i, same=False, match=None, old=a, new=b, how=cover_same(a, b, tex_renames, char_maps)))
                 rows[-1]["same"] = rows[-1]["how"] is not None
                 continue
             # 影响范围内的内容一一对应：原版范围里每个字 / 符号，在现在的范围里有同一个字、相对起笔点的位置差 ≤ 1 px
@@ -674,7 +712,10 @@ def main():
                 s.update({k: got[s["id"]][k] for k in ("anchor", "frame", "orig", "pts", "updatedAt")})
                 key = s["anchor"]["type"] + ("+cover" if s["anchor"].get("cover") else "")
                 kinds[key] = kinds.get(key, 0) + 1
-        media = remap_media(base, version, common["worktrees"], ROOT, args.page)
+        from webgen.annotate import DRAFTS
+        table = json.loads((DRAFTS / f"notation_renames_{stem}.json").read_text(encoding="utf-8")).get("tex", {})
+        fig_labels = json.loads(pathlib.Path(args.fig_labels).read_text(encoding="utf-8"))
+        media = remap_media(base, version, common["worktrees"], ROOT, fig_labels, letter_maps(table))
         pathlib.Path(args.out + ".versions.json").write_text(json.dumps(version), encoding="utf-8")   # 核对按同一张表取原版
         pathlib.Path(args.out).write_text(json.dumps(base, ensure_ascii=False), encoding="utf-8")
         print(f"== 在原版页面上按圈住的内容重新建锚点 {sum(n for _, n in outs)} 笔（锚点类型 {kinds}）；"
