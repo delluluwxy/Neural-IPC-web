@@ -719,6 +719,90 @@ def check_pages(args):
     pathlib.Path(args.out).write_text(json.dumps({sha[:7]: g for sha, g in groups.items()}, indent=1), encoding="utf-8")
 
 
+def drawing_sessions(history, gap_s=1200):
+    """用户主动画笔的那几次：出现新笔的保存，相隔 ≤ gap_s 秒的归为同一次。返回 [{start, end, new, last_notes}]。"""
+    seen, out = set(), []
+    for t, n in history:
+        ids = {s["id"] for s in n["strokes"]}
+        new = ids - seen
+        seen |= ids
+        if not new:
+            continue
+        if out and (t - out[-1]["end"]).total_seconds() <= gap_s:
+            out[-1].update(end=t, last_notes=n)
+            out[-1]["new"] += len(new)
+        else:
+            out.append(dict(start=t, end=t, new=len(new), last_notes=n))
+    return out
+
+
+SNAP_STATE_JS = """() => { const N = window.__nipcNotes;
+  return Object.fromEntries(N.strokes().map(s => [s.id, (N.placed(s.id) || {state: 'none'}).state])); }"""
+
+
+def snapshot_states(path):
+    """（子进程）打开快照页（笔记嵌在页里，不导入）、展开全部折叠，返回每笔的显示状态。"""
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport=VIEW)
+        page.goto(pathlib.Path(path).resolve().as_uri(), wait_until="domcontentloaded", timeout=120000)
+        page.wait_for_function("window.__nipcNotes && window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
+        page.evaluate("MathJax.startup.promise")
+        page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+        page.wait_for_timeout(1500)
+        got = page.evaluate(SNAP_STATE_JS)
+        browser.close()
+    return got
+
+
+def snapshots(args):
+    """--snapshots：每一次主动画笔之后的样子 = 那次最后一次保存的笔记（原样）+ 当时线上的页面，做成只读快照页
+    snapshot/<次>/<页>（一次里页面换过版本的，前后各一页 snapshot/<次>a、<次>b）。逐页统计灰色（找不到锚点）笔数。"""
+    import multiprocessing as mp
+    import shutil
+    stem = pathlib.Path(args.page).stem
+    history = note_history(stem)
+    live = live_versions()
+    out_dir = ROOT / "snapshot"
+    if out_dir.exists():
+        shutil.rmtree(out_dir)          # 目录只由本工具生成
+    pages = []
+    for k, ses in enumerate(drawing_sessions(history), 1):
+        vers = []
+        for t in (ses["start"], ses["end"]):
+            v = [s for lt, s in live if lt <= t][-1]
+            if v not in vers:
+                vers.append(v)
+        for j, sha in enumerate(vers):
+            name = f"{k}{'ab'[j] if len(vers) > 1 else ''}"
+            d = out_dir / name
+            d.mkdir(parents=True)
+            tmp = with_new_layer(checkout(sha, WORKTREES) / args.page)
+            h = tmp.read_text(encoding="utf-8")
+            tmp.unlink()
+            snap = json.dumps(ses["last_notes"], ensure_ascii=False).replace("</", "<\\/")
+            h = h.replace("<head>", f"<head>\n<script>window.NIPC_SNAPSHOT = {snap};</script>\n", 1)
+            (d / args.page).write_text(h, encoding="utf-8")
+            for ref in sorted(set(re.findall(r'(?:src|href)="(assets/[^"#?]+)"', h))):
+                blob = subprocess.run(["git", "-C", str(ROOT), "show", f"{sha}:{ref}"], capture_output=True)
+                if blob.returncode == 0:
+                    (d / ref).parent.mkdir(parents=True, exist_ok=True)
+                    (d / ref).write_bytes(blob.stdout)
+            pages.append((name, ses, sha, d / args.page))
+    with mp.get_context("spawn").Pool(len(pages)) as pool:
+        outs = pool.map(snapshot_states, [p for *_, p in pages])
+    import collections
+    pdt = lambda t: (t - datetime.timedelta(hours=7)).strftime("%m-%d %H:%M")
+    rows = []
+    for (name, ses, sha, path), st in zip(pages, outs):
+        c = collections.Counter(st.values())
+        rows.append(dict(name=name, page=sha[:7], start=ses["start"].isoformat(), end=ses["end"].isoformat(),
+                         strokes=len(st), states=dict(c), gray=[i for i, v in st.items() if v == "orphan"]))
+        print(f"  snapshot/{name}/{args.page}：第 {name[0]} 次画（{pdt(ses['start'])}–{pdt(ses['end'])} 加州时间）画完的笔记 + 页面 {sha[:7]}；"
+              f"{len(st)} 笔，状态 {dict(c)}")
+    pathlib.Path(args.out).write_text(json.dumps(rows, indent=1), encoding="utf-8")
+
+
 def write_original(args):
     """--write-original BASE_SHA：用户自己画的原始位置。以笔记仓库 BASE_SHA 那份为准（哪些笔还在、墓碑），每一笔换回它
     第一次存进仓库时的样子（画完那一刻设备上建的锚点和坐标，之后的任何迁移都不要），写回笔记仓库，并把写出的内容存 --out。"""
@@ -832,7 +916,12 @@ def main():
                     help="以笔记仓库 BASE_SHA 那份的笔为准，每笔换回第一次存下时的样子（用户画的原始位置），写回笔记仓库")
     ap.add_argument("--check-pages", action="store_true",
                     help="每笔分到它画的那一版，生成 check/<sha7>/ 核对页（只显示那一版上画的笔），逐页核灰色 0 笔；分组写 --out")
+    ap.add_argument("--snapshots", action="store_true",
+                    help="每一次主动画笔之后的样子（那次最后保存的笔记原样 + 当时线上页面）做成只读快照页 snapshot/<次>/，统计灰色笔数")
     args = ap.parse_args()
+    if args.snapshots:
+        snapshots(args)
+        return
     if args.check_pages:
         check_pages(args)
         return

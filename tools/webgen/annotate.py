@@ -190,7 +190,10 @@ ANNOT_JS = r"""
   }
   function validTombs(t) { return t && typeof t === 'object' && !Array.isArray(t) ? t : {}; }
   /** 本机存的 {strokes, tombs}。 */
+  // 只读快照页（snapshot/<n>/）：笔记就是页面里嵌的那份（某次画完时的原样），不读写本机存储、不同步笔记仓库
+  const SNAP = window.NIPC_SNAPSHOT && Array.isArray(window.NIPC_SNAPSHOT.strokes) ? window.NIPC_SNAPSHOT : null;
   function loadStored() {
+    if (SNAP) return { strokes: SNAP.strokes.filter(validStroke), tombs: validTombs(SNAP.tombstones) };
     try {
       const raw = localStorage.getItem(STORE_KEY);
       const d = raw ? JSON.parse(raw) : null;
@@ -198,6 +201,7 @@ ANNOT_JS = r"""
     } catch (e) { return { strokes: [], tombs: {} }; }
   }
   function saveStored() {
+    if (SNAP) return;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(payload())); }
     catch (e) { setStatus('本机保存失败（浏览器存储不可用），请及时导出笔记', true); }
   }
@@ -1285,6 +1289,7 @@ ANNOT_JS = r"""
   const SY = { sha: null, timer: null, busy: false, again: false, dirty: false, state: '', warn: false };
 
   function syncCfg() {
+    if (SNAP) return { token: '', repo: DEFAULT_REPO };   // 快照页从不同步
     try { const c = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; return { token: c.token || '', repo: c.repo || DEFAULT_REPO }; }
     catch (e) { return { token: '', repo: DEFAULT_REPO }; }
   }
