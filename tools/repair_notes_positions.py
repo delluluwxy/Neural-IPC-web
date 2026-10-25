@@ -243,7 +243,12 @@ HIT_JS = """ids => {
       }
       return best ? [best[1], Math.round((x - best[2]) / f.s * 2) / 2, Math.round((y - best[3]) / f.s * 2) / 2] : null;
     });
-    out[id] = {state: 'ok', text, glyph, media: med, near};
+    // 影响范围：笔画任一点周围 ZONE px 以内的字 / 符号，记它中心相对起笔点的偏移（未缩放 px，取 0.5 px）
+    const ZONE = 40 * f.s, [x0, y0] = P[0];
+    const zone = cand.filter(it => P.some(([x, y]) =>
+        Math.hypot(Math.max(it[2] - x, 0, x - it[4]), Math.max(it[3] - y, 0, y - it[5])) <= ZONE))
+      .map(it => [it[1], Math.round(((it[2] + it[4]) / 2 - x0) / f.s * 2) / 2, Math.round(((it[3] + it[5]) / 2 - y0) / f.s * 2) / 2]);
+    out[id] = {state: 'ok', text, glyph, media: med, near, zone};
   }
   return out;
 }"""
@@ -363,10 +368,16 @@ def main():
             if a["state"] != "ok" or b["state"] != "ok":
                 rows.append(dict(id=i, same=a["state"] == b["state"], match=None, old=a, new=b))
                 continue
-            # 逐点：最近的是同一个字 / 符号，且相对它的偏移差 ≤ 1 px；图上的笔比图内平均位置
-            pairs = list(zip(a["near"], b["near"]))
-            ok = sum(1 for p, q in pairs if p and q and p[0] == q[0] and abs(p[1] - q[1]) <= 1 and abs(p[2] - q[2]) <= 1)
-            match = ok / len(pairs) if pairs else 1.0
+            # 影响范围内的内容一一对应：原版范围里每个字 / 符号，在现在的范围里有同一个字、相对起笔点的位置差 ≤ 1 px
+            pool, lost = list(b["zone"]), []
+            for it in a["zone"]:
+                k = next((j for j, q in enumerate(pool) if q[0] == it[0] and abs(q[1] - it[1]) <= 1 and abs(q[2] - it[2]) <= 1), None)
+                if k is None:
+                    lost.append(it[0])
+                else:
+                    pool.pop(k)
+            match = 1 - len(lost) / len(a["zone"]) if a["zone"] else (1.0 if not b["zone"] else 0.0)
+            a["lost"], b["extra"] = "".join(lost), "".join(q[0] for q in pool)
             same_media = [m.split("@")[0] for m in a["media"]] == [m.split("@")[0] for m in b["media"]] and all(
                 abs(float(x) - float(y)) <= 0.01 for ma, mb in zip(a["media"], b["media"])
                 for x, y in zip(ma.split("@")[1].split(","), mb.split("@")[1].split(",")))
@@ -374,14 +385,16 @@ def main():
         bad = [r for r in rows if not r["same"]]
         report = pathlib.Path(args.out)
         report.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(f"== 精确核对 {len(rows)} 笔：位置对上（≥ 95% 的点最近同一个字 / 符号、偏移差 ≤ 1 px；图上的笔图内位置差 ≤ 0.01）"
+        print(f"== 精确核对 {len(rows)} 笔：位置对上（影响范围 40 px 内的字 / 符号 ≥ 95% 一一对应、相对位置差 ≤ 1 px；"
+              f"图上的笔图内位置差 ≤ 0.01）"
               f"{len(rows) - len(bad)} 笔，对不上 {len(bad)} 笔；"
               f"用 {time.time() - t0:.0f} s；逐笔明细 {report}")
         for r in bad:
             a, b = r["old"], r["new"]
             fmt = lambda h: (h["state"] if h["state"] != "ok" else
-                             f"最近的字「{''.join(dict.fromkeys(n[0] for n in h['near'] if n))}」 压住「{h['text']}{h['glyph']}」 图{h['media']}")
-            pct = "" if r["match"] is None else f"（逐点对上 {100 * r['match']:.0f}%）"
+                             f"范围内「{''.join(z[0] for z in h['zone'])}」 压住「{h['text']}{h['glyph']}」 图{h['media']}")
+            pct = "" if r["match"] is None else (f"（范围内对上 {100 * r['match']:.0f}%；原来有、现在对不上的「{a.get('lost', '')}」，"
+                                                f"现在多出来的「{b.get('extra', '')}」）")
             print(f"  {r['id']}{pct}\n      原来：{fmt(a)}\n      现在：{fmt(b)}")
         return
     if args.shots_for:
