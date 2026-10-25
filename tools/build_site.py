@@ -35,6 +35,7 @@ from webgen.config import (DEMO_ROOT, IMAGE_DIR, MAX_IMAGE_BYTES, MAX_TOTAL_VIDE
                            MAX_VIDEO_BYTES, OUT_ROOT, PROJECT, VIDEO_DIR)
 from webgen.draft_md import NOTION_IMAGES, NOTION_VIDEOS  # noqa: E402
 from webgen.media import encode_video, get_ffmpeg_exe, merge_video_jobs, plan_videos  # noqa: E402
+from webgen.annotate import with_page_version  # noqa: E402
 from webgen.pages import build_pages  # noqa: E402
 from webgen.week2_hydro import collect_hydro_sweeps  # noqa: E402
 
@@ -312,6 +313,8 @@ def main():
             pages[p] = trim_copies(pages[p], TRIM_WEEKS[p.stem])
         if p.stem in FIXED_SIZE_WEEKS:
             pages[p] = size_media(pages[p])   # 标题编号与目录在 html_parts.page 里做（outline）
+        if p.name != "index.html":   # 带标注层的页最后嵌页面版本号（内容哈希）：笔画下时记进 drawn.page
+            pages[p] = with_page_version(pages[p])
     # 讲稿里引用的 NAS 图（draft_md.notion_image / week2_hydro.setup_figure 在生成页面时登记）；留白副本另列，复制后 trim
     ijobs = c["ijobs"] + [{"src": src, "dst": IMAGE_DIR / src.name, "size": src.stat().st_size} for src in NOTION_IMAGES]
     ijobs += [{"src": src, "dst": IMAGE_DIR / name, "size": src.stat().st_size, "trim": True}
