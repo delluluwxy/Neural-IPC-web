@@ -12,3 +12,6 @@
 - 重建页面（0d245e8，只有标注层与版本号标签变化，三页 diff 行数相同）后重跑 --apply-snapshot：数字不变（迁过去 250 / 隐藏 58，核对不符 0，可见灰色 0）；--check-drawn 逐字节不同 0。
 - test_annotate：60 项，失败 0（新增 a7、f2、h3 灰色、h5、m1、k1、k2）。
 - 未做：快照页「确认位置并保存」按钮（等协调者再说）；--snapshots 改为从 drawn 生成。
+- 按协调者改：正文按「这笔实际压住的字」（iPad 上锚字宽 orig.w × 笔画横向范围）判，全在同一 equal 段且段 ≥ 8 才迁；跨行 4 笔退回段边规则（全部迁过去）。图上标注加 letter_maps 字母换名。
+- 重跑：迁过去 256（text 140 / math 69 / media 46 / page 1），隐藏 52（text 45 / math 6 / media 1）；核对不符 0，可见灰色 0；比上次 hidden→moved 6 笔，反向 0；drawn 逐字节不同 0。
+- 第一次重跑 test_annotate 与迁移同时跑，Page.goto 30 s 超时（并发负载），单独重跑中。
