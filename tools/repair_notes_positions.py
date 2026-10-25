@@ -1379,6 +1379,45 @@ def preview(args):
           f"{'一致' if shown == want else '不一致'}；可见灰色 {gray}；隐藏清单 {d / 'hidden.html'}（{len(rows) - want} 条）")
 
 
+# hidden.html 页内核对：条目数、每条的行数、MathJax 报错、手机宽度横向溢出、每条黄底里的内容（公式还原成 $TeX$）
+HIDDEN_CHECK_JS = """() => {
+  const items = [...document.querySelectorAll('main ol > li')];
+  const texOf = el => { const m = [...MathJax.startup.document.math].find(x => x.typesetRoot === el); return m ? '$' + m.math + '$' : '?'; };
+  const markText = li => [...li.querySelectorAll('mark')].map(mk => [...mk.childNodes].map(n =>
+      n.nodeType === 3 ? n.data : (n.tagName === 'MJX-CONTAINER' ? texOf(n) : n.textContent)).join('')).join('');
+  const de = document.documentElement;
+  return { items: items.length, rows: items.map(li => li.querySelectorAll('.row > .k').length),
+           merror: document.querySelectorAll('mjx-merror').length, scrollW: de.scrollWidth, clientW: de.clientWidth,
+           marks: items.map(markText) };
+}"""
+
+
+def check_hidden(args):
+    """--check-hidden：无头浏览器在 390px 宽打开 preview/hidden.html，核条目数 = 报告里隐藏的笔数、每条三行、MathJax 无报错
+    （mjx-merror 与控制台错误都为 0）、无横向滚动，并抽前 5 条正文逐字比黄底内容与报告里「圈住的字」（pressed_old）。只读。"""
+    rows = json.loads((pathlib.Path(args.out).parent / "apply_snapshot2_report.json").read_text(encoding="utf-8"))["rows"]
+    hid = [r for r in rows if r["result"] == "hidden"]
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 390, "height": 844})
+        errors = []
+        page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.goto((ROOT / "preview" / "hidden.html").as_uri(), wait_until="load", timeout=120000)
+        page.wait_for_function("window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
+        page.evaluate("MathJax.startup.promise")
+        got = page.evaluate(HIDDEN_CHECK_JS)
+        browser.close()
+    sample = [(i, r) for i, r in enumerate(hid) if r.get("pressed_old")][:5]
+    same = [(r["id"], got["marks"][i] == r["pressed_old"], got["marks"][i], r["pressed_old"]) for i, r in sample]
+    print(f"== hidden.html：条目 {got['items']}（报告隐藏 {len(hid)}）；每条行数 {sorted(set(got['rows']))}；mjx-merror {got['merror']}；"
+          f"控制台错误 {len(errors)} {errors[:3]}；390px 下 scrollWidth {got['scrollW']} / clientWidth {got['clientW']}"
+          f"（{'无' if got['scrollW'] <= got['clientW'] else '有'}横向滚动）；抽 {len(same)} 条黄底与「圈住的字」逐字相同 "
+          f"{sum(s for _, s, *_ in same)} 条")
+    for i, ok, page_txt, rep_txt in same:
+        print(f"  {i} {'相同' if ok else '不同'}：页面「{page_txt}」 报告「{rep_txt}」")
+
+
 def write_apply_report(args, rows, gray, bad, drawn_page):
     """--apply-snapshot 的结果表：json 原样逐笔，md 给人看（统计、与上一次运行相比变了的笔、挪位公式、隐藏清单）。"""
     import collections
@@ -1471,7 +1510,12 @@ def main():
                     help="只读核对：NOTES_JSON 里每笔 drawn 与笔记仓库第 2 次快照那份逐字节比（配 --apply-snapshot 的输出用）")
     ap.add_argument("--preview", metavar="NOTES_JSON",
                     help="只读预览页 preview/<页>（最新版 + 嵌入 NOTES_JSON，零写入不同步）和隐藏清单 preview/hidden.html，并核灰色 0")
+    ap.add_argument("--check-hidden", action="store_true",
+                    help="只读核对 preview/hidden.html（390px 宽）：条目数、每条三行、MathJax 无报错、无横向滚动、抽 5 条比黄底内容")
     args = ap.parse_args()
+    if args.check_hidden:
+        check_hidden(args)
+        return
     if args.preview:
         preview(args)
         return
