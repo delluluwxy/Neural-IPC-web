@@ -1168,6 +1168,24 @@ def apply_snapshot(args):
     write_apply_report(args, rows, gray, bad, drawn_page)
 
 
+def check_drawn(args):
+    """--check-drawn NOTES_JSON：读回写出的笔记，与笔记仓库 SNAP_NOTES 那份逐笔逐字节比 drawn（pts / frame / anchor / orig
+    各自 json.dumps 后相同），并核笔的集合 = SNAP_NOTES 的笔去掉 TOMBS_AT 墓碑里的、墓碑 = TOMBS_AT 的。只读。"""
+    import collections
+    stem = pathlib.Path(args.page).stem
+    raw = lambda sha: json.loads(gh("-H", "Accept: application/vnd.github.raw", f"repos/{REPO}/contents/notes/{stem}.json?ref={sha}"))
+    base, tombs = raw(SNAP_NOTES), raw(TOMBS_AT).get("tombstones", {})
+    got = json.loads(pathlib.Path(args.check_drawn).read_text(encoding="utf-8"))
+    want = {s["id"]: s for s in base["strokes"] if s["id"] not in tombs}
+    have = {s["id"]: s for s in got["strokes"]}
+    dump = lambda v: json.dumps(v, ensure_ascii=False, separators=(",", ":"))
+    diff = [i for i in want if i in have and any(dump(have[i]["drawn"][k]) != dump(want[i][k]) for k in ("pts", "frame", "anchor", "orig"))]
+    pages = collections.Counter(s["drawn"]["page"] for s in got["strokes"])
+    print(f"== 写出 {len(have)} 笔，{SNAP_NOTES} 去掉墓碑后 {len(want)} 笔；缺 {sorted(set(want) - set(have))}，多 {sorted(set(have) - set(want))}；"
+          f"drawn 与 {SNAP_NOTES} 逐字节不同 {len(diff)} 笔 {diff[:10]}；drawn.page 分布 {dict(pages)}；"
+          f"墓碑与 {TOMBS_AT} 相同 {dump(got.get('tombstones')) == dump(tombs)}（{len(tombs)} 条）")
+
+
 def write_apply_report(args, rows, gray, bad, drawn_page):
     """--apply-snapshot 的结果表：json 原样逐笔，md 给人看（统计 + 隐藏清单）。"""
     import collections
@@ -1237,7 +1255,12 @@ def main():
     ap.add_argument("--apply-snapshot", action="store_true",
                     help="用户确认过的第 2 次快照里每笔挂的内容按两版 diff 迁到最新版：写 --out（带 drawn 的笔记）与同目录 "
                          "apply_snapshot2_report.json / .md，并在最新版上核对（只读笔记仓库，不写）")
+    ap.add_argument("--check-drawn", metavar="NOTES_JSON",
+                    help="只读核对：NOTES_JSON 里每笔 drawn 与笔记仓库第 2 次快照那份逐字节比（配 --apply-snapshot 的输出用）")
     args = ap.parse_args()
+    if args.check_drawn:
+        check_drawn(args)
+        return
     if args.apply_snapshot:
         apply_snapshot(args)
         return
