@@ -1312,6 +1312,8 @@ ol { padding: 0; list-style: none; counter-reset: n; }
 li { counter-increment: n; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 0 0 12px; }
 li::before { content: counter(n) "．" attr(data-kind); font-weight: 600; }
 .row { display: grid; grid-template-columns: 5.5em 1fr; gap: 2px 8px; margin-top: 6px; }
+.row > span { min-width: 0; overflow-wrap: anywhere; }   /* 网格格子默认按内容撑宽，长公式会把整页撑出横向滚动 */
+mjx-container[display="true"] { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .k { color: var(--muted); } mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2px; }
 .why { font-weight: 600; } code { font-size: 13px; word-break: break-all; }
 """
