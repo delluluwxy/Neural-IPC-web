@@ -20,6 +20,7 @@ import datetime
 import io
 import json
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -427,6 +428,91 @@ def side_by_side(left, right, path):
     out.save(path)
 
 
+def cover_same(a, b, tex_renames):
+    """一笔在原版页面（a）与当前页面（b）上圈住的是不是同一处内容（两边都由标注层 coverOf 算）。是就返回判据名，否则 None。
+    图上的笔：同一张图、图内相对位置差 ≤ 0.005。其余（off / hit 都是笔画起点相对内容的 px）：
+      same     圈住的内容串、锚点类型相同，起点相对内容起点差 ≤ 1 px；
+      superset 原来圈住的那串字 / 符号原样连续出现在现在圈住的里面，且起点相对它们第一个的位置差 ≤ 1 px（新排版里别的字挪近了）；
+      renamed  公式按改名表换了写法（t → q），圈住的符号个数相同、起点相对第一个符号差 ≤ 1 px；
+      anchor   原来没圈住任何内容（旁注、箭头）：起笔处挂的那个字相同，相对它的位置差 ≤ 1 px。"""
+    near = lambda p, q, tol=1: all(abs(x - y) <= tol for x, y in zip(p, q))
+    if a["rel"] is not None or b["rel"] is not None:
+        ok = a["rel"] is not None and b["rel"] is not None and a["cover"] == b["cover"] and near(a["rel"], b["rel"], 0.005)
+        return "same" if ok else None
+    if not a["cover"]:
+        return "anchor" if not b["cover"] and a["exact"] == b["exact"] and near(a["off"], b["off"]) else None
+    if a["type"] == b["type"] and a["cover"] == b["cover"] and near(a["off"], b["off"]):
+        return "same"
+    ha, hb = a["hit"], b["hit"]
+    for k in range(len(hb) - len(ha) + 1):
+        if ha and all(x[0] == y[0] for x, y in zip(ha, hb[k:])) and near(ha[0][1:], hb[k][1:]):
+            return "superset"
+    if (a["type"] == b["type"] == "math" and tex_renames.get(a.get("tex")) == b.get("tex") and len(ha) == len(hb) and ha
+            and near(ha[0][1:], hb[0][1:])):
+        return "renamed"
+    return None
+
+
+TEX_TOKEN = re.compile(r"\\[A-Za-z]+|\S")
+LETTER = re.compile(r"[A-Za-z]|\\(alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|"
+                    r"pi|rho|sigma|tau|upsilon|phi|varphi|chi|psi|omega)$")
+
+
+def letter_renames(notes, page_tex):
+    """笔挂的公式在当前页面上已找不到时，找当前页面里只差「字母一一换名」（如 θ→ψ、t→q）的那个公式。
+    两边按 TeX 记号切开，记号数相同、不同的记号全是字母且换名一一对应（同一个旧字母只换成同一个新字母）才算。
+    返回 {旧 TeX: 新 TeX}；一个旧公式对上多个新公式的不算（歧义），留给人看。"""
+    have = set(page_tex)
+    out = {}
+    for tex in sorted({s["anchor"]["tex"] for s in notes["strokes"] if s["anchor"].get("type") == "math"} - have):
+        a = TEX_TOKEN.findall(tex)
+        found = []
+        for new in have:
+            b = TEX_TOKEN.findall(new)
+            if len(a) != len(b):
+                continue
+            fwd, back = {}, {}
+            ok = any(x != y for x, y in zip(a, b))
+            for x, y in zip(a, b):
+                if x == y:
+                    continue
+                if not (LETTER.fullmatch(x) and LETTER.fullmatch(y)) or fwd.setdefault(x, y) != y or back.setdefault(y, x) != x:
+                    ok = False
+                    break
+            # 换了名的旧字母在别处原样没换（如一半 t 换成 q、一半还是 t）也不算一一换名
+            if ok and not any(x == y and x in fwd for x, y in zip(a, b)):
+                found.append(new)
+        if len(found) == 1:
+            out[tex] = found[0]
+    return out
+
+
+def explain(args):
+    """--explain：当前页面换上当前标注层，导入 NOTES_JSON，对 IDS_TXT 里每笔调 __nipcNotes.explain，结果写 --out。"""
+    ids = pathlib.Path(args.explain[0]).read_text(encoding="utf-8").split()
+    notes = json.loads(pathlib.Path(args.explain[1]).read_text(encoding="utf-8"))
+    path = with_new_layer(ROOT / args.page)
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = open_with_notes(browser, path, notes)
+            got = {i: page.evaluate("id => window.__nipcNotes.explain(id)", i) for i in ids}
+            got["_letter_renames"] = letter_renames(notes, page.evaluate("window.__nipcNotes.texList()"))
+            browser.close()
+    finally:
+        path.unlink()
+    pathlib.Path(args.out).write_text(json.dumps(got, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"== {len(ids)} 笔的查原因结果写到 {args.out}")
+    if args.write_renames:   # 只差字母一一换名的公式补进讲稿目录的改名表（已有的键不动）
+        from webgen.annotate import DRAFTS
+        path = DRAFTS / f"notation_renames_{pathlib.Path(args.page).stem}.json"
+        table = json.loads(path.read_text(encoding="utf-8"))
+        new = {k: v for k, v in got["_letter_renames"].items() if k not in table["tex"]}
+        table["tex"].update(new)
+        path.write_text(json.dumps(table, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"== 改名表补了 {len(new)} 条字母换名：{path}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("page")
@@ -445,7 +531,14 @@ def main():
                     help="每笔在当初画的那版页面上（换上当前标注层）按圈住的内容重新建锚点，写进 BASE_JSON 的副本（--out）")
     ap.add_argument("--math-from-origin", metavar="BASE_JSON",
                     help="只做一件事：当初挂在公式上的笔，在各自原版页面上换成符号锚点，写进 BASE_JSON 的副本（--out）")
+    ap.add_argument("--explain", nargs=2, metavar=("IDS_TXT", "NOTES_JSON"),
+                    help="只读查原因：这些笔圈住的关键词在当前页面（换上当前标注层）每一处出现的位置与段落相似度，写到 --out")
+    ap.add_argument("--write-renames", action="store_true",
+                    help="配 --explain：把只差字母一一换名（θ→ψ、t→q）的公式对补进讲稿目录的 notation_renames_<页>.json")
     args = ap.parse_args()
+    if args.explain:
+        explain(args)
+        return
     stem = pathlib.Path(args.page).stem
     if args.shots:
         pathlib.Path(args.shots).mkdir(parents=True, exist_ok=True)
@@ -482,6 +575,15 @@ def main():
             for i, sha in version.items():
                 if i in by:
                     groups.setdefault(sha, []).append(by[i])
+        from webgen.annotate import DRAFTS
+        table = json.loads((DRAFTS / f"notation_renames_{stem}.json").read_text(encoding="utf-8")).get("tex", {})
+        tex_renames = {}
+        for k in table:   # 沿改名表走到底（同 annotate.py renamedTex）
+            t, seen = k, {k}
+            while t in table and table[t] not in seen:
+                t = table[t]
+                seen.add(t)
+            tex_renames[k] = t
         jobs = [dict(common, sha=sha, strokes=g, cover=args.verify_cover) for sha, g in groups.items()]
         jobs.append(dict(common, sha=None, current=shown, strokes=[s for s in shown["strokes"] if s["id"] in ids],
                          cover=args.verify_cover))
@@ -497,11 +599,8 @@ def main():
                 continue
             if args.verify_cover:
                 # 新判据（标注层 coverOf 算）：圈住的内容串与锚点类型相同；笔画起点相对内容起点差 ≤ 1 px，图上的笔比图内相对位置差 ≤ 0.005
-                if a["rel"] is not None or b["rel"] is not None:
-                    same_pos = a["rel"] is not None and b["rel"] is not None and all(abs(x - y) <= 0.005 for x, y in zip(a["rel"], b["rel"]))
-                else:
-                    same_pos = all(abs(x - y) <= 1 for x, y in zip(a["off"], b["off"]))
-                rows.append(dict(id=i, same=a["type"] == b["type"] and a["cover"] == b["cover"] and same_pos, match=None, old=a, new=b))
+                rows.append(dict(id=i, same=False, match=None, old=a, new=b, how=cover_same(a, b, tex_renames)))
+                rows[-1]["same"] = rows[-1]["how"] is not None
                 continue
             # 影响范围内的内容一一对应：原版范围里每个字 / 符号，在现在的范围里有同一个字、相对起笔点的位置差 ≤ 1 px
             pool, lost = list(b["zone"]), []

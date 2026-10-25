@@ -8,7 +8,7 @@
   c) week2.html：折叠框后面的一笔在展开 / 收起后仍对齐；折叠框里的一笔收起时隐藏、展开后对齐。
   d) 标注关闭时：点击落在视频上（能解码时还检查真的在播放）；点击折叠框标题能展开。
   e) 内容改动：在两个目标之前插入一个新段落和一张图，并改掉起笔段落开头几个字，导入后两笔仍落在原来的图 / 字上（≤ 2px）。
-  f) 删掉目标图、整段改写目标段落：两笔标灰显示（不丢），工具栏提示「有 2 笔对应的内容已变」。
+  f) 删掉目标图、整段改写目标段落：两笔隐藏（数据不丢），工具栏提示「有 2 笔圈的内容已改或删，已隐藏」。
   s) 滚动稳定性（回归）：1440 / 820 宽、有笔迹关标注 / 开标注时，滚轮、PageDown、手指拖动、跳到页中静置，
      逐帧记 scrollY：没有输入时不许动（> 2px），滚轮 / 手指滚动不许反向。
      --scroll-probe 只跑这一项的完整矩阵（1440 / 1024 / 820 × 对照 / 有笔迹关标注 / 开标注），逐帧记录写到 --out。
@@ -41,7 +41,8 @@ MEASURE_JS = """(spec) => {
   } else if (spec.kind === 'math') {
     const m = [...MathJax.startup.document.math].find(m => m.display && m.typesetRoot && m.typesetRoot.isConnected &&
                                                          m.math.replace(/\\s+/g, ' ').trim() === spec.tex);
-    T = m && m.typesetRoot.getBoundingClientRect();
+    // 量相对公式本身（svg 外框）的位置：公式笔锚在符号上，公式居中且宽度变了时整体平移，笔应跟着符号走
+    T = m && m.typesetRoot.querySelector('svg').getBoundingClientRect();
   } else {
     const w = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
     for (let n = w.nextNode(); n; n = w.nextNode()) {
@@ -477,7 +478,7 @@ def test_drift(browser, rep, out, text, tgt, ids, ref):
     st = page.evaluate("window.__nipcNotes.status()")
     cls = page.evaluate("[...document.querySelectorAll('#annot-layer path')].map(p => [p.getAttribute('class'), getComputedStyle(p).display])")
     status_text = page.inner_text("#annot-status")
-    rep.check("f1 目标删掉后两笔标灰、不丢", st["orphans"] == 2 and all("orphan" in c and d != "none" for c, d in cls),
+    rep.check("f1 目标删掉后两笔隐藏、数据不丢", st["orphans"] == 2 and all("orphan" in c and d == "none" for c, d in cls),
               f"orphans={st['orphans']}，path={cls}，提示「{status_text.strip()}」")
     page.evaluate(f"document.querySelector('#annot-layer path[data-id=\"{ids[1]}\"]').scrollIntoView({{block: 'center', behavior: 'instant'}})")
     page.wait_for_timeout(300)
@@ -721,7 +722,7 @@ def test_renames(browser, rep, out):
     rep.check("h2 目标段落确实搬远了", got_moved.get("targetTop", 0) - ref["moved"]["targetTop"] > 1000,
               f"目标字在卡片内 y {ref['moved']['targetTop']:.0f} → {got_moved.get('targetTop', 0):.0f}")
     cls = b.evaluate(f"document.querySelector('#annot-layer path[data-id=\"{ids['changed']}\"]').getAttribute('class')")
-    rep.check("h3 内容本身改写（不在改名表）→ 标灰", "orphan" in (cls or ""), f"class={cls!r}")
+    rep.check("h3 内容本身改写（不在改名表）→ 隐藏", "orphan" in (cls or ""), f"class={cls!r}")
     new_needle = tg["renamed"].replace(tg["old"], new_txt)
     got_ren = b.evaluate(MEASURE_JS, {"id": ids["renamed"], "kind": "char", "needle": new_needle})
     compare(rep, f"h4 文字换写法（{tg['old']!r}→{new_txt!r}，在表里）后笔跟着走", ref["renamed"], got_ren)

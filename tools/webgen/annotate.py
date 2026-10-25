@@ -127,6 +127,7 @@ ANNOT_JS = r"""
     glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
     nearPx: 30,          // 笔没圈住任何内容（下划线、箭头、旁注）时，取离笔画这么近以内最近的那个字 / 符号
     coverCtxAccept: 0.3, // 圈住的关键词在页面上出现好几处时，周围文字与原段落的二元组相似度至少这么高才认
+    coverNearAccept: 0.8, // ……或者紧挨着它的前 / 后 10 字与原来的相似度至少这么高（段落别处改了、这一句没改）
     penWidth: 2.4, hlWidth: 16, eraseRadius: 12, undoLimit: 60,
     colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
   };
@@ -554,6 +555,15 @@ ANNOT_JS = r"""
       hit = best ? [best[1]] : [];
     }
     if (!hit.length) return null;
+    // 核对用：圈住的每个字 / 符号与笔画起点的相对位置（正文卡片 px），按页面上的先后排
+    const hitPos = hit.slice().sort((x, y) => (x.kind === 'g' && y.kind === 'g' && x.m === y.m) ? x.i - y.i : (x.q.top - y.q.top) || (x.q.left - y.q.left))
+      .map(it => [it.kind === 'g' ? it.g.ch[it.i] : ix.text[it.pos], (P[0].x - it.q.left) / f.s, (P[0].y - it.q.top) / f.s]);
+    const got = strokeCoverAnchor(hit, ix, f);
+    if (got) got.hit = hitPos;
+    return got;
+  }
+  /** strokeCover 的后半：圈住的那些字 / 符号 → 锚点（主要是公式符号就锚公式里那一串，否则锚正文那一段字）。 */
+  function strokeCoverAnchor(hit, ix, f) {
     if (2 * hit.filter(it => it.kind === 'g').length >= hit.length) {   // 主要圈在公式上：符号最多的那个公式里第一个到最后一个
       const by = new Map();
       for (const it of hit) if (it.kind === 'g') by.set(it.m.el, (by.get(it.m.el) || []).concat([it]));
@@ -588,17 +598,27 @@ ANNOT_JS = r"""
     let cover = a.cover, hits = allIndexes(t, cover, 2000);
     if (!hits.length) { const r = renamedText(cover, 0); if (r) { cover = r.s; hits = allIndexes(t, cover, 2000); } }
     if (!hits.length) return null;
-    if (hits.length === 1 || !a.block) return { pos: nearestPos(hits, orig, f) };
-    // 先比关键词周围与原段落等长的一段文字（改写、换语序、段落被拆开都认得出），再比紧挨着的前后各 10 字
+    const out = pos => {   // 按改名表换了写法才找到：存的锚点一并改成新写法
+      if (cover === a.cover) return { pos };
+      const rn = s => { const r = renamedText(s || '', 0); return r ? r.s : (s || ''); };
+      return { pos, migrated: Object.assign({}, a, { cover, exact: cover[0], prefix: rn(a.prefix), suffix: rn(a.suffix), block: rn(a.block) }) };
+    };
+    if (hits.length === 1 || !a.block) return out(nearestPos(hits, orig, f));
+    // 每一处比两样：紧挨着的前后各 10 字（只改了段落别处时原样不变），和周围与原段落等长的一段（改写、换语序、拆段也认得出）。
+    // 认它的条件：前或后 10 字几乎原样（≥ coverNearAccept），或段落相似（≥ coverCtxAccept）且前后 10 字也不差（≥ coverCtxAccept）。
+    // 几处都认：先挑前后 10 字原样的，再比段落相似度，再比前后 10 字
     const L = 10, pre = a.prefix.slice(-L), suf = a.suffix.slice(cover.length - 1, cover.length - 1 + L);
     const half = Math.max(40, a.block.length >> 1);
-    let best = null, key = [-1, -1];
+    let best = null, key = null;
     for (const p of hits) {
+      const sp = similarity(pre, t.slice(Math.max(0, p - L), p)), ss = similarity(suf, t.slice(p + cover.length, p + cover.length + L));
       const sb = bigramSim(a.block, t.slice(Math.max(0, p - half), p + cover.length + half));
-      const sl = similarity(pre, t.slice(Math.max(0, p - L), p)) + similarity(suf, t.slice(p + cover.length, p + cover.length + L));
-      if (sb > key[0] + 1e-9 || (Math.abs(sb - key[0]) <= 1e-9 && sl > key[1])) { best = p; key = [sb, sl]; }
+      const near = Math.max(sp, ss) >= CFG.coverNearAccept;
+      if (!near && !(sb >= CFG.coverCtxAccept && (sp + ss) / 2 >= CFG.coverCtxAccept)) continue;
+      const k = [near ? 1 : 0, sb, sp + ss];
+      if (!key || k[0] > key[0] || (k[0] === key[0] && (k[1] > key[1] + 1e-9 || (Math.abs(k[1] - key[1]) <= 1e-9 && k[2] > key[2])))) { best = p; key = k; }
     }
-    return key[0] >= CFG.coverCtxAccept ? { pos: best } : null;
+    return key ? out(best) : null;
   }
   /** 公式里圈住的符号串：先在原公式（TeX 相同或按改名表换过）里找，找不到再在全页陈列公式里找；几处就挑整个公式与原公式
    * 最像的（符号二元组 Jaccard），一处都没有返回 null。返回 {el: 公式, glyph: 起始符号元素}。 */
@@ -621,9 +641,13 @@ ANNOT_JS = r"""
       // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
       const m = own.find(o => glyphList(o.el).ch.length === a.gn);
       if (m && a.gi !== undefined) { const g = glyphList(m.el); return { el: m.el, glyph: g.els[a.gi] }; }
-      return null;
+      // 符号个数也变了（改名表把它连到改写后的公式）：只在这个公式里按前后符号找最像的位置，够像才认
+      let best = null, bestSc = CFG.fuzzyAccept;
+      for (const o of own) { const g = glyphList(o.el), r = matchGlyph(g, a.g); if (r.score >= bestSc) { bestSc = r.score; best = { el: o.el, glyph: g.els[r.i] }; } }
+      return best;
     }
-    if (!hits.length) hits = search(all);   // 原公式改写了（拆行、加步骤）：全页找这串符号
+    // 原公式没了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
+    if (!hits.length && seq.length >= 2) hits = search(all);
     if (!hits.length) return null;
     // 几处一样（短的行内公式常见）：依次比所在段落、公式前面的字、公式里前后的符号
     const origG = a.g.prefix + a.g.exact + a.g.suffix, t = S.index.text;
@@ -1538,12 +1562,31 @@ ANNOT_JS = r"""
           if (!d || !d.abs || d.state !== 'ok') { out[id] = { state: d ? d.state : 'none' }; continue; }
           const got = anchorForStroke(d.abs), a = got.anchor;
           out[id] = { state: 'ok', type: a.type, cover: a.cover || a.src || a.text || a.cell || '',
+                      hit: (got.hit || []).map(([c, x, y]) => [c, Math.round(x * 2) / 2, Math.round(y * 2) / 2]),
+                      exact: a.cover ? '' : (a.exact || ''), tex: a.tex || '',
                       off: [Math.round((d.abs[0][0] - got.R.x) * 2) / 2, Math.round((d.abs[0][1] - got.R.y) * 2) / 2],
                       rel: got.frame === 'norm' ? [Math.round((d.abs[0][0] - got.R.x) / got.R.w * 1000) / 1000,
                                                    Math.round((d.abs[0][1] - got.R.y) / got.R.h * 1000) / 1000] : null };
         }
         S.geomBatch = false; S.geom = null;
         return out;
+      },
+      texList: () => allMath().map(m => m.tex),
+      // 查原因用（只读）：一笔圈住的关键词在当前页面每一处出现的位置、所在段落相似度、是否在收起的折叠里
+      explain: id => {
+        const s = S.strokes.find(t => t.id === id);
+        if (!s || !s.anchor.cover) return null;
+        ensureIndex();
+        const a = s.anchor, t = S.index.text, half = Math.max(40, (a.block || '').length >> 1);
+        if (a.type === 'math') {
+          const seq = Array.from(a.cover);
+          return { type: 'math', tex: a.tex, cover: a.cover, renamed: renamedTex(a.tex),
+                   own: allMath().filter(m => m.tex === a.tex).length,
+                   hits: allMath().filter(m => seqIndexes(glyphList(m.el).ch, seq).length).map(m => m.tex) };
+        }
+        return { type: 'text', cover: a.cover, hits: allIndexes(t, a.cover, 2000).map(p => ({
+          pos: p, sb: Math.round(bigramSim(a.block || '', t.slice(Math.max(0, p - half), p + a.cover.length + half)) * 1000) / 1000,
+          closed: !charRect(p), around: t.slice(Math.max(0, p - 15), p + a.cover.length + 15) })) };
       },
       // 旧笔迁移用（repair_notes_positions.py --reanchor-origin，在它当初画的那版页面上调）：这些笔原地不动，
       // 按它们此刻圈住的内容重新建锚点。返回实际改了的笔的 id（此刻不在页面上显示的笔不动）。
