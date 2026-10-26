@@ -241,7 +241,7 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "e5ca66c82fb4";</script>
+<script>window.NIPC_PAGE = "3717cbbdcc77";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -500,18 +500,84 @@ html.annot-on #annot-capture { display: block; }
 </table></div>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_12_soft_vs_rigid_cap.png" width="2294" height="885" style="width:1089px;max-width:100%;height:auto" alt="两幅都是过接触中心的剖面，红线是受接触力的地方。左边压头（灰）几乎刚、块（浅蓝）软：凹下去的是块，压头底部仍是圆弧。右边压头（浅橙）软、块（深蓝）硬：压头底部被压平，块几乎不动。" loading="lazy"><figcaption class="small">两幅都是过接触中心的剖面，红线是受接触力的地方。左边压头（灰）几乎刚、块（浅蓝）软：凹下去的是块，压头底部仍是圆弧。右边压头（浅橙）软、块（深蓝）硬：压头底部被压平，块几乎不动。</figcaption></figure>
 <p>压头一软，被压扁的变成本来就弯的那一侧，公式的「变形小」前提就不太成立，偏了 1%–2%。而合成硬度相同时，软的是弯的一侧还是平的一侧，结果不一样，所以网络要分别知道两侧各自的软硬和弯曲。</p>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_09_arch_v1.png" width="1975" height="899" style="width:923px;max-width:100%;height:auto" alt="现在的模型怎么算能量。左上，缝隙 \(h\) 和合成硬度 \(E^*\) 经降维法给出等效轮廓 \(g\)，椭圆时乘扁度因子。左下，两侧各自的曲率占比、软度占比、泊松比、到边缘的距离，加上位置和扁度，送进小网络，不含压深。网络给轮廓每个位置的斜率乘一个正数，得到修正轮廓 \(G\)，压一排弹簧得到这一处的能量。右下的红色双箭头表示几处接触之间按 1/距离 互相把表面带下去；几处加起来是总能量，力是总能量对位置的导数。" loading="lazy"><figcaption class="small">现在的模型怎么算能量。左上，缝隙 \(h\) 和合成硬度 \(E^*\) 经降维法给出等效轮廓 \(g\)，椭圆时乘扁度因子。左下，两侧各自的曲率占比、软度占比、泊松比、到边缘的距离，加上位置和扁度，送进小网络，不含压深。网络给轮廓每个位置的斜率乘一个正数，得到修正轮廓 \(G\)，压一排弹簧得到这一处的能量。右下的红色双箭头表示几处接触之间按 1/距离 互相把表面带下去；几处加起来是总能量，力是总能量对位置的导数。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_09_arch_v1.png" width="1981" height="899" style="width:925px;max-width:100%;height:auto" alt="现在的模型怎么算能量。左上，缝隙 \(h\) 和合成硬度 \(E^*\) 经降维法给出等效轮廓 \(g\)，椭圆时乘扁度因子。左下，两侧各自的曲率占比、软度占比、泊松比、到边缘的距离，加上位置和扁度，送进小网络。网络给轮廓每个位置的斜率乘一个正数，得到修正轮廓 \(G\)，压一排弹簧得到这一处的能量。右下的红色双箭头表示几处接触之间按 1/距离 互相把表面带下去；几处加起来是总能量，力是总能量对位置的导数。" loading="lazy"><figcaption class="small">现在的模型怎么算能量。左上，缝隙 \(h\) 和合成硬度 \(E^*\) 经降维法给出等效轮廓 \(g\)，椭圆时乘扁度因子。左下，两侧各自的曲率占比、软度占比、泊松比、到边缘的距离，加上位置和扁度，送进小网络。网络给轮廓每个位置的斜率乘一个正数，得到修正轮廓 \(G\)，压一排弹簧得到这一处的能量。右下的红色双箭头表示几处接触之间按 1/距离 互相把表面带下去；几处加起来是总能量，力是总能量对位置的导数。</figcaption></figure>
+<p><strong>举个例子：软压头压硬一些的块。</strong> 下面是训练数据里真实的一行，看网络每个输入具体取什么值。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_17_input_example.png" width="1898" height="881" style="width:905px;max-width:100%;height:auto" alt="左边是过接触中心的剖面，按真实比例画。上面浅橙色是软压头，底面是半径 \(R=1\) 的球面：红箭头从球心指到球面，灰色虚线是这个球面的延长；球面只到离中轴 \(l=0.6\) 的地方，再往外压头底面是平的。下面浅蓝色是硬一些的块，看成无限大。两侧各自标了杨氏模量 \(E\)、泊松比 \(\nu\) 和软度占比 \(\sigma\)，红色短线是接触区。右边把接触区横向放大（竖直方向是示意）：位置 \(t\) 从中心 0 量到接触边缘 \(a=0.111\)，网络在这条线上的每个位置各算一次，图上标出下表用到的 \(t=0\)、\(a/2\)、\(a\) 三处。" loading="lazy"><figcaption class="small">左边是过接触中心的剖面，按真实比例画。上面浅橙色是软压头，底面是半径 \(R=1\) 的球面：红箭头从球心指到球面，灰色虚线是这个球面的延长；球面只到离中轴 \(l=0.6\) 的地方，再往外压头底面是平的。下面浅蓝色是硬一些的块，看成无限大。两侧各自标了杨氏模量 \(E\)、泊松比 \(\nu\) 和软度占比 \(\sigma\)，红色短线是接触区。右边把接触区横向放大（竖直方向是示意）：位置 \(t\) 从中心 0 量到接触边缘 \(a=0.111\)，网络在这条线上的每个位置各算一次，图上标出下表用到的 \(t=0\)、\(a/2\)、\(a\) 三处。</figcaption></figure>
+<ul>
+<li>压头底面是半径 \(R=1\) 的球冠，球面到离中轴 \(l=0.6\) 处为止；块的上表面是平的，块看成无限大。</li>
+<li>压头 \(E=10^5\)，块 \(E=10^6\)，泊松比都是 0.3。压深 0.013，这时接触半径 \(a=0.111\)。</li>
+<li>网络在接触区里每个位置 \(t\) 各算一次；表里列 \(t=0\)、\(a/2\)、\(a\) 三处的取值，两侧的量写成「压头 / 块」。</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>输入</th>
+<th>例子里的值</th>
+<th>是什么</th>
+<th>为什么网络需要它</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>位置 \(10t/R\)</td>
+<td>0 → 0.555 → 1.11</td>
+<td>离接触中心多远，用球半径量</td>
+<td>修正随位置变：中心保持公式原样，越往外改得越多</td>
+</tr>
+<tr>
+<td>扁度 \(e\)</td>
+<td>0</td>
+<td>两侧合起来的缝隙，在两个主方向上弯曲程度之比的对数</td>
+<td>接触区越扁，按等面积圆算的误差越大。球压平面两个方向一样，所以是 0；上一节环面内圈那种情况是 \(\ln 3\approx 1.10\)</td>
+</tr>
+<tr>
+<td>方向 1 曲率占比</td>
+<td>1 / 0</td>
+<td>这个方向上合起来的弯曲，有多大比例来自这一侧</td>
+<td>弯的是哪一侧，结果不一样。块是平的，弯曲全在压头上</td>
+</tr>
+<tr>
+<td>方向 2 曲率占比</td>
+<td>1 / 0</td>
+<td>另一个主方向上的同一个量</td>
+<td>两个方向可以各不相同（比如环面）；这里两个方向一样</td>
+</tr>
+<tr>
+<td>软度占比 \(\sigma\)</td>
+<td>0.909 / 0.091</td>
+<td>合起来的软度 \(1/E^*\) 有多大比例来自这一侧</td>
+<td>软的是哪一侧，结果不一样。压头软 10 倍，占了九成多</td>
+</tr>
+<tr>
+<td>泊松比 \(\nu\)</td>
+<td>0.3 / 0.3</td>
+<td>材料被压时往旁边胀出多少</td>
+<td>决定物体被压扁的方式</td>
+</tr>
+<tr>
+<td>到边缘的距离 \(t/l\)</td>
+<td>0 → 0.093 → 0.185 / 0</td>
+<td>当前位置离这一侧球面的边缘有多近</td>
+<td>离边缘越近，「表面一直往外延伸」这个前提越偏。块看成无限大，这一项是 0</td>
+</tr>
+</tbody>
+</table></div>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_18_network_neurons.png" width="1404" height="822" style="width:717px;max-width:100%;height:auto" alt="左边一列是 12 个输入，旁边写着这一行在 \(t=a/2\) 处的取值：前两个是两侧共用的位置和扁度，接着是压头一侧的 5 个，最后是块一侧的 5 个。中间两列各 16 个神经元，每个神经元把上一层的全部输出加权求和、再过一次 tanh，灰线表示相邻两层之间全部相连；最右边是唯一的输出 \(\psi\)。底下蓝字是每两层之间的参数个数（权重加偏置），一共 497 个。右上框：把压头和块的两组输入对调再算一遍，两次取平均。右下框：轮廓斜率乘的是 \(e^{\psi(t)-\psi(0)}\)，所以中心处恰好是 1；这一行在 \(a/2\) 处乘数是 1.043。" loading="lazy"><figcaption class="small">左边一列是 12 个输入，旁边写着这一行在 \(t=a/2\) 处的取值：前两个是两侧共用的位置和扁度，接着是压头一侧的 5 个，最后是块一侧的 5 个。中间两列各 16 个神经元，每个神经元把上一层的全部输出加权求和、再过一次 tanh，灰线表示相邻两层之间全部相连；最右边是唯一的输出 \(\psi\)。底下蓝字是每两层之间的参数个数（权重加偏置），一共 497 个。右上框：把压头和块的两组输入对调再算一遍，两次取平均。右下框：轮廓斜率乘的是 \(e^{\psi(t)-\psi(0)}\)，所以中心处恰好是 1；这一行在 \(a/2\) 处乘数是 1.043。</figcaption></figure>
+<ul>
+<li>两组输入对调再算一遍取平均，所以哪一侧叫「压头」、哪一侧叫「块」，结果都一样。</li>
+<li>这一行里斜率乘数从中心的 1，到 \(a/2\) 处 1.043，再到边缘 1.078：外圈调陡了，正是下面说的「压头软时外圈调陡、能量降下来」。</li>
+</ul>
 <p><strong>网络的做法：</strong> 在等效轮廓 \(g\) 的每个位置上，给它的斜率乘一个接近 1 的正数。比如压头软、自己会被压扁，网络就把轮廓外圈调陡一点，接触区变窄，能量随之降下来。</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_01_profile_correction.png" width="1113" height="965" style="width:484px;max-width:100%;height:auto" alt="降维法那排弹簧上的两种轮廓。黑色虚线是公式给的 \(g=x^2/R\)，接触边缘在灰色的 \(a\)；灰色实心压头是网络把外圈斜率调大后的轮廓，外圈更陡，同样的压深下接触边缘收到红色的 \(a&#x27;\)。蓝色是被压到的弹簧，灰色是没碰到的；轮廓变陡后被压到的弹簧变少、每根压得更浅，能量变小。修正的幅度为了看清放大画了。" loading="lazy"><figcaption class="small">降维法那排弹簧上的两种轮廓。黑色虚线是公式给的 \(g=x^2/R\)，接触边缘在灰色的 \(a\)；灰色实心压头是网络把外圈斜率调大后的轮廓，外圈更陡，同样的压深下接触边缘收到红色的 \(a&#x27;\)。蓝色是被压到的弹簧，灰色是没碰到的；轮廓变陡后被压到的弹簧变少、每根压得更浅，能量变小。修正的幅度为了看清放大画了。</figcaption></figure>
 <ul>
-<li><strong>输入：</strong> 轮廓上的位置；椭圆有多扁；两侧各自的泊松比；弯的是哪一侧（两侧各占合起来的曲率的比例）；软的是哪一侧（两侧各占合起来的软度 \(1/E^*\) 的比例）；两侧各自到物体边缘的距离（物体看成无限大时这一项为零）。不输入压深。</li>
+<li><strong>输入：</strong> 轮廓上的位置；椭圆有多扁；两侧各自的泊松比；弯的是哪一侧（两侧各占合起来的曲率的比例）；软的是哪一侧（两侧各占合起来的软度 \(1/E^*\) 的比例）；两侧各自到物体边缘的距离（物体看成无限大时这一项为零）。</li>
 <li><strong>规模：</strong> 2 层、每层 16 个神经元，共 497 个参数。</li>
 </ul>
 <p><strong>为什么改轮廓，而不是直接给能量乘系数：</strong></p>
 <ul>
 <li>斜率乘的是正数，轮廓仍单调升高，能量仍由那排弹簧算出来，所以第 3.2 节的两条性质（力是能量的导数、越压越硬）原样保留；</li>
 <li>修正系数为 1 时严格退回公式；</li>
-<li>网络只改轮廓的形状，不看压深；压深变化时能量怎么变，仍由弹簧公式决定。所以压得比训练时更深，网络也不需要去猜，不会出怪结果。</li>
+<li>压深变化时能量怎么变，由弹簧公式决定；网络只调轮廓的形状。所以压得比训练时更深，网络也不需要去猜，不会出怪结果。</li>
 </ul>
 <p><strong>接触之间的相互影响（第二条要求）：</strong> 每处接触的压深 = 自己的力压出来的 + 其他接触的力把表面带下去的：</p>
 <p>\[\color{#c0392b}{\delta_i=\delta_{e,i}(F_i)+\sum_{j\ne i}\frac{F_j}{\pi E^*\,r_{ij}},}\]</p>
@@ -605,7 +671,7 @@ html.annot-on #annot-capture { display: block; }
 
 <p>骨架建立在「接触区远小于物体、物体可以看成无限厚」上。下面三种常见情况都违反这一点：</p>
 <p><strong>① 薄层（软垫、涂层、手指皮肤）。</strong> 骨架里没有层厚这个量。刚球压一层很薄的软层时，层下面就是硬底座，材料没处可让，比压一大块软材料硬得多；骨架照样按无限厚算，只算出真实能量的一到两成。</p>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_11_thin_layer_section.png" width="1930" height="885" style="width:916px;max-width:100%;height:auto" alt="同一个刚球、同样的压深。左边压的是一大块软材料，接触区下面还有很深的软材料。右边压的是放在硬底座上的一层薄软层，层厚 \(t\)，层下面就是硬底座，材料没处可让，所以比左边硬得多。" loading="lazy"><figcaption class="small">同一个刚球、同样的压深。左边压的是一大块软材料，接触区下面还有很深的软材料。右边压的是放在硬底座上的一层薄软层，层厚 \(t\)，层下面就是硬底座，材料没处可让，所以比左边硬得多。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_11_thin_layer_section.png" width="1510" height="885" style="width:717px;max-width:100%;height:auto" alt="同一个刚球、同样的压深。左边压的是一大块软材料，接触区下面还有很深的软材料。右边压的是放在硬底座上的一层薄软层，层厚 \(t\)，层下面就是硬底座，材料没处可让，所以比左边硬得多。" loading="lazy"><figcaption class="small">同一个刚球、同样的压深。左边压的是一大块软材料，接触区下面还有很深的软材料。右边压的是放在硬底座上的一层薄软层，层厚 \(t\)，层下面就是硬底座，材料没处可让，所以比左边硬得多。</figcaption></figure>
 <p><strong>② 斜着压的平底。</strong> 骨架把接触压成左右对称的一维轮廓，只记得「最深处压了多深」，不知道哪一边深。结果有两个：一是少算了压头倾斜本身存下的能量（整片贴住时少约 14%）；二是往左倾、往右倾，骨架都按同样方式改变能量，能量在「不倾斜」处出现一个尖角，对倾角求导就冒出一个本不存在的转动力矩。</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_03_tilt.png" width="1865" height="897" style="width:873px;max-width:100%;height:auto" alt="左边是斜着压的平底剖面，倾角放大画：右边压得深，左边压得浅，灰色虚线是原来的表面。右边固定平底中心的压深、只改倾角，纵轴是能量 ÷ 不倾斜时的能量。绿线是精确解，在 0° 处是光滑的抛物线，不倾斜时没有转动力矩；红色虚线是现在的骨架，往左倾、往右倾变化一样，在 0° 处是一个尖角，左右两边的斜率不相等，这就是那个本不存在的力矩。整片贴住的 3° 那一档，骨架实测比精确解少约 15%。" loading="lazy"><figcaption class="small">左边是斜着压的平底剖面，倾角放大画：右边压得深，左边压得浅，灰色虚线是原来的表面。右边固定平底中心的压深、只改倾角，纵轴是能量 ÷ 不倾斜时的能量。绿线是精确解，在 0° 处是光滑的抛物线，不倾斜时没有转动力矩；红色虚线是现在的骨架，往左倾、往右倾变化一样，在 0° 处是一个尖角，左右两边的斜率不相等，这就是那个本不存在的力矩。整片贴住的 3° 那一档，骨架实测比精确解少约 15%。</figcaption></figure>
 <p><strong>③ 两处接触连成一片。</strong> 分开时按「两处 + 相互影响」算，连成一片后只能按「一处」算。两种算法在连上的那一刻给出的能量不一样，差 4%–7%，能量就在这里跳一下，牛顿法可能因此不收敛。</p>
@@ -616,7 +682,7 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>很厚：</strong> Hertz 精确。</li>
 <li><strong>很薄：</strong> 层太薄，压力传不开，每一小柱材料只能被竖直压扁，表面每一点就是一根独立的弹簧（刚度 \(k\) 与层厚成反比）。这正是 hydro 的行为。能量有精确公式 \(U=\pi kR\,\delta^3/3\)，按压深的 3 次方涨，和 Hertz 的 2.5 次方完全不同。</li>
 </ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_02_thin_vs_thick.png" width="1930" height="885" style="width:916px;max-width:100%;height:auto" alt="同一个刚球压到同样深。左边是厚块，接触区外的表面也跟着陷下去，灰色虚线是原来的表面。右边是放在刚性底座上的薄层，层厚 \(t\)：每一小柱材料只被竖直压扁，旁边的表面不动，就像接触区下面一排互不相干的竖直弹簧（蓝色）。" loading="lazy"><figcaption class="small">同一个刚球压到同样深。左边是厚块，接触区外的表面也跟着陷下去，灰色虚线是原来的表面。右边是放在刚性底座上的薄层，层厚 \(t\)：每一小柱材料只被竖直压扁，旁边的表面不动，就像接触区下面一排互不相干的竖直弹簧（蓝色）。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_02_thin_vs_thick.png" width="1519" height="885" style="width:721px;max-width:100%;height:auto" alt="同一个刚球压到同样深。左边是厚块，接触区外的表面也跟着陷下去，灰色虚线是原来的表面。右边是放在刚性底座上的薄层，层厚 \(t\)：每一小柱材料只被竖直压扁，旁边的表面不动，就像接触区下面一排互不相干的竖直弹簧（蓝色）。" loading="lazy"><figcaption class="small">同一个刚球压到同样深。左边是厚块，接触区外的表面也跟着陷下去，灰色虚线是原来的表面。右边是放在刚性底座上的薄层，层厚 \(t\)：每一小柱材料只被竖直压扁，旁边的表面不动，就像接触区下面一排互不相干的竖直弹簧（蓝色）。</figcaption></figure>
 <details><summary>推导：薄层能量</summary><p>离中心 \(r\) 处的压缩量</p>
 <p>\[w(r)=\delta-\frac{r^2}{2R},\]</p>
 <p>压强 \(p=k\,w\)，接触边缘是 \(w=0\) 处：</p>
@@ -1953,7 +2019,16 @@ html.annot-on #annot-capture { display: block; }
     if (r.status === 404) return { data: null, sha: null };
     if (!r.ok) throw new Error('读取 ' + r.status);
     const j = await r.json();
-    return { data: JSON.parse(b64DecodeUtf8(j.content)), sha: j.sha };
+    let b64 = j.content;
+    if (!b64 && j.sha) {   // 文件超过 1 MB 时 contents API 不给 content，改按 sha 取 blob（上限 100 MB）
+      const rb = await fetch(`https://api.github.com/repos/${cfg.repo}/git/blobs/${j.sha}`, {
+        cache: 'no-store',
+        headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      });
+      if (!rb.ok) throw new Error('读取 blob ' + rb.status);
+      b64 = (await rb.json()).content;
+    }
+    return { data: JSON.parse(b64DecodeUtf8(b64)), sha: j.sha };
   }
   /** 写远端文件；sha 过期（409 / 422）返回 {conflict: true}。 */
   async function ghPut(cfg, data, sha, keepalive) {
