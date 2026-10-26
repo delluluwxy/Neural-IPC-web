@@ -14,6 +14,8 @@
 
     # 审稿预览：只把 week3_4.html（空笔记快照、只读）和它引用的图片写到 preview/<名>/，视频指向仓库已有的
     python tools/build_site.py --preview preview/meeting
+    # 同上，但嵌入一份笔记（笔记仓库 notes/<页>.json 原样）当只读快照，页顶写明快照时间
+    python tools/build_site.py --preview preview/<名> --preview-notes <笔记 JSON>
 
 必须用 Neural-IPC 的 genesis 环境跑（要用它自带的 imageio-ffmpeg 二进制和 numpy、markdown）：
     /data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/bin/python tools/build_site.py
@@ -185,7 +187,12 @@ def parse_args():
     ap.add_argument("--out-dir", type=Path, help="--html-only 的输出目录")
     ap.add_argument("--preview", type=Path, metavar="DIR",
                     help="审稿预览：只把 week3_4.html 和它引用的图片写到 DIR（如 preview/meeting），见 write_preview")
+    ap.add_argument("--preview-notes", type=Path, metavar="JSON",
+                    help="配 --preview：把这份笔记（笔记仓库 notes/<页>.json 原样）当只读快照嵌进预览页，代替空快照；"
+                         "页顶加一句快照时间（取 saved，太平洋时间）。标注层只读、不读写本机存储、不同步")
     args = ap.parse_args()
+    if args.preview_notes and not args.preview:
+        ap.error("--preview-notes 只能和 --preview 同用")
     if args.html_only and (args.execute or args.out_dir is None):
         ap.error("--html-only 必须配 --out-dir，且不能和 --execute 同用")
     if args.preview and (args.execute or args.html_only):
@@ -199,15 +206,31 @@ PREVIEW_SNAPSHOT = {"format": "nipc-notes", "version": 1, "page": PREVIEW_PAGE, 
                     "colWidth": 920, "strokes": [], "tombstones": {}}
 
 
-def write_preview(out_dir, pages, ijobs):
+def snapshot_banner(notes):
+    """预览页页顶那一句：笔记快照的保存时间（notes["saved"]，UTC ISO）换成太平洋时间 月-日 hh:mm。"""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    t = datetime.fromisoformat(notes["saved"].replace("Z", "+00:00")).astimezone(ZoneInfo("America/Los_Angeles"))
+    return f"<p>这里的笔记是 {t:%m-%d %H:%M}（太平洋时间）的只读快照，之后在正式页画的笔记不会出现在这里。</p>"
+
+
+def write_preview(out_dir, pages, ijobs, notes=None):
     """--preview：线上笔记迁移完成前给审稿用的预览，只写 out_dir（仓库里两层深，如 preview/meeting/），不写仓库根的
     html / assets：
-    - 页面只取 week3_4.html：第一个 <script> 前嵌空的 NIPC_SNAPSHOT（只读、不同步），导航 index / week1 / week2 改指 ../../；
+    - 页面只取 week3_4.html：第一个 <script> 前嵌 NIPC_SNAPSHOT（只读、不同步）——默认空快照；给了 notes（笔记仓库的
+      notes/<页>.json 原样）就嵌这份，笔画由标注层按锚点落到新内容上，并在页顶 .lead 开头加一句快照时间（snapshot_banner）；
+    - 导航 index / week1 / week2 改指 ../../；
     - 页面引用的图片复制进 out_dir/assets/images/（留白副本照常 trim_and_pad，同 execute）；
     - 视频不压缩，改指仓库已有的 ../../assets/videos/<名>；仓库里没有就停止。"""
     page = next(p for p in pages if p.name == PREVIEW_PAGE)
-    html = inject_before_scripts(pages[page], "<script>window.NIPC_SNAPSHOT = "
-                                 + json.dumps(PREVIEW_SNAPSHOT, ensure_ascii=False, separators=(",", ":")) + ";</script>\n")
+    if notes is None:
+        snap = json.dumps(PREVIEW_SNAPSHOT, ensure_ascii=False, separators=(",", ":"))
+        html = pages[page]
+    else:   # 转义同 repair_notes_positions.write_snapshot_page
+        snap = json.dumps(notes, ensure_ascii=False).replace("</", "<\\/")
+        html, k = re.subn(r'<div class="lead">', lambda m: m.group(0) + snapshot_banner(notes), pages[page], count=1)
+        assert k == 1, "页面里没有 <div class=\"lead\">：快照时间那句没地方放"
+    html = inject_before_scripts(html, "<script>window.NIPC_SNAPSHOT = " + snap + ";</script>\n")
     html = re.sub(r'href="((?:index|week1|week2)\.html)"', r'href="../../\1"', html)
 
     def video(m):
@@ -375,8 +398,9 @@ def main():
     ijobs = [j for j in ijobs if f"assets/images/{j['dst'].name}" in used]
 
     if args.preview:     # 审稿预览：只写 week3_4 页与它引用的图片到 --preview 目录
+        notes = json.loads(args.preview_notes.read_text(encoding="utf-8")) if args.preview_notes else None
         write_preview(args.preview, pages, [j for j in ijobs if f"assets/images/{j['dst'].name}" in pages[
-            next(p for p in pages if p.name == PREVIEW_PAGE)]])
+            next(p for p in pages if p.name == PREVIEW_PAGE)]], notes)
         return 0
     if args.html_only:   # 回归：只写 html 到指定目录（文件名同仓库里的），其余一概不动
         args.out_dir.mkdir(parents=True, exist_ok=True)
