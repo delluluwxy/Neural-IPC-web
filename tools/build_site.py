@@ -128,6 +128,8 @@ SUBFIGS = {
     "fig11a_similarity.png": 2, "e0e1_same_depth_ratio.png": 2, "fig09_network_diagram.png": 2,
     # week3_4 组会精简版新图（同 concept_figs.N_SUB）
     "meeting_02_thin_vs_thick.png": 2, "meeting_03_tilt.png": 2, "meeting_07_new_arch.png": 2, "meeting_09_arch_v1.png": 2,   # meeting_05 / 06 三栏讲同一件事，按 1 个
+    "meeting_10_ring_ellipse.png": 2, "meeting_11_thin_layer_section.png": 2, "meeting_12_soft_vs_rigid_cap.png": 2,
+    "meeting_13_merge_steps.png": 2, "meeting_15_memorize.png": 2, "meeting_16_new_arch.png": 2,   # meeting_14 三栏同一件事，按 1 个
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 

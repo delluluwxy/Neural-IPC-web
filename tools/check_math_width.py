@@ -36,7 +36,27 @@ def check(page, rel):
     page.goto((ROOT / rel).as_uri(), wait_until="domcontentloaded", timeout=120000)   # 只等公式，不等图片视频（共享机负载高时 load 会超时）
     page.wait_for_function("window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
     page.evaluate("MathJax.startup.promise")
-    return page.evaluate(JS)
+    bad = page.evaluate(JS)
+    n_err = page.evaluate("document.querySelectorAll('mjx-merror, [data-mjx-error]').length")   # MathJax 渲染报错的公式
+    if n_err:
+        bad.append({"over": 0, "tex": f"MathJax 报错的公式 {n_err} 个"})
+    return bad
+
+
+def section_shot(page, sid, out):
+    """展开全部 <details>、等图片加载完，把 <section id=sid>（sid 写 lead 时取页首 .lead）整块截图，按 1800 px 分段。"""
+    page.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+    page.evaluate("Promise.all([...document.images].map(i => (i.loading = 'eager', i.complete ? 0 : "
+                  "new Promise(r => { i.onload = i.onerror = r; }))))")
+    el = page.locator(".lead" if sid == "lead" else f"section#{sid}").first
+    box = el.evaluate("e => { const r = e.getBoundingClientRect(); return {x: r.x + scrollX, y: r.y + scrollY, "
+                      "w: r.width, h: r.height}; }")
+    stem, seg = out[:-4] if out.endswith(".png") else out, 1800
+    for k, y0 in enumerate(range(0, int(box["h"]) + 1, seg), 1):
+        path = f"{stem}_{k:02d}.png"
+        page.screenshot(path=path, full_page=True,
+                        clip=dict(x=box["x"], y=box["y"] + y0, width=box["w"], height=min(seg, box["h"] - y0)))
+        print(f"wrote {path}")
 
 
 def shot(page, text, out):
@@ -68,11 +88,18 @@ def main():
     ap.add_argument("pages", nargs="+")
     ap.add_argument("--width", type=int, default=1440)
     ap.add_argument("--shot", nargs=2, metavar=("TEXT", "OUT_PNG"), help="把含 TEXT 的折叠块截图到 OUT_PNG（只用第一个页面）")
+    ap.add_argument("--section", nargs=2, metavar=("ID", "OUT_PNG"),
+                    help="把 <section id=ID>（lead = 页首导语）展开折叠后整块截图到 OUT_PNG（只用第一个页面）")
     args = ap.parse_args()
     total = 0
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": args.width, "height": 900})
+        if args.section:
+            check(page, args.pages[0])
+            section_shot(page, *args.section)
+            browser.close()
+            return
         if args.shot:
             check(page, args.pages[0])
             shot(page, *args.shot)

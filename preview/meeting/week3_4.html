@@ -241,125 +241,111 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "3732648739a2";</script>
+<script>window.NIPC_PAGE = "41b1b8290b05";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
 <header class="topbar"><a class="brand" href="../../index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="../../index.html">所有周</a><a href="week3_4.html" aria-current="page">Week 3–4</a><a href="../../week2.html">Week 2</a><a href="../../week1.html">Week 1</a></nav></header>
-<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 要学的是什么</a>
-<a class="toc-level-2" href="#w2">2. hydro++ 能做什么、不能做什么</a>
-<a class="toc-level-3" href="#w2-1">2.1 例一：没见过的组合学不会</a>
-<a class="toc-level-3" href="#w2-2">2.2 例二：接触之间的相互影响</a>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 要学的量</a>
+<a class="toc-level-2" href="#w2">2. hydro++ 为什么不够</a>
+<a class="toc-level-3" href="#w2-1">2.1 hydro++ 是什么</a>
+<a class="toc-level-3" href="#w2-2">2.2 做不到的第一件事：接触之间的相互影响</a>
+<a class="toc-level-3" href="#w2-3">2.3 做不到的第二件事：没见过的物体组合</a>
+<a class="toc-level-3" href="#w2-4">2.4 由此得到的设计要求</a>
 <a class="toc-level-2" href="#w3">3. 我的软–软模型</a>
-<a class="toc-level-3" href="#w3-1">3.1 骨架：两软体 → 刚体压软平面 → 一排弹簧</a>
-<a class="toc-level-3" href="#w3-2">3.2 网络修什么</a>
-<a class="toc-level-3" href="#w3-3">3.3 结果</a>
-<a class="toc-level-2" href="#w4">4. 理想情况之外：在精确极限之间搭桥</a>
-<a class="toc-level-3" href="#w4-1">4.1 骨架管不到的三种情况</a>
-<a class="toc-level-3" href="#w4-2">4.2 以薄层为例：两头精确，中间都不准</a>
-<a class="toc-level-3" href="#w4-3">4.3 统一结构：方格弹簧床</a>
-<a class="toc-level-2" href="#w5">5. Huanyu 的方案与我的方案</a>
+<a class="toc-level-3" href="#w3-1">3.1 两个软体 = 一个刚体压一块软平面</a>
+<a class="toc-level-3" href="#w3-2">3.2 降维法：三维接触变成一排独立弹簧</a>
+<a class="toc-level-3" href="#w3-3">3.3 不轴对称时：椭圆接触</a>
+<a class="toc-level-3" href="#w3-4">3.4 网络修什么</a>
+<a class="toc-level-3" href="#w3-5">3.5 结果</a>
+<a class="toc-level-2" href="#w4">4. 和 Huanyu 方案的结构差别</a>
+<a class="toc-level-2" href="#w5">5. 下一步：在理想极限之间搭桥</a>
+<a class="toc-level-3" href="#w5-1">5.1 现有骨架管不到的情况</a>
+<a class="toc-level-3" href="#w5-2">5.2 以薄层为例：两头精确，中间两个公式都不行</a>
+<a class="toc-level-3" href="#w5-3">5.3 统一的结构：二维弹簧床 + 相互作用</a>
+<a class="toc-level-3" href="#w5-4">5.4 新的网络结构（设计，还没实现）</a>
+<a class="toc-level-3" href="#w5-5">5.5 目前验证到哪</a>
 <a class="toc-level-2" href="#w6">6. 想讨论的</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>Week 3–4（第 3–4 周）</h1><p class="summary">要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。</p></header>
-<div class="lead"><p class="kp">本页结论：hydro++ 给不出接触间的相互影响；我的模型理想场景已很准，非理想情况要统一几种精确极限；与 Huanyu 的方案互补。</p></div>
-<section id="w1"><h2>要学的是什么</h2>
-<ul>
-<li>
-<p>粗模型用几个数 \(z\) 描述物体（刚体 6 个），碰上会穿进去；要学的是真实物体凹陷里的弹性能：</p>
-<p>\[\color{#c0392b}{U_c(z)=\min_{w}\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z)}\]</p>
-</li>
-</ul>
-<p>\(\Phi z\) 粗形状，\(\Psi w\) 局部变形，\(\Pi\) 弹性能，\(\min_w\) 在不穿透下取。穿得越深越大，力是它的导数。</p>
+<div class="lead"><p><strong>这次要讲的三件事</strong></p>
+<ol>
+<li><strong>hydro++ 为什么不够：</strong> 即使给每个物体一张任意的压力场，它也表达不了两件事：同一物体上几处接触之间的相互影响，以及只有两个物体凑在一起才有的量。</li>
+<li><strong>所以我的模型这样搭：</strong> 能量直接由「两表面之间的缝隙 + 两侧合成的硬度」决定，用解析公式算主体，接触之间的相互影响也用公式算，网络只修剩下的一点。</li>
+<li><strong>下一步：</strong> 现有公式只在「物体很厚、表面光滑」时成立。薄层、斜压、两处接触连成一片这些情况，要换一个能统一两头的结构，网络学中间的过渡。</li>
+</ol></div>
+<section id="w1"><h2>要学的量</h2>
+<p>粗模型只用很少几个数描述一个物体（刚体 6 个，仿射体 12 个），记作 \(z\)。它没有局部变形，两个物体碰上时会互相穿进去。真实物体则在接触处局部凹下去让开。要学的就是这块凹陷里存的弹性能：</p>
+<p>\[\color{#c0392b}{U_c(z)=\min_w\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z).}\]</p>
+<p>\(\Phi z\) 是粗模型给出的形状，\(\Psi w\) 是叠加在上面的局部变形，\(\Pi\) 是弹性能，\(\min_w\) 在不穿透的条件下取。意思是：粗状态固定后，物体自己找最省能量的凹法避开穿透，多出来的弹性能就是 \(U_c\)；接触力是它对位置的导数。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_fig01_collision_energy.png" width="2501" height="991" style="width:1060px;max-width:100%;height:auto" alt="左边是粗模型：形状由 \(\Phi z\) 给出、不会变，球和块碰上以后直接互相穿进去，红色就是穿进去的那块。右边是真实物体：块在接触处局部凹下去（凹陷 \(\Psi w\)）把球让开，灰色虚线是原来的表面，蓝色凹陷里存的弹性能就是要学的 \(U_c\)。" loading="lazy"><figcaption class="small">左边是粗模型：形状由 \(\Phi z\) 给出、不会变，球和块碰上以后直接互相穿进去，红色就是穿进去的那块。右边是真实物体：块在接触处局部凹下去（凹陷 \(\Psi w\)）把球让开，灰色虚线是原来的表面，蓝色凹陷里存的弹性能就是要学的 \(U_c\)。</figcaption></figure>
+<p>训练用的标准答案（标签）由 IPC（保证不穿透的接触算法）加精细有限元算出。</p>
+<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="../../assets/videos/w3i_exp1_soft_soft_press.mp4" style="width:543px;max-width:100%;height:auto"></video><figcaption class="small">造一个标签的过程。画面是过接触中心的剖面，竖直方向放大 4 倍：橙色是软压头，蓝色是同样软的块，两者之间的红线是实际受到接触力的地方。两个物体都不固定，被一对大小相等、方向相反的力挤在一起，依次压到六个深度，每次停稳后读出两个物体加起来的弹性能；压得深时可以看到橙色压头的底部也被压平了。</figcaption></figure></section>
+<section id="w2"><h2>hydro++ 为什么不够</h2>
+<h3 id="w2-1">hydro++ 是什么</h3>
 
-<figure style="margin:12px 0"><img src="assets/images/w34_fig01_collision_energy.png" width="2501" height="991" style="width:1060px;max-width:100%;height:auto" alt="左边粗模型互相穿进去（红色）；右边真实物体凹下去让开，蓝色凹陷里存的能量就是 \(U_c\)。" loading="lazy"><figcaption class="small">左边粗模型互相穿进去（红色）；右边真实物体凹下去让开，蓝色凹陷里存的能量就是 \(U_c\)。</figcaption></figure>
-<ul>
-<li>粗状态下的重叠深度即压深 \(\delta\)，两表面形状给出缝隙 \(h\)，下文都用它们。</li>
-</ul></section>
-<section id="w2"><h2>hydro++ 能做什么、不能做什么</h2>
-<ul>
-<li>
-<p>hydro（hydroelastic，Drake 在用）：每个物体预画压力场，每点只看自己多深；重叠区取较小压力积分：</p>
-<p>\[\color{#c0392b}{U^{\text{hydro}}=\int_{\Omega}\min(p_A,p_B)\,dV}\]</p>
-</li>
-</ul>
-<p>\(\Omega\) 重叠区，\(p_A\)、\(p_B\) 两物体的压力场。</p>
+<p>hydro 在每个物体内部预先画好一张压力场：表面为零，越往里越大。两个物体重叠时，在重叠区每一点取两侧压力中较小的那个，积分得到能量：</p>
+<p>\[\color{#c0392b}{U=\int_{\text{重叠区}}\min(p_A,p_B)\,dV.}\]</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_fig07_hydro_pressure_field.png" width="1323" height="883" style="width:629px;max-width:100%;height:auto" alt="物体 A（橙）和物体 B（绿）各自预先画好一张压力场：表面为零，越往里颜色越深、压力越大，箭头标的是离表面的深度 s。两个物体重叠的蓝色区域里，每一点取两边压力中较小的那个，全部加起来就是 hydro 的能量。" loading="lazy"><figcaption class="small">物体 A（橙）和物体 B（绿）各自预先画好一张压力场：表面为零，越往里颜色越深、压力越大，箭头标的是离表面的深度 s。两个物体重叠的蓝色区域里，每一点取两边压力中较小的那个，全部加起来就是 hydro 的能量。</figcaption></figure>
+<p>为了公平，我们给它在自身定义内最强的版本 <strong>hydro++</strong>：每个物体（包括压头）的压力场都可以是任意三维形状，完全由数据拟合。唯一保留的限制来自 hydro 的定义本身：场固定在物体上，不随对手、位置、时间变。这条不能放松：场固定，能量才只由物体当前的位置决定，物体绕一圈回到原处能量也回到原值，仿真才不会凭空多出或少掉能量；原论文证明能量守恒靠的就是这一点。</p>
+<p>下面两个例子说明，这个限制让它有两件事做不到。</p>
+<h3 id="w2-2">做不到的第一件事：接触之间的相互影响</h3>
 
+<figure style="margin:12px 0"><img src="assets/images/w34_fig08a_deadlock_three_cases.png" width="2170" height="882" style="width:1318px;max-width:100%;height:auto" alt="左边三幅是同一块被两个压头 P、Q 压的三种情况：① 只压 P，② 只压 Q，③ 一起压。③ 里两个凹陷连在一起，P 把 Q 底下的表面也带低了。最右边的柱子对比 ③ 的能量：hydro 只能把 ① 和 ② 的能量叠起来（两段橙色），真实的能量（绿色）比它少约 14%。图里压头画成球，算例用的是两个平底。" loading="lazy"><figcaption class="small">左边三幅是同一块被两个压头 P、Q 压的三种情况：① 只压 P，② 只压 Q，③ 一起压。③ 里两个凹陷连在一起，P 把 Q 底下的表面也带低了。最右边的柱子对比 ③ 的能量：hydro 只能把 ① 和 ② 的能量叠起来（两段橙色），真实的能量（绿色）比它少约 14%。图里压头画成球，算例用的是两个平底。</figcaption></figure>
+<p>同一个块、两个压头 P、Q：① P 单独压；② Q 单独压；③ 一起压。三种情况里压头位置、压深都相同。</p>
 <ul>
-<li><strong>hydro++</strong>：保留「每个物体一张与对手无关的场」这一定义，形状完全由数据拟合。</li>
+<li><strong>hydro++：</strong> 一起压时的重叠区就是两块单独的重叠区拼起来，场又不随对手变，所以能量只能相加：\(U^{\text{hydro}}_③=U^{\text{hydro}}_①+U^{\text{hydro}}_②\)。</li>
+<li><strong>真实弹性体：</strong> 在表面按一下，周围也跟着陷。P 压下去时 Q 那里已经被带低了一点，Q 要压的量变少，能量也变少：\(U_③=c\,(U_①+U_②)\)，\(c&lt;1\)。两个平底压头中心距为半径 4 倍时，用推导出的公式算得 \(c=0.863\)；用边界元（只在物体表面划网格、按「下沉与距离成反比」精确求解接触的数值方法）独立算得 0.861，两者一致。</li>
 </ul>
-<h3 id="w2-1">例一：没见过的组合学不会</h3>
-
-<ul>
-<li>15 个物体两两配对，答案用解析解算，部分配对拟合、其余测试。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_08_pair_table.png" width="1000" height="940" style="width:447px;max-width:100%;height:auto" alt="每格一对物体：绿色拟合，灰色挑模型，红色测试；红格的两个物体各自都在绿格里出现过。幂律是高度按半径某次方升高的凸起。" loading="lazy"><figcaption class="small">每格一对物体：绿色拟合，灰色挑模型，红色测试；红格的两个物体各自都在绿格里出现过。幂律是高度按半径某次方升高的凸起。</figcaption></figure>
-<ul>
-<li>见过的配对误差百万分之几；没见过的单起点 12%，多起点复核中更大。真实能量是两侧量相加后再非线性组合（\(E^*\) 是柔度相加取倒数），取较小压力积分给不出，只能逐对背。</li>
-</ul>
-<h3 id="w2-2">例二：接触之间的相互影响</h3>
-
-<ul>
-<li>
-<p>两平底：① 单压 P，② 单压 Q，③ 一起压。hydro++ 只能 \(U^{\text{hydro}}_③=U^{\text{hydro}}_①+U^{\text{hydro}}_②\)；真实的 P 把 Q 底下带低，要打折：</p>
-<p>\[\color{#c0392b}{U_③=c\,(U_①+U_②),\qquad c=\frac{1}{1+\dfrac{2a}{\pi r}}}\]</p>
-</li>
-</ul>
-<p>\(a\) 平底半径，\(r\) 中心距，越近 \(c\) 越小。\(r=4a\) 时公式 0.863，边界元（表面网格精确解）0.861。</p>
-
-<figure style="margin:12px 0"><img src="assets/images/w34_fig08a_deadlock_three_cases.png" width="2170" height="882" style="width:1318px;max-width:100%;height:auto" alt="③ 里两个凹陷连在一起，真实能量比 hydro 的叠加少约 14%。示意画成球，算例是平底。" loading="lazy"><figcaption class="small">③ 里两个凹陷连在一起，真实能量比 hydro 的叠加少约 14%。示意画成球，算例是平底。</figcaption></figure>
-<details><summary>推导：hydro++ 只能相加</summary><p>两个压头离得开时，一起压的重叠区由两块互不相交的部分组成：</p>
+<p>一个只能相加，一个要打折，不可能三种情况同时对。可以推出：<strong>不管场怎么取，至少有一种情况错 \(\dfrac{1-c}{1+c}\)</strong>，即 7.49%。实际让三张场都自由拟合去压低最大误差，结果停在 7.56%，和这个下界一致。</p>
+<details><summary>推导：hydro++ 只能相加</summary><p>hydro++ 的能量是重叠区 \(\Omega\) 上每一小块能量 \(e\) 之和：</p>
+<p>\[U^{\text{hydro}}=\int_\Omega e\,dV.\]</p>
+<p>两个压头离得开，一起压时的重叠区由两块互不相交的部分组成：</p>
 <p>\[\Omega_③=\Omega_①\cup\Omega_②,\qquad \Omega_①\cap\Omega_②=\varnothing.\]</p>
-<p>场固定在物体上，所以重叠区里每一点的被积函数 \(\min(p_A,p_B)\) 在 ③ 与在 ①（或 ②）中相同。积分区域拆成两块：</p>
-<p>\[\begin{aligned}U^{\text{hydro}}_③&amp;=\int_{\Omega_①\cup\Omega_②}\min(p_A,p_B)\,dV=\int_{\Omega_①}\min(p_A,p_B)\,dV+\int_{\Omega_②}\min(p_A,p_B)\,dV\\&amp;=U^{\text{hydro}}_①+U^{\text{hydro}}_②.\end{aligned}\]</p></details>
-<details><summary>推导：c 从哪里来</summary><p>条件：表面一点受力 \(F\) 时距离 \(r\) 处下沉 \(u(r)=F/(\pi E&#x27;r)\)（\(E&#x27;=E/(1-\nu^2)\) 是被压物体的有效硬度，\(E\) 杨氏模量，\(\nu\) 泊松比）；半径 \(a\) 的平底压入 \(\delta\) 需要力 \(F_1=2E&#x27;a\delta\)。</p>
+<p>场固定在物体上，重叠区里每一点的 \(e\) 在 ③ 与在 ①（或 ②）中相同。积分区域拆成两块：</p>
+<p>\[U^{\text{hydro}}_③=\int_{\Omega_①}e\,dV+\int_{\Omega_②}e\,dV=U^{\text{hydro}}_①+U^{\text{hydro}}_②.\]</p></details>
+<details><summary>推导：平底的 c</summary><p>条件：表面一点施力 \(F\)，距离 \(r\) 处下沉 \(F/(\pi E^*r)\)（\(E^*\) 是有效硬度）；单个半径 \(a\) 的平底，力与压深的关系是 \(F_1=2E^*a\,\delta\)。</p>
 <ol>
 <li>
-<p>单个平底受力 \(F\) 时自己要压的深度是</p>
-<p>\[\delta_e(F)=\frac{F}{2E&#x27;a}.\]</p>
+<p>力为 \(F\) 时，平底自己要压的深度：</p>
+<p>\[\delta_e=\frac{F}{2E^*a}.\]</p>
 </li>
 <li>
-<p>一起压时每个平底受力 \(F\)。每个平底的压深 = 自己压的 + 对方把表面带下去的；对方离得远，看成点力，带下去 \(F/(\pi E&#x27;r)\)：</p>
-<p>\[\delta=\frac{F}{2E&#x27;a}+\frac{F}{\pi E&#x27;r}.\]</p>
+<p>两个平底同时压到 \(\delta\)，每个受力 \(F\)。每个的压深 = 自己压的 + 对方带下去的：</p>
+<p>\[\delta=\frac{F}{2E^*a}+\frac{F}{\pi E^*r}.\]</p>
 </li>
 <li>
-<p>提出 \(\dfrac{F}{2E&#x27;a}\)：</p>
-<p>\[\delta=\frac{F}{2E&#x27;a}\Big(1+\frac{2a}{\pi r}\Big).\]</p>
+<p>提出 \(\dfrac{F}{2E^*a}\)：</p>
+<p>\[\delta=\frac{F}{2E^*a}\Big(1+\frac{2a}{\pi r}\Big).\]</p>
 </li>
 <li>
-<p>两边乘 \(2E&#x27;a\)，再除以 \(1+\dfrac{2a}{\pi r}\)：</p>
-<p>\[F=\frac{2E&#x27;a\,\delta}{1+\dfrac{2a}{\pi r}}.\]</p>
+<p>两边乘 \(2E^*a\)，再除以 \(1+\dfrac{2a}{\pi r}\)：</p>
+<p>\[F=\frac{2E^*a\,\delta}{1+\dfrac{2a}{\pi r}}.\]</p>
 </li>
 <li>
-<p>平底的力与压深成正比（刚度 \(K=F/\delta\)），压入过程中压深记作 \(\delta&#x27;\)，压到 \(\delta\) 存的能量是</p>
-<p>\[U=\int_0^\delta K\,\delta&#x27;\,d\delta&#x27;=\tfrac12K\delta^2=\tfrac12F\delta.\]</p>
+<p>平底的力与压深成正比，压入过程中压深记作 \(\delta&#x27;\)，力为 \(F\delta&#x27;/\delta\)，压到 \(\delta\) 存的能量：</p>
+<p>\[U=\int_0^\delta\frac{F}{\delta}\,\delta&#x27;\,d\delta&#x27;=\frac12F\delta.\]</p>
 </li>
 <li>
-<p>① 与 ② 各自单独压时 \(U_①=U_②=\tfrac12F_1\delta\)；③ 里两个平底各存 \(\tfrac12F\delta\)。压深相同，所以</p>
-<p>\[c=\frac{U_③}{U_①+U_②}=\frac{2\cdot\tfrac12F\delta}{2\cdot\tfrac12F_1\delta}=\frac{F}{F_1}=\frac{2E&#x27;a\delta\big/\big(1+\frac{2a}{\pi r}\big)}{2E&#x27;a\delta}=\frac{1}{1+\dfrac{2a}{\pi r}}.\]</p>
+<p>① 与 ② 各存 \(\tfrac12F_1\delta\)，③ 里两个平底各存 \(\tfrac12F\delta\)，压深相同：</p>
+<p>\[c=\frac{U_③}{U_①+U_②}=\frac{2\cdot\tfrac12F\delta}{2\cdot\tfrac12F_1\delta}=\frac{F}{F_1}=\frac{2E^*a\delta\big/\big(1+\frac{2a}{\pi r}\big)}{2E^*a\delta}=\frac{1}{1+\dfrac{2a}{\pi r}}.\]</p>
+</li>
+<li>
+<p>中心距为半径 4 倍，\(r=4a\)：</p>
+<p>\[c=\frac{1}{1+\dfrac{2}{4\pi}}=0.863.\]</p>
 </li>
 </ol></details>
-<ul>
-<li>
-<p>一个相加、一个打折，所以不管场怎么取，最大相对误差</p>
-<p>\[\color{#c0392b}{\varepsilon\ \ge\ \frac{1-c}{1+c}}\]</p>
-</li>
-</ul>
-<p>代入 \(c=0.861\) 得 7.49%；三张场自由拟合停在 7.56%，与下界一致。</p>
-
 <details><summary>推导：误差下界</summary><ol>
 <li>
-<p>三种情况的相对误差都不超过 \(\varepsilon\)：</p>
+<p>设三种情况的相对误差都不超过 \(\varepsilon\)。对 ① 是</p>
 <p>\[(1-\varepsilon)\,U_①\le U^{\text{hydro}}_①\le(1+\varepsilon)\,U_①,\]</p>
-</li>
-</ol>
 <p>② 与 ③ 同样。</p>
-<ol>
+</li>
 <li>
-<p>对 ① 和 ② 取左边的不等式再相加：</p>
+<p>①、② 取下限相加：</p>
 <p>\[(1-\varepsilon)(U_①+U_②)\le U^{\text{hydro}}_①+U^{\text{hydro}}_②.\]</p>
 </li>
 <li>
-<p>左边换成 hydro++ 的可加性 \(U^{\text{hydro}}_①+U^{\text{hydro}}_②=U^{\text{hydro}}_③\)，再对 ③ 取右边的不等式，并代入 \(U_③=c(U_①+U_②)\)：</p>
+<p>右边用 hydro++ 只能相加 \(U^{\text{hydro}}_①+U^{\text{hydro}}_②=U^{\text{hydro}}_③\)，再对 ③ 取上限并代入 \(U_③=c(U_①+U_②)\)：</p>
 <p>\[(1-\varepsilon)(U_①+U_②)\le U^{\text{hydro}}_③\le(1+\varepsilon)\,c\,(U_①+U_②).\]</p>
 </li>
 <li>
@@ -371,125 +357,177 @@ html.annot-on #annot-capture { display: block; }
 <p>\[1-c\le\varepsilon\,(1+c)\ \Longrightarrow\ \varepsilon\ge\frac{1-c}{1+c}.\]</p>
 </li>
 <li>
-<p>代入 \(c=0.861\)：</p>
+<p>代入边界元的 \(c=0.861\)：</p>
 <p>\[\varepsilon\ge\frac{1-0.861}{1+0.861}=\frac{0.139}{1.861}=7.49\%.\]</p>
 </li>
 </ol></details>
-<ul>
-<li><strong>小结：</strong> hydro++ 能背见过的配对，不能给出相互影响和新组合。由此两条要求：① 主体由缝隙和合成硬度决定，剩余修正再看两侧；② 接触间要有相互影响。</li>
-</ul>
-<p class="kp">场固定在单个物体上，hydro++ 多处接触只能相加，至少错 7.49%。</p></section>
-<section id="w3"><h2>我的软–软模型</h2>
-<h3 id="w3-1">骨架：两软体 → 刚体压软平面 → 一排弹簧</h3>
+<h3 id="w2-3">做不到的第二件事：没见过的物体组合</h3>
 
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_15_memorize.png" width="1916" height="881" style="width:913px;max-width:100%;height:auto" alt="左边是按验证集选出的那组场在每个构型上的相对误差，纵轴是对数：蓝点是拟合时见过的配对，最大 0.0011%；红点是没见过的组合，最大 8.3%，大了三个多数量级。右边是三个初始值各自选出的模型：灰柱是验证集上的最大误差，三根几乎一样高；红柱是没见过的组合的最大误差，从 8.1% 到 13.9% 不等。验证集分不出这三组场，没见过的组合却差很多，说明数据没把这些组合的能量定住。" loading="lazy"><figcaption class="small">左边是按验证集选出的那组场在每个构型上的相对误差，纵轴是对数：蓝点是拟合时见过的配对，最大 0.0011%；红点是没见过的组合，最大 8.3%，大了三个多数量级。右边是三个初始值各自选出的模型：灰柱是验证集上的最大误差，三根几乎一样高；红柱是没见过的组合的最大误差，从 8.1% 到 13.9% 不等。验证集分不出这三组场，没见过的组合却差很多，说明数据没把这些组合的能量定住。</figcaption></figure>
+<p>15 个形状、硬度各不相同的物体，两两配对互压，答案用解析公式算。拿其中 68 对拟合每个物体的场、10 对用来挑模型（验证集），再测另外 24 对：测试里每个物体都见过，只是这种组合没见过。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_08_pair_table.png" width="1000" height="940" style="width:447px;max-width:100%;height:auto" alt="每个格子是一对物体，行是压头，列是块；每种形状里的三个格子从左到右（从上到下）是杨氏模量 1、2、4 × 10⁵。一对只算一次，所以只画右上半，平面那一行空着是因为平面不和平面配对。绿格是拟合用的 68 对，灰格是挑模型用的 10 对，红格是测试的 24 对。每个红格里的两个物体都在别的绿格里出现过：测试只考新的组合，不考新的物体。幂律是剖面高度按到中心距离的某次方升高的凸起。" loading="lazy"><figcaption class="small">每个格子是一对物体，行是压头，列是块；每种形状里的三个格子从左到右（从上到下）是杨氏模量 1、2、4 × 10⁵。一对只算一次，所以只画右上半，平面那一行空着是因为平面不和平面配对。绿格是拟合用的 68 对，灰格是挑模型用的 10 对，红格是测试的 24 对。每个红格里的两个物体都在别的绿格里出现过：测试只考新的组合，不考新的物体。幂律是剖面高度按到中心距离的某次方升高的凸起。</figcaption></figure>
 <ul>
-<li>
-<p>接触区远小于物体、变形小、无摩擦时，两软体 = 形状为缝隙 \(h\) 的刚体压合成硬度 \(E^*\) 的软平面：</p>
-<p>\[\color{#c0392b}{h=f_A+f_B,\qquad \frac1{E^*}=\frac{1-\nu_A^2}{E_A}+\frac{1-\nu_B^2}{E_B}}\]</p>
-</li>
+<li>见过的组合：误差 0.0011%，几乎完全背下来了。</li>
+<li>没见过的组合：最大误差 8.3%。拟合场是一个有很多局部最优的问题，我从 3 个初始值各拟合 200 万步（未完全收敛），按验证集选模型。三个初始值在验证集上的最大误差几乎一样（4.84%、4.85%、4.84%），没见过的组合却分别是 8.3%、8.1%、13.9%：拟合数据定不住这些组合的能量。</li>
 </ul>
-<p>\(f_A\)、\(f_B\) 两表面弯离切平面的高度；\(E\) 杨氏模量，\(\nu\) 泊松比，任一侧变软 \(E^*\) 都变小。</p>
+<p>原因在第 3.1 节：真实答案由「两表面之间的缝隙」和「两侧合成的硬度」决定，这两个量都要两个物体凑在一起才有。hydro++ 每个物体各管各的场，拼不出它们，只能背。</p>
+<h3 id="w2-4">由此得到的设计要求</h3>
 
-<details><summary>推导：两个软体 → 刚体压软平面</summary><ol>
-<li>两侧在接触面上受同一个压力 \(p(\mathbf x)\)（作用与反作用）。</li>
-<li>
-<p>每侧表面的下沉：在一点按一下周围都跟着陷，陷的量与距离成反比（点力下沉 \(u(r)=F/(\pi E&#x27;r)\)）；各处的下陷直接相加，就是把点力换成每一小块面积上的力 \(p(\mathbf x&#x27;)\,d\mathbf x&#x27;\) 再积分。对 \(i=A,B\)：</p>
-<p>\[u_i(\mathbf x)=\frac{1}{E_i&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;,\qquad E_i&#x27;=\frac{E_i}{1-\nu_i^2}.\]</p>
-</li>
-<li>
-<p>两物体远处推近 \(\delta\)。不变形时接触区里每一处会穿入 \(\delta-h(\mathbf x)\)；实际两侧各凹一点，合起来正好让出来：</p>
-<p>\[u_A(\mathbf x)+u_B(\mathbf x)=\delta-h(\mathbf x)\qquad(\mathbf x\ \text{在接触区内}).\]</p>
-</li>
-<li>
-<p>把第 2 步对 A、B 各写一次，代入第 3 步：</p>
-<p>\[\frac{1}{E_A&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;+\frac{1}{E_B&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h(\mathbf x).\]</p>
-</li>
-<li>
-<p>合并系数：</p>
-<p>\[\Big(\frac{1}{E_A&#x27;}+\frac{1}{E_B&#x27;}\Big)\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h(\mathbf x).\]</p>
-</li>
-<li>
-<p>记 \(\dfrac1{E^*}=\dfrac1{E_A&#x27;}+\dfrac1{E_B&#x27;}=\dfrac{1-\nu_A^2}{E_A}+\dfrac{1-\nu_B^2}{E_B}\)：</p>
-<p>\[\frac{1}{E^*}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h(\mathbf x).\]</p>
-</li>
+<ol>
+<li>能量要直接由「缝隙 + 合成硬度」决定，而不是由每个物体各自的属性拼起来；</li>
+<li>同一物体上几处接触之间要有相互影响。</li>
 </ol>
-<p>这正是「形状为 \(h\) 的刚体压硬度为 \(E^*\) 的软平面」的方程。</p></details>
+<p>另外，hydro 每一点只看自己压多深、不受旁边影响。这种行为对厚物体是错的，对很薄的层却是对的（第 5 节会用到）。</p></section>
+<section id="w3"><h2>我的软–软模型</h2>
+<p>按上面两条要求搭：先用解析公式算能量的主体（下文称<strong>骨架</strong>），网络只修骨架和真实之间剩下的一点。</p>
+<h3 id="w3-1">两个软体 = 一个刚体压一块软平面</h3>
+
+<figure style="margin:12px 0"><img src="assets/images/w34_fig02_two_soft_equals_rigid_flat.png" width="2023" height="991" style="width:857px;max-width:100%;height:auto" alt="左边是两个软体在一点碰上：灰色虚线是公共切面，\(f_A\)、\(f_B\) 是两个表面在同一位置各自弯离切面的高度，两侧的软度分别是 \(1/E&#x27;_A\)、\(1/E&#x27;_B\)。右边是等价的问题：一个刚体压一块软平面，刚体的形状是两段高度相加的缝隙 \(h=f_A+f_B\)，软平面的软度是两侧软度之和 \(1/E^*\)。" loading="lazy"><figcaption class="small">左边是两个软体在一点碰上：灰色虚线是公共切面，\(f_A\)、\(f_B\) 是两个表面在同一位置各自弯离切面的高度，两侧的软度分别是 \(1/E&#x27;_A\)、\(1/E&#x27;_B\)。右边是等价的问题：一个刚体压一块软平面，刚体的形状是两段高度相加的缝隙 \(h=f_A+f_B\)，软平面的软度是两侧软度之和 \(1/E^*\)。</figcaption></figure>
+<p>当接触区比物体小得多、变形小、无摩擦时，两个软体相碰，在数学上等价于：</p>
 <ul>
+<li>一个刚体，形状是两表面之间的缝隙 \(h=f_A+f_B\)（两个表面各自弯离公共切平面的高度之和）；</li>
 <li>
-<p><strong>降维法（Popov）：</strong> 轴对称时换成一维等效轮廓 \(g\) 压一排独立弹簧（刚度 \(E^*\)），与三维精确解相同：</p>
-<p>\[\color{#c0392b}{\begin{aligned}&amp;g(x)=|x|\int_0^{|x|}\frac{h&#x27;(r)}{\sqrt{x^2-r^2}}\,dr,\qquad g(a)=\delta,\\&amp;U_0=E^*\int_0^a\big(\delta-g(x)\big)^2dx\end{aligned}}\]</p>
+<p>压一块软平面，硬度是合成模量 \(E^*\)，两侧的软度相加：</p>
+<p>\[\color{#c0392b}{\frac1{E^*}=\frac{1-\nu_A^2}{E_A}+\frac{1-\nu_B^2}{E_B}\qquad(E\text{ 杨氏模量},\ \nu\text{ 泊松比}).}\]</p>
 </li>
 </ul>
-<p>\(x\) 弹簧位置，\(h&#x27;(r)\) 缝隙斜率，\(a\) 接触边缘，\(\delta-g\) 每根弹簧的压缩量。\(U_0\) 是 \(U_c\) 的解析近似，力是它的导数、越压越硬；球代入得 Hertz \(U_H=\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)。</p>
-
-<figure style="margin:12px 0"><img src="assets/images/w34_fig04_mdr_springs.png" width="2205" height="1021" style="width:907px;max-width:100%;height:auto" alt="左边三维各点互相牵连；右边换成等效轮廓压独立弹簧，红线处 \(g(a)=\delta\)。" loading="lazy"><figcaption class="small">左边三维各点互相牵连；右边换成等效轮廓压独立弹簧，红线处 \(g(a)=\delta\)。</figcaption></figure>
-<details><summary>推导：降维法的力、等效轮廓和能量</summary><p><strong>第一步：平底的解（已知）。</strong> 半径 \(\tilde a\) 的刚性平底压入 \(\delta\)，力和平底外 \(r\) 处的表面下沉分别为</p>
-<p>\[F_{\text{平底}}=2E^*\tilde a\,\delta,\qquad u(r)=\frac{2\delta}{\pi}\arcsin\frac{\tilde a}{r}\quad(r&gt;\tilde a).\]</p>
-<p><strong>第二步：把一般压入拆成一串平底。</strong> 接触半径为 \(\tilde a\) 时再多压 \(d\tilde\delta\)，相当于半径 \(\tilde a\) 的平底多压 \(d\tilde\delta\)。记 \(\tilde\delta=g(\tilde a)\)，则 \(d\tilde\delta=g&#x27;(\tilde a)\,d\tilde a\)，最后 \(\delta=g(a)\)。各步的力相加并分部积分：</p>
-<p>\[F=\int_0^a2E^*\tilde a\,g&#x27;(\tilde a)\,d\tilde a=2E^*\Big[\tilde a\,g(\tilde a)\Big]_0^a-2E^*\int_0^ag(\tilde a)\,d\tilde a=2E^*\,a\,\delta-2E^*\int_0^ag(\tilde a)\,d\tilde a.\]</p>
-<p>把 \(a\delta\) 写成 \(\int_0^a\delta\,dx\)：</p>
-<p>\[F=2E^*\int_0^a\big(\delta-g(x)\big)dx.\]</p>
-<p><strong>第三步：用接触边缘的贴合条件定出 \(g\)。</strong> \(r=a\) 处要让出的量 \(\delta-h(a)\) 等于各步平底在那里造成的下沉之和：</p>
-<p>\[\delta-h(a)=\frac2\pi\int_0^a\arcsin\frac{\tilde a}{a}\;g&#x27;(\tilde a)\,d\tilde a.\]</p>
-<p>分部积分：</p>
-<p>\[\frac2\pi\int_0^a\arcsin\frac{\tilde a}{a}\,g&#x27;(\tilde a)\,d\tilde a=\frac2\pi\Big[\arcsin\frac{\tilde a}{a}\,g(\tilde a)\Big]_0^a-\frac2\pi\int_0^a\frac{g(\tilde a)}{\sqrt{a^2-\tilde a^2}}\,d\tilde a.\]</p>
-<p>边界项：\(\tilde a=a\) 时 \(\arcsin1=\pi/2\)、\(g(a)=\delta\)，\(\tilde a=0\) 时为 0，所以边界项等于 \(\delta\)。代回：</p>
-<p>\[h(a)=\frac2\pi\int_0^a\frac{g(\tilde a)}{\sqrt{a^2-\tilde a^2}}\,d\tilde a.\]</p>
-<p>这对每个 \(a\) 都成立，是关于 \(g\) 的 Abel 积分方程，解为</p>
-<p>\[g(x)=|x|\int_0^{|x|}\frac{h&#x27;(r)}{\sqrt{x^2-r^2}}\,dr.\]</p>
-<p>（核对：代回右边，交换积分次序后内层积分为 \(\int_r^a\frac{\tilde a\,d\tilde a}{\sqrt{a^2-\tilde a^2}\sqrt{\tilde a^2-r^2}}=\frac\pi2\)，右边化为 \(\int_0^ah&#x27;(r)\,dr=h(a)\)。）</p>
-<p><strong>第四步：能量。</strong> 对 \(U_0=E^*\int_0^a(\delta-g)^2dx\) 求导，上限 \(a\) 随 \(\delta\) 变：</p>
-<p>\[\frac{dU_0}{d\delta}=E^*\big(\delta-g(a)\big)^2\frac{da}{d\delta}+E^*\int_0^a2\big(\delta-g(x)\big)dx=0+F.\]</p>
-<p>又 \(\delta=0\) 时 \(U_0=0\)，所以 \(U_0\) 就是外力做的功，即弹性能。</p>
-<p><strong>越压越硬：</strong> 对 \(F\) 求导，上限处 \(\delta-g(a)=0\)：</p>
-<p>\[\frac{dF}{d\delta}=2E^*\big(\delta-g(a)\big)\frac{da}{d\delta}+2E^*\int_0^a1\,dx=2aE^*.\]</p></details>
-<details><summary>推导：球 → Hertz</summary><ol>
+<p>所以答案只取决于 \(h\) 和 \(E^*\)，正好满足第一条要求。</p>
+<details><summary>推导：两个软体 → 刚体压软平面</summary><ol>
+<li><strong>两侧受同一个压力 \(p(\mathbf x)\)</strong>（作用与反作用）。</li>
 <li>
-<p><strong>缝隙。</strong> 半径 \(R_i\) 的球离接触中心 \(r\) 处比最低点高 \(f_i\)，由直角三角形 \(r^2+(R_i-f_i)^2=R_i^2\)，略去 \(f_i^2\) 得 \(f_i\approx r^2/(2R_i)\)。两侧相加：</p>
-<p>\[h=\frac{r^2}{2R_A}+\frac{r^2}{2R_B}=\frac{r^2}{2R},\qquad\frac1R=\frac1{R_A}+\frac1{R_B}.\]</p>
+<p><strong>每侧的下沉（Boussinesq 解）：</strong> 对 \(i=A,B\)，</p>
+<p>\[u_i(\mathbf x)=\frac{1}{E_i&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;,\qquad E_i&#x27;=\frac{E_i}{1-\nu_i^2}.\]</p>
+<p>在一点按一下，周围都跟着陷，陷的量与距离成反比；各处的下陷直接相加，就是这个积分。两侧的积分一样，只差系数 \(1/E_i&#x27;\)（软度）。</p>
 </li>
 <li>
-<p><strong>等效轮廓。</strong> \(h&#x27;(r)=r/R\)：</p>
-<p>\[g(x)=\frac{|x|}{R}\int_0^{|x|}\frac{r}{\sqrt{x^2-r^2}}\,dr=\frac{|x|}{R}\Big[-\sqrt{x^2-r^2}\Big]_0^{|x|}=\frac{x^2}{R}.\]</p>
+<p><strong>贴合条件：</strong> 两物体远处推近 \(\delta\)（压深）。不变形时每处会穿入 \(\delta-h\)，实际两侧各凹一点，合起来正好让出来：</p>
+<p>\[u_A(\mathbf x)+u_B(\mathbf x)=\delta-h(\mathbf x).\]</p>
 </li>
 <li>
-<p><strong>接触半径。</strong> \(g(a)=\delta\Rightarrow a=\sqrt{R\delta}\)。</p>
+<p><strong>合并：</strong> 第 2 步对 A、B 各写一次，代入第 3 步：</p>
+<p>\[\frac{1}{E_A&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;+\frac{1}{E_B&#x27;}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h.\]</p>
+<p>提出公共的积分：</p>
+<p>\[\Big(\frac1{E_A&#x27;}+\frac1{E_B&#x27;}\Big)\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h.\]</p>
 </li>
 <li>
-<p><strong>力。</strong></p>
-<p>\[\begin{aligned}F&amp;=2E^*\int_0^a\Big(\delta-\frac{x^2}{R}\Big)dx=2E^*\Big(a\delta-\frac{a^3}{3R}\Big)\\&amp;=2E^*\Big(\sqrt R\,\delta^{3/2}-\frac13\sqrt R\,\delta^{3/2}\Big)=\frac43E^*\sqrt R\,\delta^{3/2}.\end{aligned}\]</p>
-</li>
-<li>
-<p><strong>能量。</strong> 力对压深积分（\(\delta&#x27;\) 是压入过程中的压深）：</p>
-<p>\[U_H=\int_0^\delta\frac43E^*\sqrt R\,\delta&#x27;^{3/2}\,d\delta&#x27;=\frac43E^*\sqrt R\cdot\frac25\delta^{5/2}=\frac{8}{15}E^*\sqrt R\,\delta^{5/2}.\]</p>
+<p>记 \(1/E^*=1/E_A&#x27;+1/E_B&#x27;\)：</p>
+<p>\[\frac{1}{E^*}\cdot\frac1\pi\int\frac{p(\mathbf x&#x27;)}{|\mathbf x-\mathbf x&#x27;|}\,d\mathbf x&#x27;=\delta-h,\]</p>
+<p>就是「形状为 \(h\) 的刚体压硬度为 \(E^*\) 的平面」的方程。</p>
 </li>
 </ol></details>
-<ul>
-<li><strong>椭圆：</strong> 比如球压游泳圈内圈。按等面积圆算，再乘 \(F_U(e)\) = 椭圆 Hertz 能量 ÷ 等面积圆能量（\(e\) 为曲率比的对数）；两者随硬度、压深、尺寸变化相同，比值只看 \(e\)。不乘少算 2.4%。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_t5_ring_inner_overview.png" width="2068" height="970" style="width:895px;max-width:100%;height:auto" alt="刚球压环面内圈；右边俯视，灰点是网格点，粉色接触区是扁椭圆。" loading="lazy"><figcaption class="small">刚球压环面内圈；右边俯视，灰点是网格点，粉色接触区是扁椭圆。</figcaption></figure>
-<ul>
-<li><strong>多处接触：</strong> 每处压深 = 自己压的 + 别处按 \(F_j/(\pi E&#x27;r_{ij})\) 带下去的，即例二与边界元一致的打折公式，不经过网络。</li>
-</ul>
-<h3 id="w3-2">网络修什么</h3>
+<h3 id="w3-2">降维法：三维接触变成一排独立弹簧</h3>
 
-<ul>
-<li>合成硬度相同，标签 ÷ Hertz：硬压头压软块 1.000–1.007，软压头压硬块 0.976–0.986。软在哪侧结果不同，所以修正要看两侧各自的量。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_s33_soft_indenter_pressed.png" width="2578" height="2520" style="width:850px;max-width:100%;height:auto" alt="看右上 1e6/1e5 与右下 1e5/1e6（压头 / 块杨氏模量）：前者凹的是块，后者压平的是压头。" loading="lazy"><figcaption class="small">看右上 1e6/1e5 与右下 1e5/1e6（压头 / 块杨氏模量）：前者凹的是块，后者压平的是压头。</figcaption></figure>
-<ul>
-<li><strong>做法：</strong> 网络给轮廓每处斜率乘一个正数，能量仍由弹簧算。比如软压头低于 Hertz，就调大外圈斜率，接触变窄、能量降低。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_01_profile_correction.png" width="1113" height="965" style="width:484px;max-width:100%;height:auto" alt="实线外圈比公式（虚线）陡，接触边缘从 \(a\) 收到 \(a&#x27;\)，能量更小。示意。" loading="lazy"><figcaption class="small">实线外圈比公式（虚线）陡，接触边缘从 \(a\) 收到 \(a&#x27;\)，能量更小。示意。</figcaption></figure>
-<ul>
-<li><strong>输入：</strong> 两侧的曲率占比、软度占比、泊松比、到边缘距离，加位置、扁度；不含压深。497 个参数。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_09_arch_v1.png" width="1975" height="899" style="width:923px;max-width:100%;height:auto" alt="公式给轮廓，网络调斜率，弹簧算能量；各处按 1/距离 互相带下去。" loading="lazy"><figcaption class="small">公式给轮廓，网络调斜率，弹簧算能量；各处按 1/距离 互相带下去。</figcaption></figure>
-<h3 id="w3-3">结果</h3>
+<figure style="margin:12px 0"><img src="assets/images/w34_fig04_mdr_springs.png" width="2205" height="1021" style="width:907px;max-width:100%;height:auto" alt="左边是三维问题：形状为缝隙 \(h(r)\) 的刚体压软平面，平面上各点互相牵连。右边换成一维：形状为等效轮廓 \(g\) 的刚体压一排互不相干的弹簧，球的情形 \(g(x)=x^2/R\)。红色箭头是压深，蓝色弹簧被压到，灰色弹簧没碰到；红色点线是接触边缘 \(a\)，那里轮廓刚好下到压深。" loading="lazy"><figcaption class="small">左边是三维问题：形状为缝隙 \(h(r)\) 的刚体压软平面，平面上各点互相牵连。右边换成一维：形状为等效轮廓 \(g\) 的刚体压一排互不相干的弹簧，球的情形 \(g(x)=x^2/R\)。红色箭头是压深，蓝色弹簧被压到，灰色弹簧没碰到；红色点线是接触边缘 \(a\)，那里轮廓刚好下到压深。</figcaption></figure>
+<p>三维里每一点的下沉都受所有点的压力影响，直接解很麻烦。Popov 的降维法证明，对轴对称的缝隙 \(h(r)\)（绕接触中心转一圈形状不变，只随离中心的距离 \(r\) 变），先换算出一条一维的<strong>等效轮廓</strong></p>
+<p>\[\color{#c0392b}{g(x)=|x|\int_0^{|x|}\frac{h&#x27;(r)}{\sqrt{x^2-r^2}}\,dr,}\]</p>
+<p>再用形状为 \(g\) 的刚体去压一排互不相干的弹簧（每单位长度刚度 \(E^*\)），得到的力和能量与三维精确解完全相同：</p>
+<p>\[\color{#c0392b}{\begin{aligned}&amp;g(a)=d,\qquad F=2E^*\int_0^a\big(d-g\big)dx,\\&amp;U_0=E^*\int_0^a\big(d-g\big)^2dx.\end{aligned}}\]</p>
+<p>\(d\) 是压深，\(a\) 是接触边缘（压缩量为零的那根弹簧）。</p>
+<p>这个形式有两条自带的性质：<strong>力严格等于能量的导数</strong>；<strong>越压越硬</strong>，刚度 \(dF/dd=2aE^*\) 随接触变宽而变大。代入球的缝隙 \(h=r^2/(2R)\)，得到的正是 Hertz：\(U_H=\tfrac{8}{15}E^*\sqrt R\,d^{5/2}\)。</p>
+<details><summary>推导：降维法</summary><p><strong>第一步：平底的解。</strong> 半径 \(\tilde a\) 的平底压入 \(\delta\)，力和平底外 \(r\) 处的下沉分别为</p>
+<p>\[F_{\text{平底}}=2E^*\tilde a\,\delta,\qquad w(r)=\frac{2\delta}{\pi}\arcsin\frac{\tilde a}{r}\quad(r&gt;\tilde a).\]</p>
+<p><strong>第二步：把一般压入拆成一串平底。</strong> 接触半径为 \(\tilde a\) 时再多压 \(d\tilde d\)，相当于半径 \(\tilde a\) 的平底多压 \(d\tilde d\)。记压深与接触半径的关系为 \(\tilde d=g(\tilde a)\)，则 \(d\tilde d=g&#x27;(\tilde a)\,d\tilde a\)，最后 \(d=g(a)\)。各步的力相加：</p>
+<p>\[F=\int_0^a2E^*\tilde a\,g&#x27;(\tilde a)\,d\tilde a.\]</p>
+<p>分部积分：</p>
+<p>\[F=2E^*\Big[\tilde a\,g(\tilde a)\Big]_0^a-2E^*\int_0^ag(\tilde a)\,d\tilde a.\]</p>
+<p>代入 \(g(a)=d\)，上下限处的项为 \(a\,d-0\)：</p>
+<p>\[F=2E^*a\,d-2E^*\int_0^ag(\tilde a)\,d\tilde a.\]</p>
+<p>把 \(a\,d\) 写成 \(\int_0^ad\,dx\)，合并：</p>
+<p>\[F=2E^*\int_0^a\big(d-g(x)\big)dx.\]</p>
+<p><strong>第三步：用边缘的贴合条件定出 \(g\)。</strong> 各步在 \(r=a\) 处的下沉相加，应等于那里要让出的量 \(d-h(a)\)：</p>
+<p>\[d-h(a)=\frac2\pi\int_0^a\arcsin\frac{\tilde a}{a}\;g&#x27;(\tilde a)\,d\tilde a.\]</p>
+<p>分部积分，\(\dfrac{d}{d\tilde a}\arcsin\dfrac{\tilde a}{a}=\dfrac{1}{\sqrt{a^2-\tilde a^2}}\)：</p>
+<p>\[\frac2\pi\int_0^a\arcsin\frac{\tilde a}{a}\,g&#x27;(\tilde a)\,d\tilde a=\frac2\pi\Big[\arcsin\frac{\tilde a}{a}\,g(\tilde a)\Big]_0^a-\frac2\pi\int_0^a\frac{g(\tilde a)}{\sqrt{a^2-\tilde a^2}}\,d\tilde a.\]</p>
+<p>边界项：\(\tilde a=a\) 时 \(\arcsin1=\pi/2\)、\(g(a)=d\)，\(\tilde a=0\) 时为 0，所以边界项等于 \(d\)。代回，两边消去 \(d\)：</p>
+<p>\[h(a)=\frac2\pi\int_0^a\frac{g(\tilde a)}{\sqrt{a^2-\tilde a^2}}\,d\tilde a.\]</p>
+<p>这对每个 \(a\) 都成立，是关于 \(g\) 的 Abel 积分方程。下面解出 \(g\)。</p>
+<p><strong>第三步续：解 Abel 方程。</strong> 两边乘 \(\dfrac{r}{\sqrt{x^2-r^2}}\)（把上式的 \(a\) 改记为 \(r\)），对 \(r\) 从 0 积到 \(x\)：</p>
+<p>\[\int_0^x\frac{r\,h(r)}{\sqrt{x^2-r^2}}\,dr=\frac2\pi\int_0^x\frac{r}{\sqrt{x^2-r^2}}\int_0^r\frac{g(s)}{\sqrt{r^2-s^2}}\,ds\,dr.\]</p>
+<p>交换积分次序（\(0\le s\le r\le x\)）：</p>
+<p>\[\int_0^x\frac{r\,h(r)}{\sqrt{x^2-r^2}}\,dr=\frac2\pi\int_0^xg(s)\int_s^x\frac{r\,dr}{\sqrt{(x^2-r^2)(r^2-s^2)}}\,ds.\]</p>
+<p>内层令 \(u=r^2\)，\(r\,dr=\tfrac12du\)：</p>
+<p>\[\int_s^x\frac{r\,dr}{\sqrt{(x^2-r^2)(r^2-s^2)}}=\frac12\int_{s^2}^{x^2}\frac{du}{\sqrt{(x^2-u)(u-s^2)}}=\frac12\cdot\pi.\]</p>
+<p>所以</p>
+<p>\[\int_0^x\frac{r\,h(r)}{\sqrt{x^2-r^2}}\,dr=\int_0^xg(s)\,ds.\]</p>
+<p>左边对 \(r\) 分部积分（\(\dfrac{d}{dr}\big(-\sqrt{x^2-r^2}\big)=\dfrac{r}{\sqrt{x^2-r^2}}\)）：</p>
+<p>\[\begin{aligned}\int_0^x\frac{r\,h(r)}{\sqrt{x^2-r^2}}\,dr&amp;=\Big[-h(r)\sqrt{x^2-r^2}\Big]_0^x+\int_0^xh&#x27;(r)\sqrt{x^2-r^2}\,dr\\&amp;=x\,h(0)+\int_0^xh&#x27;(r)\sqrt{x^2-r^2}\,dr.\end{aligned}\]</p>
+<p>接触中心缝隙为零，\(h(0)=0\)：</p>
+<p>\[\int_0^xg(s)\,ds=\int_0^xh&#x27;(r)\sqrt{x^2-r^2}\,dr.\]</p>
+<p>两边对 \(x\) 求导，右边上限处 \(\sqrt{x^2-x^2}=0\)：</p>
+<p>\[g(x)=\int_0^xh&#x27;(r)\,\frac{x}{\sqrt{x^2-r^2}}\,dr=x\int_0^x\frac{h&#x27;(r)}{\sqrt{x^2-r^2}}\,dr.\]</p>
+<p>\(g\) 关于 \(x\) 对称，写成 \(|x|\) 就是上面 \(g(x)\) 的定义式。</p>
+<p><strong>第四步：能量。</strong> 对 \(U_0=E^*\int_0^a(d-g)^2dx\) 求导，上限 \(a\) 也随 \(d\) 变：</p>
+<p>\[\frac{dU_0}{dd}=E^*\big(d-g(a)\big)^2\frac{da}{dd}+E^*\int_0^a2\big(d-g(x)\big)dx.\]</p>
+<p>上限处 \(d-g(a)=0\)，边界项消失：</p>
+<p>\[\frac{dU_0}{dd}=2E^*\int_0^a\big(d-g(x)\big)dx=F.\]</p>
+<p>又 \(d=0\) 时 \(U_0=0\)，所以它就是弹性能。</p></details>
+<details><summary>推导：越压越硬</summary><p>对 \(F=2E^*\int_0^a(d-g)\,dx\) 求导，上限 \(a\) 随 \(d\) 变：</p>
+<p>\[\frac{dF}{dd}=2E^*\big(d-g(a)\big)\frac{da}{dd}+2E^*\int_0^a1\,dx.\]</p>
+<p>因为 \(d=g(a)\)，第一项为零：</p>
+<p>\[\frac{dF}{dd}=2aE^*.\]</p>
+<p>直观地说：再压一点，接触区里每根弹簧都多压一点，多出来的力是 \(E^*\cdot2a\cdot\Delta d\)。</p></details>
+<details><summary>推导：球 → Hertz</summary><p><strong>缝隙。</strong> 半径 \(R_i\) 的球，离接触中心水平距离 \(r\) 处比最低点高 \(f_i\)。由勾股定理</p>
+<p>\[r^2+(R_i-f_i)^2=R_i^2\ \Longrightarrow\ r^2=2R_if_i-f_i^2.\]</p>
+<p>略去高阶小量 \(f_i^2\)，得 \(f_i\approx r^2/(2R_i)\)。两侧相加：</p>
+<p>\[h=\frac{r^2}{2R_A}+\frac{r^2}{2R_B}=\frac{r^2}{2R},\qquad\frac1R=\frac1{R_A}+\frac1{R_B}.\]</p>
+<p><strong>等效轮廓。</strong> \(h&#x27;(r)=r/R\)，代入：</p>
+<p>\[g(x)=\frac{|x|}{R}\int_0^{|x|}\frac{r}{\sqrt{x^2-r^2}}\,dr=\frac{|x|}{R}\Big[-\sqrt{x^2-r^2}\Big]_0^{|x|}=\frac{|x|}{R}\cdot|x|=\frac{x^2}{R}.\]</p>
+<p><strong>接触半径。</strong> 由 \(g(a)=d\)：</p>
+<p>\[\frac{a^2}{R}=d\ \Longrightarrow\ a=\sqrt{Rd}.\]</p>
+<p><strong>力。</strong></p>
+<p>\[F=2E^*\int_0^a\Big(d-\frac{x^2}{R}\Big)dx=2E^*\Big(ad-\frac{a^3}{3R}\Big).\]</p>
+<p>代入 \(a=\sqrt{Rd}\)，\(a^3/R=\sqrt R\,d^{3/2}\)、\(ad=\sqrt R\,d^{3/2}\)：</p>
+<p>\[F=2E^*\Big(\sqrt R\,d^{3/2}-\frac13\sqrt R\,d^{3/2}\Big)=\frac43E^*\sqrt R\,d^{3/2}.\]</p>
+<p><strong>能量。</strong> 力对压深积分（\(s\) 是压入过程中的压深）：</p>
+<p>\[U_H=\int_0^d\frac43E^*\sqrt R\,s^{3/2}\,ds=\frac43E^*\sqrt R\cdot\frac25d^{5/2}=\frac{8}{15}E^*\sqrt R\,d^{5/2}.\]</p></details>
+<h3 id="w3-3">不轴对称时：椭圆接触</h3>
 
+<p>如果接触点上两个方向弯曲程度不同（比如球压在游泳圈内圈：沿管子方向凸，沿圆环方向凹），缝隙就不是轴对称的，接触区是椭圆，降维法不能直接用。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_10_ring_ellipse.png" width="2112" height="874" style="width:1015px;max-width:100%;height:auto" alt="左边是灰色刚球放在环面中间的孔里，贴着内圈；环面只画了后半个，切开的截面是两个深蓝的圆。过接触点有两条线：红线沿管子方向，是截面圆的一段，表面朝球凸出来；绿线沿圆环方向，是内圈那一圈，表面朝球凹进去。两个方向弯曲程度不同。右边是从上往下看的接触区：实际接触区是红色的扁椭圆，蓝色虚线是面积相同的等效圆。骨架先按这个圆用降维法算，再乘只看椭圆扁度的因子 \(F_U\) 补上两者的差别。" loading="lazy"><figcaption class="small">左边是灰色刚球放在环面中间的孔里，贴着内圈；环面只画了后半个，切开的截面是两个深蓝的圆。过接触点有两条线：红线沿管子方向，是截面圆的一段，表面朝球凸出来；绿线沿圆环方向，是内圈那一圈，表面朝球凹进去。两个方向弯曲程度不同。右边是从上往下看的接触区：实际接触区是红色的扁椭圆，蓝色虚线是面积相同的等效圆。骨架先按这个圆用降维法算，再乘只看椭圆扁度的因子 \(F_U\) 补上两者的差别。</figcaption></figure>
+<p>这种情况 Hertz 有精确解（椭圆 Hertz）。骨架的做法是：先取一个面积相同的等效圆，用降维法算；再乘一个只取决于「椭圆有多扁」的精确因子 \(F_U\)，补上椭圆和圆的差别。圆形时这个因子等于 1，所以不需要分圆和椭圆两套算法。如果不乘这个因子、直接把椭圆当圆算，会少算能量：数据里最扁的构型（环面内圈，两个方向的曲率差 3 倍）少算 2.4%。</p>
+<h3 id="w3-4">网络修什么</h3>
+
+<p>公式在理想条件下精确，但真实情况总会偏离一点。最明显的是压头本身也软的时候（表中「标签 ÷ Hertz」，等于 1 表示公式完全准）：</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>压头 / 块的杨氏模量</th>
+<th>标签 ÷ Hertz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1e8 / 1e5（压头几乎刚）</td>
+<td>1.00–1.01</td>
+</tr>
+<tr>
+<td>1e5 / 1e6（软压头压硬块）</td>
+<td>0.98–0.99</td>
+</tr>
+</tbody>
+</table></div>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_12_soft_vs_rigid_cap.png" width="2294" height="885" style="width:1089px;max-width:100%;height:auto" alt="两幅都是过接触中心的剖面，竖直方向放大 4 倍，红线是受接触力的地方。左边压头杨氏模量 1e8、块 1e5：压头几乎刚，凹下去的是块，压头底部仍是圆弧。右边压头 1e5、块 1e6：压头比块软，压头底部被压平，块几乎不动。灰色是几乎刚的压头，浅橙是软压头，浅蓝是 1e5 的块，深蓝是 1e6 的块。" loading="lazy"><figcaption class="small">两幅都是过接触中心的剖面，竖直方向放大 4 倍，红线是受接触力的地方。左边压头杨氏模量 1e8、块 1e5：压头几乎刚，凹下去的是块，压头底部仍是圆弧。右边压头 1e5、块 1e6：压头比块软，压头底部被压平，块几乎不动。灰色是几乎刚的压头，浅橙是软压头，浅蓝是 1e5 的块，深蓝是 1e6 的块。</figcaption></figure>
+<p>压头一软，被压扁的变成本来就弯的那一侧，公式的「变形小」前提就不太成立，偏了 1%–2%。而合成硬度相同时，软的是弯的一侧还是平的一侧，结果不一样，所以网络要分别知道两侧各自的软硬和弯曲。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_09_arch_v1.png" width="1975" height="899" style="width:923px;max-width:100%;height:auto" alt="现在的模型怎么算能量。左上，缝隙 \(h\) 和合成硬度 \(E^*\) 经降维法给出等效轮廓 \(g\)，椭圆时乘扁度因子。左下，两侧各自的曲率占比、软度占比、泊松比、到边缘的距离，加上位置和扁度，送进 2 层、每层 16 个神经元的小网络，不含压深。网络给轮廓每个位置的斜率乘一个正数，得到修正轮廓 \(G\)，压一排弹簧得到这一处的能量。右下的红色双箭头表示几处接触之间按 1/距离 互相把表面带下去；几处加起来是总能量，力是总能量对位置的导数。" loading="lazy"><figcaption class="small">现在的模型怎么算能量。左上，缝隙 \(h\) 和合成硬度 \(E^*\) 经降维法给出等效轮廓 \(g\)，椭圆时乘扁度因子。左下，两侧各自的曲率占比、软度占比、泊松比、到边缘的距离，加上位置和扁度，送进 2 层、每层 16 个神经元的小网络，不含压深。网络给轮廓每个位置的斜率乘一个正数，得到修正轮廓 \(G\)，压一排弹簧得到这一处的能量。右下的红色双箭头表示几处接触之间按 1/距离 互相把表面带下去；几处加起来是总能量，力是总能量对位置的导数。</figcaption></figure>
+<p><strong>网络的做法：</strong> 在等效轮廓 \(g\) 的每个位置上，给它的斜率乘一个接近 1 的正数。比如压头软、自己会被压扁，网络就把轮廓外圈调陡一点，接触区变窄，能量随之降下来。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_01_profile_correction.png" width="1113" height="965" style="width:484px;max-width:100%;height:auto" alt="降维法那排弹簧上的两种轮廓。黑色虚线是公式给的 \(g=x^2/R\)，接触边缘在灰色的 \(a\)；灰色实心压头是网络把外圈斜率调大后的轮廓，外圈更陡，同样的压深下接触边缘收到红色的 \(a&#x27;\)。蓝色是被压到的弹簧，灰色是没碰到的；轮廓变陡后被压到的弹簧变少、每根压得更浅，能量变小。修正的幅度为了看清放大画了。" loading="lazy"><figcaption class="small">降维法那排弹簧上的两种轮廓。黑色虚线是公式给的 \(g=x^2/R\)，接触边缘在灰色的 \(a\)；灰色实心压头是网络把外圈斜率调大后的轮廓，外圈更陡，同样的压深下接触边缘收到红色的 \(a&#x27;\)。蓝色是被压到的弹簧，灰色是没碰到的；轮廓变陡后被压到的弹簧变少、每根压得更浅，能量变小。修正的幅度为了看清放大画了。</figcaption></figure>
 <ul>
-<li>留一法（拿掉一个构型、用其余训练再预测它），68 个标签：</li>
+<li><strong>输入：</strong> 轮廓上的位置；椭圆有多扁；两侧各自的泊松比；弯的是哪一侧（两侧各占合起来的曲率的比例）；软的是哪一侧（两侧各占合起来的软度 \(1/E^*\) 的比例）。不输入压深。</li>
+<li><strong>规模：</strong> 2 层、每层 16 个神经元，共 497 个参数。</li>
 </ul>
+<p><strong>为什么改轮廓，而不是直接给能量乘系数：</strong></p>
+<ul>
+<li>斜率乘的是正数，轮廓仍单调升高，能量仍由那排弹簧算出来，所以第 3.2 节的两条性质（力是能量的导数、越压越硬）原样保留；</li>
+<li>修正系数为 1 时严格退回公式；</li>
+<li>网络只改轮廓的形状，不看压深；压深变化时能量怎么变，仍由弹簧公式决定。所以压得比训练时更深，网络也不需要去猜，不会出怪结果。</li>
+</ul>
+<p><strong>接触之间的相互影响（第二条要求）：</strong> 每处接触的压深 = 自己的力压出来的 + 其他接触的力把表面带下去的：</p>
+<p>\[\color{#c0392b}{\delta_i=\delta_{e,i}(F_i)+\sum_{j\ne i}\frac{F_j}{\pi E&#x27;\,r_{ij}},}\]</p>
+<p>\(r_{ij}\) 是两处接触的中心距。这一项不经过网络，就是第 2.2 节推 \(c\) 用的同一个式子。hydro++ 做不到的「一起压要打折」，在这里是结构自带的。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_core_w34_5.2_d.png" width="1330" height="717" style="width:572px;max-width:100%;height:auto" alt="剖面上两处接触：左边 \(j\) 区压得深，右边 \(i\) 区压得浅，两处中心相距 \(r_{ij}\)。浅灰水平虚线是原来的表面；深灰虚线是只有 \(j\) 区的力 \(F_j\) 时表面的下沉 \(u_j(r)=F_j/(\pi E&#x27;r)\)，随距离变小，到 \(i\) 区还剩绿色那一段 \(u_j(r_{ij})\)。\(i\) 区的总压深 \(\delta_i\) 分成两段：绿色是被 \(j\) 带下去的，蓝色是 \(i\) 区自己的力 \(F_i\) 压出来的 \(\delta_{e,i}(F_i)\)。" loading="lazy"><figcaption class="small">剖面上两处接触：左边 \(j\) 区压得深，右边 \(i\) 区压得浅，两处中心相距 \(r_{ij}\)。浅灰水平虚线是原来的表面；深灰虚线是只有 \(j\) 区的力 \(F_j\) 时表面的下沉 \(u_j(r)=F_j/(\pi E&#x27;r)\)，随距离变小，到 \(i\) 区还剩绿色那一段 \(u_j(r_{ij})\)。\(i\) 区的总压深 \(\delta_i\) 分成两段：绿色是被 \(j\) 带下去的，蓝色是 \(i\) 区自己的力 \(F_i\) 压出来的 \(\delta_{e,i}(F_i)\)。</figcaption></figure>
+<h3 id="w3-5">结果</h3>
+
+<p>刚球压平块、软硬不同的压头压块、刚球压曲面块三类，共 68 个标签。检验方法是<strong>留一法</strong>：每次拿掉一个构型，用其余的训练，再预测拿掉的那个。为了看网络到底多学到了什么，同样的检验下也比了只用骨架、以及骨架乘一个 2 参数简单公式：</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -507,81 +545,199 @@ html.annot-on #annot-capture { display: block; }
 <td>2.47%</td>
 </tr>
 <tr>
-<td>骨架 × 简单公式</td>
+<td>骨架 × 简单修正公式</td>
 <td>2</td>
 <td>0.36%</td>
 <td>0.98%</td>
 </tr>
 <tr>
-<td>骨架 + 网络（3 个种子中位数）</td>
+<td>骨架 + 网络</td>
 <td>497</td>
 <td>0.21%</td>
 <td>1.05%</td>
 </tr>
 </tbody>
 </table></div>
-<ul>
-<li>骨架已很准，网络空间不大；它要学的是公式管不到的情况。</li>
-</ul>
-<p class="setting muted">设置：简单公式为 能量 × exp(c₁·压头软度占比·接触半径 / 压头球冠半径 + c₂·压深 / 等效半径)，把软压头组修到 0.6%；网络三个种子的最大误差 1.05%、2.57%、1.05%；留一拿掉的是整个构型（含曲面块）。</p>
-<p class="kp">骨架在理想场景误差中位数 0.44%，网络只调轮廓、降到 0.21%。</p></section>
-<section id="w4"><h2>理想情况之外：在精确极限之间搭桥</h2>
-<h3 id="w4-1">骨架管不到的三种情况</h3>
-
-<ul>
-<li>骨架假设物体无限厚、接触区一整块且左右对称。</li>
-<li><strong>① 薄层</strong>（软垫、皮肤）：底座让它硬得多，骨架没有层厚，只算出一到两成。</li>
-<li><strong>② 斜压平底：</strong> 骨架把倾斜读成「最深处更深、边上一圈很浅」，丢了哪边深，0° 有尖角、冒出假力矩。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_03_tilt.png" width="1865" height="897" style="width:873px;max-width:100%;height:auto" alt="固定中心压深：精确解（绿）是光滑抛物线；骨架（红虚线）0° 处尖角，3° 时少约 15%。" loading="lazy"><figcaption class="small">固定中心压深：精确解（绿）是光滑抛物线；骨架（红虚线）0° 处尖角，3° 时少约 15%。</figcaption></figure>
-<ul>
-<li><strong>③ 两处连成一片：</strong> 从「两处 + 相互影响」切成「一处」，能量跳一下。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_s7_merge_jump.png" width="1276" height="855" style="width:627px;max-width:100%;height:auto" alt="两平底贴上（横轴 2）切成一处，能量跳 6.8%；相互影响改用分布压力算也跳 4.2%。" loading="lazy"><figcaption class="small">两平底贴上（横轴 2）切成一处，能量跳 6.8%；相互影响改用分布压力算也跳 4.2%。</figcaption></figure>
-<h3 id="w4-2">以薄层为例：两头精确，中间都不准</h3>
-
-<ul>
-<li>
-<p>很厚时 Hertz 精确；很薄时每点是独立竖直弹簧（hydro 的行为）：</p>
-<p>\[\color{#c0392b}{U_{\text{薄}}=\frac{\pi kR\,\delta^3}{3}}\]</p>
-</li>
-</ul>
-<p>\(k\) 单位面积刚度（层越薄越大），\(R\) 球半径；压深加倍能量变 8 倍，厚块只 5.7 倍。</p>
-
-<details><summary>推导：薄层能量</summary><p>条件：每点压缩量 \(q\)、压强 \(p=kq\)、球的缝隙 \(r^2/(2R)\)。</p>
+<p><strong>这张表说明三件事：</strong></p>
 <ol>
-<li>
-<p>离中心 \(r\) 处的压缩量：</p>
-<p>\[q(r)=\delta-\frac{r^2}{2R}.\]</p>
-</li>
-<li>
-<p>接触边缘是 \(q=0\) 处：</p>
-<p>\[a^2=2R\delta.\]</p>
-</li>
-<li>
-<p>每块面积上的弹簧存能 \(\tfrac12k\,q^2\,dA\)，取圆环 \(dA=2\pi r\,dr\)：</p>
-<p>\[U=\int_0^a\tfrac12k\,q^2\,2\pi r\,dr=\pi k\int_0^a\Big(\delta-\frac{r^2}{2R}\Big)^2r\,dr.\]</p>
-</li>
-<li>
-<p>换元 \(\tau=r^2/(2R)\)，\(r\,dr=R\,d\tau\)，\(\tau\) 从 0 到 \(\delta\)：</p>
-<p>\[U=\pi kR\int_0^\delta(\delta-\tau)^2\,d\tau.\]</p>
-</li>
-<li>
-<p>\(\int_0^\delta(\delta-\tau)^2d\tau=\Big[-\tfrac13(\delta-\tau)^3\Big]_0^\delta=\tfrac13\delta^3\)：</p>
-<p>\[U=\frac{\pi kR\,\delta^3}{3}.\]</p>
-</li>
-</ol></details>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_04_layer_transition.png" width="1250" height="883" style="width:595px;max-width:100%;height:auto" alt="往右越薄，黑线有限元；Hertz（蓝）左端准，薄层（红）右端准，交叉处都差约 30%。" loading="lazy"><figcaption class="small">往右越薄，黑线有限元；Hertz（蓝）左端准，薄层（红）右端准，交叉处都差约 30%。</figcaption></figure>
-<p class="setting muted">设置：刚球压粘在刚性底座上的层，泊松比 0.3，轴对称有限元；Hertz 误差在接触区 ÷ 层厚 = 0.1 / 1 / 3 时为 −7.4% / −60% / −86%，薄层公式为 −78% / −3.7% / +0.9%。</p>
-<h3 id="w4-3">统一结构：方格弹簧床</h3>
+<li>骨架本身已经很准，零点几个百分点。</li>
+<li>唯一明显的规律是软压头那一组，一个 2 参数公式就能把它从 2.47% 修到 0.6%（表中 0.98% 的最大误差出在刚球压曲面块那一类）。</li>
+<li>网络在典型误差上比简单公式好一截，最大误差差不多。</li>
+</ol>
+<p>也就是说，在现有这些理想数据上，网络能发挥的空间不大。网络真正需要的，是公式管不到的情况，这就是第 5 节。</p></section>
+<section id="w4"><h2>和 Huanyu 方案的结构差别</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Huanyu</th>
+<th>我</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>物体</td>
+<td>两个完整的有限大球</td>
+<td>被压的块外推到无限大</td>
+</tr>
+<tr>
+<td>骨架</td>
+<td>Hertz 能量 × 网络输出的因子</td>
+<td>降维法 / 椭圆 Hertz，网络只修轮廓</td>
+</tr>
+<tr>
+<td>参数量</td>
+<td>约 9900</td>
+<td>497</td>
+</tr>
+<tr>
+<td>压深是否输入网络</td>
+<td>是：压深超出训练范围时网络输出不可靠，只能在那里关掉修正</td>
+<td>否：越压越硬由结构保证</td>
+</tr>
+<tr>
+<td>多处接触的相互影响</td>
+<td>无</td>
+<td>有</td>
+</tr>
+<tr>
+<td>有限大物体；碰撞前物体整体已被拉伸或压缩（预应变）</td>
+<td>有</td>
+<td>无</td>
+</tr>
+</tbody>
+</table></div>
+<p>两边正好互补：我的部分只看接触点附近，能跨形状推广；Huanyu 的数据里有有限大物体和预应变，正是我还没覆盖的（第 6 节第 2 条）。</p></section>
+<section id="w5"><h2>下一步：在理想极限之间搭桥</h2>
+<h3 id="w5-1">现有骨架管不到的情况</h3>
+
+<p>骨架建立在「接触区远小于物体、物体可以看成无限厚」上。下面三种常见情况都违反这一点：</p>
+<p><strong>① 薄层（软垫、涂层、手指皮肤）。</strong> 骨架里没有层厚这个量。刚球压一层很薄的软层时，层下面就是硬底座，材料没处可让，比压一大块软材料硬得多；骨架照样按无限厚算，只算出真实能量的一到两成。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_11_thin_layer_section.png" width="1930" height="885" style="width:916px;max-width:100%;height:auto" alt="同一个刚球、同样的压深。左边压的是一大块软材料，接触区下面还有很深的软材料。右边压的是放在硬底座上的一层薄软层，层厚 \(t\)，层下面就是硬底座，材料没处可让，所以比左边硬得多。" loading="lazy"><figcaption class="small">同一个刚球、同样的压深。左边压的是一大块软材料，接触区下面还有很深的软材料。右边压的是放在硬底座上的一层薄软层，层厚 \(t\)，层下面就是硬底座，材料没处可让，所以比左边硬得多。</figcaption></figure>
+<p><strong>② 斜着压的平底。</strong> 骨架把接触压成左右对称的一维轮廓，只记得「最深处压了多深」，不知道哪一边深。结果有两个：一是少算了压头倾斜本身存下的能量（整片贴住时少约 14%）；二是往左倾、往右倾，骨架都按同样方式改变能量，能量在「不倾斜」处出现一个尖角，对倾角求导就冒出一个本不存在的转动力矩。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_03_tilt.png" width="1865" height="897" style="width:873px;max-width:100%;height:auto" alt="左边是斜着压的平底剖面，倾角放大画：右边压得深，左边压得浅，灰色虚线是原来的表面。右边固定平底中心的压深、只改倾角，纵轴是能量 ÷ 不倾斜时的能量。绿线是精确解，在 0° 处是光滑的抛物线，不倾斜时没有转动力矩；红色虚线是现在的骨架，往左倾、往右倾变化一样，在 0° 处是一个尖角，左右两边的斜率不相等，这就是那个本不存在的力矩。" loading="lazy"><figcaption class="small">左边是斜着压的平底剖面，倾角放大画：右边压得深，左边压得浅，灰色虚线是原来的表面。右边固定平底中心的压深、只改倾角，纵轴是能量 ÷ 不倾斜时的能量。绿线是精确解，在 0° 处是光滑的抛物线，不倾斜时没有转动力矩；红色虚线是现在的骨架，往左倾、往右倾变化一样，在 0° 处是一个尖角，左右两边的斜率不相等，这就是那个本不存在的力矩。</figcaption></figure>
+<p><strong>③ 两处接触连成一片。</strong> 分开时按「两处 + 相互影响」算，连成一片后只能按「一处」算。两种算法在连上的那一刻给出的能量不一样，差 4%–7%，能量就在这里跳一下，牛顿法可能因此不收敛。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_13_merge_steps.png" width="1390" height="1120" style="width:662px;max-width:100%;height:auto" alt="上排是两个平底从分开到贴在一起的三个瞬间，中心距分别是半径的 4 倍、2.5 倍和 2 倍，2 倍时两块贴成一片。下排是能量 ÷ 边界元精确解随中心距的变化，灰虚线 1 就是真实值：蓝线和绿线按「两处 + 相互影响」算，相互影响分别按点力和按分布压力算，分开时都贴着 1；贴成一片后只能按「一处」算（红点），能量在这一下分别跳了 6.8% 和 4.2%。" loading="lazy"><figcaption class="small">上排是两个平底从分开到贴在一起的三个瞬间，中心距分别是半径的 4 倍、2.5 倍和 2 倍，2 倍时两块贴成一片。下排是能量 ÷ 边界元精确解随中心距的变化，灰虚线 1 就是真实值：蓝线和绿线按「两处 + 相互影响」算，相互影响分别按点力和按分布压力算，分开时都贴着 1；贴成一片后只能按「一处」算（红点），能量在这一下分别跳了 6.8% 和 4.2%。</figcaption></figure>
+<h3 id="w5-2">以薄层为例：两头精确，中间两个公式都不行</h3>
 
 <ul>
+<li><strong>很厚：</strong> Hertz 精确。</li>
+<li><strong>很薄：</strong> 层太薄，压力传不开，每一小柱材料只能被竖直压扁，表面每一点就是一根独立的弹簧（刚度 \(k\) 与层厚成反比）。这正是 hydro 的行为。能量有精确公式 \(U=\pi kR\,\delta^3/3\)，按压深的 3 次方涨，和 Hertz 的 2.5 次方完全不同。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_02_thin_vs_thick.png" width="1930" height="885" style="width:916px;max-width:100%;height:auto" alt="同一个刚球压到同样深。左边是厚块，接触区外的表面也跟着陷下去，灰色虚线是原来的表面。右边是放在刚性底座上的薄层，层厚 \(t\)：每一小柱材料只被竖直压扁，旁边的表面不动，就像接触区下面一排互不相干的竖直弹簧（蓝色）。" loading="lazy"><figcaption class="small">同一个刚球压到同样深。左边是厚块，接触区外的表面也跟着陷下去，灰色虚线是原来的表面。右边是放在刚性底座上的薄层，层厚 \(t\)：每一小柱材料只被竖直压扁，旁边的表面不动，就像接触区下面一排互不相干的竖直弹簧（蓝色）。</figcaption></figure>
+<details><summary>推导：薄层能量</summary><p>离中心 \(r\) 处的压缩量</p>
+<p>\[w(r)=\delta-\frac{r^2}{2R},\]</p>
+<p>压强 \(p=k\,w\)，接触边缘是 \(w=0\) 处：</p>
+<p>\[\delta-\frac{a^2}{2R}=0\ \Longrightarrow\ a^2=2R\delta.\]</p>
+<p>能量是所有弹簧储能之和，每块面积存 \(\tfrac12k\,w^2\)，取圆环面积 \(2\pi r\,dr\)：</p>
+<p>\[U=\int_0^a\tfrac12k\,w^2\,2\pi r\,dr.\]</p>
+<p>令 \(u=r^2/(2R)\)，则 \(du=r\,dr/R\)，\(2\pi r\,dr=2\pi R\,du\)，\(u\) 从 0 到 \(a^2/(2R)=\delta\)：</p>
+<p>\[U=\int_0^\delta\tfrac12k(\delta-u)^2\,2\pi R\,du=\pi kR\int_0^\delta(\delta-u)^2du.\]</p>
+<p>积分：</p>
+<p>\[\int_0^\delta(\delta-u)^2du=\Big[-\tfrac13(\delta-u)^3\Big]_0^\delta=0+\tfrac13\delta^3,\]</p>
+<p>所以</p>
+<p>\[U=\frac{\pi kR\,\delta^3}{3}.\]</p></details>
+<p>用「接触区大小 ÷ 层厚」\(\chi=\sqrt{R\delta}/t\) 表示走到了哪一头。用有限元从厚扫到薄，两个公式各差多少：</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>接触区 ÷ 层厚 \(\chi\)</th>
+<th>0.01（很厚）</th>
+<th>0.1</th>
+<th>0.4</th>
+<th>1</th>
+<th>3（很薄）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hertz 误差</td>
+<td>−0.7%</td>
+<td>−7%</td>
+<td>约 −30%</td>
+<td>−60%</td>
+<td>−86%</td>
+</tr>
+<tr>
+<td>薄层公式误差</td>
+<td>−98%</td>
+<td>−78%</td>
+<td>约 −33%</td>
+<td>−4%</td>
+<td>+0.9%</td>
+</tr>
+</tbody>
+</table></div>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_04_layer_transition.png" width="1250" height="883" style="width:595px;max-width:100%;height:auto" alt="横轴是接触区大小 ÷ 层厚 \(\chi\)，往右层越薄；纵轴是能量 ÷ Hertz，两个轴都取对数。黑线是有限元算的真实能量（刚球压粘在刚性底座上的层，泊松比 0.3）。蓝色虚线是 Hertz，在左端很厚时和黑线重合；红色虚线是薄层公式，在右端很薄时和黑线重合。灰色一段（\(\chi\) 从 0.1 到 1）里两条虚线都离黑线很远。" loading="lazy"><figcaption class="small">横轴是接触区大小 ÷ 层厚 \(\chi\)，往右层越薄；纵轴是能量 ÷ Hertz，两个轴都取对数。黑线是有限元算的真实能量（刚球压粘在刚性底座上的层，泊松比 0.3）。蓝色虚线是 Hertz，在左端很厚时和黑线重合；红色虚线是薄层公式，在右端很薄时和黑线重合。灰色一段（\(\chi\) 从 0.1 到 1）里两条虚线都离黑线很远。</figcaption></figure>
+<p>两头各有一个公式精确，中间两个都差约 30%。这才是网络真正有东西可学的地方：两头用精确公式钉住，网络学中间怎么接过去。</p>
+<h3 id="w5-3">统一的结构：二维弹簧床 + 相互作用</h3>
+
+<p><strong>做法：</strong> 把接触面切成小方格，每格知道自己被穿进去多深，每格是一根弹簧；格与格之间通过一个「相互作用」互相牵连，即一格受压时其他格下沉多少。</p>
+<ul>
+<li>相互作用为零：各压各的，就是薄层（hydro 在这一端）；</li>
+<li>相互作用按 1/距离 衰减：就是厚物体的精确解（我现在的骨架在这一端）；</li>
+<li>有限厚的层：一格受压时，离得近的格子像在厚物体上一样跟着陷，离得远的格子被底面顶住、几乎不受影响。这种「近处按 1/距离、远处被截断」的相互作用有精确公式（称为层核），层越薄截断得越早，一个式子就把厚、薄和中间全包含了。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_14_kernel_cells.png" width="1739" height="451" style="width:825px;max-width:100%;height:auto" alt="同一个格子（中间，红箭头）受压时，每个格子下沉多少，竖条越长下沉越多。左边薄层：只有受压的那一格下沉。中间厚物体：周围格子都跟着陷，按 1/距离 慢慢变小，离得很远也还有一点。右边有限厚的层：离得近的格子和厚物体差不多，过了约一个层厚就几乎不动，下面被底面顶住了。" loading="lazy"><figcaption class="small">同一个格子（中间，红箭头）受压时，每个格子下沉多少，竖条越长下沉越多。左边薄层：只有受压的那一格下沉。中间厚物体：周围格子都跟着陷，按 1/距离 慢慢变小，离得很远也还有一点。右边有限厚的层：离得近的格子和厚物体差不多，过了约一个层厚就几乎不动，下面被底面顶住了。</figcaption></figure>
+<p>网络要学的，就是真实物体上这个相互作用该是什么样（见 5.4）。</p>
+<p><strong>同一个结构顺带解决 5.1 的另外两个问题：</strong></p>
+<ul>
+<li><strong>斜压：</strong> 每格单独知道自己压得多深，压得深的一边压强大，回正力矩自然就对了；不倾斜时左右对称，力矩为零。</li>
+<li><strong>连成一片：</strong> 没有「几处接触」的概念，只有一张图。两处靠近时，中间的格子从没碰到慢慢变成碰到，能量连续变化，没有切换，也就没有跳变。</li>
+</ul>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_06_gap_grid.png" width="1481" height="525" style="width:705px;max-width:100%;height:auto" alt="颜色是每一格被穿进去多深，越深越红，空白是没有接触的格子。左边是斜着压的平底：右边的格子深、左边的浅。中间是两处接触离得远；右边两处靠近，蓝框里中间那一列格子开始被穿入，两处直接连上，不需要从「两处」切换成「一处」。" loading="lazy"><figcaption class="small">颜色是每一格被穿进去多深，越深越红，空白是没有接触的格子。左边是斜着压的平底：右边的格子深、左边的浅。中间是两处接触离得远；右边两处靠近，蓝框里中间那一列格子开始被穿入，两处直接连上，不需要从「两处」切换成「一处」。</figcaption></figure>
+<h3 id="w5-4">新的网络结构（设计，还没实现）</h3>
+
+<p><strong>和现在的网络比，变的是「网络改什么」：</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>现在</th>
+<th>新结构</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接触怎么表示</td>
+<td>每个接触区一条一维等效轮廓</td>
+<td>整个接触面一张二维方格图，每格一个穿入深度</td>
+</tr>
+<tr>
+<td>骨架怎么算能量</td>
+<td>一排独立弹簧压在轮廓上</td>
+<td>一床弹簧，格与格之间有相互作用，解一次「压强该怎么分布」</td>
+</tr>
+<tr>
+<td>网络输出什么</td>
+<td>轮廓斜率的修正系数</td>
+<td>相互作用随距离怎么衰减（即 5.3 节那条曲线）</td>
+</tr>
+<tr>
+<td>几处接触之间</td>
+<td>另加一项 1/距离 的相互影响</td>
+<td>不需要另加，都在同一张图里</td>
+</tr>
+</tbody>
+</table></div>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_16_new_arch.png" width="1803" height="893" style="width:848px;max-width:100%;height:auto" alt="新结构的流程，版式对照现在的模型图。左上是穿入深度方格图，两处接触画在同一张图里；左下是物体在接触处下方多厚、泊松比、底面粘住还是能滑，送进小网络。网络输出一条曲线：一格受压时，其他格子的下沉随距离怎么衰减。蓝实线是网络给的（图里画的是有限厚层的情形），灰虚线是厚物体的 1/距离，作对照。弹簧床按这条曲线让格与格互相牵连，求出压强分布和能量，力是能量对位置的导数。" loading="lazy"><figcaption class="small">新结构的流程，版式对照现在的模型图。左上是穿入深度方格图，两处接触画在同一张图里；左下是物体在接触处下方多厚、泊松比、底面粘住还是能滑，送进小网络。网络输出一条曲线：一格受压时，其他格子的下沉随距离怎么衰减。蓝实线是网络给的（图里画的是有限厚层的情形），灰虚线是厚物体的 1/距离，作对照。弹簧床按这条曲线让格与格互相牵连，求出压强分布和能量，力是能量对位置的导数。</figcaption></figure>
+<p><strong>网络具体输出什么。</strong> 一格受压时周围下沉随距离怎么衰减，可以等价地按「波长」来描述：把表面上的压强分布拆成不同疏密的起伏，每种疏密的起伏各自对应一个下沉的强弱。用 5.3 节的直觉：</p>
+<ul>
+<li>起伏很密（波长远小于层厚）时，下沉感觉不到底面，强弱等于厚物体的值；</li>
+<li>起伏很疏（波长远大于层厚）时，被底面顶住，强弱等于薄层的值；</li>
+<li>中间怎么过渡，就是网络要给出的东西：对每个波长输出一个 0 到 1 之间的系数，表示此刻离「厚物体」有多近。</li>
+</ul>
+<p><strong>输入：</strong> 物体在接触点下方有多厚（到底座或到物体另一侧的距离），泊松比，底面是粘住还是能滑。真实物体不是平板，没有一个现成的「层厚」，网络要从这些几何量里学出一个等效的值。</p>
+<p><strong>结构上保证什么，以及为什么：</strong></p>
+<ul>
+<li><strong>两头精确：</strong> 系数在很密的一端固定为 1，在很疏的一端固定为薄层的值，网络只能改中间。所以很厚、很薄时严格退回两个精确公式。</li>
+<li><strong>不会算出负能量：</strong> 每个波长的系数都限制为正，就保证了任何压强分布都要付出正的弹性能，方格图上的求解总有唯一解。</li>
 <li>
-<p>接触面切成方格，每格一根弹簧，相互影响推广到格与格：不牵连是薄层，按 1/距离 是厚物体，有限厚层近处 1/距离、远处截断（层核，有精确公式）。</p>
+<p><strong>力是能量的导数、越压越硬：</strong> 能量由弹簧床的求最大值式子算出：</p>
 <p>\[\color{#c0392b}{U(o)=\max_{p\ge0}\Big[\sum_mp_m\,o_m-\frac12\sum_{m,n}p_m\,C_{mn}\,p_n\Big]}\]</p>
 </li>
 </ul>
-<p>\(o_m\) 第 \(m\) 格穿入深度，\(p_m\) 压强，\(C_{mn}\) 格 \(n\) 受单位压强时格 \(m\) 的下沉。取最大值的 \(p\) 即真实压强；对 \(o_m\) 求导就是压强，且越压越硬。</p>
+<p>\(o_m\) 是第 \(m\) 格的穿入深度，\(p_m\) 是第 \(m\) 格的压强，\(C_{mn}\) 是第 \(n\) 格受单位压强时第 \(m\) 格的下沉（就是上面的相互作用）。它对穿入深度天然是凸的，求导就是力。这两条不靠训练，结构自带。</p>
 
 <details><summary>推导：弹簧床的能量</summary><ol>
 <li>记 \(f(p)=\sum_mp_mo_m-\tfrac12\sum_{m,n}p_mC_{mn}p_n\)。\(C\) 对称正定（任何不为零的压强分布都要付出正的弹性能），所以 \(f\) 严格凹，在 \(p\ge0\) 上的最大值点 \(p^\star\) 唯一。</li>
@@ -599,10 +755,8 @@ html.annot-on #annot-capture { display: block; }
 <li>
 <p>代入 \(f\)：</p>
 <p>\[U=f(p^\star)=\sum_{m,n}p_m^\star C_{mn}p_n^\star-\frac12\sum_{m,n}p_m^\star C_{mn}p_n^\star=\frac12\sum_mp_m^\star u_m,\]</p>
-</li>
-</ol>
 <p>即线弹性表面存的弹性能。</p>
-<ol>
+</li>
 <li>
 <p>\(p^\star\) 是最优点，它的变化不引起一阶变化，所以</p>
 <p>\[\frac{\partial U}{\partial o_m}=\frac{\partial f}{\partial o_m}\Big|_{p=p^\star}=p_m^\star.\]</p>
@@ -611,68 +765,22 @@ html.annot-on #annot-capture { display: block; }
 <p>\(U\) 是一族 \(o\) 的线性函数的最大值，所以是凸函数：穿得越深，能量涨得越快。</p>
 </li>
 </ol></details>
+<p><strong>剩下的小误差：</strong> 有限变形、软的是弯的一侧还是平的一侧这类效应（第 3.4 节软压头那种），仍用一个小修正补；形式待定，可以沿用现在「修正系数为正、为 1 时退回公式」的思路。</p>
+<p><strong>轴对称时不必用二维：</strong> 只有一处、轴对称的接触，二维方格图可以精确地缩成沿半径的一维问题，算得更快（5.5 的「一维层核」就是它）。所以实际使用时，轴对称走一维，不轴对称或有多处接触才走二维，两者之间用平滑过渡连起来，避免切换时能量跳变。</p>
+<h3 id="w5-5">目前验证到哪</h3>
+
+<p>还没训练网络，只验证了物理部分对不对、快不快：</p>
 <ul>
-<li>斜压时每格知道多深，力矩自然对；两处靠近时中间格子逐渐接触，能量不跳。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_06_gap_grid.png" width="1481" height="525" style="width:705px;max-width:100%;height:auto" alt="颜色是每格穿入深度：斜压平底右深左浅；两处靠近时蓝框里的格子逐渐接触，没有切换。" loading="lazy"><figcaption class="small">颜色是每格穿入深度：斜压平底右深左浅；两处靠近时蓝框里的格子逐渐接触，没有切换。</figcaption></figure>
-<ul>
-<li><strong>网络（设计）：</strong> 输出衰减曲线，两头钉住只改中间；输入下方多厚、泊松比、底面条件。</li>
-<li><strong>速度：</strong> 每个接触区约 54 µs，现骨架 26 µs，慢约一倍。</li>
-</ul>
-<p class="setting muted">设置：54 / 26 µs 为 1024 个接触区批量求解摊到每区，共享 GPU，不含二阶导；单精度时 31 µs。</p>
-<p class="kp">方格弹簧床把薄、厚两个精确极限钉在两头，网络只学中间的过渡。</p></section>
-<section id="w5"><h2>Huanyu 的方案与我的方案</h2>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th></th>
-<th>Huanyu 的方案</th>
-<th>我的方案</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>物体</td>
-<td>有限大球</td>
-<td>块足够大，视为无限大</td>
-</tr>
-<tr>
-<td>骨架</td>
-<td>Hertz × 网络因子</td>
-<td>降维法，网络调轮廓</td>
-</tr>
-<tr>
-<td>参数量</td>
-<td>约 9900</td>
-<td>497</td>
-</tr>
-<tr>
-<td>输入压深</td>
-<td>是（范围外不可靠，小压深关修正）</td>
-<td>否</td>
-</tr>
-<tr>
-<td>多处相互影响</td>
-<td>无</td>
-<td>有（未训练）</td>
-</tr>
-<tr>
-<td>有限大、预应变</td>
-<td>有</td>
-<td>无</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li>两边数据不同，还没同数据比精度；我的能跨形状推广，Huanyu 的覆盖有限大和预应变。</li>
-</ul>
-<p class="kp">两个方案覆盖的情况不同，可以合起来用。</p></section>
+<li><strong>准：</strong> 有层厚时，在两个公式都差几十个百分点的中间位置（\(\chi=1\)），用精确层核的一维版本和有限元相比，粘住底座时只差 0.0002%，能滑的底座差 0.04%。</li>
+<li><strong>快：</strong> 二维方格铺 16×16 已经够准（球误差 0.19%），GPU 上每个接触区 54 µs，和现在的骨架（26 µs）同一量级（两者都按双精度计）。</li>
+<li><strong>难点：</strong> 斜压压得很浅时接触区是一条很窄的月牙，需要局部加密格子。</li>
+</ul></section>
 <section id="w6"><h2>想讨论的</h2>
 <ol>
-<li>方格弹簧床作为下一阶段主线是否合适？</li>
-<li>有限大物体整体被压扁的部分只和自身形状有关、可预算；能否用 Huanyu 的数据检验并比精度？</li>
-<li>每个接触区每次牛顿迭代多少时间可接受？</li>
-<li>先接进 libuipc（Genesis 底层的 GPU IPC 求解器）跑动力学，还是先做过渡区？</li>
+<li><strong>方向：</strong> 把骨架从「一维降维法」扩展为「二维弹簧床 + 相互作用」，作为下一阶段主线，是否合适？</li>
+<li><strong>有限大物体：</strong> 我的标签用的是无限大的块，Huanyu 用的是有限大的球；有限大的球被压时，除了接触处局部凹陷，整个球也会被压扁一点，多存一些能量。我打算把能量拆成「接触处局部的部分」（就是现在的模型）加「整个物体整体让开的部分」。后者只取决于物体自己的形状，可以对每个物体用有限元预先算一次存起来。能否用 Huanyu 的数据检验整体那部分？</li>
+<li><strong>速度目标：</strong> 每个接触区、每次牛顿迭代，多少时间算可以接受？</li>
+<li><strong>优先级：</strong> 先把网络接进 libuipc（Genesis 底层用的 GPU 版 IPC 求解器）跑通动力学，还是先做过渡区？</li>
 </ol></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
 <dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
