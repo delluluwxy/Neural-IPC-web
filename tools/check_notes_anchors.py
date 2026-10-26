@@ -21,6 +21,7 @@ fuzzy / orphan 就是「笔记没跟着内容走」，逐条打印锚点内容�
 """
 import argparse
 import json
+import math
 import pathlib
 import subprocess
 import sys
@@ -308,6 +309,215 @@ def browser_check(rel, notes):
     return st["orphans"] == 0 and n == len(notes.get("strokes", []))
 
 
+# ---------------------------------------------------------------- 笔迹跑偏诊断（用户 10-26：「写好了然后跑到边上去了」）
+VIEW_H = {820: 1180, 1180: 820, 1440: 900}
+# 落笔位置（页面里按固定规则挑元素，滚到视口中间，返回起笔屏幕点）：正文、行内公式上 / 旁、陈列公式、图、卡片内左边距、
+# 卡片外右侧、展开的折叠块里
+SPOT_JS = r"""(name) => {
+  const art = document.querySelector('main article'), main = document.querySelector('main');
+  const center = el => { el.scrollIntoView({block: 'center'}); const r = el.getBoundingClientRect(); return [r, (r.left + r.right) / 2, (r.top + r.bottom) / 2]; };
+  const charMid = p => { const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT); let n = w.nextNode();
+    while (n && (n.data.trim().length < 6 || n.parentElement.closest('mjx-container'))) n = w.nextNode();
+    p.scrollIntoView({block: 'center'}); const rg = document.createRange(), k = n.data.length >> 1; rg.setStart(n, k); rg.setEnd(n, k + 1);
+    const r = rg.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  const paras = [...art.querySelectorAll('p')].filter(p => !p.closest('details') && p.textContent.trim().length > 40);
+  if (name === '正文') return charMid(paras[10]);
+  const inl = [...art.querySelectorAll('p mjx-container:not([display="true"])')].filter(m => !m.closest('details'))[5];
+  if (name === '行内公式上') { const [, x, y] = center(inl); return [x, y]; }
+  if (name === '行内公式旁') { const [r, , y] = center(inl); return [r.right + 6, y]; }
+  if (name === '陈列公式') { const [, x, y] = center([...art.querySelectorAll('mjx-container[display="true"]')].filter(m => !m.closest('details'))[3]); return [x, y]; }
+  if (name === '图') { const [, x, y] = center(art.querySelectorAll('img')[2]); return [x, y]; }
+  if (name === '卡片内左边距') { const [, y] = charMid(paras[14]); return [main.getBoundingClientRect().left + 12, y]; }
+  if (name === '卡片外右侧') { const [, y] = charMid(paras[18]); const r = main.getBoundingClientRect(); return [Math.min(r.right + 30, innerWidth - 4), y]; }
+  if (name === '折叠块内') { const d = art.querySelector('details'); d.open = true; return charMid(d.querySelector('p') || d); }
+  return null;
+}"""
+SPOTS = ("正文", "行内公式上", "行内公式旁", "陈列公式", "图", "卡片内左边距", "卡片外右侧", "折叠块内")
+
+
+def _stroke_shape(x, y, tool):
+    """一笔的屏幕点：笔 = 横向 40 px 的小波浪（13 点）；荧光笔 = 横向 60 px 的直线（16 点）。点距 ≥ 3 px（标注层丢弃过密点）。"""
+    if tool == "hl":
+        return [(x - 30 + 4 * k, y) for k in range(16)]
+    return [(x - 20 + 3.4 * k, y + (4 if k % 2 else -4)) for k in range(13)]
+
+
+def _max_dev(a, b):
+    """两串正文卡片坐标点的最大偏差（px）：同长度逐点比，否则每点到另一串最近点。"""
+    if len(a) == len(b):
+        return max(math.hypot(p[0] - q[0], p[1] - q[1]) for p, q in zip(a, b))
+    return max(min(math.hypot(p[0] - q[0], p[1] - q[1]) for q in b) for p in a)
+
+
+def drift_synth(page_html, widths, out):
+    """--drift-synth：无头 Chromium（触摸设备、2 倍像素）按宽度打开 page_html（file://，本机存储为空），打开标注，在 SPOTS 每处先用笔、
+    再在正文 / 行内公式 / 陈列公式用荧光笔各画一笔（鼠标指针，标注层对非手指指针一视同仁）。落笔坐标 = 每个鼠标点当场经
+    __nipcNotes.frame() 换成正文卡片坐标；重绘坐标 = __nipcNotes.placed(id).abs。每笔比三次：① 画完所有笔后（每次收笔都会
+    全页重放，annotate.py commit）；② 滚到页顶、页底各调一次 render()；③ reload（本机存储保留）后。打印逐笔表，写 out。"""
+    res = {}
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for w in widths:
+            ctx = browser.new_context(viewport={"width": w, "height": VIEW_H.get(w, 900)}, device_scale_factor=2, has_touch=True)
+            ctx.route("https://api.github.com/**", lambda route, req: route.abort())
+            pg = ctx.new_page()
+
+            def ready():
+                pg.wait_for_function("window.__nipcNotes && window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
+                pg.evaluate("MathJax.startup.promise")
+                pg.evaluate("Promise.all([...document.images].map(i => (i.loading = 'eager', i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))))")
+                if pg.is_visible("#annot-fab"):
+                    pg.click("#annot-fab")
+                pg.wait_for_timeout(500)
+            pg.goto(pathlib.Path(page_html).resolve().as_uri(), wait_until="domcontentloaded", timeout=120000)
+            ready()
+            rows = []
+            for tool in ("pen", "hl"):
+                pg.click('[data-tool="hl"]' if tool == "hl" else '[data-tool="pen"][data-color="red"]')
+                for name in (SPOTS if tool == "pen" else ("正文", "行内公式上", "陈列公式")):
+                    xy = pg.evaluate(SPOT_JS, name)
+                    pg.wait_for_timeout(300)
+                    xy = pg.evaluate(SPOT_JS, name)          # 滚动停稳后再取一次
+                    pts = _stroke_shape(xy[0], xy[1], tool)
+                    f = pg.evaluate("window.__nipcNotes.frame()")
+                    local = [((x - f["x"]) / f["s"], (y - f["y"]) / f["s"]) for x, y in pts]
+                    pg.mouse.move(*pts[0])
+                    pg.mouse.down()
+                    for q in pts[1:]:
+                        pg.mouse.move(*q)
+                    pg.mouse.up()
+                    pg.wait_for_timeout(150)
+                    sid, anchor = pg.evaluate("(() => { const s = window.__nipcNotes.strokes(); const t = s[s.length - 1]; return [t.id, t.anchor]; })()")
+                    rows.append(dict(spot=name, tool=tool, id=sid, type=anchor.get("type"),
+                                     cover=anchor.get("cover") or anchor.get("src") or anchor.get("tex") or anchor.get("exact") or "",
+                                     local=local, scale=f["s"]))
+                    print(f"[drift synth {w}] {tool} {name}: 锚 {anchor.get('type')} 「{rows[-1]['cover'][:20]}」", flush=True)
+
+            def measure(tag):
+                for r in rows:
+                    d = pg.evaluate("id => window.__nipcNotes.placed(id)", r["id"])
+                    r[tag] = None if not d or not d["abs"] else round(_max_dev(r["local"], [(a[0], a[1]) for a in d["abs"]]), 3)
+            pg.evaluate("window.__nipcNotes.render()")
+            pg.wait_for_timeout(200)
+            measure("after_all")
+            for y in ("0", "document.body.scrollHeight"):
+                pg.evaluate(f"window.scrollTo(0, {y})")
+                pg.wait_for_timeout(200)
+                pg.evaluate("window.__nipcNotes.render()")
+                pg.wait_for_timeout(200)
+            measure("after_scroll")
+            pg.reload(wait_until="domcontentloaded", timeout=120000)
+            ready()
+            pg.evaluate("window.__nipcNotes.render()")
+            pg.wait_for_timeout(300)
+            measure("after_reload")
+            for r in rows:
+                print(f"[drift synth {w}] {r['tool']:3s} {r['spot']:6s} {r['type']:6s} 「{r['cover'][:16]}」 偏差 px：收完全部笔 {r['after_all']}  "
+                      f"滚动重放 {r['after_scroll']}  重载 {r['after_reload']}", flush=True)
+            res[w] = rows
+            ctx.close()
+        browser.close()
+    pathlib.Path(out).write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"wrote {out}")
+    return res
+
+
+def _quote_ok(text, p, a):
+    """正文第 p 个字是否就是锚点 a 落笔时那个字：前后文一字不差。"""
+    pre, suf = a.get("prefix", ""), a.get("suffix", "")
+    return text[max(0, p - len(pre)):p] == pre and text[p:p + 1] == a.get("exact") and text[p + 1:p + 1 + len(suf)] == suf
+
+
+def _is_margin(s, near=30.0):
+    """落笔时这笔离它的锚（字 / 符号）的参考矩形超过 near px（annotate.py CFG.nearPx）= 页边旁注（锚是放宽搜索找来的）。"""
+    if s["drawn"]["frame"] != "px":
+        return False
+    R = s["drawn"]["orig"]
+    d = min(math.hypot(max(-x, 0, x - R["w"]), max(-y, 0, y - R["h"])) for x, y, *_ in s["drawn"]["pts"])
+    return d > near
+
+
+def drift_data(notes, pages_dir, out):
+    """--drift-data：每笔在它画的那一版页面上（pages_dir/<drawn.page>/week3_4.html，笔记以只读快照嵌入）被挂到了哪
+    （__nipcNotes.where），与落笔时的锚点（drawn.anchor）比：正文 = 那个字前后文一字不差；公式 = 同 TeX、符号前后 8 个与 g 相同、
+    公式前 30 字与 ctx 相同；图 = 同 src。不一致 = 挂到了别处（跑掉）。分类：② 落笔时锚在内容上（重找时挑错了同样的另一处）、
+    ③ 页边旁注（_is_margin）；另记锚点参考矩形与落笔时 orig 的差（px，受本机字体影响，只作 ④ 的旁证）。写 out。"""
+    strokes = notes["strokes"]
+    by_ver = {}
+    for s in strokes:
+        by_ver.setdefault(s["drawn"]["page"], []).append(s)
+    snap = json.dumps(notes, ensure_ascii=False).replace("</", "<\\/")
+    res = {"versions": {}, "moved": []}
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for ver, ss in sorted(by_ver.items()):
+            html = pathlib.Path(pages_dir) / ver / "week3_4.html"
+            assert html.exists(), f"缺 {ver} 版页面 {html}"
+            ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+            ctx.route("https://api.github.com/**", lambda route, req: route.abort())
+            ctx.add_init_script(f"window.NIPC_SNAPSHOT = {snap};")
+            pg = ctx.new_page()
+            pg.goto(html.resolve().as_uri(), wait_until="domcontentloaded", timeout=120000)
+            pg.wait_for_function("window.__nipcNotes && window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
+            pg.evaluate("MathJax.startup.promise")
+            pg.evaluate("Promise.all([...document.images].map(i => (i.loading = 'eager', i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))))")
+            pg.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
+            pg.wait_for_timeout(800)
+            pg.evaluate("window.__nipcNotes.render()")
+            assert pg.evaluate("window.NIPC_PAGE") == ver, "页面版本号与笔的 drawn.page 不符"
+            ids = [s["id"] for s in ss]
+            where = pg.evaluate("ids => window.__nipcNotes.where(ids)", ids)
+            rects = pg.evaluate("ids => window.__nipcNotes.anchorRects(ids)", ids)
+            ci = pg.evaluate("window.__nipcNotes.contentIndex()")
+            text, maths = ci["text"], ci["maths"]
+            n_bad = 0
+            for s in ss:
+                a, w_ = s["drawn"]["anchor"], where.get(s["id"]) or {}
+                kind, ok, now = w_.get("kind"), None, ""
+                if a["type"] == "text" and kind == "text":
+                    ok, pp = _quote_ok(text, w_["pos"], a), w_["pos"]
+                    now = f"{text[max(0, pp - 10):pp]}【{text[pp]}】{text[pp + 1:pp + 11]}"
+                elif a["type"] == "math" and kind in ("glyph", "math"):
+                    m = maths[w_["math"]]
+                    gi = w_.get("gi", -1)
+                    q = ("".join(m["ch"][max(0, gi - 8):gi]), m["ch"][gi] if gi >= 0 else "", "".join(m["ch"][gi + 1:gi + 9]))
+                    g = a.get("g") or {}
+                    ctx_now = text[max(0, m["pos"] - 30):m["pos"]] if m["pos"] >= 0 else text[-30:]
+                    ok = m["tex"] == a["tex"] and (not g or q == (g.get("prefix"), g.get("exact"), g.get("suffix"))) and ctx_now == a.get("ctx")
+                    now = f"${m['tex'][:40]}$ 第 {gi} 个符号 {q[0][-4:]}【{q[1]}】{q[2][:4]}，公式前文「{ctx_now[-12:]}」"
+                elif a["type"] == "media" and kind == "media":
+                    ok, now = w_["src"] == a["src"], f"图 {w_['src']} 第 {w_.get('nth')} 个"
+                elif a["type"] == "page":
+                    ok, now = True, "整页"
+                else:
+                    ok, now = False, f"状态 {w_.get('state')}，挂到 {kind}"
+                R, O = rects.get(s["id"]), s["drawn"]["orig"]
+                dR = None if not R else round(math.hypot(R["x"] - O["x"], R["y"] - O["y"]), 2)
+                if not ok:
+                    n_bad += 1
+                    was = (f"{a.get('prefix', '')[-10:]}【{a.get('exact', '')}】{a.get('suffix', '')[:10]}" if a["type"] == "text" else
+                           f"${a.get('tex', '')[:40]}$ 符号 {(a.get('g') or {}).get('prefix', '')[-4:]}【{(a.get('g') or {}).get('exact', '')}】"
+                           f"{(a.get('g') or {}).get('suffix', '')[:4]}，公式前文「{a.get('ctx', '')[-12:]}」" if a["type"] == "math" else a.get("src", ""))
+                    res["moved"].append(dict(id=s["id"], version=ver, type=a["type"], cover=a.get("cover", ""), margin=_is_margin(s),
+                                             was=was, now=now, rect_minus_orig_px=dR, at=s["drawn"]["at"]))
+            res["versions"][ver] = dict(strokes=len(ss), moved=n_bad,
+                                        rect_minus_orig_px=sorted(round(math.hypot(rects[i]["x"] - s["drawn"]["orig"]["x"],
+                                                                                   rects[i]["y"] - s["drawn"]["orig"]["y"]), 2)
+                                                                  for i, s in zip(ids, ss) if rects.get(i)))
+            print(f"[drift data] 版本 {ver}：{len(ss)} 笔，挂到别处 {n_bad}", flush=True)
+            ctx.close()
+        browser.close()
+    mv = res["moved"]
+    print(f"[drift data] 合计 {len(strokes)} 笔，挂到别处 {len(mv)}：页边旁注 {sum(m['margin'] for m in mv)}，落在内容上 {sum(not m['margin'] for m in mv)}；"
+          f"按类型 " + "，".join(f"{t} {sum(m['type'] == t for m in mv)}" for t in ("text", "math", "media")))
+    for m in mv:
+        print(f"[drift data]   {m['id']} {m['type']:5s} {'旁注' if m['margin'] else '内容'} 圈住「{m['cover'][:12]}」\n"
+              f"      落笔：{m['was']}\n      现在：{m['now']}", flush=True)
+    pathlib.Path(out).write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"wrote {out}")
+    return res
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("page")
@@ -318,7 +528,19 @@ def main():
     ap.add_argument("--shot-dir", help="--compare 时给位置变了的笔各截新旧两张图到这个目录")
     ap.add_argument("--browser", action="store_true", help="改为在真实页面里导入笔记，按标注层自己的判定数标灰笔")
     ap.add_argument("--grep", nargs="+", metavar="TEXT", help="只打印正文索引里这些文字前后各 60 字（写对应表时用）")
+    ap.add_argument("--drift-synth", action="store_true",
+                    help="笔迹跑偏诊断：page 为页面 html 的路径，模拟落笔，比落笔坐标与重绘坐标（drift_synth）")
+    ap.add_argument("--widths", type=int, nargs="+", default=[820, 1180, 1440], help="--drift-synth 的视口宽度")
+    ap.add_argument("--drift-data", metavar="PAGES_DIR",
+                    help="笔迹跑偏诊断：PAGES_DIR/<页面版本号>/week3_4.html 各版页面，比每笔现在挂到哪与落笔时的锚点（drift_data）")
+    ap.add_argument("--out", help="--drift-synth / --drift-data 的结果 json")
     args = ap.parse_args()
+    if args.drift_synth:
+        drift_synth(args.page, args.widths, args.out)
+        return
+    if args.drift_data:
+        drift_data(load_notes(args.page, args.notes), args.drift_data, args.out)
+        return
     if args.grep:
         t = page_data(args.page)["text"]
         for g in args.grep:
