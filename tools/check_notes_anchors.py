@@ -315,10 +315,10 @@ VIEW_H = {820: 1180, 1180: 820, 1440: 900}
 # 卡片外右侧、展开的折叠块里
 SPOT_JS = r"""(name) => {
   const art = document.querySelector('main article'), main = document.querySelector('main');
-  const center = el => { el.scrollIntoView({block: 'center'}); const r = el.getBoundingClientRect(); return [r, (r.left + r.right) / 2, (r.top + r.bottom) / 2]; };
+  const center = el => { el.scrollIntoView({block: 'center', behavior: 'instant'}); const r = el.getBoundingClientRect(); return [r, (r.left + r.right) / 2, (r.top + r.bottom) / 2]; };
   const charMid = p => { const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT); let n = w.nextNode();
     while (n && (n.data.trim().length < 6 || n.parentElement.closest('mjx-container'))) n = w.nextNode();
-    p.scrollIntoView({block: 'center'}); const rg = document.createRange(), k = n.data.length >> 1; rg.setStart(n, k); rg.setEnd(n, k + 1);
+    p.scrollIntoView({block: 'center', behavior: 'instant'}); const rg = document.createRange(), k = n.data.length >> 1; rg.setStart(n, k); rg.setEnd(n, k + 1);
     const r = rg.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
   const paras = [...art.querySelectorAll('p')].filter(p => !p.closest('details') && p.textContent.trim().length > 40);
   if (name === '正文') return charMid(paras[10]);
@@ -361,6 +361,9 @@ def drift_synth(page_html, widths, out):
             ctx = browser.new_context(viewport={"width": w, "height": VIEW_H.get(w, 900)}, device_scale_factor=2, has_touch=True)
             ctx.route("https://api.github.com/**", lambda route, req: route.abort())
             pg = ctx.new_page()
+            errs = []
+            pg.on("pageerror", lambda e: errs.append(str(e)[:300]))
+            pg.on("console", lambda m: m.type == "error" and errs.append(m.text[:300]))
 
             def ready():
                 pg.wait_for_function("window.__nipcNotes && window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
@@ -368,6 +371,9 @@ def drift_synth(page_html, widths, out):
                 pg.evaluate("Promise.all([...document.images].map(i => (i.loading = 'eager', i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))))")
                 if pg.is_visible("#annot-fab"):
                     pg.click("#annot-fab")
+                # 「折叠块内」要展开第一个折叠块，它会把下面的正文整体推下去（笔跟着内容走，属正常）；所以落笔前、重载后都先展开，
+                # 三次比较时排版相同
+                pg.evaluate("document.querySelector('main article details').open = true")
                 pg.wait_for_timeout(500)
             pg.goto(pathlib.Path(page_html).resolve().as_uri(), wait_until="domcontentloaded", timeout=120000)
             ready()
@@ -387,7 +393,10 @@ def drift_synth(page_html, widths, out):
                         pg.mouse.move(*q)
                     pg.mouse.up()
                     pg.wait_for_timeout(150)
-                    sid, anchor = pg.evaluate("(() => { const s = window.__nipcNotes.strokes(); const t = s[s.length - 1]; return [t.id, t.anchor]; })()")
+                    got = pg.evaluate("(() => { const s = window.__nipcNotes.strokes(); const t = s[s.length - 1]; return t ? [t.id, t.anchor] : null; })()")
+                    assert got and got[0] not in {r["id"] for r in rows}, (
+                        f"{w} {tool} {name}：这一笔没有存下（标注 {pg.evaluate('window.__nipcNotes.status()')}，起笔点 {pts[0]}，页面报错 {errs[-3:]}）")
+                    sid, anchor = got
                     rows.append(dict(spot=name, tool=tool, id=sid, type=anchor.get("type"),
                                      cover=anchor.get("cover") or anchor.get("src") or anchor.get("tex") or anchor.get("exact") or "",
                                      local=local, scale=f["s"]))
@@ -401,7 +410,7 @@ def drift_synth(page_html, widths, out):
             pg.wait_for_timeout(200)
             measure("after_all")
             for y in ("0", "document.body.scrollHeight"):
-                pg.evaluate(f"window.scrollTo(0, {y})")
+                pg.evaluate(f"window.scrollTo({{left: 0, top: {y}, behavior: 'instant'}})")
                 pg.wait_for_timeout(200)
                 pg.evaluate("window.__nipcNotes.render()")
                 pg.wait_for_timeout(200)
@@ -461,8 +470,7 @@ def drift_data(notes, pages_dir, out):
             pg.wait_for_function("window.__nipcNotes && window.MathJax && MathJax.startup && MathJax.startup.promise", timeout=120000)
             pg.evaluate("MathJax.startup.promise")
             pg.evaluate("Promise.all([...document.images].map(i => (i.loading = 'eager', i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))))")
-            pg.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")
-            pg.wait_for_timeout(800)
+            pg.wait_for_timeout(800)     # 折叠块保持收起（她打开页面时的默认排版），不然 anchorRects 与落笔时的 orig 不可比
             pg.evaluate("window.__nipcNotes.render()")
             assert pg.evaluate("window.NIPC_PAGE") == ver, "页面版本号与笔的 drawn.page 不符"
             ids = [s["id"] for s in ss]
@@ -507,6 +515,30 @@ def drift_data(notes, pages_dir, out):
             print(f"[drift data] 版本 {ver}：{len(ss)} 笔，挂到别处 {n_bad}", flush=True)
             ctx.close()
         browser.close()
+    # ④ 的旁证（只用笔记数据、不用本机排版）：同一版页面上挂在同一处（同一个字 / 符号 / 图）的几笔，落笔时在 iPad 上量到的
+    # 参考矩形 orig 应该完全一样；不一样 = 那台设备上同一处在不同时刻量出不同位置（折叠开合、图片加载、或缩放下量法不一致）
+    groups = {}
+    for s in strokes:
+        a = s["drawn"]["anchor"]
+        key = (s["drawn"]["page"], a["type"], a.get("prefix"), a.get("exact"), a.get("suffix"), a.get("tex"),
+               json.dumps(a.get("g"), ensure_ascii=False), a.get("ctx"), a.get("src"))
+        groups.setdefault(key, []).append(s)
+    same = []
+    for key, ss in groups.items():
+        if len(ss) < 2:
+            continue
+        o = [s["drawn"]["orig"] for s in ss]
+        dx = max(v["x"] for v in o) - min(v["x"] for v in o)
+        dy = max(v["y"] for v in o) - min(v["y"] for v in o)
+        dw = max(v["w"] for v in o) - min(v["w"] for v in o)
+        same.append(dict(page=key[0], type=key[1], n=len(ss), spread_x=round(dx, 2), spread_y=round(dy, 2), spread_w=round(dw, 2),
+                         what=(key[3] or key[5] or key[8] or "")[:30], ats=sorted(s["drawn"]["at"] for s in ss)))
+    res["same_anchor_orig_spread"] = same
+    bad = [g for g in same if max(g["spread_x"], g["spread_y"], g["spread_w"]) > 0.5]
+    print(f"[drift data] ④ 旁证：同一版页面上挂在同一处的笔 {len(same)} 组；落笔时参考矩形不一致（> 0.5 px）的 {len(bad)} 组", flush=True)
+    for g in sorted(bad, key=lambda g: -max(g["spread_x"], g["spread_y"]))[:12]:
+        print(f"[drift data]   {g['page']} {g['type']:5s} ×{g['n']} 「{g['what']}」 x 差 {g['spread_x']} y 差 {g['spread_y']} 宽差 {g['spread_w']}  "
+              f"落笔时刻 {g['ats'][0][11:19]}–{g['ats'][-1][11:19]}", flush=True)
     mv = res["moved"]
     print(f"[drift data] 合计 {len(strokes)} 笔，挂到别处 {len(mv)}：页边旁注 {sum(m['margin'] for m in mv)}，落在内容上 {sum(not m['margin'] for m in mv)}；"
           f"按类型 " + "，".join(f"{t} {sum(m['type'] == t for m in mv)}" for t in ("text", "math", "media")))
@@ -516,6 +548,56 @@ def drift_data(notes, pages_dir, out):
     pathlib.Path(out).write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"wrote {out}")
     return res
+
+
+def deleted_from_history(page_file, notes, out):
+    """--deleted-from-history：笔记里被擦掉的笔（tombstones：id → 删除时刻 ms）从笔记仓库历史里找回原样（只读）：
+    每个墓碑取删除时刻之前最近的那次提交里的这一笔（gh api 列提交 + git blobs 取 >1 MB 的文件）。输出与笔记同格式的 json
+    （strokes = 找回的笔，每笔加 deleted_at、lifetime_s = 删除时刻 − drawn.at），供 --drift-data 判它们当时是否挂到了别处；
+    并打印寿命分布（画完很快就擦的笔最可能是「跑掉了」被擦重画的）。"""
+    import datetime as dt
+    path = f"notes/{pathlib.Path(page_file).stem}.json"
+    commits = []
+    for pg in range(1, 20):
+        got = json.loads(subprocess.run(["gh", "api", f"repos/{REPO}/commits?path={path}&per_page=100&page={pg}"],
+                                        capture_output=True, text=True, check=True).stdout)
+        commits += [(c["sha"], dt.datetime.fromisoformat(c["commit"]["committer"]["date"].replace("Z", "+00:00")).timestamp() * 1000)
+                    for c in got]
+        if len(got) < 100:
+            break
+    commits.sort(key=lambda c: c[1])
+    cache = {}
+
+    def at(sha):
+        if sha not in cache:
+            bsha = subprocess.run(["gh", "api", f"repos/{REPO}/contents/{path}?ref={sha}", "--jq", ".sha"],
+                                  capture_output=True, text=True, check=True).stdout.strip()
+            b64 = subprocess.run(["gh", "api", f"repos/{REPO}/git/blobs/{bsha}", "--jq", ".content"],
+                                 capture_output=True, text=True, check=True).stdout
+            import base64
+            cache[sha] = {s["id"]: s for s in json.loads(base64.b64decode(b64))["strokes"]}
+        return cache[sha]
+    found, missing = [], []
+    for sid, t_del in sorted(notes.get("tombstones", {}).items(), key=lambda kv: kv[1]):
+        before = [c for c in commits if c[1] <= t_del]
+        s = None
+        for sha, _ in reversed(before[-3:]):          # 删除前最近的 3 次提交里找（同步可能慢一拍）
+            s = at(sha).get(sid)
+            if s:
+                break
+        if not s:
+            missing.append(sid)
+            continue
+        drawn_ms = dt.datetime.fromisoformat(s["drawn"]["at"].replace("Z", "+00:00")).timestamp() * 1000
+        found.append(dict(s, deleted_at=dt.datetime.utcfromtimestamp(t_del / 1000).isoformat() + "Z",
+                          lifetime_s=round((t_del - drawn_ms) / 1000, 1)))
+    life = sorted(s["lifetime_s"] for s in found)
+    print(f"[deleted] 墓碑 {len(notes.get('tombstones', {}))}，找回 {len(found)}，找不到 {len(missing)}（取了 {len(cache)} 个历史版本）")
+    if life:
+        print(f"[deleted] 画完到擦掉的秒数：≤10 s {sum(x <= 10 for x in life)}，≤60 s {sum(x <= 60 for x in life)}，"
+              f"≤600 s {sum(x <= 600 for x in life)}，中位数 {life[len(life) // 2]}")
+    pathlib.Path(out).write_text(json.dumps(dict(notes, strokes=found, tombstones={}), ensure_ascii=False), encoding="utf-8")
+    print(f"wrote {out}")
 
 
 def main():
@@ -533,8 +615,13 @@ def main():
     ap.add_argument("--widths", type=int, nargs="+", default=[820, 1180, 1440], help="--drift-synth 的视口宽度")
     ap.add_argument("--drift-data", metavar="PAGES_DIR",
                     help="笔迹跑偏诊断：PAGES_DIR/<页面版本号>/week3_4.html 各版页面，比每笔现在挂到哪与落笔时的锚点（drift_data）")
-    ap.add_argument("--out", help="--drift-synth / --drift-data 的结果 json")
+    ap.add_argument("--out", help="--drift-synth / --drift-data / --deleted-from-history 的结果 json")
+    ap.add_argument("--deleted-from-history", action="store_true",
+                    help="从笔记仓库历史里找回被擦掉的笔（deleted_from_history），写 --out，可再喂给 --drift-data")
     args = ap.parse_args()
+    if args.deleted_from_history:
+        deleted_from_history(args.page, load_notes(args.page, args.notes), args.out)
+        return
     if args.drift_synth:
         drift_synth(args.page, args.widths, args.out)
         return
