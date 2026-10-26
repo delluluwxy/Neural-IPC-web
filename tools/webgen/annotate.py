@@ -1306,7 +1306,16 @@ ANNOT_JS = r"""
     if (r.status === 404) return { data: null, sha: null };
     if (!r.ok) throw new Error('读取 ' + r.status);
     const j = await r.json();
-    return { data: JSON.parse(b64DecodeUtf8(j.content)), sha: j.sha };
+    let b64 = j.content;
+    if (!b64 && j.sha) {   // 文件超过 1 MB 时 contents API 不给 content，改按 sha 取 blob（上限 100 MB）
+      const rb = await fetch(`https://api.github.com/repos/${cfg.repo}/git/blobs/${j.sha}`, {
+        cache: 'no-store',
+        headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      });
+      if (!rb.ok) throw new Error('读取 blob ' + rb.status);
+      b64 = (await rb.json()).content;
+    }
+    return { data: JSON.parse(b64DecodeUtf8(b64)), sha: j.sha };
   }
   /** 写远端文件；sha 过期（409 / 422）返回 {conflict: true}。 */
   async function ghPut(cfg, data, sha, keepalive) {
