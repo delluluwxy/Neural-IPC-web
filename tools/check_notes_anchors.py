@@ -329,10 +329,16 @@ SPOT_JS = r"""(name) => {
   if (name === '图') { const [, x, y] = center(art.querySelectorAll('img')[2]); return [x, y]; }
   if (name === '卡片内左边距') { const [, y] = charMid(paras[14]); return [main.getBoundingClientRect().left + 12, y]; }
   if (name === '卡片外右侧') { const [, y] = charMid(paras[18]); const r = main.getBoundingClientRect(); return [Math.min(r.right + 30, innerWidth - 4), y]; }
+  if (name === '表格重复内容') {   // 同一张表里内容相同的第二个单元格（如两行都写「1 / 0」），圈这一格
+    const cells = [...art.querySelectorAll('td')].filter(c => !c.closest('details'));
+    const seen = new Map();
+    for (const c of cells) { const t = c.textContent.trim(); if (t.length >= 3 && seen.has(t) && seen.get(t).closest('table') === c.closest('table')) { const [, x, y] = center(c); return [x, y]; } seen.set(t, c); }
+    return null;
+  }
   if (name === '折叠块内') { const d = art.querySelector('details'); d.open = true; return charMid(d.querySelector('p') || d); }
   return null;
 }"""
-SPOTS = ("正文", "行内公式上", "行内公式旁", "陈列公式", "图", "卡片内左边距", "卡片外右侧", "折叠块内")
+SPOTS = ("正文", "行内公式上", "行内公式旁", "陈列公式", "图", "卡片内左边距", "卡片外右侧", "折叠块内", "表格重复内容")
 
 
 def _stroke_shape(x, y, tool):
@@ -380,7 +386,7 @@ def drift_synth(page_html, widths, out):
             rows = []
             for tool in ("pen", "hl"):
                 pg.click('[data-tool="hl"]' if tool == "hl" else '[data-tool="pen"][data-color="red"]')
-                for name in (SPOTS if tool == "pen" else ("正文", "行内公式上", "陈列公式")):
+                for name in (SPOTS if tool == "pen" else ("正文", "行内公式上", "陈列公式", "表格重复内容")):
                     xy = pg.evaluate(SPOT_JS, name)
                     pg.wait_for_timeout(300)
                     xy = pg.evaluate(SPOT_JS, name)          # 滚动停稳后再取一次
