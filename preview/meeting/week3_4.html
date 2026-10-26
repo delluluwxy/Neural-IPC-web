@@ -241,7 +241,7 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "506ab9d6734a";</script>
+<script>window.NIPC_PAGE = "ea33880f95ff";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -566,6 +566,7 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li>两组输入对调再算一遍取平均，所以哪一侧叫「压头」、哪一侧叫「块」，结果都一样。</li>
 <li>两个主方向目前是按弯曲大小排序、没有对称化：两侧软硬不同、合起来又接近圆的接触（比如十字交叉的两根杆），在两个方向弯曲程度相同的那一点，能量会跳 0.73%。下一版二维网络把输入改成两个方向对调后不变的形式来解决。</li>
+<li>泊松比目前只在 \(\nu=0.3\) 上训练过：网络还没见过 \(\nu\) 变化的效果，用到橡胶这类接近 0.5 的材料就是外推。</li>
 <li>这一行里斜率乘数从中心的 1，到 \(a/2\) 处 1.043，再到边缘 1.078：外圈调陡了，正是下面说的「压头软时外圈调陡、能量降下来」。</li>
 </ul>
 <p><strong>网络的做法：</strong> 在等效轮廓 \(g\) 的每个位置上，给它的斜率乘一个接近 1 的正数。比如压头软、自己会被压扁，网络就把轮廓外圈调陡一点，接触区变窄，能量随之降下来。</p>
