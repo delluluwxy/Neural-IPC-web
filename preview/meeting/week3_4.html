@@ -241,7 +241,7 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "78420ae17d32";</script>
+<script>window.NIPC_PAGE = "e07e3da62703";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -1488,8 +1488,56 @@ html.annot-on #annot-capture { display: block; }
     for (const x of A) if (B.has(x)) n++;
     return A.size + B.size ? n / (A.size + B.size - n) : 1;
   }
-  /** 正文里圈住的关键词：全页找这串字（不行再按改名表换写法找），只有一处就是它；几处就挑所在段落与原段落最像的
-   * （coverCtxAccept 以上），同样像的取离原位置近的；一处都没有（关键词删了）返回 null，这笔不画。 */
+  /** 几个候选（文档顺序）里取离原位置 orig 最近的（参考矩形左上角的距离，正文卡片 px）；最近的几处距离平手（≤ 0.5 px）且
+   * 锚点记了 nth（收笔自检 pinIfAmbiguous 写的「落笔那一处在这串候选里排第几」）时按 nth 取——nth 只作最后的平手区分。 */
+  function closestOf(list, rectOf, a, orig, f) {
+    if (list.length === 1) return list[0];
+    const d = list.map(x => { const r = rectOf(x); if (!r) return Infinity; const R = localRect(r, f); return Math.hypot(R.x - orig.x, R.y - orig.y); });
+    const best = Math.min(...d), tied = list.filter((x, k) => d[k] <= best + 0.5);
+    if (tied.length > 1 && Number.isInteger(a.nth) && a.nth >= 0 && a.nth < list.length && tied.includes(list[a.nth])) return list[a.nth];
+    return list[d.indexOf(best)];
+  }
+  /** 正文第 p 个字是否就是锚点 a 落笔时那个字：被锚字连同落笔时存的前后各 quoteLen 字一字不差。 */
+  function quoteAt(p, a) {
+    const t = S.index.text, pre = a.prefix || '', suf = a.suffix || '';
+    return p >= pre.length && t.slice(p - pre.length, p) === pre && t[p] === a.exact && t.slice(p + 1, p + 1 + suf.length) === suf;
+  }
+  /** 正文里圈住的关键词原样出现、且落笔时的完整前后文也原样的那几处（文档顺序）。 */
+  function textSame(a) { return allIndexes(S.index.text, a.cover, 2000).filter(p => quoteAt(p, a)); }
+  /** 公式里圈住的符号串原样出现、且落笔时那一处原样的那几处（文档顺序）：同 TeX、起始符号前后各 glyphLen 个符号一字不差、
+   * 公式前文 ctx 一字不差。返回 [{m, g, i}]。 */
+  function glyphSame(a) {
+    if (!a.g) return [];
+    const seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover), out = [];
+    for (const m of allMath()) {
+      if (m.tex !== a.tex || contextBefore(m.el) !== a.ctx) continue;
+      const g = glyphList(m.el);
+      for (const i of seqIndexes(g.ch, seq)) {
+        const q = glyphQuote(g, i);
+        if (q.prefix === a.g.prefix && q.exact === a.g.exact && q.suffix === a.g.suffix) out.push({ m, g, i });
+      }
+    }
+    return out;
+  }
+  /** 收笔 / 移动后自检（用户 10-26：「写好了然后跑到边上去了」）：新锚点此刻解回的参考矩形若不是落笔时的 orig（差 > 0.5 px），
+   * 说明落笔前后文原样相同的有好几处、按距离也分不开：记 anchor.nth = 落笔那一处在这几处（文档顺序）里排第几，
+   * 供 closestOf 平手时区分（只作最后的平手区分，不压过前后文）。只管圈住内容的正文 / 公式锚点。 */
+  function pinIfAmbiguous(s, f) {
+    const a = s.anchor;
+    if (!a.cover || (a.type !== 'text' && a.type !== 'math')) return;
+    const at = r => { if (!r) return false; const R = localRect(r, f); return Math.hypot(R.x - s.orig.x, R.y - s.orig.y) <= 0.5; };
+    const t = findTarget(a, s.orig, f);
+    if (t && at(t.glyph ? elementRect(t.glyph) : t.pos !== undefined ? charRect(t.pos) : null)) return;
+    const k = a.type === 'text' ? textSame(a).findIndex(p => at(charRect(p)))
+                                : glyphSame(a).findIndex(x => at(elementRect(x.g.els[x.i])));
+    if (k >= 0) a.nth = k;
+  }
+  /** 正文里圈住的关键词（用户 10-25：内容挪了跟着走、改写了关键词没变还圈在关键词上），三步：
+   * 1. 全页找这串字；落笔时存的完整前后文（prefix / exact / suffix）原样还在的那几处优先，有就只在它们里取（closestOf）——
+   *    内容没改时一定认回落笔那一处（用户 10-26：表格里两格都是「1 / 0」，以前会跳到上一行那格）；
+   * 2. 原样前后文一处都没有（内容改写过）：照旧按关键词跟着走，不因前后文变了就隐藏——每一处比紧挨着的前后各 10 字和周围段落，
+   *    前后 10 字优先、段落其次；「段落」短到只是这几个字（如一个表格单元格）时不比段落；
+   * 3. 关键词本身找不到（再按改名表换写法也找不到）返回 null，这笔不画。 */
   function findCover(a, orig, f) {
     const t = S.index.text;
     let cover = a.cover, hits = allIndexes(t, cover, 2000);
@@ -1500,26 +1548,28 @@ html.annot-on #annot-capture { display: block; }
       const m = { cover, exact: cover[0], prefix: rn(a.prefix), suffix: rn(a.suffix), block: rn(a.block) };
       return Object.keys(m).every(k => m[k] === (a[k] || '')) ? { pos } : { pos, migrated: Object.assign({}, a, m) };
     };
+    const same = cover === a.cover ? textSame(a) : [];
+    if (same.length) return out(closestOf(same, charRect, a, orig, f));
     if (hits.length === 1 || !a.block) return out(nearestPos(hits, orig, f));
     // 每一处比两样：紧挨着的前后各 10 字（只改了段落别处时原样不变），和周围与原段落等长的一段（改写、换语序、拆段也认得出）。
     // 认它的条件：前或后 10 字几乎原样（≥ coverNearAccept），或段落相似（≥ coverCtxAccept）且前后 10 字也不差（≥ coverCtxAccept）。
-    // 几处都认：先挑前后 10 字原样的，再比段落相似度，再比前后 10 字
+    // 几处都认：先挑前后 10 字原样的，再比前后 10 字相似度，最后比段落相似度
     const L = 10, pre = a.prefix.slice(-L), suf = a.suffix.slice(cover.length - 1, cover.length - 1 + L);
-    const half = Math.max(40, a.block.length >> 1);
+    const half = Math.max(40, a.block.length >> 1), useBlock = a.block.length >= 2 * cover.length + 4;
     let best = null, key = null;
     for (const p of hits) {
       const sp = similarity(pre, t.slice(Math.max(0, p - L), p)), ss = similarity(suf, t.slice(p + cover.length, p + cover.length + L));
-      const sb = bigramSim(a.block, t.slice(Math.max(0, p - half), p + cover.length + half));
+      const sb = useBlock ? bigramSim(a.block, t.slice(Math.max(0, p - half), p + cover.length + half)) : 0;
       const near = Math.max(sp, ss) >= CFG.coverNearAccept;
       if (!near && !(sb >= CFG.coverCtxAccept && (sp + ss) / 2 >= CFG.coverCtxAccept)) continue;
-      const k = [near ? 1 : 0, sb, sp + ss];
+      const k = [near ? 1 : 0, sp + ss, sb];
       if (!key || k[0] > key[0] || (k[0] === key[0] && (k[1] > key[1] + 1e-9 || (Math.abs(k[1] - key[1]) <= 1e-9 && k[2] > key[2])))) { best = p; key = k; }
     }
     return key ? out(best) : null;
   }
   /** 公式里圈住的符号串：先在原公式（TeX 相同或按改名表换过）里找，找不到再在全页陈列公式里找；几处就挑整个公式与原公式
    * 最像的（符号二元组 Jaccard），一处都没有返回 null。返回 {el: 公式, glyph: 起始符号元素}。 */
-  function findCoverGlyph(a) {
+  function findCoverGlyph(a, orig, f) {
     // 圈住的末尾标点（句号、逗号）不算内容：公式里「sin θ.」改成「sin ψ,」仍是同一处
     const all = allMath(), seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover);
     const renamed = renamedTex(a.tex);
@@ -1544,6 +1594,9 @@ html.annot-on #annot-capture { display: block; }
       return out;
     };
     let hits = search(own);
+    // 落笔时那一处原样还在（同 TeX、起始符号前后各 glyphLen 个符号一字不差、公式前文 ctx 一字不差）：只在这些里取，离原位置最近
+    const same = glyphSame(a);
+    if (same.length) { const h = closestOf(same, x => elementRect(x.g.els[x.i]), a, orig, f); return found(h.m, h.g, h.i); }
     if (!hits.length && own.length) {
       // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
       const m = own.find(o => glyphList(o.el).ch.length === a.gn);
@@ -1567,12 +1620,12 @@ html.annot-on #annot-capture { display: block; }
     // 原公式改写了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
     if (!hits.length && seq.length >= 2) hits = search(all);
     if (!hits.length) return null;
-    // 几处一样（短的行内公式常见）：依次比所在段落、公式前面的字、公式里前后的符号
+    // 几处一样（短的行内公式常见）：依次比公式前面的字、公式里前后的符号、所在段落（局部前后文优先）
     const origG = a.g.prefix + a.g.exact + a.g.suffix, t = S.index.text;
     const score = h => {
       const p = posFromElement(h.m.el), bs = p >= 0 ? blockSpan(p) : null, q = glyphQuote(h.g, h.i);
-      return [a.block && bs ? bigramSim(a.block, t.slice(bs.start, bs.end)) : 0,
-              similarity(a.ctx || '', contextBefore(h.m.el)), bigramSim(origG, q.prefix + q.exact + q.suffix)];
+      return [similarity(a.ctx || '', contextBefore(h.m.el)), bigramSim(origG, q.prefix + q.exact + q.suffix),
+              a.block && bs ? bigramSim(a.block, t.slice(bs.start, bs.end)) : 0];
     };
     const keyed = hits.map(h => [score(h), h]);
     keyed.sort((x, y) => (y[0][0] - x[0][0]) || (y[0][1] - x[0][1]) || (y[0][2] - x[0][2]));
@@ -1714,7 +1767,7 @@ html.annot-on #annot-capture { display: block; }
   function findTarget(a, orig, f) {
     if (a.type === 'page') return { el: main };
     if (a.type === 'text' && a.cover) return findCover(a, orig, f);
-    if (a.type === 'math' && a.cover) return findCoverGlyph(a);
+    if (a.type === 'math' && a.cover) return findCoverGlyph(a, orig, f);
     return findExact(a, orig, f);
   }
   /** 没有圈住内容（cover）的锚点（用户 10-25 确认过的第 2 次画完的笔，画笔时还没有 cover）：只按原样精确找——正文前后文
@@ -1964,6 +2017,7 @@ html.annot-on #annot-capture { display: block; }
     const got = anchorForStroke(dr.abs);
     const s = Object.assign(dr.s, { id: newId(), updatedAt: Date.now(), anchor: got.anchor, frame: got.frame,
                                     orig: roundRect(got.R), pts: framePoints(dr.abs, got.R, got.frame) });
+    pinIfAmbiguous(s, frame());
     s.drawn = drawnOf(s);
     pushUndo(snapshot());
     S.strokes.push(s);
@@ -2006,6 +2060,7 @@ html.annot-on #annot-capture { display: block; }
     const got = anchorForStroke(abs);
     Object.assign(s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
                        pts: framePoints(abs, got.R, got.frame) });
+    pinIfAmbiguous(s, frame());
     forget(s.id);
   }
   function undo() {

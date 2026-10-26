@@ -23,6 +23,7 @@ import argparse
 import json
 import math
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -311,6 +312,7 @@ def browser_check(rel, notes):
 
 # ---------------------------------------------------------------- 笔迹跑偏诊断（用户 10-26：「写好了然后跑到边上去了」）
 VIEW_H = {820: 1180, 1180: 820, 1440: 900}
+DRIFT_TOL_PX = 0.05      # 落笔 = 重绘的容差（正文卡片 px）
 # 落笔位置（页面里按固定规则挑元素，滚到视口中间，返回起笔屏幕点）：正文、行内公式上 / 旁、陈列公式、图、卡片内左边距、
 # 卡片外右侧、展开的折叠块里
 SPOT_JS = r"""(name) => {
@@ -452,7 +454,21 @@ def _is_margin(s, near=30.0):
     return d > near
 
 
-def drift_data(notes, pages_dir, out):
+ANNOT_SCRIPT = re.compile(r"<script>(?:(?!</script>).)*?window\.__nipcNotes = \{.*?</script>", re.S)
+
+
+def with_annot_from(html_path, annot_from):
+    """html_path 那一版页面的正文不动，只把标注层 <script>（含 window.__nipcNotes = {）换成 annot_from 页面里的那一份，
+    写到同目录 week3_4.annot_fix.html（资源相对路径照旧可用）并返回它的路径——回归用：新标注层在笔当初画的那一版内容上。"""
+    new = ANNOT_SCRIPT.findall(pathlib.Path(annot_from).read_text(encoding="utf-8"))
+    old_html = pathlib.Path(html_path).read_text(encoding="utf-8")
+    assert len(new) == 1 and len(ANNOT_SCRIPT.findall(old_html)) == 1, "标注层脚本不是恰好一个"
+    out = pathlib.Path(html_path).with_name("week3_4.annot_fix.html")
+    out.write_text(ANNOT_SCRIPT.sub(lambda m: new[0], old_html, count=1), encoding="utf-8")
+    return out
+
+
+def drift_data(notes, pages_dir, out, annot_from=None):
     """--drift-data：每笔在它画的那一版页面上（pages_dir/<drawn.page>/week3_4.html，笔记以只读快照嵌入）被挂到了哪
     （__nipcNotes.where），与落笔时的锚点（drawn.anchor）比：正文 = 那个字前后文一字不差；公式 = 同 TeX、符号前后 8 个与 g 相同、
     公式前 30 字与 ctx 相同；图 = 同 src。不一致 = 挂到了别处（跑掉）。分类：② 落笔时锚在内容上（重找时挑错了同样的另一处）、
@@ -468,6 +484,8 @@ def drift_data(notes, pages_dir, out):
         for ver, ss in sorted(by_ver.items()):
             html = pathlib.Path(pages_dir) / ver / "week3_4.html"
             assert html.exists(), f"缺 {ver} 版页面 {html}"
+            if annot_from:
+                html = with_annot_from(html, annot_from)
             ctx = browser.new_context(viewport={"width": 1440, "height": 900})
             ctx.route("https://api.github.com/**", lambda route, req: route.abort())
             ctx.add_init_script(f"window.NIPC_SNAPSHOT = {snap};")
@@ -622,6 +640,7 @@ def main():
     ap.add_argument("--drift-data", metavar="PAGES_DIR",
                     help="笔迹跑偏诊断：PAGES_DIR/<页面版本号>/week3_4.html 各版页面，比每笔现在挂到哪与落笔时的锚点（drift_data）")
     ap.add_argument("--out", help="--drift-synth / --drift-data / --deleted-from-history 的结果 json")
+    ap.add_argument("--annot-from", help="--drift-data：各版页面的标注层换成这个页面里的那一份再查（回归新标注层；with_annot_from）")
     ap.add_argument("--deleted-from-history", action="store_true",
                     help="从笔记仓库历史里找回被擦掉的笔（deleted_from_history），写 --out，可再喂给 --drift-data")
     args = ap.parse_args()
@@ -629,11 +648,14 @@ def main():
         deleted_from_history(args.page, load_notes(args.page, args.notes), args.out)
         return
     if args.drift_synth:
-        drift_synth(args.page, args.widths, args.out)
-        return
+        res = drift_synth(args.page, args.widths, args.out)
+        bad = [(w, r["tool"], r["spot"]) for w, rows in res.items() for r in rows
+               if any(r[k] is None or r[k] > DRIFT_TOL_PX for k in ("after_all", "after_scroll", "after_reload"))]
+        print(f"== 落笔 = 重绘（≤ {DRIFT_TOL_PX} px）：{sum(len(v) for v in res.values()) - len(bad)} 笔通过，{len(bad)} 笔不通过 {bad}")
+        sys.exit(1 if bad else 0)
     if args.drift_data:
-        drift_data(load_notes(args.page, args.notes), args.drift_data, args.out)
-        return
+        res = drift_data(load_notes(args.page, args.notes), args.drift_data, args.out, args.annot_from)
+        sys.exit(1 if res["moved"] else 0)
     if args.grep:
         t = page_data(args.page)["text"]
         for g in args.grep:
