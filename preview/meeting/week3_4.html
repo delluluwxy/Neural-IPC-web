@@ -241,7 +241,7 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "3717cbbdcc77";</script>
+<script>window.NIPC_PAGE = "506ab9d6734a";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -565,6 +565,7 @@ html.annot-on #annot-capture { display: block; }
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_18_network_neurons.png" width="1404" height="822" style="width:717px;max-width:100%;height:auto" alt="左边一列是 12 个输入，旁边写着这一行在 \(t=a/2\) 处的取值：前两个是两侧共用的位置和扁度，接着是压头一侧的 5 个，最后是块一侧的 5 个。中间两列各 16 个神经元，每个神经元把上一层的全部输出加权求和、再过一次 tanh，灰线表示相邻两层之间全部相连；最右边是唯一的输出 \(\psi\)。底下蓝字是每两层之间的参数个数（权重加偏置），一共 497 个。右上框：把压头和块的两组输入对调再算一遍，两次取平均。右下框：轮廓斜率乘的是 \(e^{\psi(t)-\psi(0)}\)，所以中心处恰好是 1；这一行在 \(a/2\) 处乘数是 1.043。" loading="lazy"><figcaption class="small">左边一列是 12 个输入，旁边写着这一行在 \(t=a/2\) 处的取值：前两个是两侧共用的位置和扁度，接着是压头一侧的 5 个，最后是块一侧的 5 个。中间两列各 16 个神经元，每个神经元把上一层的全部输出加权求和、再过一次 tanh，灰线表示相邻两层之间全部相连；最右边是唯一的输出 \(\psi\)。底下蓝字是每两层之间的参数个数（权重加偏置），一共 497 个。右上框：把压头和块的两组输入对调再算一遍，两次取平均。右下框：轮廓斜率乘的是 \(e^{\psi(t)-\psi(0)}\)，所以中心处恰好是 1；这一行在 \(a/2\) 处乘数是 1.043。</figcaption></figure>
 <ul>
 <li>两组输入对调再算一遍取平均，所以哪一侧叫「压头」、哪一侧叫「块」，结果都一样。</li>
+<li>两个主方向目前是按弯曲大小排序、没有对称化：两侧软硬不同、合起来又接近圆的接触（比如十字交叉的两根杆），在两个方向弯曲程度相同的那一点，能量会跳 0.73%。下一版二维网络把输入改成两个方向对调后不变的形式来解决。</li>
 <li>这一行里斜率乘数从中心的 1，到 \(a/2\) 处 1.043，再到边缘 1.078：外圈调陡了，正是下面说的「压头软时外圈调陡、能量降下来」。</li>
 </ul>
 <p><strong>网络的做法：</strong> 在等效轮廓 \(g\) 的每个位置上，给它的斜率乘一个接近 1 的正数。比如压头软、自己会被压扁，网络就把轮廓外圈调陡一点，接触区变窄，能量随之降下来。</p>
