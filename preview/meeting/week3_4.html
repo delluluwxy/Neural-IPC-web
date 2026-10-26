@@ -241,7 +241,7 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "da833e98511f";</script>
+<script>window.NIPC_PAGE = "78420ae17d32";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -477,6 +477,9 @@ html.annot-on #annot-capture { display: block; }
 <p>如果接触点上两个方向弯曲程度不同（比如球压在游泳圈内圈：沿管子方向凸，沿圆环方向凹），缝隙就不是轴对称的，接触区是椭圆，降维法不能直接用。</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_10_ring_ellipse.png" width="2112" height="874" style="width:1015px;max-width:100%;height:auto" alt="左边是灰色刚球放在环面中间的孔里，贴着内圈；环面只画了后半个，切开的截面是两个深蓝的圆。过接触点有两条线：红线沿管子方向，是截面圆的一段，表面朝球凸出来；绿线沿圆环方向，是内圈那一圈，表面朝球凹进去。两个方向弯曲程度不同。右边是从上往下看的接触区：实际接触区是红色的扁椭圆，蓝色虚线是面积相同的等效圆。骨架先按这个圆用降维法算，再乘只看椭圆扁度的因子 \(F_U\) 补上两者的差别。" loading="lazy"><figcaption class="small">左边是灰色刚球放在环面中间的孔里，贴着内圈；环面只画了后半个，切开的截面是两个深蓝的圆。过接触点有两条线：红线沿管子方向，是截面圆的一段，表面朝球凸出来；绿线沿圆环方向，是内圈那一圈，表面朝球凹进去。两个方向弯曲程度不同。右边是从上往下看的接触区：实际接触区是红色的扁椭圆，蓝色虚线是面积相同的等效圆。骨架先按这个圆用降维法算，再乘只看椭圆扁度的因子 \(F_U\) 补上两者的差别。</figcaption></figure>
 <p>这种情况 Hertz 有精确解（椭圆 Hertz）。骨架的做法是：先取一个面积相同的等效圆，用降维法算；再乘一个只取决于「椭圆有多扁」的精确因子 \(F_U\)，补上椭圆和圆的差别。圆形时这个因子等于 1，所以不需要分圆和椭圆两套算法。如果不乘这个因子、直接把椭圆当圆算，会少算能量：数据里最扁的构型（环面内圈，两个方向的曲率差 3 倍）少算 2.4%。</p>
+<p>\[\color{#c0392b}{R_e=\frac{1}{\sqrt{c_1c_2}},\qquad F_U=\frac{U_{\text{椭圆 Hertz}}}{\tfrac{8}{15}E^*\sqrt{R_e}\,\delta^{5/2}}.}\]</p>
+<p>\(c_1\)、\(c_2\) 是两个主方向上的合成曲率（同一方向上两侧的曲率相加），\(R_e\) 是等效圆的半径。\(F_U\) 是椭圆 Hertz 的精确能量除以按这个等效圆算的 Hertz 能量；它只取决于 \(c_1/c_2\)，和压深、硬度都无关。骨架就是把等效圆的降维法能量乘上 \(F_U\)。</p>
+
 <h3 id="w3-4">网络修什么</h3>
 
 <p>公式在理想条件下精确，但真实情况总会偏离一点。最明显的是压头本身也软的时候（表中「标签 ÷ Hertz」，等于 1 表示公式完全准）：</p>
@@ -570,6 +573,21 @@ html.annot-on #annot-capture { display: block; }
 </ul>
 <p><strong>网络的做法：</strong> 在等效轮廓 \(g\) 的每个位置上，给它的斜率乘一个接近 1 的正数。比如压头软、自己会被压扁，网络就把轮廓外圈调陡一点，接触区变窄，能量随之降下来。</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_01_profile_correction.png" width="1113" height="965" style="width:484px;max-width:100%;height:auto" alt="降维法那排弹簧上的两种轮廓。黑色虚线是公式给的 \(g=x^2/R\)，接触边缘在灰色的 \(a\)；灰色实心压头是网络把外圈斜率调大后的轮廓，外圈更陡，同样的压深下接触边缘收到红色的 \(a&#x27;\)。蓝色是被压到的弹簧，灰色是没碰到的；轮廓变陡后被压到的弹簧变少、每根压得更浅，能量变小。修正的幅度为了看清放大画了。" loading="lazy"><figcaption class="small">降维法那排弹簧上的两种轮廓。黑色虚线是公式给的 \(g=x^2/R\)，接触边缘在灰色的 \(a\)；灰色实心压头是网络把外圈斜率调大后的轮廓，外圈更陡，同样的压深下接触边缘收到红色的 \(a&#x27;\)。蓝色是被压到的弹簧，灰色是没碰到的；轮廓变陡后被压到的弹簧变少、每根压得更浅，能量变小。修正的幅度为了看清放大画了。</figcaption></figure>
+<p><strong>框图里每个箭头的公式</strong>（缝隙、合成硬度到等效轮廓，见第 3.1、3.2 节和上面的椭圆因子；这里接着往下写）：</p>
+<p><strong>网络的输入。</strong> 每一侧 \(s\)（压头、块各一组）：</p>
+<p>\[\color{#c0392b}{\Big(\frac{10\,t}{R_e},\ \ e=\ln\frac{c_{\max}}{c_{\min}}\Big),\qquad\Big(\frac{c_{s,1}}{c_1},\ \frac{c_{s,2}}{c_2},\ \ \sigma_s=\frac{(1-\nu_s^2)/E_s}{1/E^*},\ \ \nu_s,\ \ \frac{t}{l_s}\Big).}\]</p>
+<p>\(t\) 是轮廓上的位置；\(c_1\le c_2\) 是两个主方向上的合成曲率，按大小排好；\(c_{s,k}\) 是 \(s\) 这一侧在方向 \(k\) 上的曲率，所以 \(c_{s,k}/c_k\) 是这一侧占的比例；\(\sigma_s\) 是这一侧占合成软度的比例；\(l_s\) 是这一侧弯曲表面到边缘的距离，物体看成无限大时 \(t/l_s\) 取 0。共享 2 个，加两侧各 5 个，一共 12 个。</p>
+
+<p><strong>网络到修正轮廓。</strong> 网络记作 \(f\)，两侧对调各算一次取平均，得到 \(\psi\)；再把它变成斜率乘数，沿轮廓积分：</p>
+<p>\[\color{#c0392b}{\psi(t)=\tfrac12\big[f(\text{共享},\text{压头},\text{块})+f(\text{共享},\text{块},\text{压头})\big],\qquad G(x)=\int_0^x g&#x27;(t)\,e^{\psi(t)-\psi(0)}\,dt.}\]</p>
+<p>\(g\) 是等效轮廓，\(G\) 是修正后的轮廓。减去 \(\psi(0)\) 让中心处的乘数恰好是 1，所以压得很浅时严格回到公式；乘数是指数，永远为正，轮廓就仍然单调升高。</p>
+
+<p><strong>修正轮廓到这一处的能量。</strong> 和降维法同样的一排弹簧，只是轮廓换成 \(G\)，再乘椭圆因子：</p>
+<p>\[\color{#c0392b}{G(a)=\delta,\qquad U_i=E^*F_U\int_0^a\big(\delta-G(x)\big)^2dx.}\]</p>
+<p><strong>几处合起来，以及力。</strong> 每处的压深按上面那个相互影响的式子分成两段。解出来以后，总能量和每处的力是</p>
+<p>\[\color{#c0392b}{U=\sum_iU_i(\delta_{e,i})+\frac12\sum_{i\ne j}\frac{F_iF_j}{\pi E^*\,r_{ij}},\qquad\frac{\partial U}{\partial\delta_i}=F_i.}\]</p>
+<p>第一项是各处自己的弹簧能，第二项是几处之间互相带动存下的能量。总能量对每处压深的导数正好是那一处的力，再按每处压深怎么随物体位置变，链式求导就得到作用在物体上的力。</p>
+
 <ul>
 <li><strong>输入：</strong> 轮廓上的位置；椭圆有多扁；两侧各自的泊松比；弯的是哪一侧（两侧各占合起来的曲率的比例）；软的是哪一侧（两侧各占合起来的软度 \(1/E^*\) 的比例）；两侧各自到物体边缘的距离（物体看成无限大时这一项为零）。</li>
 <li><strong>规模：</strong> 2 层、每层 16 个神经元，共 497 个参数。</li>
@@ -625,11 +643,104 @@ html.annot-on #annot-capture { display: block; }
 </ol>
 <p>也就是说，在现有这些理想数据上，网络能发挥的空间不大。网络真正需要的，是公式管不到的情况，这就是第 5 节。</p></section>
 <section id="w4"><h2>和 Huanyu 方案的结构差别</h2>
+<p>先把 Huanyu 的软–软模型完整讲一遍：数据怎么造、网络吃什么、吐什么、怎么变成能量和力。每一步的公式都取自他的代码。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_19_huanyu_pipeline.png" width="1687" height="854" style="width:830px;max-width:100%;height:auto" alt="Huanyu 软–软模型的流程，版式对照上面我的模型图。左上是两个球的粗状态：每个球一个仿射矩阵和一个位置。从它读出压深，也读出两个球各自的整体预应变。左下是材料和尺寸，合成出 Hertz 能量。压深、预应变、半径比、模量比、泊松比一起组成 20 个特征，送进小网络，网络输出一个数 \(g\)。能量是 Hertz 能量乘 \(e^{g}\)，力是能量对粗状态求导，放进隐式欧拉的牛顿迭代里。" loading="lazy"><figcaption class="small">Huanyu 软–软模型的流程，版式对照上面我的模型图。左上是两个球的粗状态：每个球一个仿射矩阵和一个位置。从它读出压深，也读出两个球各自的整体预应变。左下是材料和尺寸，合成出 Hertz 能量。压深、预应变、半径比、模量比、泊松比一起组成 20 个特征，送进小网络，网络输出一个数 \(g\)。能量是 Hertz 能量乘 \(e^{g}\)，力是能量对粗状态求导，放进隐式欧拉的牛顿迭代里。</figcaption></figure>
+<p><strong>第一步：造数据。</strong></p>
+<ul>
+<li>两个完整的软球。球 1 半径 1、杨氏模量 \(10^5\)；球 2 的半径在 0.5 到 2 之间，模量是球 1 的 0.25 到 4 倍，两者都在对数尺度上均匀随机。两球的泊松比各自在 0.25 到 0.45 之间随机。</li>
+<li>每个球先带一个小的整体变形（预应变）：6 个分量，每个不超过 0.02。这是在模拟粗模型里物体已经被整体拉伸或压缩。</li>
+<li>每对球压 7 个深度，从 0.005 到 0.04。一共 60 对，按对分成 45 对训练、15 对测试。</li>
+<li>
+<p>标签由他自己写的求解器算。把两个球的粗状态固定住，只让局部变形去找最省能量的形状；接触用一个很硬的罚函数：</p>
+<p>\[\color{#c0392b}{U_c=\min_{w_1,w_2}\Big[E_1(\Phi z_1+\Psi w_1)+E_2(\Phi z_2+\Psi w_2)+E_{\text{接触}}\Big]-E_1(\Phi z_1)-E_2(\Phi z_2),}\]</p>
+<p>\[E_{\text{接触}}=\frac12\,\kappa\sum_i a_i\max(0,-d_i)^2,\qquad\kappa=10^{9}.\]</p>
+</li>
+</ul>
+<p>\(z_k\) 是第 \(k\) 个球的粗状态，\(\Phi z_k\) 是它给出的形状，\(\Psi w_k\) 是叠加上去的局部变形，\(E_k\) 是弹性能。\(d_i\) 是表面上一点到对方表面的距离，穿进去时为负；\(a_i\) 是这一点代表的面积。这和第 1 节「要学的量」是同一个定义，只是接触换成了罚函数。</p>
+
+<ul>
+<li>预应变在没有接触时，也会通过局部变形松弛掉一部分能量。所以真正的接触标签要扣掉两个球各自无接触时的那一份：\(U=U_c-U_{0,1}-U_{0,2}\)。</li>
+</ul>
+<p><strong>第二步：从粗状态读出压深。</strong></p>
+<p>\[\color{#c0392b}{\delta=R_1\,\lVert\mathbf a_1\rVert+R_2\,\lVert\mathbf a_2\rVert-(x_2-x_1).}\]</p>
+<p>两球沿球心连线（\(x\) 方向）摆放。\(\mathbf a_k\) 是球 \(k\) 仿射矩阵的第一行，\(R_k\lVert\mathbf a_k\rVert\) 是这个球被整体拉伸后沿连线方向的半宽；\(x_1\)、\(x_2\) 是两个球心沿连线的位置。所以 \(\delta\) 就是两个未变形的表面沿连线互相穿进去多少。</p>
+
+<p><strong>第三步：Hertz 先验。</strong></p>
+<p>\[\color{#c0392b}{\frac1{E^*}=\frac{1-\nu_1^2}{E_1}+\frac{1-\nu_2^2}{E_2},\qquad R=\frac{R_1R_2}{R_1+R_2},\qquad U_H=\frac8{15}\,E^*\sqrt R\,\delta^{5/2}.}\]</p>
+<p>合成模量和等效半径都是两球直接代公式，\(U_H\) 就是两个球按 Hertz 算的能量（压深为负时取 0）。</p>
+
+<p><strong>第四步：网络的 20 个输入。</strong></p>
+<p>\[\color{#c0392b}{\mathbf f=\Big(\frac{\delta}{0.04},\ \frac{\boldsymbol\varepsilon_1}{0.02},\ \frac{\boldsymbol\varepsilon_2}{0.02},\ \ln\frac{R_2}{R_1},\ \ln\frac{E_2}{E_1},\ \nu_1,\ \nu_2,\ \ln s_1,\ \ln s_2,\ \ln s_3\Big).}\]</p>
+<p>\(\boldsymbol\varepsilon_k\) 是球 \(k\) 的预应变，6 个分量（\(xx,yy,zz,xy,xz,yz\)）。压深除以数据里的最大压深 0.04，预应变除以它的上限 0.02，这样都落在 1 附近；半径和模量取两球之比的对数。最后 3 个 \(\ln s\) 是给椭球用的形状量（三个半轴的缩放），软–软时两边都是球，恒为 0。压深是网络的输入之一。</p>
+
+<p><strong>第五步：网络和能量。</strong></p>
+<p>\[\color{#c0392b}{U=U_H\cdot e^{\,g(\mathbf f)}.}\]</p>
+<p>\(g\) 是一个 3 个隐层、每层 64 个神经元的网络（激活函数 SiLU），输入 20 个数，输出一个数。参数一共 \((20\times64+64)+2\times(64\times64+64)+(64+1)=9729\) 个。他报告的这个模型的结果，来自加上椭球那 3 项之前的版本：17 个输入、9537 个参数。\(g=0\) 时就是 Hertz，网络学的是在 Hertz 上乘多少。</p>
+
+<p><strong>第六步：训练。</strong> 用相对误差做损失，分母加上 1% 的 Hertz 能量，免得几乎没接触、能量接近 0 的样本把误差放大：</p>
+<p>\[\color{#c0392b}{L=\operatorname{mean}\Big(\frac{U_{\text{网络}}-U_{\text{标签}}}{\lvert U_{\text{标签}}\rvert+0.01\,U_H}\Big)^2.}\]</p>
+<p>只拟合能量，用 Adam 训练 2 万步。</p>
+<p><strong>第七步：用到仿真里。</strong> 每个球的粗状态是 12 个数（仿射矩阵 9 个、位置 3 个），两个球一共 24 个。每个时间步用隐式欧拉，牛顿法解「惯性 + 球自身弹性 + 接触」的平衡；接触这一项的广义力是</p>
+<p>\[\color{#c0392b}{\mathbf Q=-\frac{\partial U}{\partial\mathbf z},}\]</p>
+<p>\(\mathbf z\) 是这 24 个数。压深和预应变都从 \(\mathbf z\) 算出来，所以对它们求导，再沿网络自动微分，就得到力。</p>
+
+<p><strong>举个例子：</strong> 测试集里的一对球，压深取第 4 档 0.015。下表的数都是用他的代码，从他的随机种子复现这一对后算出来的。这一行的标签能量在他本地的数据里，这里没有。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_21_huanyu_example.png" width="2069" height="880" style="width:987px;max-width:100%;height:auto" alt="左边是过两球心连线的剖面，按真实大小画。浅橙色的球 1 半径 1，浅蓝色的球 2 半径 0.66、更硬一些，红箭头是半径，黑色点线是球心连线。右边把接触处放大：两个未变形的表面沿连线互相穿进去 \(\delta=0.015\)，中间那片细长的重叠就是穿入的部分。两个球各自还带一个很小的预应变，图上看不出来，列在下表里。" loading="lazy"><figcaption class="small">左边是过两球心连线的剖面，按真实大小画。浅橙色的球 1 半径 1，浅蓝色的球 2 半径 0.66、更硬一些，红箭头是半径，黑色点线是球心连线。右边把接触处放大：两个未变形的表面沿连线互相穿进去 \(\delta=0.015\)，中间那片细长的重叠就是穿入的部分。两个球各自还带一个很小的预应变，图上看不出来，列在下表里。</figcaption></figure>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>输入</th>
+<th>这一行的值</th>
+<th>是什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(\delta/0.04\)</td>
+<td>0.375</td>
+<td>压深 0.015，除以 0.04</td>
+</tr>
+<tr>
+<td>球 1 预应变 ÷ 0.02（\(xx,yy,zz,xy,xz,yz\)）</td>
+<td>0.258、0.854、−0.119、0.909、−0.0002、−0.150</td>
+<td>球 1 被整体拉伸、压缩、剪切了多少</td>
+</tr>
+<tr>
+<td>球 2 预应变 ÷ 0.02（同上顺序）</td>
+<td>0.240、0.990、0.898、−0.080、0.515、−0.005</td>
+<td>球 2 的同一组量</td>
+</tr>
+<tr>
+<td>\(\ln(R_2/R_1)\)</td>
+<td>−0.417</td>
+<td>球 2 半径 0.659，球 1 半径 1</td>
+</tr>
+<tr>
+<td>\(\ln(E_2/E_1)\)</td>
+<td>1.226</td>
+<td>球 2 模量 \(3.41\times10^5\)，球 1 是 \(10^5\)</td>
+</tr>
+<tr>
+<td>\(\nu_1\)、\(\nu_2\)</td>
+<td>0.323、0.271</td>
+<td>两球的泊松比</td>
+</tr>
+<tr>
+<td>\(\ln s_1,\ln s_2,\ln s_3\)</td>
+<td>0、0、0</td>
+<td>两边都是球</td>
+</tr>
+</tbody>
+</table></div>
+<p>这一行的合成模量 \(E^*=8.56\times10^4\)，等效半径 \(R=0.397\)，Hertz 先验 \(U_H=0.793\)。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_20_huanyu_network.png" width="1301" height="765" style="width:714px;max-width:100%;height:auto" alt="左边一列是这个例子的 20 个输入，旁边是取值，顺序同上表：压深、球 1 的 6 个预应变、球 2 的 6 个预应变、半径比和模量比的对数、两个泊松比、3 个椭球形状量。中间三列是三个隐层，每层 64 个神经元，图上各画 16 个代表。每个神经元把上一层的全部输出加权求和，再过一次 SiLU；灰线表示相邻两层之间全部相连。最右边是唯一的输出 \(g\)，能量是 Hertz 能量乘 \(e^{g}\)。底下蓝字是每两层之间的参数个数（权重加偏置），一共 9729 个。" loading="lazy"><figcaption class="small">左边一列是这个例子的 20 个输入，旁边是取值，顺序同上表：压深、球 1 的 6 个预应变、球 2 的 6 个预应变、半径比和模量比的对数、两个泊松比、3 个椭球形状量。中间三列是三个隐层，每层 64 个神经元，图上各画 16 个代表。每个神经元把上一层的全部输出加权求和，再过一次 SiLU；灰线表示相邻两层之间全部相连。最右边是唯一的输出 \(g\)，能量是 Hertz 能量乘 \(e^{g}\)。底下蓝字是每两层之间的参数个数（权重加偏置），一共 9729 个。</figcaption></figure>
+<p>之后他把软–刚也并进了同一个模型：仍是 Hertz 先验乘网络因子，但输入改成两侧各自的形状、材料和预应变，并对两个物体对调取平均。</p>
+<p><strong>和我的结构差别：</strong></p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th></th>
-<th>Huanyu</th>
+<th>Huanyu（软–软模型）</th>
 <th>我</th>
 </tr>
 </thead>
@@ -646,13 +757,18 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 <tr>
 <td>参数量</td>
-<td>约 9900</td>
+<td>9729（他报告结果的版本 9537）</td>
 <td>497</td>
 </tr>
 <tr>
 <td>压深是否输入网络</td>
-<td>是：压深超出训练范围时网络输出不可靠，只能在那里关掉修正</td>
+<td>是：压深 ÷ 0.04 是 20 个输入之一</td>
 <td>否：越压越硬由结构保证</td>
+</tr>
+<tr>
+<td>两侧对调</td>
+<td>两个球按「球 1、球 2」分别输入（球 1 固定半径 1、模量 \(10^5\)）</td>
+<td>两侧对调再算一遍取平均</td>
 </tr>
 <tr>
 <td>多处接触的相互影响</td>
