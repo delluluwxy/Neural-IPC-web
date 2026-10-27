@@ -241,7 +241,7 @@ html.annot-on #annot-capture { display: block; }
 }
 </style>
 <script>window.NIPC_SNAPSHOT = {"format":"nipc-notes","version":1,"page":"week3_4.html","path":"/Neural-IPC-web/week3_4.html","colWidth":920,"strokes":[],"tombstones":{}};</script>
-<script>window.NIPC_PAGE = "605b8d53d83d";</script>
+<script>window.NIPC_PAGE = "3138c71fc3e6";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -260,10 +260,10 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w3-5">3.5 结果</a>
 <a class="toc-level-2" href="#w4">4. 下一步：在接触面上算</a>
 <a class="toc-level-3" href="#w4-1">4.1 现在的模型管不到的三种情况</a>
-<a class="toc-level-3" href="#w4-2">4.2 新方法：在两物体之间铺一片格子</a>
-<a class="toc-level-3" href="#w4-3">4.3 软压软和刚压软是同一个式子</a>
-<a class="toc-level-3" href="#w4-4">4.4 网络做什么</a>
-<a class="toc-level-2" href="#w5">5. 验证到哪</a>
+<a class="toc-level-3" href="#w4-2">4.2 新方法：接触面上的一床弹簧</a>
+<a class="toc-level-3" href="#w4-3">4.3 网络做什么</a>
+<a class="toc-level-3" href="#w4-4">4.4 一次计算的流程</a>
+<a class="toc-level-2" href="#w5">5. 验证到哪：式子能否退回已知的解析结果</a>
 <a class="toc-level-2" href="#w6">6. 想讨论的</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>Week 3–4（第 3–4 周）</h1><p class="summary">要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。</p></header>
 <div class="lead"><p><strong>这次要讲的三件事</strong></p>
@@ -651,59 +651,109 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>两块接触连成一片。</strong> 分开时按「两块」算，连上以后按「一块」算，切换的那一下能量跳 4%–7%。</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_13_merge_steps.png" width="1390" height="1120" style="width:662px;max-width:100%;height:auto" alt="meeting_13_merge_steps"></figure>
 <p>三种情况的原因相同：现在的模型把接触压成一条线来算，层厚、哪边深、有几块，这些信息在压成线的时候就丢了。所以下一步改成在接触面上算。</p>
-<h3 id="w4-2">新方法：在两物体之间铺一片格子</h3>
+<h3 id="w4-2">新方法：接触面上的一床弹簧</h3>
 
-<p><strong>输入：缝隙图。</strong> 在两个物体最近点附近铺一片小方格。每一格量一下：两个物体都不变形时，表面之间相距多远。这一步只是几何查询（沿法向打射线量距离），和 hydro 算重叠区、刚压软模型取高度图是一回事。相距为负的格子，就是压进去了，压进去多深就是这一格的穿入深度。</p>
-<p>接触区在哪、有多大，不用事先知道，是解出来的。</p>
-<p><strong>牵连规则。</strong> 每一格像一根弹簧，但弹簧之间互相牵连：按下一格，周围的格子也跟着陷。「按一格，别的格子陷多少」有现成的弹性力学公式，不用学：</p>
+<p>在两个物体最近点附近铺一片边长为 \(h\) 的小方格。能量是</p>
+<p>\[\color{#c0392b}{U=\max_{p\ge 0}\;h^2\Big[\sum_i p_i\,\hat w_i-\frac12\sum_{i,j}p_i\,C_{ij}\,p_j\Big].}\]</p>
+<p>\(\hat w_i\) 是第 \(i\) 格要让开的深度，\(p_i\) 是第 \(i\) 格的压强，是要解的未知量，\(p\ge0\) 表示只能推、不能拉；\(C_{ij}\) 是第 \(j\) 格受单位压强时第 \(i\) 格的下沉；\(h^2\) 是一格的面积。方括号里第一项是每一格的压强乘它要让开的深度再加起来，第二项是这组压强把表面压下去时存的弹性能。意思是：在只能推不能拉的压强里找使方括号最大的那一组，它正好让压到的格子刚好让开、没压到的格子不出力，这个最大值就是弹性能，第 \(i\) 格的力是 \(h^2p_i\)。只有一格时最容易看清：方括号里是 \(p\,w-\tfrac12c\,p^2\)，最大值在 \(p=w/c\) 处取到，正是让这一格刚好让开的压强，最大值 \(w^2/(2c)\) 就是一根弹簧存的能量。很多格时，第二项把格子之间的牵连也算进去。</p>
+<p>接触区在哪、有多大，不用事先知道，是解出来的：有压强的格子就是接触区。斜着压、几块接触，都只是每格要让开的深度不同，用的是同一个算法，不需要切换。</p>
+<p><strong>要让开的深度从哪来。</strong> 每一格沿法向量一下两个物体（都不变形时）表面之间的距离，这只是几何查询，和 hydro 算重叠区是一回事。记最近点处两物体叠进去 \(\delta\)，第 \(i\) 格比最近点多隔开 \(s_i\)，不修正时这一格要让开 \(\delta-s_i\)，为负就是没碰到。4.3 节的网络会把 \(s_i\) 修正一点。</p>
+<p><strong>牵连规则 \(C\) 从哪来。</strong> 它由三部分相加：</p>
+<p>\[\color{#c0392b}{C_{ij}=C^A_{ij}+C^B_{ij}+c_g.}\]</p>
+<p>\(C^A\)、\(C^B\) 是两侧各自的局部部分：按一格，附近的格子跟着陷多少。这有现成的弹性力学公式，不用学，层厚是公式里的参数：</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_14_kernel_cells.png" width="1739" height="451" style="width:825px;max-width:100%;height:auto" alt="meeting_14_kernel_cells"></figure>
-<ul>
-<li>薄层：只有被按的那一格陷；</li>
-<li>厚物体：周围的格子都跟着陷，离得越远陷得越少；</li>
-<li>中等厚度：近处像厚物体一样跟着陷，远处被底座顶住不动。</li>
-</ul>
-<p>层厚是输入的参数，厚、薄、中间都由同一个公式给出。</p>
-<p><strong>解。</strong> 知道每一格压进去多深、格子之间怎么牵连，就能解出每一格的压力：压到的格子正好让开，没压到的格子不出力，压力只能推不能拉。由此得到能量和力。斜着压、几块接触，都只是缝隙图不同，用的是同一个算法，不需要切换。</p>
-<p>以薄层为例：以前厚物体的公式（Hertz）和薄层的公式在中间厚度都差约 30%；新方法用的公式在中间也是精确的。</p>
+<p>薄层只有被按的那一格陷；厚物体周围都跟着陷，离得越远陷得越少；中等厚度近处像厚物体，远处被底座顶住不动。以前厚物体的公式（Hertz）和薄层公式在中间厚度都差约 30%，这里中间也是精确的。</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_04_layer_transition.png" width="1250" height="883" style="width:595px;max-width:100%;height:auto" alt="meeting_04_layer_transition"></figure>
-<h3 id="w4-3">软压软和刚压软是同一个式子</h3>
+<p>两侧相加意味着软压软和刚压软是同一个式子：缝隙本来就是两个表面之间的距离，软度两侧相加，刚的一侧那一份为 0。</p>
+<p>\(c_g\) 是整体部分，对所有格子对都一样：有限大的物体除了局部凹陷，整个物体还会被压短一点，所有格子一起下沉。同样压一下，细长的杆比矮胖的圆柱被压短得多。它只取决于物体自己的形状，每种物体用有限元预先算好。粗模型不会重复提供这一部分：仿射体（ABD）的刚度是一个惩罚系数，Genesis 默认值比我们的软材料硬几千倍，几乎不发生整体压缩，所以整体柔度全部由 \(c_g\) 给出。</p>
+<h3 id="w4-3">网络做什么</h3>
 
-<ul>
-<li>形状：缝隙图量的是两个表面之间的距离，自动等于两侧各自弯曲高度之和，不需要单独处理。</li>
-<li>软硬：两侧的柔度相加。两侧厚度不同时，就是两侧各自的牵连规则相加，每个物体按自己的厚度和材料提供自己那一份。</li>
-<li>刚压软：刚的一侧柔度为 0，是特例。</li>
-</ul>
-<p>所以软软、刚软不需要两套模型。</p>
-<h3 id="w4-4">网络做什么</h3>
+<p>上面的式子是线弹性的，只在变形很小时精确。压得深时，比如软球被压扁，会差 1%–3%。网络只修这一部分：</p>
+<p>\[\color{#c0392b}{\hat w_i=\delta-m_i\,s_i,\qquad m_i=e^{\psi(\mathbf x_i)}.}\]</p>
+<p>\(\psi\) 是和 v1 一样的小网络（两层、每层 16 个神经元，约 500 个参数），在每个格子上各算一次；\(\mathbf x_i\) 是这一格的输入，就是 v1 的 12 个特征（见第 3 章），只是从「一维轮廓上的一个点」换成了「一个格子」：位置改成这一格到最近点的平面距离，两个方向的曲率占比改成交换两个方向也不变的写法，避免 v1 里方向排序带来的跳变。压深不作为输入。取指数保证 \(m_i\) 为正。</p>
+<p>意思是：网络把每一格的缝隙放大或缩小一点，然后照样用 4.2 节的式子算。它有三个由结构保证、不靠训练的性质：最近点处 \(s_i=0\)，修正自动为零，压得很浅时退回精确公式；\(m_i&gt;0\)，原来分开的地方修正后仍然分开；网络不看压深，能量对压深仍是凸的，力仍是能量的导数。修正改的是 \(\hat w_i\)，解出的压强再经过 \(C\) 互相牵连，所以一格的修正会影响所有格子。</p>
+<p>网络只改 \(\hat w_i\)，不改牵连规则 \(C\)。这是一个假设：大变形集中在接触区附近，而格子之间的牵连主要在远处，那里应变很小，线弹性公式是准的；v1 也只改轮廓、不改牵连。两块接触靠得很近、大变形区重叠时，这个假设可能不成立，要用有限元测交叉刚度（压第二块时第一块的力变多少）来检验。不够的话，可以让网络每格再给一个正数 \(d_i\)，把牵连规则改成 \(d_iC_{ij}d_j\)，上面三个性质仍然保留。</p>
+<p>训练用有限元算的能量做标签。式子解完就顺带给出能量对每一格的导数，就是每一格的力，所以梯度可以直接传回网络。现在结构已定，还没训练。</p>
+<h3 id="w4-4">一次计算的流程</h3>
 
-<ul>
-<li>上面的公式只在变形很小时精确。压得深时，比如软球被压扁，会差 1%–3%。网络只修这一部分。</li>
-<li><strong>网络：</strong> 和现在 v1 一样的小网络（2 层 × 16，约 500 个参数），每个格子各算一次，所有格子共用同一个网络。</li>
-<li><strong>输入</strong>（每格 12 个，和 v1 相同）：这一格离最近接触点多远、扁度；两侧各自的两个方向曲率占比、软度占比、泊松比、到边缘的距离。不输入压深。网络需要分清两侧，因为「哪一侧软、哪一侧弯」决定了大变形的修正，两侧合并以后就分不出来了。</li>
-<li><strong>输出：</strong> 每格一个正数，把这一格的缝隙乘上它，再用同一个公式算能量。最近接触点处缝隙为 0，所以压得很浅时自动退回精确公式。</li>
-<li><strong>训练：</strong> 用有限元算的能量做标签。公式解完就顺带给出能量对每格的导数（就是每格的压力），梯度可以直接传回网络。</li>
-<li><strong>状态：</strong> 结构已定，还没训练。</li>
-</ul></section>
-<section id="w5"><h2>验证到哪</h2>
-<p>每一步都和有精确解的情况对照，前一步通过才做下一步。</p>
-<p><strong>① 刚球压平面。</strong> 格子越密，误差越小。每个接触半径上放 4 格，误差就在 0.5% 以内。能量和力随压深连续变化，不跳。</p>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_23_fullgap_convergence.png" width="1245" height="861" style="width:607px;max-width:100%;height:auto" alt="meeting_23_fullgap_convergence"></figure>
-<p><strong>② 圆和椭圆。</strong> 新方法和以前的一维方法结果一致，相差在 0.06% 以内。在我们自己的 68 行有限元数据上也直接跑过：和一维方法逐行相差在 0.03% 以内。</p>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_24_fullgap_ellipse.png" width="1276" height="859" style="width:624px;max-width:100%;height:auto" alt="meeting_24_fullgap_ellipse"></figure>
-<p><strong>③ 几块接触。</strong></p>
-<ul>
-<li>两个离得远的球：两者之间的相互影响和理论公式一致，离得越远越一致。</li>
-<li>两块合并：合并的那一刻能量连续，不跳。这是以前的模型做不到的。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w34_meeting_22_fullgap_merge.png" width="1155" height="726" style="width:530px;max-width:100%;height:auto" alt="meeting_22_fullgap_merge"></figure>
-<p><strong>发现的问题：尖边。</strong> 平底压头的边缘，压力理论上是无穷大，格子要很细才算得准：压头直径上要约 91 格，误差才到 0.5%。真实物体的边都有一点圆角，所以打算把尖边当成很小的圆角来处理。</p>
+<ol>
+<li>粗模型给出两个物体的位置和形状，以及两侧的材料和厚度；</li>
+<li>几何查询得到缝隙图 \(s\) 和压深 \(\delta\)；</li>
+<li>网络给每格一个倍数 \(m_i\)，得到 \(\hat w_i\)；</li>
+<li>用牵连规则 \(C\) 解出每格压强 \(p\)（FFT 迭代）；</li>
+<li>输出能量 \(U\) 和力，交给 IPC 的牛顿法。</li>
+</ol>
+<p>只有第 3 步是学的，其余都是几何和公式。</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_29_gapmap_pipeline.png" width="1656" height="466" style="width:792px;max-width:100%;height:auto" alt="meeting_29_gapmap_pipeline"></figure></section>
+<section id="w5"><h2>验证到哪：式子能否退回已知的解析结果</h2>
+<p>不加网络（\(m_i=1\)）时，式子是纯线弹性的，换不同的牵连规则和形状，它应该给出下面这些已知结果。每一步通过才做下一步。</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>情况</th>
+<th>应该得到的结果</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>薄层（底面能滑）</td>
+<td>薄层公式 \(U=\pi kR\delta^3/3\)，\(k=E^*/t\)</td>
+<td>推导即得：各格不牵连，逐格弹簧能量相加</td>
+</tr>
+<tr>
+<td>软压软</td>
+<td>合成硬度 \(1/E^*=1/E&#x27;_A+1/E&#x27;_B\)</td>
+<td>推导即得：两侧局部部分都正比于各自的软度</td>
+</tr>
+<tr>
+<td>刚球压平面</td>
+<td>Hertz：\(U=\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)</td>
+<td>已验证：每个接触半径上 4 格，误差 &lt; 0.5%</td>
+</tr>
+<tr>
+<td>椭圆接触</td>
+<td>Hertz 椭圆解</td>
+<td>已验证：和一维方法相差 &lt; 0.06%</td>
+</tr>
+<tr>
+<td>我们的 68 行有限元数据</td>
+<td>和一维方法一致</td>
+<td>已验证：逐行相差 &lt; 0.03%</td>
+</tr>
+<tr>
+<td>两个远处的球</td>
+<td>相互影响 \(-F_1F_2/(\pi E^*r)\)</td>
+<td>已验证：离得越远越一致</td>
+</tr>
+<tr>
+<td>两块合并</td>
+<td>没有解析式，检验能量是否连续</td>
+<td>已验证：合并时能量和力都连续，不跳</td>
+</tr>
+<tr>
+<td>平头圆柱冲头</td>
+<td>Boussinesq：\(F=2aE^*\delta\)</td>
+<td>已验证，但边缘要很细的格子（见下）</td>
+</tr>
+<tr>
+<td>中等厚度的层</td>
+<td>有限元（没有闭式解）</td>
+<td>一维已对上（差 &lt; 0.05%），二维未测</td>
+</tr>
+<tr>
+<td>圆锥、圆角平头、倾斜平头的力矩</td>
+<td>各有闭式解</td>
+<td>未测</td>
+</tr>
+</tbody>
+</table></div>
+<p>（\(R\) 是球半径，\(\delta\) 是压深，\(t\) 是层厚，\(a\) 是压头半径，\(r\) 是两球间距，\(F_1,F_2\) 是两块的力。）</p>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_23_fullgap_convergence.png" width="1245" height="861" style="width:607px;max-width:100%;height:auto" alt="刚球压平面，格子越密误差越小" loading="lazy"><figcaption class="small">刚球压平面，格子越密误差越小</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w34_meeting_22_fullgap_merge.png" width="1155" height="726" style="width:530px;max-width:100%;height:auto" alt="两块合并时能量连续" loading="lazy"><figcaption class="small">两块合并时能量连续</figcaption></figure>
+<p><strong>发现的问题：尖边。</strong> 平底压头的边缘，压力理论上是无穷大，格子要很细才算得准：压头直径上要约 91 格，误差才到 0.5%。真实物体的边都有一点圆角，所以打算把尖边当成很小的圆角处理。</p>
 <figure style="margin:12px 0"><img src="assets/images/w34_meeting_26_fullgap_flat_edge.png" width="1270" height="855" style="width:624px;max-width:100%;height:auto" alt="meeting_26_fullgap_flat_edge"></figure>
-<p><strong>还没做的：</strong></p>
-<ul>
-<li>斜着压得很浅时，接触区是一条很窄的月牙，在算；</li>
-<li>薄层在新方法里的验证；</li>
-<li>网络训练。</li>
-</ul></section>
+<p><strong>还没做的：</strong> 斜着压得很浅时的月牙形接触（在算）；网络训练。</p></section>
 <section id="w6"><h2>想讨论的</h2>
 <ul>
 <li>之前刚压软的模型用二维高度图作网络输入，块与块之间的耦合靠学；新方法是把造标签用的那类接触面求解器直接作为模型主体，耦合由公式精确给出，网络只修大变形的残差。这个方向作为下一阶段的主线，是否合适？</li>
