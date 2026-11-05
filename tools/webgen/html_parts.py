@@ -91,6 +91,8 @@ article .kp { font-weight: 600; color: var(--key); }
 p.concl { color: var(--good); }
 p.expect { color: var(--accent); }
 p.setting { font-size: 13px; }
+.note-src { color: #0d8a7a; }    /* 【ref】【无 ref】【我们定的】整行：出处（draft_md，用户 11-05） */
+.note-cond { color: #c2570c; }   /* 【条件】整行：公式成立的前提 */
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 blockquote { font-size: 13px; line-height: 1.85; margin: 12px 0 32px; padding: 4px 18px; border-left: 3px solid #b5cbe5;

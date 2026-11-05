@@ -8,6 +8,7 @@
 - 独占一行的 [[图 NAS 路径 | 图注]]、[[视频 NAS 路径 | 图注]]：带图注的图卡 / 视频卡（NAS 路径不上页面）
 - 独占一行的 [[配图 <组>/<文件>]]：week3 配图版目录里的图 / 视频，图注从图注清单取（illustrated）
 - 以「设置：」开头的一行：小号灰字（html_parts.setting），行内公式照常
+- 以【ref】/【无 ref】/【我们定的】开头的一行整行一种颜色（note-src），以【条件】开头的一行另一种颜色（note-cond）
 - 标题降两级（## → h4，### → h5），去掉讲稿自带的节号；--- 分隔线删掉
 """
 
@@ -85,6 +86,10 @@ def notion_md_to_html(md):
     t = re.sub(r"(?m)^([ \t]*)\[\[(图|视频) ([^|\]]+?)[ \t]*\|[ \t]*([^\]]+?)[ \t]*\]\][ \t]*$", lambda m: keep_indented(
         m, (draft_image if m.group(2) == "图" else draft_video)(m.group(3), m.group(4))), t)
     t = re.sub(r"(?m)^设置：(.+)$", lambda m: keep(setting(m.group(1).strip()), True), t)
+    # 出处 / 条件标注整行上色（用户 11-05）：【ref】【无 ref】【我们定的】一种颜色，【条件】一种颜色；行尾两个空格的换行留在 span 外
+    # （图例写成「- **【ref】**：……」的列表项也算，颜色与正文里的标注一致）
+    t = re.sub(r"(?m)^([ \t]*(?:[-*] )?)((?:\*\*)?【(?:ref|无 ref|我们定的)】.*?)([ \t]*)$", r'\1<span class="note-src">\2</span>\3', t)
+    t = re.sub(r"(?m)^([ \t]*(?:[-*] )?)((?:\*\*)?【条件】.*?)([ \t]*)$", r'\1<span class="note-cond">\2</span>\3', t)
     t = re.sub(r"(?m)^([ \t]*)\[视频\]\((assets/videos/[^)\s]+\.mp4)\)[ \t]*$", lambda m: keep_indented(
         m, f'<figure><video controls muted playsinline preload="metadata" src="{esc(m.group(2))}"></video></figure>'), t)
     t = re.sub(r"(?m)^([ \t]*)((?:!\[[^\]]*\]\(assets/images/[^)\s]+\)[ \t]*)+)$", lambda m: keep_indented(
