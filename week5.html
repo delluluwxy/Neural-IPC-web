@@ -82,6 +82,8 @@ article .kp { font-weight: 600; color: var(--key); }
 p.concl { color: var(--good); }
 p.expect { color: var(--accent); }
 p.setting { font-size: 13px; }
+.note-src { color: #0d8a7a; }    /* 【ref】【无 ref】【我们定的】整行：出处（draft_md，用户 11-05） */
+.note-cond { color: #c2570c; }   /* 【条件】整行：公式成立的前提 */
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 blockquote { font-size: 13px; line-height: 1.85; margin: 12px 0 32px; padding: 4px 18px; border-left: 3px solid #b5cbe5;
@@ -240,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "d704f61d9b30";</script>
+<script>window.NIPC_PAGE = "ac4e4ec5e439";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -386,10 +388,10 @@ html.annot-on #annot-capture { display: block; }
 <section id="w3"><h2>哪些公式是已知的：我们方法的推导</h2>
 <p>模型里的每一步都查了出处，直接标在那一步的公式下面，标法统一如下：</p>
 <ul>
-<li><strong>【ref】</strong>：有出处，直接写出是哪篇文献、哪个式子。</li>
-<li><strong>【无 ref】</strong>：没找到出处，写它是从哪一步、用什么推出来的。</li>
-<li><strong>【我们定的】</strong>：建模时我们自己做的选择，写理由。</li>
-<li><strong>【条件】</strong>：这一步成立需要的前提，没有前提的就不写。</li>
+<li><span class="note-src"><strong>【ref】</strong>：有出处，直接写出是哪篇文献、哪个式子。</span></li>
+<li><span class="note-src"><strong>【无 ref】</strong>：没找到出处，写它是从哪一步、用什么推出来的。</span></li>
+<li><span class="note-src"><strong>【我们定的】</strong>：建模时我们自己做的选择，写理由。</span></li>
+<li><span class="note-cond"><strong>【条件】</strong>：这一步成立需要的前提，没有前提的就不写。</span></li>
 </ul>
 <p>这里列的出处来自 Notion 里 TODO 3 和 TODO 4 的调研记录，以及这周在力学、机械工程、图形学里补的调研；式号都对着原文核过，核不到原文的注明了。兔子上出问题的地方，全都在标了【我们定的】的那几步里。</p>
 <p>这一节是我们自己方法的推导，下一节是这个方向上已有的公式。</p>
@@ -398,88 +400,88 @@ html.annot-on #annot-capture { display: block; }
 
 <p>表面上某一点陷下去多少，等于各处压强造成的下陷叠加起来，单个点力造成的下陷随距离按 \(1/r\) 衰减。</p>
 <figure style="margin:12px 0"><img src="assets/images/w5t_fig03_boussinesq_1_over_r.png" width="1215" height="691" style="width:557px;max-width:100%;height:auto" alt="这张图说明 Boussinesq 点力解的核心：在弹性半空间表面按住一个点，周围一圈都跟着陷下去，离得越远陷得越少。红色箭头是作用在一点上的点力 \(F\)；米色是半空间，上方灰色虚线是它原来的表面。距离 \(r\) 处表面下沉 \(u\)（蓝色标注），到距离 \(2r\) 处只下沉 \(u/2\)：下沉和距离成反比，正对应 \(u=P/(\pi E^*s)\) 里的 \(1/s\)。" loading="lazy"><figcaption class="small">这张图说明 Boussinesq 点力解的核心：在弹性半空间表面按住一个点，周围一圈都跟着陷下去，离得越远陷得越少。红色箭头是作用在一点上的点力 \(F\)；米色是半空间，上方灰色虚线是它原来的表面。距离 \(r\) 处表面下沉 \(u\)（蓝色标注），到距离 \(2r\) 处只下沉 \(u/2\)：下沉和距离成反比，正对应 \(u=P/(\pi E^*s)\) 里的 \(1/s\)。</figcaption></figure>
-<p>【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics: Exact Solutions of Axisymmetric Contact Problems</em>, Springer 2019, 式 2.2（点力解）、式 2.3（叠加）。  </p>
-<p>【条件】把物体当成无限大、表面是平的一块（手册原话是表面坡度 \(\theta\ll1\)，误差约为 \(\theta^2\)）。物体有限大、会整体弯的时候不准，由第 5 步补上。</p>
+<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics: Exact Solutions of Axisymmetric Contact Problems</em>, Springer 2019, 式 2.2（点力解）、式 2.3（叠加）。</span>  </p>
+<p><span class="note-cond">【条件】把物体当成无限大、表面是平的一块（手册原话是表面坡度 \(\theta\ll1\)，误差约为 \(\theta^2\)）。物体有限大、会整体弯的时候不准，由第 5 步补上。</span></p>
 <h3 id="w3-2">第 2 步：两边的软度相加</h3>
 
 <p>两个弹性体可以换成「一个刚的压头加一个合成模量」：\(\dfrac1{E^*}=\dfrac{1-\nu_A^2}{E_A}+\dfrac{1-\nu_B^2}{E_B}\)。这就是两边的柔度能直接相加 \(C=C^A+C^B\) 的来源。</p>
-<p>【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.1。  </p>
-<p>【条件】没有摩擦。</p>
+<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.1。</span>  </p>
+<p><span class="note-cond">【条件】没有摩擦。</span></p>
 <h3 id="w3-3">第 3 步：压力是一个能量的最大值点</h3>
 
 <p>每一格要么压着（有压强，而且正好让开），要么没压着（没压强，还留着缝），压强只能往外推不能往里拉。满足这几条的压强，正好让下面这个式子取到最大：</p>
 <p>\[\color{#c0392b}{U=\max_{p\ge0}\;h^2\Big[p^\top w-\tfrac12p^\top Cp\Big]}\]</p>
-<p>【ref】Bemporad &amp; Paggi, "Optimization algorithms for the solution of the frictionless normal contact between rough surfaces", <em>International Journal of Solids and Structures</em>, 2015, 式 16–19。文中写的是「余能在 \(p\ge0\) 下的最小点」，我们的 U 是它取负号。Kalker 的原文没有核，是经这篇转述的。  </p>
-<p>【条件】C 对称正定。</p>
+<p><span class="note-src">【ref】Bemporad &amp; Paggi, "Optimization algorithms for the solution of the frictionless normal contact between rough surfaces", <em>International Journal of Solids and Structures</em>, 2015, 式 16–19。文中写的是「余能在 \(p\ge0\) 下的最小点」，我们的 U 是它取负号。Kalker 的原文没有核，是经这篇转述的。</span>  </p>
+<p><span class="note-cond">【条件】C 对称正定。</span></p>
 <h3 id="w3-4">第 4 步：这个最大值就是弹性能，对它求导就是力</h3>
 
 <figure style="margin:12px 0"><img src="assets/images/w5t_w5_cell_energy_max.png" width="2510" height="1244" style="width:847px;max-width:100%;height:auto" alt="两幅图都是单独一格的 \(f(p)=pw-\tfrac12cp^2\)；灰色区域是 \(p&lt;0\)（往里拉），不允许，所以只看蓝色实线。左边这一格叠进去了（w &gt; 0）：抛物线在 \(p=w/c\) 处最高，最大值 \(w^2/2c\)，正好是一根柔度为 c 的弹簧被压缩 w 存的能量。右边这一格还留着缝（w &lt; 0）：曲线从 \(p=0\) 一路往下，最大值就在 \(p=0\)、\(f=0\)，这一格不受压。" loading="lazy"><figcaption class="small">两幅图都是单独一格的 \(f(p)=pw-\tfrac12cp^2\)；灰色区域是 \(p&lt;0\)（往里拉），不允许，所以只看蓝色实线。左边这一格叠进去了（w &gt; 0）：抛物线在 \(p=w/c\) 处最高，最大值 \(w^2/2c\)，正好是一根柔度为 c 的弹簧被压缩 w 存的能量。右边这一格还留着缝（w &lt; 0）：曲线从 \(p=0\) 一路往下，最大值就在 \(p=0\)、\(f=0\)，这一格不受压。</figcaption></figure>
 <ol>
 <li>
 <p>先只看一格，\(f(p)=pw-\tfrac12cp^2\)，求导令它等于 0，得到 \(p=w/c\)，也就是刚好把这一格让开需要的压强。<br />
-    【无 ref】对第 3 步的式子求极值。</p>
+    <span class="note-src">【无 ref】对第 3 步的式子求极值。</span></p>
 </li>
 <li>
 <p>把它代回去，\(f=\dfrac{w^2}{c}-\dfrac{w^2}{2c}=\dfrac{w^2}{2c}\)，正好是一根弹簧压缩 w 时存的能量。<br />
-    【无 ref】代数代入。</p>
+    <span class="note-src">【无 ref】代数代入。</span></p>
 </li>
 <li>
 <p>很多格的时候也一样，压着的那些格满足 \(Cp=w\)，代回去得到 \(U=\tfrac12h^2p^\top Cp\)，也就是弹性能。<br />
-    【ref】Bemporad &amp; Paggi 2015, 式 18。<br />
-    【条件】同第 3 步。</p>
+    <span class="note-src">【ref】Bemporad &amp; Paggi 2015, 式 18。</span><br />
+    <span class="note-cond">【条件】同第 3 步。</span></p>
 </li>
 <li>
 <p>U 对 \(w_i\) 求导时，因为在最大值点上 U 对 p 的导数已经是 0，所以只剩下 \(\partial U/\partial w_i=h^2p_i\)，这就是这一格的力。<br />
-    【ref】包络定理，Milgrom &amp; Segal, "Envelope theorems for arbitrary choice sets", <em>Econometrica</em> 70(2), 2002, 推论 4。用到我们 \(p\ge0\) 这个集合上是我们的推断。Notion 里用脚本核过：离散问题的「力 = 能量导数」误差在 \(3\times10^{-10}\) 以内。<br />
-    【条件】C 正定。</p>
+    <span class="note-src">【ref】包络定理，Milgrom &amp; Segal, "Envelope theorems for arbitrary choice sets", <em>Econometrica</em> 70(2), 2002, 推论 4。用到我们 \(p\ge0\) 这个集合上是我们的推断。Notion 里用脚本核过：离散问题的「力 = 能量导数」误差在 \(3\times10^{-10}\) 以内。</span><br />
+    <span class="note-cond">【条件】C 正定。</span></p>
 </li>
 </ol>
 <h3 id="w3-5">第 5 步：加上整体让开的那部分</h3>
 
 <p>真实的柔度等于无限大物体的柔度再加一个修正，我们把这个修正写成「整片平移加两个方向歪」，即 \(C=C_{\text{局部}}+\Phi A\Phi^\top\)，\(\Phi=[1,x,z]\)。A 是把有限元的整体柔度投影到这三个自由度上得到的。</p>
-<p>【ref】把整个结构的刚度缩到少数自由度上，是 Guyan, "Reduction of stiffness and mass matrices", <em>AIAA Journal</em> 3(2), 1965, p.380 的静力凝聚（原文付费，只核了书目）。没有固定面的物体（碰撞那一级）的柔度矩阵，见 Craig &amp; Chang, NASA CR-2781, 1977, 式 140–149。  </p>
-<p>【ref】旁证：有限大物体的 Green 函数 = Boussinesq 解 + 一个常数，见 Argatov, <em>JMPS</em> 70, 2014, 式 24；层很厚的时候，有限厚度对点力解的一阶修正也是一个跟距离无关的常数，见 Argatov &amp; Sabina, "Asymptotic analysis of the substrate effect for an arbitrary indenter", <em>Q. J. Mech. Appl. Math.</em> 66(1), 2013, 式 2.5–2.8。这支持「局部加一个整体项」的写法；两个歪的项文献没推到。  </p>
-<p>【我们定的】只取平移加两个方向歪这三个自由度，理由是实测够用。  </p>
-<p>【条件】一个物体上只有一处接触；有好几处接触时，要换成片和片之间的矩阵。</p>
+<p><span class="note-src">【ref】把整个结构的刚度缩到少数自由度上，是 Guyan, "Reduction of stiffness and mass matrices", <em>AIAA Journal</em> 3(2), 1965, p.380 的静力凝聚（原文付费，只核了书目）。没有固定面的物体（碰撞那一级）的柔度矩阵，见 Craig &amp; Chang, NASA CR-2781, 1977, 式 140–149。</span>  </p>
+<p><span class="note-src">【ref】旁证：有限大物体的 Green 函数 = Boussinesq 解 + 一个常数，见 Argatov, <em>JMPS</em> 70, 2014, 式 24；层很厚的时候，有限厚度对点力解的一阶修正也是一个跟距离无关的常数，见 Argatov &amp; Sabina, "Asymptotic analysis of the substrate effect for an arbitrary indenter", <em>Q. J. Mech. Appl. Math.</em> 66(1), 2013, 式 2.5–2.8。这支持「局部加一个整体项」的写法；两个歪的项文献没推到。</span>  </p>
+<p><span class="note-src">【我们定的】只取平移加两个方向歪这三个自由度，理由是实测够用。</span>  </p>
+<p><span class="note-cond">【条件】一个物体上只有一处接触；有好几处接触时，要换成片和片之间的矩阵。</span></p>
 <h3 id="w3-6">第 6 步：每一格叠进去多少</h3>
 
 <p>沿法向量两个表面的距离，这一格比最近点多隔开 \(s_i\)，所以要让开的量是 \(w_i=\delta-s_i\)。</p>
 <figure style="margin:12px 0"><img src="assets/images/w5t_w5_gap_w.png" width="1588" height="1172" style="width:569px;max-width:100%;height:auto" alt="上面橙色是物体 A，下面绿色是物体 B，两个弯曲的表面叠在一起，红色是叠进去的部分，竖直方向就是法向。最近点（正中间）两面叠进 δ，两条灰虚线是 B 的最高点和 A 的最低点。到第 i 格，A 的表面比它的最低点抬高了 \(f_A\)，B 的表面比它的最高点降低了 \(f_B\)，两段加起来 \(s_i=f_A+f_B\) 就是这一格比最近点多隔开的量，剩下的红色一段就是这一格要让开的 \(w_i=\delta-s_i\)。最下面一排是接触区铺的小方格，第 i 格标蓝。" loading="lazy"><figcaption class="small">上面橙色是物体 A，下面绿色是物体 B，两个弯曲的表面叠在一起，红色是叠进去的部分，竖直方向就是法向。最近点（正中间）两面叠进 δ，两条灰虚线是 B 的最高点和 A 的最低点。到第 i 格，A 的表面比它的最低点抬高了 \(f_A\)，B 的表面比它的最高点降低了 \(f_B\)，两段加起来 \(s_i=f_A+f_B\) 就是这一格比最近点多隔开的量，剩下的红色一段就是这一格要让开的 \(w_i=\delta-s_i\)。最下面一排是接触区铺的小方格，第 i 格标蓝。</figcaption></figure>
-<p>【我们定的】没找到出处，是我们定的量法。  </p>
-<p>【条件】两个表面在接触区差不多平行。法向转得快的地方（比如耳朵）和凹进去的地方会不太准。</p>
+<p><span class="note-src">【我们定的】没找到出处，是我们定的量法。</span>  </p>
+<p><span class="note-cond">【条件】两个表面在接触区差不多平行。法向转得快的地方（比如耳朵）和凹进去的地方会不太准。</span></p>
 <h3 id="w3-7">第 7 步：网络改哪里</h3>
 
 <p>网络只把每一格的缝隙放大或缩小一点，不去改柔度 C。</p>
-<p>【我们定的】理由是大变形集中在接触区附近，远一点的地方变形小，线弹性是准的。  </p>
-<p>【条件】两处接触不能挨得太近，挨得近的情况还没测。</p>
+<p><span class="note-src">【我们定的】理由是大变形集中在接触区附近，远一点的地方变形小，线弹性是准的。</span>  </p>
+<p><span class="note-cond">【条件】两处接触不能挨得太近，挨得近的情况还没测。</span></p>
 <h3 id="w3-8">第 8 步：标签的比值修正</h3>
 
 <p>\(U_{\text{标签}}=U_{\text{IPC}}\times U_{\text{好单元}}/U_{\text{简单单元}}\)，见第 1 节。</p>
-<p>【我们定的】理由是在同一张网格上，简单单元偏硬的原因对线弹性和对 IPC 是一样的；实测修正以后，不同网格的结果收到了一起。  </p>
-<p>【条件】非线性不能太大，太大时要另外核。</p></section>
+<p><span class="note-src">【我们定的】理由是在同一张网格上，简单单元偏硬的原因对线弹性和对 IPC 是一样的；实测修正以后，不同网格的结果收到了一起。</span>  </p>
+<p><span class="note-cond">【条件】非线性不能太大，太大时要另外核。</span></p></section>
 <section id="w4"><h2>这个方向上已有的公式</h2>
 <p>下面是接触力学、结构力学和图形学里跟我们直接有关的结果，默认前提跟上一节一样。</p>
 <h3 id="w4-1">平底圆柱压进去</h3>
 
 <p>半径 a 的平底压进软的平面，压深 δ，力是 \(F=2E^*a\,\delta\)。因为底面大小不变，所以力跟压深成正比；边缘处的压强按 \(1/\sqrt{a^2-r^2}\) 趋于无穷。</p>
-<p>【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.20–2.22。  </p>
-<p>【条件】压头是刚的（手册原文强调只对刚性压头严格成立）。</p>
+<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.20–2.22。</span>  </p>
+<p><span class="note-cond">【条件】压头是刚的（手册原文强调只对刚性压头严格成立）。</span></p>
 <p>带圆角的平底也有精确解。</p>
-<p>【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.97–2.99。</p>
+<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.97–2.99。</span></p>
 <h3 id="w4-2">球压进去（Hertz）</h3>
 
 <ol>
 <li>
 <p>球压进平面，力是 \(F=\tfrac43E^*\sqrt R\,\delta^{3/2}\)。压得越深，接触面积也越大，所以力比线性涨得快。<br />
-    【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.34（式 2.29 是用接触半径写的同一个力）。</p>
+    <span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.34（式 2.29 是用接触半径写的同一个力）。</span></p>
 </li>
 <li>
 <p>对力积分得到能量：\(U=\int_0^\delta F\,d\delta&#x27;=\tfrac43E^*\sqrt R\cdot\tfrac25\delta^{5/2}=\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)。<br />
-    【ref】Popov, Heß &amp; Willert 2019, 式 2.35。</p>
+    <span class="note-src">【ref】Popov, Heß &amp; Willert 2019, 式 2.35。</span></p>
 </li>
 <li>
 <p>压得越深越硬，对任意形状的接触区都成立。<br />
-    【ref】Barber, "Bounds on the electrical resistance between contacting elastic rough bodies", <em>Proc. R. Soc. A</em> 459, 2003, 定理 4.1。</p>
+    <span class="note-src">【ref】Barber, "Bounds on the electrical resistance between contacting elastic rough bodies", <em>Proc. R. Soc. A</em> 459, 2003, 定理 4.1。</span></p>
 </li>
 </ol>
 <h3 id="w4-3">薄层：弹簧垫</h3>
@@ -489,54 +491,54 @@ html.annot-on #annot-capture { display: block; }
 <ol>
 <li>
 <p>底面能滑动的时候，每单位面积的刚度是 \(k=E&#x27;/t\)，\(E&#x27;=E/(1-\nu^2)\)，t 是层厚。<br />
-    【ref】Ciavarella &amp; Papangelo, "Ultrastrong adhesion in the contact with thin elastic layers on a rigid foundation", arXiv:1801.00677, 2018, 式 3（原文式 3 印刷漏了 \(1/t\)，可由同文式 5 反推）。<br />
-    【条件】层厚比接触圈小得多。</p>
+    <span class="note-src">【ref】Ciavarella &amp; Papangelo, "Ultrastrong adhesion in the contact with thin elastic layers on a rigid foundation", arXiv:1801.00677, 2018, 式 3（原文式 3 印刷漏了 \(1/t\)，可由同文式 5 反推）。</span><br />
+    <span class="note-cond">【条件】层厚比接触圈小得多。</span></p>
 </li>
 <li>
 <p>底面粘住的时候，\(k=\dfrac{E(1-\nu)}{(1+\nu)(1-2\nu)\,t}\)。\(\nu\to0.5\) 时 \(k\to\infty\)，因为材料不可压、又被底座夹住，这时弹簧垫模型就失效了。<br />
-    【ref】Argatov, Mishuris &amp; Popov, "Asymptotic modelling of the JKR adhesion contact for a thin elastic layer", <em>Q. J. Mech. Appl. Math.</em> 69(2), 2016, 式 13。<br />
-    【条件】层厚比接触圈小得多，材料不能接近不可压。</p>
+    <span class="note-src">【ref】Argatov, Mishuris &amp; Popov, "Asymptotic modelling of the JKR adhesion contact for a thin elastic layer", <em>Q. J. Mech. Appl. Math.</em> 69(2), 2016, 式 13。</span><br />
+    <span class="note-cond">【条件】层厚比接触圈小得多，材料不能接近不可压。</span></p>
 </li>
 <li>
 <p>球压深 δ 时，离中心 r 的地方弹簧压缩了 \(\delta-\dfrac{r^2}{2R}\)，存的能量是 \(\tfrac12k\big(\delta-\tfrac{r^2}{2R}\big)^2\)。<br />
-    【无 ref】由第 1 步和球面的几何推出。</p>
+    <span class="note-src">【无 ref】由第 1 步和球面的几何推出。</span></p>
 </li>
 <li>
 <p>在面积上积分，换元方法跟上一节 hydro 的推导一样，得到 \(U=\dfrac{\pi kR}{3}\delta^3\)。<br />
-    【ref】力 \(F=\pi kR\delta^2\) 见 Argatov, Mishuris &amp; Popov 2016, 式 28–30（取粘附项为 0），能量是对它积分。</p>
+    <span class="note-src">【ref】力 \(F=\pi kR\delta^2\) 见 Argatov, Mishuris &amp; Popov 2016, 式 28–30（取粘附项为 0），能量是对它积分。</span></p>
 </li>
 </ol>
 <p>拿这个跟上一节比一下，hydro 在球上算出来是 \(\tfrac{\pi kR}{6}\delta^3\)，跟弹簧垫的形式完全一样，只差一个系数。所以 hydro 其实就是一床弹簧垫，对薄层是对的，对厚物体就不对了。</p>
-<p>【ref】「hydro 是弹簧垫」这个说法 Elandt 2019 §II 自己就写了；\(1/6\) 对 \(1/3\) 的系数对比没找到出处，由上一节和上面第 4 步对比得出。</p>
+<p><span class="note-src">【ref】「hydro 是弹簧垫」这个说法 Elandt 2019 §II 自己就写了；\(1/6\) 对 \(1/3\) 的系数对比没找到出处，由上一节和上面第 4 步对比得出。</span></p>
 <h3 id="w4-4">两处接触互相影响</h3>
 
 <p>一处受力会把远处的表面也压下去一点（就是第 1 步那个点力的解），所以每一处的压深等于自己压的加上别处带下去的。</p>
-<p>【ref】逐点叠加点力解是 Ciavarella, Delfine &amp; Demelio, <em>JMPS</em> 54(12), 2006；Ciavarella, Greenwood &amp; Paggi, "Inclusion of 'interaction' in the Greenwood and Williamson contact theory", <em>Wear</em> 265, 2008, pp.729–734 把它化成均匀的形式。  </p>
-<p>【条件】只取一阶相互作用（点力的远场近似）。</p>
+<p><span class="note-src">【ref】逐点叠加点力解是 Ciavarella, Delfine &amp; Demelio, <em>JMPS</em> 54(12), 2006；Ciavarella, Greenwood &amp; Paggi, "Inclusion of 'interaction' in the Greenwood and Williamson contact theory", <em>Wear</em> 265, 2008, pp.729–734 把它化成均匀的形式。</span>  </p>
+<p><span class="note-cond">【条件】只取一阶相互作用（点力的远场近似）。</span></p>
 <p>我们测过，两处挨得近的时候这个近似差 0.7% 到 0.8%，而在整个接触面上铺格子算只差 0.04%，所以我们不用手写的耦合公式。另外，Ciavarella 2008 里的「均匀下沉项」是半空间里格与格之间的耦合，对应的是我们 \(C_{\text{局部}}\) 里已经有的部分，不是整体项；不能在 \(C_{\text{局部}}\) 之外再加一遍。</p>
 <h3 id="w4-5">碰撞时最大压深怎么随速度变</h3>
 
 <ol>
 <li>
 <p>撞得够慢的话，动能会全部变成接触能：\(\tfrac12mv^2=\tfrac{8}{15}E^*\sqrt R\,\delta_{\max}^{5/2}\)。<br />
-    【ref】Popov, Heß &amp; Willert 2019, 式 2.36。<br />
-    【条件】手册原文：撞击速度远小于弹性波速，弹性波带走的能量可以忽略。有限大的物体还要撞击时间比物体自己振一下的时间长得多（Love《A Treatise on the Mathematical Theory of Elasticity》第 4 版第 139 节）；留在物体振动里的能量约为「速度 ÷ 波速」的 1/50（Rayleigh 1906, <em>Phil. Mag.</em> 11）。</p>
+    <span class="note-src">【ref】Popov, Heß &amp; Willert 2019, 式 2.36。</span><br />
+    <span class="note-cond">【条件】手册原文：撞击速度远小于弹性波速，弹性波带走的能量可以忽略。有限大的物体还要撞击时间比物体自己振一下的时间长得多（Love《A Treatise on the Mathematical Theory of Elasticity》第 4 版第 139 节）；留在物体振动里的能量约为「速度 ÷ 波速」的 1/50（Rayleigh 1906, <em>Phil. Mag.</em> 11）。</span></p>
 </li>
 <li>
 <p>两边开 2.5 次方，得到 \(\delta_{\max}\propto v^{0.8}\)，接触时间 \(t_S\approx2.94\,\delta_{\max}/v\)。<br />
-    【ref】Popov, Heß &amp; Willert 2019, 式 2.37；一般形状见式 2.69–2.70。</p>
+    <span class="note-src">【ref】Popov, Heß &amp; Willert 2019, 式 2.37；一般形状见式 2.69–2.70。</span></p>
 </li>
 </ol>
 <h3 id="w4-6">把大物体缩成几个自由度</h3>
 
 <p>静力凝聚只留下少数几个自由度，其余的按静力平衡消掉，我们的整体项 A 就是这么来的。</p>
-<p>【ref】Guyan, "Reduction of stiffness and mass matrices", <em>AIAA Journal</em> 3(2), 1965, p.380。  </p>
-<p>【条件】线弹性，被消掉的那部分没有惯性（跟上面「撞得够慢」是一回事）。</p>
+<p><span class="note-src">【ref】Guyan, "Reduction of stiffness and mass matrices", <em>AIAA Journal</em> 3(2), 1965, p.380。</span>  </p>
+<p><span class="note-cond">【条件】线弹性，被消掉的那部分没有惯性（跟上面「撞得够慢」是一回事）。</span></p>
 <p>在这个基础上再留几个振动模态，动力学也能缩。以后如果想让粗模型自己带上弯曲，比如把耳朵的弯交给粗模型来管，用的就是这个。</p>
-<p>【ref】Craig &amp; Bampton, "Coupling of substructures for dynamic analyses", <em>AIAA Journal</em> 6(7), 1968, pp.1313–1319（原文付费，只核了书目）。  </p>
-<p>【条件】线弹性。</p>
+<p><span class="note-src">【ref】Craig &amp; Bampton, "Coupling of substructures for dynamic analyses", <em>AIAA Journal</em> 6(7), 1968, pp.1313–1319（原文付费，只核了书目）。</span>  </p>
+<p><span class="note-cond">【条件】线弹性。</span></p>
 <p>物体在动的时候没有固定面，整体柔度要用「惯性释放」来定义：先把载荷减掉刚体加速度对应的惯性力，变成自平衡的载荷，再只加最少的约束去解。</p>
-<p>【ref】Cavaliere 等, "Nonintrusive reduced order model for parametric solutions of inertia relief problems", arXiv:2012.01961, 2020, §3 式 11–20；矩阵写法见 Craig &amp; Chang, NASA CR-2781, 1977, 式 140–149。</p>
+<p><span class="note-src">【ref】Cavaliere 等, "Nonintrusive reduced order model for parametric solutions of inertia relief problems", arXiv:2012.01961, 2020, §3 式 11–20；矩阵写法见 Craig &amp; Chang, NASA CR-2781, 1977, 式 140–149。</span></p>
 <h3 id="w4-7">图形学和机械里最接近的做法</h3>
 
 <ul>
