@@ -45,10 +45,10 @@ from webgen.pages import build_pages  # noqa: E402
 from webgen.week2_hydro import collect_hydro_sweeps  # noqa: E402
 
 SHORT_SIDE = 420                 # 配图最短边的显示像素（用户 2026-10-22：最短边固定，图里文字约与正文同大）
-FIXED_SIZE_WEEKS = ("week2", "week3_4")    # 按最短边定配图尺寸的周（size_media）
+FIXED_SIZE_WEEKS = ("week2", "week3_4", "week5")    # 按最短边定配图尺寸的周（size_media）
 # 复制图片时统一留白的周：本周页面引用的图复制成 <前缀><原名> 的副本、在副本上跑 sandbox fig_margin.trim_and_pad
 # （裁到内容 + 四边 3% × 内容最短边）；NAS 原图不动，也不和别的页共用的同名 asset 撞（主会话 10-22 定）
-TRIM_WEEKS = {"week3_4": "w34_"}
+TRIM_WEEKS = {"week3_4": "w34_", "week5": "w5t_"}
 TRIM_SRC = {}                    # 留白副本的 asset 文件名 → NAS 源文件（size_media 登记，复制时用）
 
 
@@ -108,7 +108,7 @@ def trim_copies(html, prefix):
 
 
 # 每张图 / 视频里的子图数（用户 10-23：一个子图给一个固定面积；读图核过，见 sandbox docs/drafts/week2_web_captions.md
-# 交接笔记里的表）；没列的按 1。键是去掉 w34_ / w3i_ 前缀的文件名。
+# 交接笔记里的表）；没列的按 1。键是去掉 w34_ / w3i_ / w5t_ 前缀的文件名。
 SUBFIGS = {
     # week2
     "nipc_scene_K1.png": 2, "nipc_scene_K2.png": 2, "nipc_scene_K3.png": 2,
@@ -134,6 +134,10 @@ SUBFIGS = {
     "meeting_13_merge_steps.png": 2, "meeting_15_memorize.png": 2, "meeting_16_new_arch.png": 2,   # meeting_14 三栏同一件事，按 1 个
     "meeting_17_input_example.png": 2, "meeting_18_network_neurons.png": 2, "meeting_19_huanyu_pipeline.png": 2,
     "meeting_20_huanyu_network.png": 2, "meeting_21_huanyu_example.png": 2,
+    # week5（同 sandbox tools/figs/week5/{concept_figs,data_figs}.py 的子图数）
+    "w5_spring_series.png": 2, "w5_global_term.png": 3, "w5_hydro_min_pressure.png": 3, "w5_cell_energy_max.png": 2,
+    "w5_gap_w.png": 2, "w5_winkler_layer.png": 2, "w5_dataset_configs.png": 8, "w5_error_bars.png": 2,
+    "w5_dragon_thin.png": 2,
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 
@@ -141,7 +145,7 @@ AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个�
 def display_width(name, w, h):
     """显示宽度（px）：子图数 n（SUBFIGS），目标面积 = n × SHORT_SIDE²。先按最短边 = SHORT_SIDE 算，面积与目标之比在
     AREA_BAND 内就用它；超出（长宽比特殊）就按目标面积等比缩放。"""
-    n = SUBFIGS.get(re.sub(r"^w(?:34|3i)_", "", name), 1)
+    n = SUBFIGS.get(re.sub(r"^w(?:34|3i|5t)_", "", name), 1)
     s = SHORT_SIDE / min(w, h)
     target = n * SHORT_SIDE ** 2
     if not AREA_BAND[0] <= (w * s) * (h * s) / target <= AREA_BAND[1]:
