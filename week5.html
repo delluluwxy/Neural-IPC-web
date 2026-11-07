@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "62f501388ee5";</script>
+<script>window.NIPC_PAGE = "4223d877e5a2";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -275,7 +275,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-2" href="#w6">6. 接下来</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>Week 5（TODO 2026-10-26）</h1><p class="summary">普通形状（兔子、龙）数据集 49 个构型；在兔子上验证骨架（含整体让开项）对线弹性与 IPC 标签、对比 hydro；模型每一步公式的出处（力学、机械、图形学）；理想 test case。</p></header>
 <div class="lead"><p>这周的 TODO 有四条：用普通形状（不对称的，比如兔子）做数据集；用这些形状验证架构，跟 baseline 比；查文献，看模型里的公式有多少是已知的；整理理想情况下的 test case。</p>
-<p>先说结论。数据集做好了，四类一共 49 个构型。架构在兔子上是对的：骨架和精细线弹性有限元、和 IPC 修正标签都差 1% 左右（中位数），hydro 和 IPC 修正标签差 40% 以上。hydro 差的原因也找到了：它本质上是一床弹簧垫，能量随压深涨的速度跟真实物体不一样，所以调参救不回来。模型里的公式大部分有出处，我们自己定的只有几条。能写出精确答案的理想情况，骨架测过的都对上了。</p></div>
+<p>先说结论。数据集做好了，四类一共 49 个构型。架构在兔子上是对的：骨架和精细线弹性有限元、和 IPC 修正标签都差 1% 左右（中位数），hydro 和 IPC 修正标签的误差中位数约 43%，最坏的一行差 943%。hydro 差的原因也找到了：它本质上是一床弹簧垫，能量随压深涨的速度跟真实物体不一样，所以调参救不回来。模型里的公式大部分有出处，我们自己定的只有几条。能写出精确答案的理想情况，骨架测过的都对上了。</p></div>
 <section id="w1"><h2>普通形状的数据集</h2>
 <p>数据分四类，从简单到复杂排，后一类只比前一类多一个难点，这样哪里出问题能看出来是哪一步带进来的。每个构型压三个深度：0.003、0.006、0.012。</p>
 <div class="tablewrap"><table>
