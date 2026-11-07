@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "ac4e4ec5e439";</script>
+<script>window.NIPC_PAGE = "4223d877e5a2";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -275,7 +275,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-2" href="#w6">6. 接下来</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>Week 5（TODO 2026-10-26）</h1><p class="summary">普通形状（兔子、龙）数据集 49 个构型；在兔子上验证骨架（含整体让开项）对线弹性与 IPC 标签、对比 hydro；模型每一步公式的出处（力学、机械、图形学）；理想 test case。</p></header>
 <div class="lead"><p>这周的 TODO 有四条：用普通形状（不对称的，比如兔子）做数据集；用这些形状验证架构，跟 baseline 比；查文献，看模型里的公式有多少是已知的；整理理想情况下的 test case。</p>
-<p>先说结论。数据集做好了，四类一共 49 个构型。架构在兔子上是对的：骨架和精细线弹性有限元、和 IPC 修正标签都差 1% 左右（中位数），hydro 和 IPC 修正标签差 50% 以上。hydro 差的原因也找到了：它本质上是一床弹簧垫，能量随压深涨的速度跟真实物体不一样，所以调参救不回来。模型里的公式大部分有出处，我们自己定的只有几条。能写出精确答案的理想情况，骨架测过的都对上了。</p></div>
+<p>先说结论。数据集做好了，四类一共 49 个构型。架构在兔子上是对的：骨架和精细线弹性有限元、和 IPC 修正标签都差 1% 左右（中位数），hydro 和 IPC 修正标签的误差中位数约 43%，最坏的一行差 943%。hydro 差的原因也找到了：它本质上是一床弹簧垫，能量随压深涨的速度跟真实物体不一样，所以调参救不回来。模型里的公式大部分有出处，我们自己定的只有几条。能写出精确答案的理想情况，骨架测过的都对上了。</p></div>
 <section id="w1"><h2>普通形状的数据集</h2>
 <p>数据分四类，从简单到复杂排，后一类只比前一类多一个难点，这样哪里出问题能看出来是哪一步带进来的。每个构型压三个深度：0.003、0.006、0.012。</p>
 <div class="tablewrap"><table>
@@ -348,23 +348,23 @@ html.annot-on #annot-capture { display: block; }
 <tbody>
 <tr>
 <td>骨架 vs 精细线弹性有限元</td>
-<td>约 0.7%</td>
-<td>2.2%</td>
+<td>约 0.6%</td>
+<td>1.5%</td>
 </tr>
 <tr>
 <td>骨架 vs IPC 修正标签</td>
 <td>约 0.8%</td>
-<td>20.1%</td>
+<td>5.3%</td>
 </tr>
 <tr>
 <td>hydro vs IPC 修正标签</td>
-<td>约 53%</td>
+<td>约 43%</td>
 <td>943%</td>
 </tr>
 </tbody>
 </table></div>
-<p>统计的是兔子压平块、压球、压兔子里的 54 行（去掉接触格太少、两处接触和接近两处接触的行），兔子压龙不在内。</p>
-<figure style="margin:12px 0"><img src="assets/images/w5t_w5_error_bars.png" width="1525" height="1057" style="width:606px;max-width:100%;height:auto" alt="柱子是能量误差的中位数，短横是最大值，纵轴是对数；最右一组是全部 54 行。骨架不管跟精细线弹性有限元比，还是跟比值修正后的 IPC 标签比，中位数都在 1% 左右；hydro 的中位数是 53%，最坏的一行大了 943%。IPC 标签是我们自己造的，和 hydro 比的正式裁判是解析解（第 5 节），这张图里 hydro 那一栏只作参照。" loading="lazy"><figcaption class="small">柱子是能量误差的中位数，短横是最大值，纵轴是对数；最右一组是全部 54 行。骨架不管跟精细线弹性有限元比，还是跟比值修正后的 IPC 标签比，中位数都在 1% 左右；hydro 的中位数是 53%，最坏的一行大了 943%。IPC 标签是我们自己造的，和 hydro 比的正式裁判是解析解（第 5 节），这张图里 hydro 那一栏只作参照。</figcaption></figure>
+<p>统计的是兔子压平块、压球、压兔子里够格下结论的 28 行：线弹性参照在每个接触半径上至少有 2 个格子，含两处接触挨得很近的行，不含确定是两处接触的行；兔子压龙不在内。放宽到每个接触半径至少 1.5 个格子（47 行），三个中位数是 0.6%、0.8%、51%；骨架对 IPC 修正标签的最大值变成 20.1%，出在一处又薄又会转的地方深压，那一行只有 1.7 个格子。</p>
+<figure style="margin:12px 0"><img src="assets/images/w5t_w5_error_bars.png" width="1587" height="1037" style="width:643px;max-width:100%;height:auto" alt="柱子是进结论的 28 行（含两处接触挨得很近的行）的能量误差中位数，短横是最大值，纵轴是对数；最右一组是这 28 行合起来。前三组里每一行另画一个点：实心是每个接触半径有 2 个以上格子、进结论的行，空心是 1.5–2 个格子、只进统计的行，灰叉是不到 1.5 个格子、不进统计的行。骨架不管跟精细线弹性有限元比，还是跟比值修正后的 IPC 标签比，中位数都在 1% 左右；hydro 的中位数是 43%，最坏的一行大了 943%。IPC 标签是我们自己造的，和 hydro 比的正式裁判是解析解（第 5 节），这张图里 hydro 那一栏只作参照。" loading="lazy"><figcaption class="small">柱子是进结论的 28 行（含两处接触挨得很近的行）的能量误差中位数，短横是最大值，纵轴是对数；最右一组是这 28 行合起来。前三组里每一行另画一个点：实心是每个接触半径有 2 个以上格子、进结论的行，空心是 1.5–2 个格子、只进统计的行，灰叉是不到 1.5 个格子、不进统计的行。骨架不管跟精细线弹性有限元比，还是跟比值修正后的 IPC 标签比，中位数都在 1% 左右；hydro 的中位数是 43%，最坏的一行大了 943%。IPC 标签是我们自己造的，和 hydro 比的正式裁判是解析解（第 5 节），这张图里 hydro 那一栏只作参照。</figcaption></figure>
 <p>骨架本身是线性的。它和 IPC 之间剩下的那一点差，来自大变形，差得最多的是又薄又会转的地方。以后网络要学的就是这一小块。</p>
 <h3 id="w2-4">hydro 为什么不行</h3>
 
@@ -379,8 +379,8 @@ html.annot-on #annot-capture { display: block; }
 </ol></details>
 <p>真实的厚物体（Hertz）是 2.5 次方。hydro 只有一个参数可以调，调参只能把整条曲线放大缩小，改不了次方，所以怎么调都对不上。</p>
 <figure style="margin:12px 0"><img src="assets/images/w5t_w5_energy_powers.png" width="1478" height="1173" style="width:529px;max-width:100%;height:auto" alt="同一个球越压越深，三种模型给的能量画在双对数坐标里，所以次方就是斜率。绿线是真实的厚物体（Hertz）\(\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)，斜率 2.5；蓝线是弹簧垫 \(\pi kR/3\cdot\delta^3\)，红线是 hydro \(\pi kR/6\cdot\delta^3\)，两条斜率都是 3，压得越深涨得比真实越快。两条灰虚线是 hydro 的 k 乘 100、除 100：整条线只上下平移，斜率还是 3，所以调 k 只能在一个压深上对上。图里的 R、E*、k 是为了画出形状取的示意值，不是实测。" loading="lazy"><figcaption class="small">同一个球越压越深，三种模型给的能量画在双对数坐标里，所以次方就是斜率。绿线是真实的厚物体（Hertz）\(\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)，斜率 2.5；蓝线是弹簧垫 \(\pi kR/3\cdot\delta^3\)，红线是 hydro \(\pi kR/6\cdot\delta^3\)，两条斜率都是 3，压得越深涨得比真实越快。两条灰虚线是 hydro 的 k 乘 100、除 100：整条线只上下平移，斜率还是 3，所以调 k 只能在一个压深上对上。图里的 R、E*、k 是为了画出形状取的示意值，不是实测。</figcaption></figure>
-<p>薄的地方 hydro 差得最多：兔子压在龙身上薄的那块（兔子压龙第二批 4 个构型），龙那边的变形几乎都在离接触点很远的地方，是整块在动，hydro 只看重叠区，看不到这部分，结果硬了 6 到 134 倍。骨架有整体那一项，和线弹性参照比，能进结论的行只差千分之一以内；和 IPC 修正标签比差 0.2%–8.6%，剩下的是大变形。</p>
-<figure style="margin:12px 0"><img src="assets/images/w5t_w5_dragon_thin.png" width="2092" height="989" style="width:888px;max-width:100%;height:auto" alt="兔子压在龙身上很薄的四个地方，每处压三个深度。左图是能量除以 IPC 修正标签的倍数：骨架（蓝点）都贴在 1 上，hydro（红柱）是 6 到 134 倍，压得越深差得越多。原因是薄的地方变形主要在离接触点很远的地方，整块在动，hydro 只看两物体的重叠区，看不到这部分。右图把骨架的误差放大来看：对精细线弹性大多在千分之几，对 IPC 标签在 9% 以内，剩下的主要是大变形。斜线空心的柱是接触区格子太少的行，只作参考。" loading="lazy"><figcaption class="small">兔子压在龙身上很薄的四个地方，每处压三个深度。左图是能量除以 IPC 修正标签的倍数：骨架（蓝点）都贴在 1 上，hydro（红柱）是 6 到 134 倍，压得越深差得越多。原因是薄的地方变形主要在离接触点很远的地方，整块在动，hydro 只看两物体的重叠区，看不到这部分。右图把骨架的误差放大来看：对精细线弹性大多在千分之几，对 IPC 标签在 9% 以内，剩下的主要是大变形。斜线空心的柱是接触区格子太少的行，只作参考。</figcaption></figure>
+<p>薄的地方 hydro 差得最多：兔子压在龙身上薄的那块（兔子压龙第二批 4 个构型），龙那边的变形几乎都在离接触点很远的地方，是整块在动，hydro 只看重叠区，看不到这部分，结果硬了 6 到 134 倍。这批线弹性参照的格子偏粗：12 行里只有 1 行每个接触半径有 2 个以上格子、能进结论，3 行有 1.5–2 个格子、只进统计，其余 8 行只作参考。在这 4 行上，骨架有整体那一项，和线弹性参照只差 0.4% 以内，和 IPC 修正标签差 4.1%–8.6%，剩下的是大变形；hydro 硬了 7 到 20 倍。</p>
+<figure style="margin:12px 0"><img src="assets/images/w5t_w5_dragon_thin.png" width="1867" height="1000" style="width:784px;max-width:100%;height:auto" alt="兔子压在龙身上很薄的四个地方，每处压三个深度。左图是能量除以 IPC 修正标签的倍数：骨架（蓝点）都贴在 1 上，hydro（红柱）是 6 到 134 倍，压得越深差得越多。原因是薄的地方变形主要在离接触点很远的地方，整块在动，hydro 只看两物体的重叠区，看不到这部分。右图把骨架的误差放大来看：对精细线弹性大多在千分之几，对 IPC 标签在 9% 以内，剩下的主要是大变形。实心的是每个接触半径有 2 个以上格子、能进结论的行（1 行），浅色的是 1.5–2 个格子、只进统计的行（3 行），斜线空心的是不到 1.5 个格子、只作参考的行（8 行）。" loading="lazy"><figcaption class="small">兔子压在龙身上很薄的四个地方，每处压三个深度。左图是能量除以 IPC 修正标签的倍数：骨架（蓝点）都贴在 1 上，hydro（红柱）是 6 到 134 倍，压得越深差得越多。原因是薄的地方变形主要在离接触点很远的地方，整块在动，hydro 只看两物体的重叠区，看不到这部分。右图把骨架的误差放大来看：对精细线弹性大多在千分之几，对 IPC 标签在 9% 以内，剩下的主要是大变形。实心的是每个接触半径有 2 个以上格子、能进结论的行（1 行），浅色的是 1.5–2 个格子、只进统计的行（3 行），斜线空心的是不到 1.5 个格子、只作参考的行（8 行）。</figcaption></figure>
 <h3 id="w2-5">动态</h3>
 
 <p>让软球带着速度撞平块。撞得够慢的话，动能会全部变成接触能，最大压深跟速度的关系是 \(v^{2/n}\)，n 是能量的次方。真实情况 n = 2.5，应该是 \(v^{0.8}\)。我们测出来是 \(v^{0.7994}\)。hydro 的 n = 3，理论上是 \(v^{0.667}\)（把 hydro 实际的能量曲线代进能量守恒，算出来是 \(v^{0.655}\)），所以换一个速度，hydro 的误差就会变。</p>
