@@ -78,11 +78,7 @@ pre code { padding: 0; }
 pre.log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5;
           padding: 10px 12px; margin: 6px 0; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
 article .lead { padding: 8px 20px; margin: 24px 0; background: #f3f7fc; border: 1px solid #e1eaf6; border-radius: 8px; }
-article .kp { font-weight: 600; color: #b4232c; }
-/* 结果待填位：每个 SLOT 注释后面紧跟的虚线框，结果出来后整块替换 */
-.slot { margin: 14px 0; padding: 10px 14px; border: 2px dashed #c7902a; border-radius: 8px; background: #fff8e8;
-        color: #7a5a14; font-size: 14px; line-height: 1.7; }
-.slot b { color: #8a5a0b; }
+article .kp { font-weight: 600; color: var(--key); }
 p.concl { color: var(--good); }
 p.expect { color: var(--accent); }
 p.setting { font-size: 13px; }
@@ -246,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "bb0b0d7a8b25";</script>
+<script>window.NIPC_PAGE = "d29f503cd0c9";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -261,7 +257,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w2-2">2.2 第 3 关：确实需要学吗</a>
 <a class="toc-level-3" href="#w2-3">2.3 第 4 关：输入特征和要学的量有关吗</a>
 <a class="toc-level-3" href="#w2-4">2.4 第 5 关：网络架构与训练</a>
-<a class="toc-level-3" href="#w2-5">2.5 和 baseline 比：hydro</a>
+<a class="toc-level-3" href="#w2-5">2.5 和 baseline 比：hydro 与其它接触模型</a>
 <a class="toc-level-2" href="#w3">3. 文献：哪些公式是已知的</a>
 <a class="toc-level-3" href="#w3-1">3.1 一张表看完</a>
 <a class="toc-level-3" href="#w3-2">3.2 我们方法每一步的出处</a>
@@ -270,25 +266,28 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w4-1">4.1 有精确解的接触问题</a>
 <a class="toc-level-3" href="#w4-2">4.2 半空间、粘底薄层、薄板</a>
 <a class="toc-level-3" href="#w4-3">4.3 碰撞：最大压深随速度的次方</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
-<header class="top"><h1>Week 5（TODO 2026-10-26）</h1><p class="summary">普通形状数据集；训练网络之前依次要过的五关（数据、骨架、确实要学、特征、架构）与 hydro 对比；模型每一步公式的出处；理想情况下的 test case（精确解、半空间、粘底薄层、薄板、碰撞）。</p></header>
-<div class="lead"><ul>
+<header class="top"><h1>Week 5（TODO 2026-10-26）</h1><p class="summary">普通形状数据集；训练网络之前依次要过的五关（数据、骨架、确实要学、特征、架构）与 hydro 等 baseline 对比；模型每一步公式的出处；理想情况下的 test case（精确解、半空间、粘底薄层、薄板、碰撞）。</p></header>
+<div class="lead"><style>article .kp { color: #b4232c; } .slot { margin: 14px 0; padding: 10px 14px; border: 2px dashed #c7902a; border-radius: 8px; background: #fff8e8; color: #7a5a14; font-size: 14px; line-height: 1.7; } .slot b { color: #8a5a0b; }</style>
+
+<ul>
 <li><strong>这周的四条 TODO</strong>：用更普通的形状（不对称的，甚至兔子这样的）做数据集；用这些形状验证架构是对的，并和 baseline 比；查文献，看模型里的公式有多少是已知的；整理理想情况下的 test case。</li>
-<li><strong>整页一条线：网络只在五关依次通过之后才训练。</strong>前一关不过，后一关不开始。
-<ol>
+<li><strong>整页一条线：网络只在五关依次通过之后才训练。</strong>前一关不过，后一关不开始。<ol>
 <li><strong>数据</strong>：至少 8 个形状（含 Thingi10K 里的形状），既有物体压平块、也有物体压物体；位置、朝向、压深都随机；只因数值失败剔除样本。</li>
 <li><strong>骨架</strong>：每个形状上，骨架和精细线弹性有限元（二次单元 P2）的差都在标签误差带以内。</li>
 <li><strong>确实要学</strong>：骨架和标签之间剩下的差，系统地超出标签误差带。</li>
 <li><strong>特征</strong>：网络的输入和要学的残差真有关系，而且不只是通过「每个接触半径有几个格子」（a/h）相关。</li>
 <li><strong>架构与训练</strong>：骨架加一个逐格的小网络，输出每格一个正数 d，d = 1 时严格等于骨架；留出 2 个形状只用来检验。</li>
-</ol></li>
+</ol>
+</li>
 <li><strong>第 1 关</strong>在第 1 节（TODO 1），<strong>第 2–5 关和 baseline 对比</strong>在第 2 节（TODO 2）。第 3 节是文献（TODO 3），第 4 节是理想情况的 test case（TODO 4），它们和普通形状数据集分开，专门当独立裁判。</li>
 <li><strong>已经有的结果</strong>：兔子和龙上的第一批数据（49 个构型）里，骨架和精细线弹性有限元、和 IPC 修正标签都差 1% 左右（中位数）；hydro 和 IPC 修正标签的误差中位数约 43%，最坏的一行差 943%，原因是 hydro 本质上是一床弹簧垫，能量随压深涨的次方不对。模型里的公式大部分有出处；能写出精确答案的理想情况，骨架测过的都对上了。</li>
 </ul>
 <!-- SLOT: gate_status_summary -->
-<div class="slot"><b>待填：</b>五关状态一行表（每关：判据、通过 / 停在这关、结论一句、出处文件）；来源 Neural-IPC-sandbox/docs/drafts/training_week5.md §5「结果」与 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/summary/。</div>
-</div>
+
+<div class="slot"><b>待填：</b>五关状态一行表（每关：判据、通过 / 停在这关、结论一句、出处文件）；来源 Neural-IPC-sandbox/docs/drafts/training_week5.md §5「结果」与 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/summary/。</div></div>
 <section id="w1"><h2>普通形状的数据集（第 1 关）</h2>
 <h3 id="w1-1">第 1 关：数据够普通、够多</h3>
+
 <ul>
 <li><strong>形状至少 8 个，含 Thingi10K 里的真实网格。</strong>不对称、表面有凸有凹有薄处，不挑好算的。</li>
 <li><strong>两类接触都要有。</strong>物体压平块；物体压物体（两边都是普通形状）。</li>
@@ -296,19 +295,25 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>只因为数值失败才剔除样本。</strong>数值失败指仿真不收敛、停不下来、单元翻转；几何上「难」的样本（薄、深压、两处接触）一律保留。每批报剔了几个、各是什么形状和压深。</li>
 </ul>
 <p class="kp">第 1 关看的是数据本身：形状够多、够普通，样本没有被筛成只剩好算的。</p>
+
 <h3 id="w1-2">标签怎么造</h3>
+
 <ul>
 <li><strong>标签用 IPC 加有限元算</strong>，所有样本用同一套冻结的参数批量生成，不逐条修。</li>
 <li><strong>两个表面最后会隔一点点距离。</strong>IPC 里两个表面不会完全贴上，这个距离跟参数 \(\hat d\)（安全距离）有关，所以每个构型用三个 \(\hat d\) 各跑一次，外推到 \(\hat d=0\)。</li>
 <li><strong>简单单元偏硬，按比例调回来。</strong>libuipc 只有最简单的四面体单元（P1），算出来偏硬。同一张网格上用好一点的单元（P2）和 P1 各算一次线弹性，看 P1 硬了多少，把 IPC 的结果按同样的比例调回来：</li>
 </ul>
 <p>\[\color{#c0392b}{U_{\text{标签}}=U_{\text{IPC}}\times\frac{U_{\text{好单元}}}{U_{\text{简单单元}}}}\]</p>
+
 <ul>
 <li><strong>标签本身有误差带。</strong>网格粗细和 \(\hat d\) 外推都会带来一点误差，每一行标签都配一个误差带 b；模型和标签的差小于 b 的，写「在标签精度以内」，不再细分谁好谁差。</li>
 </ul>
 <!-- SLOT: label_band_table -->
+
 <div class="slot"><b>待填：</b>小表：标签误差带分几档、每档的条件（每个接触半径的格子数、安全距离相对压深）和带宽；来源 Neural-IPC-sandbox/docs/drafts/thin_edge_step2_plan.md §0.5 与 ordinary_dataset_plan.md 行档说明。</div>
+
 <h3 id="w1-3">兔子和龙：第一批普通形状</h3>
+
 <ul>
 <li><strong>四类、49 个构型，从简单到复杂排。</strong>后一类只比前一类多一个难点，哪里出问题能看出是哪一步带进来的。</li>
 <li><strong>每个构型压三个深度</strong>：0.003、0.006、0.012，一共 147 组答案。</li>
@@ -352,27 +357,36 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>每一行按格子数分档。</strong>线弹性参照里每个接触半径至少 2 个格子的行进结论，1.5–2 个格子的行只进统计；兔子压平块、压球、压兔子里进结论的有 28 行、进统计的有 47 行。</li>
 </ul>
 <p class="kp">兔子和龙这批数据把「一边或两边是普通形状」的情形都覆盖到了，是下面第 2 节已有结果的来源；第 1 关要求的形状数量和随机压深由下一批补上。</p>
+
 <h3 id="w1-4">更多普通形状</h3>
+
 <ul>
 <li><strong>形状从 Thingi10K 里按固定规则选。</strong>Thingi10K 是一个公开的三维打印模型库，选形状的几何条件和许可证条件事先写好，按固定随机种子抽，不看结果挑。</li>
 <li><strong>最后 2 个形状留出。</strong>它们不参加任何训练和调参，只在第 5 关最后检验一次。</li>
 <li><strong>两边都在支撑点上放置。</strong>两个物体沿压入方向各取最外面的点对齐，再往里压，从构造上保证开始时不穿透。</li>
 </ul>
 <!-- SLOT: gate1_shapes_figure -->
+
 <div class="slot"><b>待填：</b>图：全部形状的缩略图一排（兔子 + Thingi10K 选出的形状），标出留出的 2 个，每个形状上画出抽到的接触点；来源 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/samples/ 的样本清单与网格。</div>
+
 <!-- SLOT: gate1_table -->
+
 <div class="slot"><b>待填：</b>表：每个形状一行（形状、压平块 / 压物体的构型数、压深范围、进结论行数、进统计行数、是否留出）；来源 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/summary/ 的 ordinary_table。</div>
+
 <!-- SLOT: gate1_drop_list -->
+
 <div class="slot"><b>待填：</b>小表：因数值失败剔除的样本（形状、压深、失败原因：不收敛 / 未静止 / 单元翻转），并标出是否集中在薄处或深压；来源 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/summary/ 的剔除清单。</div>
+
 <!-- SLOT: gate1_verdict -->
-<div class="slot"><b>待填：</b>第 1 关结论一句（过 / 不过，按上面四条判据逐条）；来源同 gate1_table 里的 gates 字段。</div>
-</section>
+
+<div class="slot"><b>待填：</b>第 1 关结论一句（过 / 不过，按上面四条判据逐条）；来源同 gate1_table 里的 gates 字段。</div></section>
 <section id="w2"><h2>用普通形状验证架构（第 2–5 关）</h2>
 <ul>
 <li><strong>先说架构是什么。</strong>模型分两层：一层是能用公式算准的「骨架」（线弹性、按接触面铺小方格算），另一层是一个小网络，只修骨架算不了的大变形那一小块。</li>
 <li><strong>四关的顺序就是论证的顺序</strong>：骨架先对（第 2 关）；骨架和标签之间还剩真信号（第 3 关）；网络的输入能解释这个信号（第 4 关）；网络在没见过的形状上确实比骨架好（第 5 关）。</li>
 </ul>
 <h3 id="w2-1">第 2 关：骨架对不对</h3>
+
 <ul>
 <li><strong>判据</strong>：每个形状上，骨架和精细线弹性有限元（P2）的差都在标签误差带以内。两边都是线弹性，所以这一关只检验「线性部分算对了没有」，和大变形无关。</li>
 <li><strong>不过的话先找现成公式修，不交给网络</strong>，比如薄层公式、板的弯曲公式（第 4 节里的理想情况就是这些公式的检验）。</li>
@@ -393,6 +407,7 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>软出这么多，只能是整只耳朵往下弯了。</strong>只看接触点附近，耳朵和别的地方没多大区别。所以骨架里加一项，描述整个物体在这一处「整体让开多少」：整片一起往下沉，再往两个方向歪一点，用一个 3×3 的小矩阵 A 表示。</li>
 </ul>
 <p>\[\color{#c0392b}{C=C_{\text{局部}}+\Phi A\Phi^\top,\qquad \Phi=[\,1,\ x,\ z\,]}\]</p>
+
 <ul>
 <li><strong>每个符号</strong>：C 是柔度矩阵，\(C_{ij}\) 表示第 j 格受单位压力时第 i 格陷多少；\(C_{\text{局部}}\) 是无限大物体的部分；\(\Phi\) 的三个分量对应整片平移、沿 x 歪、沿 z 歪，x、z 是格子在接触面上的坐标；A 越大，这一处整体越容易让开。</li>
 </ul>
@@ -401,17 +416,56 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>A 不需要学。</strong>在接触的那一片上加几种平滑的压力，用有限元算出实际沉了多少，减掉无限大公式算出来的部分，剩下的就是整体那部分。</li>
 <li><strong>A 只跟形状、材料和托法有关。</strong>静力那几级把托住的一块固定住来算，A 随托住区怎么取而变；碰撞那一级用「惯性释放」（不固定任何地方，靠惯性力平衡），A 就只跟形状和材料有关。所以每个形状提前算好一张表，用的时候按接触位置去查；兔子全身的表已经算好了。</li>
 </ul>
+<h4>物体怎么被托住，会大大改变整体那一项</h4>
+<ul>
+<li><strong>同一只兔子、同一个压深，换一种托法，能量差很多。</strong>两种托法算线弹性：一种是把顶上一块固定住往下推（位移驱动），一种是哪里都不固定、靠惯性力平衡（惯性释放）。在头顶沿一条路径取 5 个点、各压 3 个深度，惯性释放算出的能量比位移驱动高 40% 到 105%，压得越深差得越多。</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>托法</th>
+<th>用在哪</th>
+<th>两种托法的能量差（5 个点 × 3 个压深）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>位移驱动：顶上一块固定往下推</td>
+<td>现在的 IPC 标签</td>
+<td>以它为基准</td>
+</tr>
+<tr>
+<td>惯性释放：不固定任何地方</td>
+<td>全身的整体柔度表 A(x)、放进引擎以后</td>
+<td>高 40% 到 105%</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>表和引擎的托法一致，表和现在的 IPC 标签托法不同。</strong>全身的表按惯性释放算，放进引擎以后物体也是自由的；现在的 IPC 标签按位移驱动造，所以表目前只和同样按惯性释放算的线弹性参照比过。</li>
+<li><strong>下一步造一组托法和表一致的标签</strong>：桌面、支撑都当成接触来算，再拿表去比。这一步过了，「托法」这条假设才算去掉。</li>
+</ul>
+<!-- SLOT: support_validation -->
+
+<div class="slot"><b>待填：</b>托法验证的结果：托法和表一致的 IPC 标签（桌面、支撑都当接触）对 A(x) 表骨架的能量误差，每个点、每个压深一行，并和该行标签误差带比；来源 Neural-IPC-sandbox/docs/drafts/web_week5.md 原「托法」一节所指的托法验证任务输出（/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ 下对应汇总）。</div>
+
 <h4>兔子上已经看到的</h4>
 <ul>
 <li><strong>加上整体项以后，骨架和精细线弹性有限元的差</strong>：中位数约 0.6%，最大 1.5%（兔子压平块、压球、压兔子里进结论的 28 行）。</li>
 <li><strong>兔子压龙的薄处</strong>：骨架有整体那一项，和线弹性参照只差 0.4% 以内（第 2.5 节的龙图）。</li>
 </ul>
 <!-- SLOT: gate2_table -->
+
 <div class="slot"><b>待填：</b>表：每个形状一行（形状、进结论行数、骨架 ÷ P2 − 1 的中位数与最大、该形状行的标签误差带、是否全部在带内）；来源 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/summary/ 的骨架对 P2 汇总（linref P2 与骨架同网格对比）。</div>
+
 <!-- SLOT: gate2_figure -->
+
 <div class="slot"><b>待填：</b>图：横轴每个形状，纵轴骨架对 P2 的误差（每行一点），灰色带是该形状的标签误差带，一眼看出是否都落在带里；来源同 gate2_table。</div>
+
 <p class="kp">骨架的线性部分在兔子上已经和精细线弹性有限元对上；第 2 关要在每个新形状上逐个确认这一点。</p>
+
 <h3 id="w2-2">第 3 关：确实需要学吗</h3>
+
 <ul>
 <li><strong>只看骨架和标签之间剩下的差。</strong>每一行记 \(e=U_{\text{骨架}}/U_{\text{标签}}-1\)，它和这一行的标签误差带 b 比。</li>
 <li><strong>「系统地超出」是三件事同时成立</strong>：超出 b 的行占得够多；行数少的时候用统计下界排除偶然；按压得深浅分组，至少一组里超出的行几乎全是同一个符号（骨架一致地偏软或偏硬，而不是随机上下抖）。判据在看新数据之前就定死了。</li>
@@ -419,36 +473,51 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>兔子上已经看到的方向</strong>：骨架本身是线性的，它和 IPC 之间剩下的那一点差来自大变形，差得最多的是又薄又会转的地方，网络要学的就是这一小块。</li>
 </ul>
 <!-- SLOT: gate3_table -->
+
 <div class="slot"><b>待填：</b>表：进结论的行数、超出误差带的行数与占比、统计下界、按 δ/R 分三组后每组超出的行数与同号比例、三条判据各自过否、本关结论；来源 tools/week5/h3_k4_net.py --mode gate34 的输出 json，判据见 Neural-IPC-sandbox/docs/drafts/training_week5.md §1。</div>
+
 <!-- SLOT: gate3_figure -->
+
 <div class="slot"><b>待填：</b>图：每行一点，横轴 δ/R（压深相对接触处的曲率半径），纵轴 e，灰色是每行的标签误差带；看超出带的点是否成片、同号；来源同 gate3_table。</div>
+
 <h3 id="w2-3">第 4 关：输入特征和要学的量有关吗</h3>
+
 <ul>
-<li><strong>特征必须运行时能从骨架算出来、有物理意义、有每一格的量。</strong>候选：
-<ul>
+<li><strong>特征必须运行时能从骨架算出来、有物理意义、有每一格的量。</strong>候选：<ul>
 <li>\(\delta/R_e\)：压深相对接触处的等效曲率半径，越大越偏离小变形；</li>
 <li>\(s_i/s_{\text{cap}}\)：第 i 格离最近点多隔开了多少（第 3.2 节第 6 步的 \(s_i\)），分得出接触中心和边缘；</li>
 <li>\(\kappa_i a\)：这一格表面的弯曲程度乘接触半径，表示表面在接触片上弯得多厉害；</li>
 <li>骨架约束比 ρ：同一处用「粘底层」核和「半空间」核算出的骨架能量之比，表示物体被底下托住、夹住的程度（理想情况里用过，见第 4.2 节）；普通形状上没有层，ρ 不进检验。</li>
-</ul></li>
+</ul>
+</li>
 <li><strong>一定要排除「只和网格分辨率有关」。</strong>残差也可能只是因为某些行每个接触半径的格子少（a/h 小）。所以先把 a/h 的影响去掉，再看特征和残差还相关不相关（偏相关）；只有去掉 a/h 以后仍然显著相关的特征才算过。</li>
 <li><strong>过的条件</strong>：至少一个不是 a/h 的特征过。</li>
 </ul>
 <!-- SLOT: gate4_table -->
+
 <div class="slot"><b>待填：</b>表：每个候选特征一行（和残差的秩相关、扣掉 a/h 后的偏秩相关及按形状自助抽样的 95% 区间、是否过、是否「只通过 a/h 相关」），另列 a/h 本身；来源 tools/week5/h3_k4_net.py --mode gate34 的输出 json，判据见 training_week5.md §2。</div>
+
 <!-- SLOT: gate4_figure -->
+
 <div class="slot"><b>待填：</b>图：最强的一个特征对残差的散点（已扣掉 a/h），每个形状一种颜色；一图只说「这个特征能解释残差」；来源同 gate4_table。</div>
+
 <h3 id="w2-4">第 5 关：网络架构与训练</h3>
+
 <ul>
-<li><strong>网络给每一格一个正数 \(d_i\)</strong>，把格与格之间的牵连 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\)：</li>
+<li><strong>骨架不动，网络只给每一格输出一个正数 \(d_i\)</strong>，把这一格要让开的量换掉，柔度 C 一点不改：</li>
 </ul>
-<p>\[\color{#c0392b}{U=\max_{p\ge0}\;h^2\Big[p^\top w-\tfrac12p^\top DCDp\Big]}\]</p>
-<p>\[D=\operatorname{diag}(d_1,\dots,d_n),\qquad d_i>0\]</p>
+<p>\[\color{#c0392b}{w_i=\delta-s_i\;\longrightarrow\;w_i/d_i}\]</p>
+
 <ul>
-<li><strong>每个符号</strong>：\(p_i\) 是第 i 格的压强，\(w_i\) 是这一格两个表面叠进去的量，h 是格子边长，C 是骨架的柔度（局部加整体）。</li>
+<li><strong>每个符号</strong>：\(s_i\) 是第 i 格的初始缝隙，\(w_i\) 是这一格要被压进去多少，\(p_i\) 是这一格的压强，h 是格子边长，C 是骨架的柔度（局部加整体），\(D=\operatorname{diag}(d_1,\dots,d_n)\)。</li>
+<li><strong>它和「把牵连 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\)」是同一件事</strong>：令 \(p=Dq\)（\(d_i&gt;0\)，所以 \(p\ge0\) 和 \(q\ge0\) 等价），两种写法的能量逐位相同：</li>
+</ul>
+<p>\[\begin{aligned}&\max_{p\ge0}h^2\Big[p^\top D^{-1}w-\tfrac12p^\top Cp\Big]\\=\;&\max_{q\ge0}h^2\Big[q^\top w-\tfrac12q^\top DCDq\Big]\end{aligned}\]</p>
+
+<ul>
 <li><strong>\(d\equiv1\) 时逐位等于骨架。</strong>网络什么都不学，结果就是骨架，所以网络只能在骨架上做修正。</li>
-<li><strong>直观理解：等于把每一格的叠进量除以 \(d_i\)。</strong>令 \(q=Dp\)，上式变成 \(\max_{q\ge0}h^2[q^\top(D^{-1}w)-\tfrac12q^\top Cq]\)。\(d_i>1\)：这一格像是叠得浅了，同样的位置存的能量更少，显得更软；\(d_i<1\) 反之。</li>
-<li><strong>骨架的性质原样保留。</strong>D 是正的对角阵，DCD 仍然对称正定，所以能量非负、力是能量的导数、越压越硬，都不用靠训练。</li>
+<li><strong>直观理解</strong>：\(d_i&gt;1\)，这一格像是叠得浅了，同样的位置存的能量更少，显得更软；\(d_i&lt;1\) 反之。</li>
+<li><strong>骨架的性质原样保留。</strong>换了以后仍然是同一个凸二次规划：D 是正的对角阵，DCD 仍然对称正定，所以能量非负、力是能量对压深的精确导数、越压越硬，都不用靠训练。</li>
 <li><strong>小网络长什么样</strong>：每一格单独算，\(\ln d_i=W_2\tanh(W_1f_i+b_1)+b_2\)，\(f_i\) 是第 4 关过了的特征。最后一层 \(W_2\)、\(b_2\) 从 0 开始，所以训练一开始就是骨架；\(d=\exp(\cdot)\) 保证是正数。</li>
 <li><strong>训练时用一阶近似，检验时精确重解。</strong>\(d\) 都接近 1 时，\(\ln(U/U_{\text{骨架}})\approx\sum_i\omega_i\ln d_i\)，权重 \(\omega_i=-2p_iw_i/\sum_jp_jw_j\) 就是第 i 格在能量里的份额（乘 −2）。检验时用训练好的 d 把骨架精确重解一遍，再报近似和精确差多少。</li>
 <li><strong>留出 2 个形状。</strong>它们只在最后算一次误差。</li>
@@ -460,13 +529,113 @@ html.annot-on #annot-capture { display: block; }
 <li>除以 U：\(\omega_i=\partial\ln U/\partial\ln d_i=-2p_iw_i/\sum_jp_jw_j\)，加起来正好是 −2。</li>
 <li>检查：所有 \(d_i\) 都等于同一个 c，相当于所有叠进量除以 c，压着的格子不变，能量是叠进量的二次式，变成 \(c^{-2}\) 倍，对数正好是 \(-2\ln c\)。</li>
 </ol></details>
+<h4>架构怎么选出来的：先不训网络，直接拟合</h4>
+<ul>
+<li><strong>办法</strong>：先不训网络，直接把倍数当成待定的参数，拿 IPC 修正标签去拟合。每个构型用 3 个压深的能量和力，一共 6 个数；参数最多 2 到 3 个，免得「参数多就一定拟合得上」。</li>
+<li><strong>第一步先看最简单的「只改缝隙」</strong>：每一格的缝隙乘一个随位置变的倍数（\(m_i=e^{a+b\,s_i}\)），要同时胜过三个对照才算成立：只改柔度、只加压深偏移、两者一起。</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>构型</th>
+<th>判的压深（够格下结论的）</th>
+<th>「只改缝隙」</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>兔子压球，凹处（s_concave1）</td>
+<td>0.003、0.006、0.012</td>
+<td>成立</td>
+<td>三个对照都比不过它</td>
+</tr>
+<tr>
+<td>兔子压球，背部（back_n）</td>
+<td>0.006、0.012</td>
+<td>成立</td>
+<td>三个对照都比不过它</td>
+</tr>
+<tr>
+<td>兔子压球，鞍处（s_saddle2）</td>
+<td>0.006、0.012</td>
+<td>拟合得上，但胜不过对照</td>
+<td>换一种更严的标签误差算法就拟合不上</td>
+</tr>
+<tr>
+<td>另外 3 个非线性很小的构型</td>
+<td>各自够格的压深</td>
+<td>拟合得上，但胜不过对照</td>
+<td>非线性太小，几种改法都差不多</td>
+</tr>
+<tr>
+<td>薄片压球（s_thin3）、兔子压兔子鞍处（bb_saddle1）</td>
+<td>没有够格的压深</td>
+<td>下不了结论</td>
+<td>骨架那边每个接触半径不到 2 个格子</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>第二步把四种候选结构放在同一批够格的 28 行上比</strong>：每一行留一个压深不拟合，用另两个压深拟合出的参数去预测它。判据是原来差超过 5% 的行要修进 5%，其余行不能比原来差超过 0.5 个百分点（至少容许到 1.3%）。</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>结构</th>
+<th>网络改什么</th>
+<th>每个构型几个参数</th>
+<th>28 行里预测准的行数（标签误差含 / 不含格距那一项）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每格一个倍数（选它）</td>
+<td>每一格要让开的量 \(w_i\to w_i/d_i\)</td>
+<td>2</td>
+<td>28 / 27</td>
+</tr>
+<tr>
+<td>柔度倍数 + 压深偏移</td>
+<td>每处接触一个柔度倍数，再整体挪一点压深</td>
+<td>2</td>
+<td>28 / 28</td>
+</tr>
+<tr>
+<td>缝隙倍数 + 整体柔度倍数</td>
+<td>每格缝隙一个倍数，整体项一个倍数</td>
+<td>3</td>
+<td>27 / 26</td>
+</tr>
+<tr>
+<td>每格倍数还随压深变</td>
+<td>在第一种上再让 \(d_i\) 随压深变</td>
+<td>3</td>
+<td>19 / 20，没过的全在最深的压深 0.012</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>选第一种</strong>：参数最少，不挪压深，几乎全过。第二种也全过，但「挪压深」等于两个表面还没碰到就先有了力，物理上说不通。多给一个参数让倍数随压深变，反而在最深处预测不准：留出最深的压深时，这个参数只靠两个浅的压深定，外推到最深处就偏了。</li>
+<li><strong>这张表证明的是「形式够用」</strong>：28 行全过，是每个构型单独拟合 2 个参数得到的，说明这种形式表示得出这些数据；网络能否从几何里学出这些参数、能否泛化到没见过的形状，由第 3–5 关回答。这 23 个构型全是兔子。</li>
+<li><strong>薄片压球那一处，原来的标签本身偏软。</strong>把整块兔子的网格都加密重算一次标签，能量比原来的标签大 8% 到 12%；最深的那个压深，网格加密到这一档能量还在变 3.3%，所以这个数只说明方向。又薄又会弯的地方放到理想情况的专项测试里单独处理（第 4.2 节），不拿它来定网络结构。</li>
+</ul>
+<p class="kp">每格一个倍数 \(d_i\) 用最少的参数表示得出兔子上够格的数据，又保留骨架的全部结构性质，所以第 5 关训的就是这个 \(d_i\)。</p>
+
 <!-- SLOT: gate5_table -->
+
 <div class="slot"><b>待填：</b>表：留出的 2 个形状上（进结论的行），骨架与骨架 + 小网络各一行：误差中位数、最大、超出误差带的行数、比骨架差超过自身误差带的行数、一阶近似与精确重解的最大差、三条判据过否；来源 tools/week5/h3_k4_net.py --mode gate5 / gate5_eval 的输出 json，判据见 training_week5.md §3。</div>
+
 <!-- SLOT: gate5_figure -->
+
 <div class="slot"><b>待填：</b>图：留出形状上每一行骨架误差（空心）和骨架 + 小网络误差（实心）连成短线，灰色是标签误差带，一图只说「网络让误差变小了多少」；来源同 gate5_table。</div>
+
 <!-- SLOT: gate5_d_field_figure -->
+
 <div class="slot"><b>待填：</b>图：留出形状上一个代表接触片的 \(d_i\) 场（每格颜色 = d，1 为白），说明网络在接触片的哪里放软、哪里放硬；来源 gate5_eval 输出里保存的逐格 d。</div>
-<h3 id="w2-5">和 baseline 比：hydro</h3>
+
+<h3 id="w2-5">和 baseline 比：hydro 与其它接触模型</h3>
+
 <ul>
 <li><strong>hydro 的做法</strong>：在每个物体里放一个压力场，表面上是 0，越往里越大。两个物体叠在一起时，重叠的地方每一点取两边压力里小的那个，全部加起来就是能量。（Elandt 2019 原文写的是两边压力各自在被挤开的体积上积分、接触面上两边压力相等，和这里的说法等价。）</li>
 </ul>
@@ -522,24 +691,101 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li><strong>裁判分两层。</strong>IPC 标签是我们自己造的，上面的对比只作参照；和 hydro 比的正式裁判是独立于双方的弹性力学精确解（第 4 节）。</li>
 </ul>
+<h4>和别的接触模型比</h4>
+<ul>
+<li><strong>目的</strong>：除了 hydro，再拿几种常用的接触模型放在同一批兔子构型上比，看骨架多出来的那部分（整体让开、接触片各处互相影响）到底值多少。</li>
+<li>
+<p><strong>Hertz</strong>：只看接触点附近两边的主曲率，合成一个等效半径，当成一个球压平面，直接套标准的 Hertz 点接触公式；接触区按等效的圆算，只算局部凹陷。<br />
+    <span class="note-src">【ref】Johnson, <em>Contact Mechanics</em>, Cambridge University Press, 1985, 第 4 章；球压平面的力和能量见 Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.34–2.35。</span></p>
+</li>
+<li>
+<p><strong>半空间边界元（准刚体接触）</strong>：在接触面上铺格子，用无限大物体的点力解算每格怎么陷，再求压力。这就是我们的骨架去掉整体项。<br />
+    <span class="note-src">【ref】Pauly, Pai &amp; Guibas, "Quasi-rigid objects in contact", SCA 2004, 式 1、式 9–10；求解用 Polonsky &amp; Keer, <em>Wear</em> 231, 1999, p.206 的共轭梯度法（开源库 ContactMechanics）。</span></p>
+</li>
+<li>
+<p><strong>弹簧垫（弹性基础）</strong>：表面每一小块下面放一根弹簧，只被自己正上方压扁，和旁边不相干；就是第 3.3 节讲的薄层弹簧垫，有一个层厚参数要定。我们按经典模型自己实现，和 Simbody 里 <code>ElasticFoundationForce</code> 是同一个模型。<br />
+    <span class="note-src">【ref】Johnson, <em>Contact Mechanics</em>, Cambridge University Press, 1985（弹性基础模型）；薄层的推导见第 3.3 节「薄层：弹簧垫」。</span></p>
+</li>
+<li>
+<p><strong>IPC 的势垒当接触模型</strong>：粗物体（刚体或仿射体）之间只用 IPC 的势垒能量算接触；两个表面靠近到 \(\hat d\) 以内才有力，要定的参数是势垒刚度 κ 和 \(\hat d\)。<br />
+    <span class="note-src">【ref】刚体：Ferguson et al., "Intersection-free Rigid Body Dynamics", <em>ACM TOG</em> 40(4), 2021, 式 2；仿射体：Lan et al., "Affine Body Dynamics", <em>ACM TOG</em> 41(4), 2022, 式 10。我们用的 libuipc 里势垒是 log² 形式，按它算。</span></p>
+</li>
+<li>
+<p><strong>hydro</strong>：见本节开头。<br />
+    <span class="note-src">【ref】Elandt et al., "A pressure field model for fast, robust approximation of net contact force and moment between nominally rigid objects", IROS 2019。</span></p>
+</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>算进了哪些变形</th>
+<th>要定的参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>骨架（我们的）</td>
+<td>局部凹陷 + 整体让开</td>
+<td>无（A 提前算好）</td>
+</tr>
+<tr>
+<td>Hertz</td>
+<td>局部凹陷（等效球）</td>
+<td>无</td>
+</tr>
+<tr>
+<td>半空间边界元（准刚体）</td>
+<td>局部凹陷</td>
+<td>无</td>
+</tr>
+<tr>
+<td>弹簧垫</td>
+<td>每一小块正下方压扁</td>
+<td>层厚 1 个</td>
+</tr>
+<tr>
+<td>IPC 势垒（刚体 / 仿射体）</td>
+<td>表面距离的势垒</td>
+<td>κ、\(\hat d\)</td>
+</tr>
+<tr>
+<td>hydro</td>
+<td>重叠区里的压力场</td>
+<td>刚度 1 个</td>
+</tr>
+</tbody>
+</table></div>
+<!-- SLOT: baseline_bunny_table -->
+
+<div class="slot"><b>待填：</b>表：上面六种方法在同一批兔子构型（进结论的 28 行）上的误差，对线弹性参照、对 IPC 修正标签各给中位 / 最大；来源 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/compare_summary/ 下的 baseline_classic_optC.json 与 baseline_summary_optC.json。</div>
+
+<!-- SLOT: baseline_reading -->
+
+<div class="slot"><b>待填：</b>上表的读法两三句：骨架多出来的整体项和接触片互相影响各值多少、哪种方法在哪类构型上差得最多；来源同 baseline_bunny_table。</div>
+
 <!-- SLOT: baseline_table -->
+
 <div class="slot"><b>待填：</b>表：新形状上（进结论的行，留出形状单列）骨架、骨架 + 小网络、hydro 及其余 baseline 对标签的误差中位数、最大、超出标签误差带的行数；来源 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/summary/ 与 compare_summary/ 下的 baseline 汇总（同 baseline_summary_optC.json 的口径）。</div>
+
 <!-- SLOT: baseline_figure -->
+
 <div class="slot"><b>待填：</b>图：新形状上各方法的误差中位数柱 + 最大值短横（对数纵轴），版式同上面兔子的误差柱图，一图只说「各方法在普通形状上差多少」；来源同 baseline_table。</div>
-<p class="kp">hydro 本质上是一床弹簧垫，能量随压深涨的次方不对、也看不到整体让开，所以在厚物体和薄处都差得多；骨架两件事都有。</p>
-</section>
+
+<p class="kp">hydro 本质上是一床弹簧垫，能量随压深涨的次方不对、也看不到整体让开，所以在厚物体和薄处都差得多；骨架两件事都有。</p></section>
 <section id="w3"><h2>文献：哪些公式是已知的</h2>
 <ul>
 <li><strong>模型里的每一步都查了出处</strong>，来源是力学、机械工程、图形学三方面的调研；式号都对着原文核过，核不到原文的注明了。</li>
-<li><strong>标法统一</strong>：
-<ul>
+<li><strong>标法统一</strong>：<ul>
 <li><span class="note-src"><strong>【ref】</strong>：有出处，写出是哪篇文献、哪个式子。</span></li>
 <li><span class="note-src"><strong>【无 ref】</strong>：没找到出处，写它是从哪一步、用什么推出来的。</span></li>
 <li><span class="note-src"><strong>【我们定的】</strong>：建模时我们自己做的选择，写理由。</span></li>
 <li><span class="note-cond"><strong>【条件】</strong>：这一步成立需要的前提。</span></li>
-</ul></li>
+</ul>
+</li>
 </ul>
 <h3 id="w3-1">一张表看完</h3>
+
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -549,18 +795,52 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </thead>
 <tbody>
-<tr><td>第 1 步</td><td>点力下陷与叠加</td><td>【ref】Popov 等手册</td></tr>
-<tr><td>第 2 步</td><td>两边的软度相加</td><td>【ref】Popov 等手册</td></tr>
-<tr><td>第 3 步</td><td>压力是一个能量的最大值点</td><td>【ref】Bemporad &amp; Paggi 2015</td></tr>
-<tr><td>第 4 步</td><td>最大值就是弹性能，求导就是力</td><td>【ref】Bemporad &amp; Paggi 2015、包络定理；中间两行是代数推导</td></tr>
-<tr><td>第 5 步</td><td>整体让开的那部分</td><td>【ref】静力凝聚、惯性释放；只取三个自由度是【我们定的】</td></tr>
-<tr><td>第 6 步</td><td>每一格叠进去多少</td><td>【我们定的】</td></tr>
-<tr><td>第 7 步</td><td>网络改哪里</td><td>【我们定的】</td></tr>
-<tr><td>第 8 步</td><td>标签的比值修正</td><td>【我们定的】</td></tr>
+<tr>
+<td>第 1 步</td>
+<td>点力下陷与叠加</td>
+<td>【ref】Popov 等手册</td>
+</tr>
+<tr>
+<td>第 2 步</td>
+<td>两边的软度相加</td>
+<td>【ref】Popov 等手册</td>
+</tr>
+<tr>
+<td>第 3 步</td>
+<td>压力是一个能量的最大值点</td>
+<td>【ref】Bemporad &amp; Paggi 2015</td>
+</tr>
+<tr>
+<td>第 4 步</td>
+<td>最大值就是弹性能，求导就是力</td>
+<td>【ref】Bemporad &amp; Paggi 2015、包络定理；中间两行是代数推导</td>
+</tr>
+<tr>
+<td>第 5 步</td>
+<td>整体让开的那部分</td>
+<td>【ref】静力凝聚、惯性释放；只取三个自由度是【我们定的】</td>
+</tr>
+<tr>
+<td>第 6 步</td>
+<td>每一格叠进去多少</td>
+<td>【我们定的】</td>
+</tr>
+<tr>
+<td>第 7 步</td>
+<td>网络改哪里</td>
+<td>【我们定的】</td>
+</tr>
+<tr>
+<td>第 8 步</td>
+<td>标签的比值修正</td>
+<td>【我们定的】</td>
+</tr>
 </tbody>
 </table></div>
 <p class="kp">8 步里前 4 步是接触力学里已有的结果，第 5 步的框架有出处、自由度的取法是我们定的，第 6–8 步是我们自己的建模选择；兔子上出问题的地方，全都在标了【我们定的】的那几步里。</p>
+
 <h3 id="w3-2">我们方法每一步的出处</h3>
+
 <ul>
 <li><strong>设定</strong>：两个物体按粗模型摆好以后，表面会互相叠进去一点。在最近点附近铺一片小方格，第 i 格两个表面叠进去 \(w_i\)，这一格的压强是 \(p_i\)。要算的是真实物体凹下去、把对方让开时存了多少弹性能 U。全程假设线弹性、小变形、没有摩擦。</li>
 </ul>
@@ -582,6 +862,7 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>每一格只有两种状态</strong>：要么压着（有压强，而且正好让开），要么没压着（没压强，还留着缝）；压强只能往外推不能往里拉。满足这几条的压强，正好让下面这个式子取到最大：</li>
 </ul>
 <p>\[\color{#c0392b}{U=\max_{p\ge0}\;h^2\Big[p^\top w-\tfrac12p^\top Cp\Big]}\]</p>
+
 <p><span class="note-src">【ref】Bemporad &amp; Paggi, "Optimization algorithms for the solution of the frictionless normal contact between rough surfaces", <em>International Journal of Solids and Structures</em>, 2015, 式 16–19。文中写的是「余能在 \(p\ge0\) 下的最小点」，我们的 U 是它取负号。Kalker 的原文没有核，是经这篇转述的。</span></p>
 <p><span class="note-cond">【条件】C 对称正定。</span></p>
 <h4>第 4 步：这个最大值就是弹性能，对它求导就是力</h4>
@@ -623,10 +904,10 @@ html.annot-on #annot-capture { display: block; }
 <p><span class="note-cond">【条件】两个表面在接触区差不多平行。法向转得快的地方（比如耳朵）和凹进去的地方会不太准。</span></p>
 <h4>第 7 步：网络改哪里</h4>
 <ul>
-<li><strong>网络给每一格一个正数 \(d_i\)，把牵连 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\)</strong>；等价于把每一格的叠进量除以 \(d_i\)（第 2.4 节）。</li>
+<li><strong>网络只给每一格一个倍数 \(d_i\)，把这一格要让开的量 \(w_i\) 换成 \(w_i/d_i\)，柔度 C 不改</strong>；它和把牵连 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\) 是同一件事（第 2.4 节）。</li>
 </ul>
-<p><span class="note-src">【我们定的】理由：大变形集中在接触区附近，按格修正就够；\(d\equiv1\) 时与骨架逐位相同；D 是正的对角阵，DCD 仍对称正定，第 3、4 步的结论原样成立。</span></p>
-<p><span class="note-src">【无 ref】「等价于叠进量除以 \(d_i\)」由换元 \(q=Dp\) 得到。</span></p>
+<p><span class="note-src">【我们定的】理由：大变形集中在接触区附近，远一点的地方变形小，线弹性是准的，按格修正就够；\(d\equiv1\) 时与骨架逐位相同；仍是同一个凸二次规划，第 3、4 步的结论原样成立。</span></p>
+<p><span class="note-src">【无 ref】两种写法能量相同，由换元 \(p=Dq\) 得到。</span></p>
 <h4>第 8 步：标签的比值修正</h4>
 <ul>
 <li>\(U_{\text{标签}}=U_{\text{IPC}}\times U_{\text{好单元}}/U_{\text{简单单元}}\)，见第 1.2 节。</li>
@@ -634,6 +915,7 @@ html.annot-on #annot-capture { display: block; }
 <p><span class="note-src">【我们定的】理由是在同一张网格上，简单单元偏硬的原因对线弹性和对 IPC 是一样的；实测修正以后，不同网格的结果收到了一起。</span></p>
 <p><span class="note-cond">【条件】非线性不能太大，太大时要另外核。</span></p>
 <h3 id="w3-3">这个方向上已有的公式</h3>
+
 <ul>
 <li><strong>下面是接触力学、结构力学和图形学里跟我们直接有关的结果</strong>，默认前提跟上一小节一样。</li>
 </ul>
@@ -686,10 +968,10 @@ html.annot-on #annot-capture { display: block; }
 <p>在面积上积分，换元方法跟第 2.5 节 hydro 的推导一样，得到 \(U=\dfrac{\pi kR}{3}\delta^3\)。<br />
     <span class="note-src">【ref】力 \(F=\pi kR\delta^2\) 见 Argatov, Mishuris &amp; Popov 2016, 式 28–30（取粘附项为 0），能量是对它积分。</span></p>
 </li>
+<li>
+<p><strong>hydro 就是一床弹簧垫。</strong>hydro 在球上算出来是 \(\tfrac{\pi kR}{6}\delta^3\)，跟弹簧垫的形式完全一样，只差一个系数。所以 hydro 对薄层是对的，对厚物体就不对了。</p>
+</li>
 </ol>
-<ul>
-<li><strong>hydro 就是一床弹簧垫。</strong>hydro 在球上算出来是 \(\tfrac{\pi kR}{6}\delta^3\)，跟弹簧垫的形式完全一样，只差一个系数。所以 hydro 对薄层是对的，对厚物体就不对了。</li>
-</ul>
 <p><span class="note-src">【ref】「hydro 是弹簧垫」这个说法 Elandt 2019 §II 自己就写了；\(1/6\) 对 \(1/3\) 的系数对比没找到出处，由第 2.5 节和上面第 4 条对比得出。</span></p>
 <h4>两处接触互相影响</h4>
 <ul>
@@ -735,14 +1017,14 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>James &amp; Pai 1999 / 2003</strong>：capacitance matrix 就是物体 Green 函数在接触点上的那一块，存整只物体的稠密矩阵，物体有固定支座。</li>
 <li><strong>Rückwald, Held &amp; Seifried 2021 / 2023（柔性多体动力学）</strong>：接触区的局部变形当静力处理，物体的低阶振动保留完整动力学。</li>
 </ul>
-<p class="kp">接触力学已经给了骨架的每一块砖：点力解、合成模量、能量最大值形式、静力凝聚；我们的工作是把它们拼成一个能放进引擎的能量，并补上有限大物体的整体项。</p>
-</section>
+<p class="kp">接触力学已经给了骨架的每一块砖：点力解、合成模量、能量最大值形式、静力凝聚；我们的工作是把它们拼成一个能放进引擎的能量，并补上有限大物体的整体项。</p></section>
 <section id="w4"><h2>理想情况下的 test case</h2>
 <ul>
 <li><strong>为什么要单独整理</strong>：骨架和 hydro 都是近似，拿来当裁判的答案必须是两边以外的，也就是弹性力学里有精确解的接触问题。</li>
 <li><strong>它们和普通形状数据集分开。</strong>这些理想构型（半空间、平板层、圆板）只用来检验公式和骨架，不放进训练数据。</li>
 </ul>
 <h3 id="w4-1">有精确解的接触问题</h3>
+
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -774,20 +1056,24 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>求解器另外和开源接触库 ContactMechanics 一个个值对过</strong>：Hertz 和平底 15 个例子、兔子 24 个例子，全部一致。</li>
 </ul>
 <p class="kp">能写出精确答案的理想情况，骨架测过的都对上了。</p>
+
 <h3 id="w4-2">半空间、粘底薄层、薄板</h3>
+
 <ul>
 <li><strong>三种理想托法，同一个刚球压中心</strong>，看骨架的线性部分是否闭合、IPC 标签里剩下的非线性有多大。标签和第 1.2 节同一套冻结配方。</li>
 <li><strong>半空间（很厚的块）</strong>：骨架就是半空间公式本身，线性部分精确；标签相对线弹性剩下的非线性比粘底薄层小得多，随压深变大。</li>
-<li><strong>粘底薄层</strong>：底面粘在刚性底座上的一层软材料，层越薄越像一床弹簧（第 3.3 节）。厚的一头回到 Hertz、薄的一头回到弹簧垫，中间两个公式都不准；线性部分用精确的层核闭合（第 4.1 节表里「薄层 → 中间厚度 → 很厚」一行）。
-<ul>
+<li><strong>粘底薄层</strong>：底面粘在刚性底座上的一层软材料，层越薄越像一床弹簧（第 3.3 节）。厚的一头回到 Hertz、薄的一头回到弹簧垫，中间两个公式都不准；线性部分用精确的层核闭合（第 4.1 节表里「薄层 → 中间厚度 → 很厚」一行）。<ul>
 <li><strong>压得深的行，标签相对线弹性的非线性残差明显超出标签误差带</strong>，是真信号、不是标签噪声。</li>
 <li><strong>只用「接触半径 / 球半径」和层厚做特征，拟合不进每一行的误差带。</strong></li>
 <li><strong>最好的是一参数修正</strong>：残差 \(e=c\cdot(a/R)\cdot\rho\)，ρ 是骨架约束比（层核骨架能量 ÷ 半空间核骨架能量，半空间上 ρ = 1）。修正后剩下的差和标签的网格误差同一量级。</li>
-</ul></li>
+</ul>
+</li>
 <li><strong>薄板（周边固支、底面自由）</strong>：板会整体弯，骨架的局部部分仍用半空间核，整体弯曲用固支圆板的 Green 函数叠加上去，再加秩 3 整体项。骨架对 P2 落在灰区：在判据门槛以内，但还没到能硬判「过」的精度。</li>
 </ul>
 <p>\[w(x;\xi)=\frac{P\,R_p^2}{16\pi D_{\text{板}}}\,H\!\left(\frac{x}{R_p},\frac{\xi}{R_p}\right)\]</p>
+
 <p>\[D_{\text{板}}=\frac{Et^3}{12(1-\nu^2)}\]</p>
+
 <ul>
 <li><strong>每个符号</strong>：\(w(x;\xi)\) 是在 ξ 处加点力 P 时 x 处的挠度；\(R_p\) 是板半径，t 是板厚，\(D_{\text{板}}\) 是板的弯曲刚度（板厚的 3 次方，薄一半软八倍）；H 是单位圆上的双调和 Green 函数，在边上挠度和斜率都是 0（固支）。</li>
 </ul>
@@ -795,21 +1081,28 @@ html.annot-on #annot-capture { display: block; }
 <p><span class="note-src">【我们定的】局部用半空间核、整体弯曲用板的 Green 函数叠加，是我们的模型选择，两块各自有出处。</span></p>
 <p><span class="note-cond">【条件】Kirchhoff 薄板：不含横向剪切和厚度方向的压缩。</span></p>
 <!-- SLOT: thin_edge_layer_table -->
+
 <div class="slot"><b>待填：</b>小表：半空间与粘底薄层各族（按层厚）每个压深一行：非线性残差 e、该行标签误差带、e ÷ 带、一参数修正后的留一残差；来源 /nas/xiaoyingwang/Neural-IPC/outputs/thin_edge/step2/fit/enl_loo_fit_band_v2.md（与 .json），说明见 Neural-IPC-sandbox/docs/drafts/thin_edge_step2_plan.md §B.12。</div>
+
 <!-- SLOT: thin_edge_layer_figure -->
+
 <div class="slot"><b>待填：</b>图：横轴 (a/R)·ρ，纵轴非线性残差 e，每行一点带误差带竖线，叠一条一参数修正直线；一图只说「一参数修正能解释层上的非线性」；来源同 thin_edge_layer_table。</div>
+
 <!-- SLOT: thin_edge_plate_table -->
+
 <div class="slot"><b>待填：</b>小表：薄板两档压深，骨架（板 Green 函数 + 秩 3）对 P2 的能量与力误差、加密格距前后的变化、判定（过 / 灰）；来源 /nas/xiaoyingwang/Neural-IPC/outputs/thin_edge/plate/summary/plate_g016_summary.md（与 .json），说明见 thin_edge_step2_plan.md §A、§B.7。</div>
+
 <p class="kp">理想托法上，线性部分都能用有出处的公式闭合；留下的只有和压深、约束程度有关的那一小块非线性，正是网络要学的量。</p>
+
 <h3 id="w4-3">碰撞：最大压深随速度的次方</h3>
+
 <ul>
 <li><strong>软球带着速度撞平块。</strong>撞得够慢时动能全部变成接触能，最大压深跟速度的关系是 \(v^{2/n}\)，n 是能量的次方。</li>
 <li><strong>真实情况 n = 2.5，应该是 \(v^{0.8}\)；我们测出来是 \(v^{0.7994}\)。</strong></li>
 <li><strong>hydro 的 n = 3</strong>，理论上是 \(v^{0.667}\)（把 hydro 实际的能量曲线代进能量守恒，算出来是 \(v^{0.655}\)），所以换一个速度，hydro 的误差就会变。</li>
 </ul>
 <figure style="margin:12px 0"><img src="assets/images/w5t_w5_impact_powerlaw.png" width="1505" height="1189" style="width:532px;max-width:100%;height:auto" alt="软球以不同速度撞平块，横轴是撞击速度，纵轴是最大压深，两个轴都是对数，所以幂律在图上是直线，斜率就是次方。真实物体（Hertz）能量是压深的 2.5 次方，斜率应是 0.8；我们在引擎里撞出来的点落在这条线上，斜率 0.7994。hydro 的能量接近压深的 3 次方，理论斜率 0.667；把它的能量曲线代入能量守恒算出的点斜率是 0.655。hydro 的刚度已经调到在 v = 0.8 时和真实一致，换一个速度就偏开，因为调参只能把曲线整体放大缩小，改不了次方。" loading="lazy"><figcaption class="small">软球以不同速度撞平块，横轴是撞击速度，纵轴是最大压深，两个轴都是对数，所以幂律在图上是直线，斜率就是次方。真实物体（Hertz）能量是压深的 2.5 次方，斜率应是 0.8；我们在引擎里撞出来的点落在这条线上，斜率 0.7994。hydro 的能量接近压深的 3 次方，理论斜率 0.667；把它的能量曲线代入能量守恒算出的点斜率是 0.655。hydro 的刚度已经调到在 v = 0.8 时和真实一致，换一个速度就偏开，因为调参只能把曲线整体放大缩小，改不了次方。</figcaption></figure>
-<p class="kp">碰撞的次方是一个不用任何标签就能判对错的检查：骨架接进引擎后给出 Hertz 的 0.8，hydro 给不出。</p>
-</section>
+<p class="kp">碰撞的次方是一个不用任何标签就能判对错的检查：骨架接进引擎后给出 Hertz 的 0.8，hydro 给不出。</p></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
 <dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
 <script>
