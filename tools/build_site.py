@@ -138,6 +138,8 @@ SUBFIGS = {
     "w5_spring_series.png": 2, "w5_global_term.png": 3, "w5_hydro_min_pressure.png": 3, "w5_cell_energy_max.png": 2,
     "w5_gap_w.png": 2, "w5_winkler_layer.png": 2, "w5_dataset_configs.png": 8, "w5_error_bars.png": 2,
     "w5_dragon_thin.png": 2,
+    "bunny_modal_h032.png": 2,   # 左兔头、右兔背两幅（读图核过，11-11）；生成于 modes_v4，不在 concept_figs / data_figs 里
+    "w5_impact_powerlaw.png": 1,   # 单幅（同 data_figs.py:439 的 n_sub=1；显式写 1 只为登记，与默认值相同）
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 

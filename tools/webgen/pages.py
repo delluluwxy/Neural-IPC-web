@@ -15,7 +15,7 @@ def week_summaries(demos, tests, gsweeps):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
-        "week5": "用更普通的形状做数据集；用普通形状验证架构、对比 baseline；文献：有多少公式是已知的；理想情况下的 test case。",
+        "week5": "第 5–6 周：用更普通的形状做数据集（第一批 14 个样本）；用普通形状验证架构、对比 baseline（线弹性、hydro，弹性球解析裁判）；文献：有多少公式是已知的；理想情况下的 test case；还需要网络吗（初步）；网络初步构架；下一步。",
         "week3_4": ("要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，"
                     "Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。"),
         "week2": "文献（hydroelastic、神经网络接触模型）、NeuralIPC 代码、Genesis + hydroelastic demo、实验方案、问题与待决定。",
