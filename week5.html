@@ -375,7 +375,7 @@ html.annot-on #annot-capture { display: block; }
 </section>
 <section id="w6"><h2>6. 回应 TODO：与 baseline 对比</h2>
 <p>在同时有两种结果的算例上，skeleton 几乎都比 hydroelastic baseline 准得多。Skeleton 的比值大多在 0.9 至 1.1 附近，偏离最大约 20%；baseline 的比值从 0.136 到 6.5 不等（不含理想构型的球冠薄壳，它是 25.2），多数偏差是倍数级，只有 2 个算例落在 0.9 至 1.1 之内，而且这两个算例的 baseline 在相邻压深上又偏离很远，属于巧合。更重要的是两者偏差的性质不同：baseline 的偏差大小和方向随几何变化，没有可循的规律；skeleton 剩下的偏差主要来自第 4 节中方向已知的几项，以及第 7 节所说的 mode 取法，都有明确的来源。</p>
-<figure style="margin:12px 0"><img src="assets/images/w5t_F8_skel_vs_hydro.png" width="1788" height="785" style="width:100%;max-width:100%;height:auto" alt="这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。" loading="lazy"><figcaption class="small">这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。</figcaption></figure></section>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F8_skel_vs_hydro.png" width="1788" height="785" style="width:100%;max-width:100%;height:auto" alt="这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。" loading="lazy"><figcaption >这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。</figcaption></figure></section>
 <section id="w7"><h2>7. 主要发现：薄长部件的误差来自 mode 的选取</h2>
 <p>龙背上有一条又薄又长的鳍。压在鳍上时，按默认取前二十几个整体 mode，skeleton 比标准答案硬约 36%。保持其他一切不变，只逐步增加 mode 数，结果如下：</p>
 <div class="tablewrap"><table>
@@ -401,6 +401,7 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <p>比值在第 60 到 66 个 mode 之间陡降。对应的这一两个 mode 正是鳍的整体弯曲（第 65、66 个 mode 是几乎简并的一对）：鳍越薄越长越容易弯，但它在全身的 mode 序列里排得很靠后。同一块龙脊上另一个压深的算例在同一位置陡降，比值从 1.20 降到 0.97。与此同时，局部项单独与有限元对比的结果是 1.000，说明 半空间近似本身是准的。</p>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" style="width:100%;height:auto" alt="龙鳍 mode 数"><figcaption>龙鳍压平块：mode 数加到第 66 个时比值一下掉进灰带；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。</figcaption></figure>
 <p>这个结果说明这格偏硬的主因不在公式，而在取哪些 mode。「取全身最低的前 N 个 mode」对厚实的物体够用，对局部有薄长结构的物体则会漏掉真正决定接触柔度 的那几个。</p>
 </section>
 <section id="w8"><h2>8. 回应 TODO：还需不需要 neural</h2>
