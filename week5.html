@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "c8b6ab906dd6";</script>
+<script>window.NIPC_PAGE = "3b45f1d9c023";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -325,14 +325,19 @@ html.annot-on #annot-capture { display: block; }
 <p>判据是 \(U_{\text{skel}} / U_{\text{GT}}\) 落在 0.9 到 1.1 之间。难点在于标准答案本身也有误差，好在主要误差的方向大多是确定的，可以把每个算例的比值扩成一个区间再判。推导分两步。</p>
 <p><strong>第一步：标准答案偏硬。</strong> 精细 mesh 用线性四面体，它在薄处弯曲、材料接近不可压时会锁死，能量偏高；仿真若在完全静止前停下，能量也偏高。两者都让 \(U_{\text{GT}}\) 偏大，因此修正后比值只会变大（旧平块网格一项方向相反，比值会小约 1%；格距一项方向未测，两边开）。厚件上实测的 P2/P1 修正系数约为 0.91 至 0.95，薄件可低到 0.77。</p>
 <p><strong>第二步：mode 取得不够会让 skeleton 偏硬。</strong> 整体项只取有限个 mode 时，柔度被低估，skeleton 能量偏高，所以截断通常让比值偏大，补 mode 多数让它变小；少数格（如兔背压深 0.1）实测补 mode 后比值上升，这一项按两边开。</p>
-<p>据此每个算例给出一个比值区间，分为三档：区间整体落在 0.9 至 1.1 之内为<strong>基本对</strong>；把误差全部往有利方向算仍在带外为<strong>明显不对</strong>；区间跨过边界、需要更准的标准答案才能定档为<strong>待定</strong>。精细仿真不收敛或接触区过小的算例记为<strong>无有效标准答案</strong>，不参与判定。所有算例同时用 hydroelastic 接触模型（Drake 采用的压力场模型）计算一遍，作为baseline。</p>
+<p>据此每个算例给出一个比值区间，分为三档：区间整体落在 0.9 至 1.1 之内为<strong>基本对</strong>；把误差全部往有利方向算仍在带外、各项修正都在本格实测过、并且查明了原因的为<strong>明显不对</strong>（没测完的不下结论，算待定）；区间跨过边界、需要更准的标准答案才能定档为<strong>待定</strong>。待定再分两种：</p>
+<ul>
+<li>待定·误差小：原始比值本身就在 0.9–1.1 里，只是修正标准答案后，区间的一头可能跨出去。这类大概率是对的。</li>
+<li>待定·误差大：原始比值已经在带外，比如兔耳偏硬 11%、CAD 棱、龙鳍，要等修正系数测出来或者补够 mode 才能定。</li>
+</ul>
+<p>精细仿真不收敛或接触区过小的算例记为<strong>无有效标准答案</strong>，不参与判定。所有算例同时用 hydroelastic 接触模型（Drake 采用的压力场模型）计算一遍，作为baseline。</p>
 <blockquote>
 <p><strong>【缺图 F5】</strong> 判定示意：横轴为比值，灰带为 0.9–1.1；画三个算例的区间条，分别示范「基本对」「待定（跨 1.1）」「明显不对」，箭头标出两类误差各自把区间往哪边推。</p>
 </blockquote></section>
 <section id="w5"><h2>5. 回应 TODO：edge case 上是否成立</h2>
 <p>我们用兔子、龙、鸭子和若干 CAD 零件构造了 18 类 edge case（含基线），共 82 个算例，覆盖偏心直压、斜向压入、深压、尖端、棱、面贴面与大面积贴合、凹面与鞍面、一侧薄、两侧都薄、多处接触、靠近部件连接处、整体转动、粗状态大应变、两侧刚度悬殊、接近不可压（\(\nu = 0.49\)）、大小悬殊，另做了同一几何三档 mesh 的收敛检查。</p>
-<p><strong>结论是 skeleton 在这 18 类 edge case 中没有一类整体失效。</strong> 82 个算例中，32 个基本对，42 个待定，只有 2 个明显不对，另有 6 个无有效标准答案。待定的算例绝大多数是区间跨过了 1.1，原因在于标准答案的修正系数还没有逐例测准，而不是 skeleton 本身给不出结果。无有效标准答案的 6 个中，5 个属于粗状态大应变：整体应变 1%（兔背）、2% 和 5% 时精细仿真本身不收敛，其中 5% 时锁住 affine DoF 的物体走上屈曲分支。</p>
-<p>几类不变性检验的结果很干净。整个系统转 45° 后，skeleton 和标准答案的能量都不变；两侧刚度相差 1000 倍时两格比值为 0.90 和 0.98；同一几何在三档 mesh 下标准答案单调收敛，最细两档相差约 0.8%。两个明显不对的算例都偏硬：一个是兔耳被压深到 0.048，原始比偏硬约 11%，修正后区间 1.21–1.49；另一个是 CAD 零件的棱压在平板上。兔耳这格补到 80 个 mode 比值只降约 1%，不是 mode 不够；CAD 棱这格是否是 mode 不够，正在用更多 mode 核实。</p>
+<p><strong>结论是 skeleton 在这 18 类 edge case 中没有一类整体失效。</strong> 82 个算例中，32 个基本对，44 个待定（其中待定·误差小 34 个，待定·误差大 10 个），没有明显不对，另有 6 个无有效标准答案。待定的算例绝大多数是区间跨过了 1.1，原因在于标准答案的修正系数还没有逐例测准，而不是 skeleton 本身给不出结果。无有效标准答案的 6 个中，5 个属于粗状态大应变：整体应变 1%（兔背）、2% 和 5% 时精细仿真本身不收敛，其中 5% 时锁住 affine DoF 的物体走上屈曲分支。</p>
+<p>几类不变性检验的结果很干净。整个系统转 45° 后，skeleton 和标准答案的能量都不变；两侧刚度相差 1000 倍时两格比值为 0.90 和 0.98；同一几何在三档 mesh 下标准答案单调收敛，最细两档相差约 0.8%。兔耳被压深到 0.048 这一例原始比值偏硬 11%，补够 mode 不变，原因正在查（线弹性参照与局部项对照在跑），记为待定·误差大。CAD 零件的棱压在平板上，补到 80 个 mode 后原始比降到 1.109，区间跨过 1.1，改为待定。兔耳这格补到 80 个 mode 比值只降约 1%，不是 mode 不够。</p>
 <p>每类选一个代表算例，三张图依次是压入前（红色是末帧真正接触的点）、静止后（颜色是去掉整体平移和仿射后的局部位移）、比值表（骨架在不同模态数下、hydro 对 IPC 的能量比）。点开各类查看；两个物体互压、IPC 标签分停早和长保持两种的格，在标题里注明用的是哪一种。</p>
 <details><summary>整体转动：兔头整场景转 45°</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S2_rot45_1_before.png" width="1638" height="526" style="width:1308px;max-width:100%;height:auto" alt="整体转动：兔头压平块，整场景转 45°，压入前。" loading="lazy"><figcaption class="small">整体转动：兔头压平块，整场景转 45°，压入前。</figcaption></figure>
 <figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S2_rot45_2_rest.png" width="1558" height="526" style="width:1244px;max-width:100%;height:auto" alt="整体转动：静止后的局部位移与剖面。" loading="lazy"><figcaption class="small">整体转动：静止后的局部位移与剖面。</figcaption></figure>
@@ -398,10 +403,8 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>【缺图 F7】</strong> 全部 82 个算例的比值区间图，按类别分组，灰带为 0.9–1.1，颜色区分三档，同一图上用另一种标记画出 hydroelastic baseline。</p>
 </blockquote></section>
 <section id="w6"><h2>6. 回应 TODO：与 baseline 对比</h2>
-<p>在同时有两种结果的算例上，skeleton 几乎都比 hydroelastic baseline 准得多。Skeleton 的比值大多在 0.9 至 1.1 附近，偏离最大约 20%；baseline 的比值从 0.136 到 6.5 不等（不含理想构型的球冠薄壳，它是 25.2），多数偏差是倍数级，只有 3 个算例落在 0.9 至 1.1 之内，而且其中两个算例的 baseline 在相邻压深上又偏离很远，属于巧合。更重要的是两者偏差的性质不同：baseline 的偏差大小和方向随几何变化，没有可循的规律；skeleton 剩下的偏差主要来自第 4 节中方向已知的几项，以及第 7 节所说的 mode 取法，都有明确的来源。</p>
-<blockquote>
-<p><strong>【缺图 F8】</strong> 同一组算例上 skeleton 与 baseline 的比值散点（横轴算例，纵轴比值，对数坐标），标出 0.9–1.1 灰带。</p>
-</blockquote></section>
+<p>在同时有两种结果的算例上，skeleton 几乎都比 hydroelastic baseline 准得多。Skeleton 的比值大多在 0.9 至 1.1 附近，偏离最大约 20%；baseline 的比值从 0.136 到 6.5 不等（不含理想构型的球冠薄壳，它是 25.2），多数偏差是倍数级，只有 2 个算例落在 0.9 至 1.1 之内，而且这两个算例的 baseline 在相邻压深上又偏离很远，属于巧合。更重要的是两者偏差的性质不同：baseline 的偏差大小和方向随几何变化，没有可循的规律；skeleton 剩下的偏差主要来自第 4 节中方向已知的几项，以及第 7 节所说的 mode 取法，都有明确的来源。</p>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F8_skel_vs_hydro.png" width="1788" height="785" style="width:957px;max-width:100%;height:auto" alt="这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。" loading="lazy"><figcaption class="small">这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。</figcaption></figure></section>
 <section id="w7"><h2>7. 主要发现：薄长部件的误差来自 mode 的选取</h2>
 <p>龙背上有一条又薄又长的鳍。压在鳍上时，按默认取前二十几个整体 mode，skeleton 比标准答案硬约 36%。保持其他一切不变，只逐步增加 mode 数，结果如下：</p>
 <div class="tablewrap"><table>
@@ -426,7 +429,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p>比值在第 60 到 66 个 mode 之间陡降。推断这一两个 mode 是鳍的整体弯曲（还没画 mode 形状核对）：鳍越薄越长越容易弯，但它在全身的 mode 序列里排得很靠后。同一块龙脊上另一个压深的算例在同一位置陡降，比值从 1.20 降到 0.97。与此同时，局部项单独与有限元对比的结果是 1.000，说明 半空间近似本身是准的。</p>
+<p>比值在第 60 到 66 个 mode 之间陡降。对应的这一两个 mode 正是鳍的整体弯曲（第 65、66 个 mode 是几乎简并的一对）：鳍越薄越长越容易弯，但它在全身的 mode 序列里排得很靠后。同一块龙脊上另一个压深的算例在同一位置陡降，比值从 1.20 降到 0.97。与此同时，局部项单独与有限元对比的结果是 1.000，说明 半空间近似本身是准的。</p>
 <p>这个结果说明这格偏硬的主因不在公式，而在取哪些 mode。「取全身最低的前 N 个 mode」对厚实的物体够用，对局部有薄长结构的物体则会漏掉真正决定接触柔度 的那几个。</p>
 <blockquote>
 <p><strong>【缺图 F9】</strong> 比值随 mode 数变化的折线，灰带为 0.9–1.1，在第 66 个 mode 处标注陡降；旁边配第 66 个 mode 的形状图，显示鳍的整体弯曲。</p>
@@ -434,7 +437,7 @@ html.annot-on #annot-capture { display: block; }
 <section id="w8"><h2>8. 回应 TODO：还需不需要 neural</h2>
 <p>目前的结果支持「skeleton + neural 小修正」的架构，而不是让 neural 从头学接触能量。Skeleton 已经覆盖了绝大部分能量，并且远比 baseline 准；剩下的系统误差中最大的一项（薄长部件）已经定位到 mode 的取法上，可以在 skeleton 内部用规则解决。neural 应当学的是在统一的 mode 选取规则之下仍然剩下的残差，这部分有多大、集中在哪些情况，要等统一规则跑完全部算例后才能统计。</p></section>
 <section id="w9"><h2>9. 下一步</h2>
-<p>首先要定一条只依赖输入的统一 mode 选取规则，例如取所有在接触区上比局部半空间更软的整体 mode，使薄长部件自动多取、厚实物体自动少取，再用它把全部算例统一重跑。其次是把 42 个待定算例判出档位，做法是逐例在自身 mesh 上测准标准答案的 P2/P1 修正系数。CAD 棱这格先补足 mode，确认是否同样是 mode 取得不够，若不是，则找出失效的假设。粗状态大应变需要先处理锁住 affine DoF后的屈曲，才能得到有效的标准答案。最后，在统一规则下统计 skeleton 的残差，据此设计 neural 的输入和输出。</p></section>
+<p>首先要定一条只依赖输入的统一 mode 选取规则，例如取所有在接触区上比局部半空间更软的整体 mode，使薄长部件自动多取、厚实物体自动少取，再用它把全部算例统一重跑。其次是把 44 个待定算例判出档位，做法是逐例在自身 mesh 上测准标准答案的 P2/P1 修正系数。兔耳压深 0.048 这格补足 mode 后仍偏硬，要找出失效的假设。粗状态大应变需要先处理锁住 affine DoF后的屈曲，才能得到有效的标准答案。最后，在统一规则下统计 skeleton 的残差，据此设计 neural 的输入和输出。</p></section>
 <section id="w10"><h2>10. 讨论</h2>
 <p>鞍面类应当如何界定还没有定论。两个光滑表面第一次接触的那一点，相对曲率不可能一正一负，所以更合理的考法是压深后接触区扩展到鞍形区域，或两片接触之间跨着鞍形区域。另外，标准答案用的线性四面体在薄处偏硬，今后造数据是否应统一改用高阶单元，需要在精度和计算成本之间权衡。Mode 的选取按频率截止，还是按每个 mode 对接触柔度的贡献来挑，后者更贴近物理但要多算一步，也值得讨论。最后，粗状态大应变下锁住 affine DoF会引起屈曲，这类状态在实际仿真中出现的频率决定了它是否需要专门处理。</p></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
