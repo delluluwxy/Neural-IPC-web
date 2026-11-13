@@ -171,7 +171,7 @@ SUBFIGS = {
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 # week5（用户 11-12 21:1x「图里的字和正文一样大」）：这些图一律占满正文栏（920px），作图时字高按
 # 16px × 图宽像素 / 920 定，显示后与正文同大；每类样图（*_1_before.png）同此
-FULL_WIDTH = {"F2_pipeline.png", "F7_ratio_intervals.png", "F8_skel_vs_hydro.png", "F9_mode_count.png"}
+FULL_WIDTH = {"F1_energy_split.png", "F2_pipeline.png", "F5_tier_rule.png", "F7_ratio_intervals.png", "F8_skel_vs_hydro.png", "F9_mode_count.png"}
 
 
 def is_full_width(name):
