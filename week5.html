@@ -360,7 +360,7 @@ U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)
 <figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" style="width:100%;height:auto" alt="龙鳍 mode 数"><figcaption>龙鳍压平块：mode 数加到第 66 个时比值一下掉进灰带；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。</figcaption></figure>
 <p>龙背上有一条又薄又长的鳍。只取前 24 个 mode 时，skeleton 算出来比标准答案硬了 36%，一直加到第 66 个 mode 时比值一下子掉进 0.9 到 1.1，这个 mode 正好是鳍的整体弯曲。所以问题出在默认只取最低的前几十个 mode，薄长部件真正起作用的那个 mode 排得太靠后，被漏掉了。</p>
 <h2>8. 还需不需要 neural</h2>
-<p>需要，但它只用来做小修正。skeleton 已经把大部分能量算对了，neural 学的是统一了 mode 选取规则之后还剩下的那点误差。</p>
+<p>现在还定不了。目前没有一个算例能确定是 skeleton 公式本身算不准，但还有 43 个待定，要等标准答案修正测准、mode 选取规则统一之后才知道 skeleton 还剩多少误差。如果剩下的误差在所有类别里都落在 0.9 到 1.1 之内，单靠 skeleton 就够了；如果某几类始终偏，neural 就用来补这几类。</p>
 <h2>9. 为什么慢、卡在哪</h2>
 <p>标准答案本身很难算：要算到完全静止才准，一个算例要几分钟到一小时，粗模型整体变形大的时候干脆不收敛。标准答案偏硬，要修正它就得在同一个 mesh 上用二次单元再算一遍，这一步比算标准答案还贵，所以现在大部分算例还停在待定。另外，薄长部件起作用的 mode 排得很靠后，这些高阶 mode 本身也不好算准。</p>
 <h2>10. 下一步</h2>
