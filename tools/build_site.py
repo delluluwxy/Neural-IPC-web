@@ -140,6 +140,22 @@ SUBFIGS = {
     "w5_dragon_thin.png": 2,
     "bunny_modal_h032.png": 2,   # 左兔头、右兔背两幅（读图核过，11-11）；生成于 modes_v4，不在 concept_figs / data_figs 里
     "w5_impact_powerlaw.png": 1,   # 单幅（同 data_figs.py:439 的 n_sub=1；显式写 1 只为登记，与默认值相同）
+    # week5 边角小节：sandbox tools/figs/edge_case_figs.py @ c9370be5 出的三联图（压入前 / 静止 3 栏；比值表横宽同按 3 栏），
+    # NAS edge_cases_1112/web_figs_1112/，主会话 11-12 定按三栏宽显示
+    "E1_orh2_007_S3_1_before.png": 3, "E1_orh2_007_S3_2_rest.png": 3, "E1_orh2_007_S3_3_ratio.png": 3,
+    "E2_orh2_010_S3_1_before.png": 3, "E2_orh2_010_S3_2_rest.png": 3, "E2_orh2_010_S3_3_ratio.png": 3,
+    "ear_n_S2_1_before.png": 3, "ear_n_S2_2_rest.png": 3, "ear_n_S2_3_ratio.png": 3,
+    "ear_o_S3_1_before.png": 3, "ear_o_S3_2_rest.png": 3, "ear_o_S3_3_ratio.png": 3,
+    "G5_ore4_004_S3_1_before.png": 3, "G5_ore4_004_S3_2_rest.png": 3, "G5_ore4_004_S3_3_ratio.png": 3,
+    "G6_1_junc_n_S3_1_before.png": 3, "G6_1_junc_n_S3_2_rest.png": 3, "G6_1_junc_n_S3_3_ratio.png": 3,
+    "G6_1o_junc_o_S1_1_before.png": 3, "G6_1o_junc_o_S1_2_rest.png": 3, "G6_1o_junc_o_S1_3_ratio.png": 3,
+    "head_n_S16_1_before.png": 3, "head_n_S16_2_rest.png": 3, "head_n_S16_3_ratio.png": 3,
+    "head_n_S2_rot45_1_before.png": 3, "head_n_S2_rot45_2_rest.png": 3, "head_n_S2_rot45_3_ratio.png": 3,
+    "head_n_S3_1_before.png": 3, "head_n_S3_2_rest.png": 3, "head_n_S3_3_ratio.png": 3,
+    "head_n_S5_1_before.png": 3, "head_n_S5_2_rest.png": 3, "head_n_S5_3_ratio.png": 3,
+    "M1_back_n_Bx1e3_S3_1_before.png": 3, "M1_back_n_Bx1e3_S3_2_rest.png": 3, "M1_back_n_Bx1e3_S3_3_ratio.png": 3,
+    "tilt_press_1112_head_nt30_loc_1_before.png": 3, "tilt_press_1112_head_nt30_loc_2_rest.png": 3,
+    "tilt_press_1112_head_nt30_loc_3_ratio.png": 3,
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 
