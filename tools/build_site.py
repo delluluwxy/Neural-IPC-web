@@ -156,6 +156,14 @@ SUBFIGS = {
     "M1_back_n_Bx1e3_S3_1_before.png": 3, "M1_back_n_Bx1e3_S3_2_rest.png": 3, "M1_back_n_Bx1e3_S3_3_ratio.png": 3,
     "tilt_press_1112_head_nt30_loc_1_before.png": 3, "tilt_press_1112_head_nt30_loc_2_rest.png": 3,
     "tilt_press_1112_head_nt30_loc_3_ratio.png": 3,
+    # 11-12 20:3x：两物体类补出的样图（edge_case_figs，sandbox 命令 F20–F26），同为三联宽
+    "K27a_bb_saddle1_S3_1_before.png": 3, "K27a_bb_saddle1_S3_2_rest.png": 3, "K27a_bb_saddle1_S3_3_ratio.png": 3,
+    "or_013_S3_h600_1_before.png": 3, "or_013_S3_h600_2_rest.png": 3, "or_013_S3_h600_3_ratio.png": 3,
+    "or_023_S3_1_before.png": 3, "or_023_S3_2_rest.png": 3, "or_023_S3_3_ratio.png": 3,
+    "ore4_007_S3_h600_1_before.png": 3, "ore4_007_S3_h600_2_rest.png": 3, "ore4_007_S3_h600_3_ratio.png": 3,
+    "CS_shell_S19_1_before.png": 3, "CS_shell_S19_2_rest.png": 3, "CS_shell_S19_3_ratio.png": 3,
+    "or_029_S3_1_before.png": 3, "or_029_S3_2_rest.png": 3, "or_029_S3_3_ratio.png": 3,
+    "back_n_S1_1_before.png": 3, "back_n_S1_2_rest.png": 3, "back_n_S1_3_ratio.png": 3,
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 
