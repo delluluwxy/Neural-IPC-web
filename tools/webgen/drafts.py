@@ -36,7 +36,7 @@ def page_from_draft(name, placeholders):
         return None
     text = path.read_text(encoding="utf-8")
     m = re.search(r"(?ms)^## A\..*?\n(.*?)(?=^## B\.|\Z)", text)
-    parts = re.split(r"(?m)^## SECTION (w\d):\s*(.+)$", m.group(1) if m else text)
+    parts = re.split(r"(?m)^## SECTION (w\d+):\s*(.+)$", m.group(1) if m else text)
     used = []   # 本页出现过的占位符名，按出现顺序；HTML 里用 @@PH<序号>@@ 标位置
 
     def mark(k):
