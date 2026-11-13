@@ -1,10 +1,14 @@
 """组装整站：首页（各周卡片）+ 每周一页（页首、目录、各节）。"""
 
+import re
 from .common import esc
 from .config import PAGE_TITLE, WEB, WEEKS
 from .drafts import page_from_draft, sections_html
 from .html_parts import page
 from .week2_hydro import week2_sections
+
+# 页首直接用讲稿标题的周（用户 11-12 21:1x 的 week5_web 稿：页首就是她的标题和导语，不另放摘要）
+DRAFT_HEADED = {"week5"}
 
 
 def week_summaries(demos, tests, gsweeps):
@@ -15,7 +19,7 @@ def week_summaries(demos, tests, gsweeps):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
-        "week5": "第 5–6 周：用更普通的形状做数据集（第一批 14 个样本）；用普通形状验证架构、对比 baseline（线弹性、hydro，弹性球解析裁判）；文献：有多少公式是已知的；理想情况下的 test case；还需要网络吗（初步）；网络初步构架；下一步。",
+        "week5": "我们在 17 类刻意刁难的 edge case 上测了 skeleton，没有一类整体失效，它也比 hydroelastic 准得多。目前偏差最大的情况出在 mode 取得不够，公式本身没有发现问题。",   # 用户 week5_web (1).md 导语原句
         "week3_4": ("要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，"
                     "Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。"),
         "week2": "文献（hydroelastic、神经网络接触模型）、NeuralIPC 代码、Genesis + hydroelastic demo、实验方案、问题与待决定。",
@@ -48,7 +52,15 @@ def build_pages(demos, tests, hydro, hydro_more, gsweeps, hy):
     pages = {WEB / "index.html": page(f'<header class="top"><h1>{esc(PAGE_TITLE)}</h1></header>\n'
                                       f'<nav class="weeks">{cards}</nav>', PAGE_TITLE, "index.html")}
     for wid, title, _ in WEEKS:   # 章节目录和各周链接由 html_parts.page 放在左栏和顶栏
-        body = (f'<header class="top"><h1>{esc(title)}</h1><p class="summary">{esc(summary[wid])}</p></header>\n'
-                + "\n".join(sections[wid]))
+        if wid in DRAFT_HEADED:   # 页首 = 讲稿导语第一行的加粗标题 + 导语其余部分（不另放摘要）
+            lead = sections[wid][0]
+            m = re.match(r'<div class="lead"><p><strong>(.+?)</strong></p>\n?', lead)
+            if m is None:
+                raise SystemExit(f"[build_site] {wid} 讲稿导语第一行不是整行加粗的标题")
+            body = (f'<header class="top"><h1>{m.group(1)}</h1></header>\n<div class="lead">{lead[m.end():]}\n'
+                    + "\n".join(sections[wid][1:]))
+        else:
+            body = (f'<header class="top"><h1>{esc(title)}</h1><p class="summary">{esc(summary[wid])}</p></header>\n'
+                    + "\n".join(sections[wid]))
         pages[WEB / f"{wid}.html"] = page(body, f"{PAGE_TITLE} · {title}", f"{wid}.html")
     return pages
