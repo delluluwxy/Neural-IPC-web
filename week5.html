@@ -264,7 +264,7 @@ html.annot-on #annot-capture { display: block; }
 <p>粗模型里每个物体只有 12 个 affine DoF，能表示整体的移动和变形，表示不了接触处被压凹的那一小块。我们要补给粗模型的就是这部分能量：</p>
 <p>\[
 U(z) = \min_{w} \Pi(\Phi z + \Psi w) - \Pi(\Phi z)
-\]</p>
+\]</p><p>其中：\(z\) 是粗状态，两个物体各 12 个 affine 自由度；\(\Phi z\) 是粗状态对应的精细网格位移，只有整体的移动和仿射变形；\(w\) 是精细网格在 affine 之外多出来的自由度，\(\Psi w\) 就是接触处压凹那部分位移；\(\Pi\) 是精细模型的总弹性势能；\(\min_w\) 表示让 \(w\) 自由变形到静止；\(U(z)\) 是要补给粗模型的接触能量。</p>
 <p>也就是锁住 affine DoF 以后，让精细模型在接触处自由变形到静止，它的能量减去粗模型自己的能量。标准答案用 IPC 在精细 mesh 上算。</p>
 <h2>2. Pipeline</h2>
 <div style="margin:12px 0"><p><strong>每一帧运行（inference）</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">每个物体预处理一次：求整体变形模态和刚度</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">读入两物体的粗状态（12 自由度）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">在重叠处铺格子，算每格要抵消的深度</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">解凸二次规划，得到接触压力和 skeleton 能量</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">neural 修正 skeleton 的偏差（待设计）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">能量交回粗模型，推进下一帧</span></div><p><strong>离线造训练数据</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">采各类接触构型</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">IPC 在精细网格上锁住仿射自由度、跑到静止，得到标准答案</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">线性 / 二次单元线弹性对比，估计标准答案的误差区间</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">对同一粗状态跑 skeleton</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">训练目标 = 标准答案 − skeleton</span></div><p>两排中的 skeleton 用同一份代码，所以训练时和运行时 neural 看到的输入完全一致。</p></div>
@@ -273,11 +273,11 @@ U(z) = \min_{w} \Pi(\Phi z + \Psi w) - \Pi(\Phi z)
 <p>我们把接触区铺成小格，未知量是每格上的压力 \(p_i\)，已知的是每格的重叠深度 \(\delta_i\)。压力会让两个物体的表面往回退，退多少由柔度 \(C\) 决定。柔度分成两部分相加：一部分把接触处附近当成一块无限大的弹性体，用 Boussinesq 解算局部压凹；另一部分用物体自己的低阶 mode 算整体的弯和扭。</p>
 <p>\[
 C = C^{\text{loc}} + \sum_k \frac{\psi_k\psi_k^\top}{\lambda_k}
-\]</p>
+\]</p><p>其中：\(C\) 是柔度矩阵，第 \(i\) 行第 \(j\) 列是在格 \(j\) 上加单位压力时格 \(i\) 表面往回退的距离；\(C^{\text{loc}}\) 是局部项，把接触处附近当成无限大弹性体，用 Boussinesq 解算出；\(\psi_k\) 是第 \(k\) 个整体 mode 在各接触格上的法向位移；\(\lambda_k\) 是这个 mode 的刚度，越大越难变形，贡献的柔度越小；\(\sum_k\) 对取的所有 mode 求和。</p>
 <p>有压力的格子，表面退回的量正好抵消重叠；没有压力的格子，表面不能穿进去。这组条件可以写成一个凸二次规划：</p>
 <p>\[
 U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)
-\]</p>
+\]</p><p>其中：\(p\) 是各格压力组成的向量，\(p \ge 0\) 表示只能压不能拉；\(\delta\) 是各格的重叠深度；\(p^\top\delta\) 是压力推开重叠做的功，\(\tfrac12 p^\top C p\) 是物体被压变形存下的能量；取最大值时的 \(p\) 就是接触压力，最大值本身就是 skeleton 能量 \(U_{\text{skel}}\)。</p>
 <p>整个过程不用训练，只要几何和材料，大约一秒出结果。</p>
 <h2>4. 怎么判对不对</h2>
 <figure style="margin:12px 0"><img src="assets/images/w5t_F5_tier_rule.png" style="width:100%;height:auto" alt="三档判定示例"><figcaption>黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。</figcaption></figure>
@@ -318,7 +318,7 @@ U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)
 <details><summary>整体转动：把兔头压平块的整个场景转 45°，检验骨架的结果和摆放方向无关。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S2_rot45_1_before.png" width="1638" height="526" style="width:100%;max-width:100%;height:auto" alt="整体转动：兔头压平块，整场景转 45°，压入前。" loading="lazy"><figcaption>整体转动：兔头压平块，整场景转 45°，压入前。</figcaption></figure>
 <p>结果：骨架能量比 IPC 低 6%（基本对）</p></details>
 <details><summary>尖：用兔耳的尖端斜着压平块，接触区很小、应力很集中（只作参考）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ear_o_S3_1_before.png" width="1627" height="526" style="width:100%;max-width:100%;height:auto" alt="尖（只作参考）：兔耳尖斜压平块，压入前。" loading="lazy"><figcaption>尖（只作参考）：兔耳尖斜压平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 10%（待定·误差小）</p></details>
+<p>结果：骨架能量比 IPC 低 10%（待定·误差大）</p></details>
 <details><summary>棱：用 CAD 零件的一条棱压平块，接触面在棱的两侧不光滑。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E2_orh2_010_S3_1_before.png" width="1629" height="527" style="width:100%;max-width:100%;height:auto" alt="棱：CAD 零件的棱压平块，压入前。" loading="lazy"><figcaption>棱：CAD 零件的棱压平块，压入前。</figcaption></figure>
 <p>结果：骨架能量比 IPC 高 11%（待定·误差大）</p></details>
 <details><summary>面贴面：CAD 零件上一块几乎平的面压到平块上，接触区是一整片面而不是一个点。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E1_orh2_007_S3_1_before.png" width="1661" height="527" style="width:100%;max-width:100%;height:auto" alt="面贴面：CAD 零件近平的面压平块，压入前。" loading="lazy"><figcaption>面贴面：CAD 零件近平的面压平块，压入前。</figcaption></figure>
@@ -355,10 +355,10 @@ U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)
 <p>结果：骨架能量比 IPC 低 8%（基本对）</p></details>
 <h2>6. 和 hydroelastic 比</h2>
 <figure style="margin:12px 0"><img src="assets/images/w5t_F8_skel_vs_hydro.png" width="1788" height="785" style="width:100%;max-width:100%;height:auto" alt="这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。" loading="lazy"><figcaption >这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。</figcaption></figure>
-<p>两种方法都有结果的 38 个算例里，有 36 个是 skeleton 更接近标准答案。hydroelastic 的结果从标准答案的 0.14 倍到 6.5 倍都有，skeleton 都在 0.80 到 1.11 之间。</p>
+<p>两种方法都有结果的 56 个算例里，有 53 个是 skeleton 更接近标准答案。hydroelastic 的结果从标准答案的 0.10 倍到 6.5 倍都有（不含两侧都薄的球冠壳，它是 25.2 倍），skeleton 都在 0.80 到 1.11 之间。</p>
 <h2>7. 主要发现：薄长部件要取更多 mode</h2>
-<figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" style="width:100%;height:auto" alt="龙鳍 mode 数"><figcaption>龙鳍压平块：mode 数加到第 66 个时比值一下掉进灰带；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。</figcaption></figure>
-<p>龙背上有一条又薄又长的鳍。只取前 24 个 mode 时，skeleton 算出来比标准答案硬了 36%，一直加到第 66 个 mode 时比值一下子掉进 0.9 到 1.1，这个 mode 正好是鳍的整体弯曲。所以问题出在默认只取最低的前几十个 mode，薄长部件真正起作用的那个 mode 排得太靠后，被漏掉了。</p>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" style="width:100%;height:auto" alt="龙鳍 mode 数"><figcaption>龙鳍压平块：mode 数加到第 66 个时比值陡降到灰带边上；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。</figcaption></figure>
+<p>龙背上有一条又薄又长的鳍。只取前 24 个 mode 时，skeleton 算出来比标准答案硬了 36%，一直加到第 66 个 mode 时比值陡降到 1.1 附近，这个 mode 正好是鳍的整体弯曲。所以问题出在默认只取最低的前几十个 mode，薄长部件真正起作用的那个 mode 排得太靠后，被漏掉了。</p>
 <h2>8. 还需不需要 neural</h2>
 <p>现在还定不了。目前没有一个算例能确定是 skeleton 公式本身算不准，但还有 43 个待定，要等标准答案修正测准、mode 选取规则统一之后才知道 skeleton 还剩多少误差。如果剩下的误差在所有类别里都落在 0.9 到 1.1 之内，单靠 skeleton 就够了；如果某几类始终偏，neural 就用来补这几类。</p>
 <h2>9. 为什么慢、卡在哪</h2>
