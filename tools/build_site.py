@@ -156,6 +156,7 @@ SUBFIGS = {
     "M1_back_n_Bx1e3_S3_1_before.png": 3, "M1_back_n_Bx1e3_S3_2_rest.png": 3, "M1_back_n_Bx1e3_S3_3_ratio.png": 3,
     "tilt_press_1112_head_nt30_loc_1_before.png": 3, "tilt_press_1112_head_nt30_loc_2_rest.png": 3,
     "tilt_press_1112_head_nt30_loc_3_ratio.png": 3,
+    "F2_pipeline.png": 4,   # 用户 week5.md 的 F2 两条 pipeline 框图（宽图）
     # 11-12 20:3x：两物体类补出的样图（edge_case_figs，sandbox 命令 F20–F26），同为三联宽
     "K27a_bb_saddle1_S3_1_before.png": 3, "K27a_bb_saddle1_S3_2_rest.png": 3, "K27a_bb_saddle1_S3_3_ratio.png": 3,
     "or_013_S3_h600_1_before.png": 3, "or_013_S3_h600_2_rest.png": 3, "or_013_S3_h600_3_ratio.png": 3,
