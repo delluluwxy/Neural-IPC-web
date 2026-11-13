@@ -19,7 +19,7 @@ def week_summaries(demos, tests, gsweeps):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
-        "week5": "我们在 17 类刻意刁难的 edge case 上测了 skeleton，没有一类整体失效，它也比 hydroelastic 准得多。目前偏差最大的情况出在 mode 取得不够，公式本身没有发现问题。",   # 用户 week5_web (1).md 导语原句
+        "week5": "我们在 17 类刻意刁难的 edge case 上测了 skeleton，没有一类整体失效，它也比 hydroelastic 准得多。目前发现的最大一处偏差（龙鳍，只取 24 个 mode 时偏硬 36%）出在 mode 取得不够，加够 mode 后回到 1.1 附近；公式本身没有发现问题。",   # 用户 week5_web (1).md 导语，按审核 #1 改（与讲稿同句）
         "week3_4": ("要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，"
                     "Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。"),
         "week2": "文献（hydroelastic、神经网络接触模型）、NeuralIPC 代码、Genesis + hydroelastic demo、实验方案、问题与待决定。",
