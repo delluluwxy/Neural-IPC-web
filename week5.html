@@ -327,9 +327,11 @@ html.annot-on #annot-capture { display: block; }
 </ul>
 <p>精细仿真不收敛或接触区过小的算例记为<strong>无有效标准答案</strong>，不参与判定。所有算例同时用 hydroelastic 接触模型（Drake 采用的压力场模型）计算一遍，作为baseline。</p>
 </section>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F5_tier_rule.png" style="width:100%;height:auto" alt="三档判定示例"><figcaption>黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。</figcaption></figure>
 <section id="w5"><h2>5. 回应 TODO：edge case 上是否成立</h2>
 <p>我们用兔子、龙、鸭子和若干 CAD 零件构造了 18 类 edge case（含基线），共 82 个算例，覆盖偏心直压、斜向压入、深压、尖端、棱、面贴面与大面积贴合、凹面与鞍面、一侧薄、两侧都薄、多处接触、靠近部件连接处、整体转动、粗状态大应变、两侧刚度悬殊、接近不可压（\(\nu = 0.49\)）、大小悬殊，另做了同一几何三档 mesh 的收敛检查。</p>
 <p><strong>结论是 skeleton 在这 18 类 edge case 中没有一类整体失效。</strong> 82 个算例中，33 个基本对，43 个待定（其中待定·误差小 33 个，待定·误差大 10 个），没有明显不对，另有 6 个无有效标准答案。待定的算例绝大多数是区间跨过了 1.1，原因在于标准答案的修正系数还没有逐例测准，而不是 skeleton 本身给不出结果。无有效标准答案的 6 个中，5 个属于粗状态大应变：整体应变 1%（兔背）、2% 和 5% 时精细仿真本身不收敛，其中 5% 时锁住 affine DoF 的物体走上屈曲分支。</p>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F7_ratio_intervals.png" style="width:100%;height:auto" alt="82 个算例的比值区间"><figcaption>每根竖条是一个算例 skeleton ÷ IPC 的区间，灰带是 0.9–1.1；菱形是 hydroelastic，大多远离 1。</figcaption></figure>
 <p>几类不变性检验的结果很干净。整个系统转 45° 后，skeleton 和标准答案的能量都不变；两侧刚度相差 1000 倍时两格比值为 0.90 和 0.98；同一几何在三档 mesh 下标准答案单调收敛，最细两档相差约 0.8%。兔耳被压深到 0.048 这一例原始比值偏硬 11%，补够 mode 不变，原因正在查（线弹性参照与局部项对照在跑），记为待定·误差大。CAD 零件的棱压在平板上，补到 80 个 mode 后原始比降到 1.109，区间跨过 1.1，改为待定。兔耳这格补到 80 个 mode 比值只降约 1%，不是 mode 不够。</p>
 <p>每类一个代表算例：图是压入前的样子（红色是真正接触的点），下面一行是结果。</p>
 <details><summary>整体转动：把兔头压平块的整个场景转 45°，检验骨架的结果和摆放方向无关。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S2_rot45_1_before.png" width="1638" height="526" style="width:100%;max-width:100%;height:auto" alt="整体转动：兔头压平块，整场景转 45°，压入前。" loading="lazy"><figcaption>整体转动：兔头压平块，整场景转 45°，压入前。</figcaption></figure>
