@@ -85,6 +85,8 @@ def notion_md_to_html(md):
     t = re.sub(r"(?m)^([ \t]*)\[\[配图 ([^\]\s]+)\]\][ \t]*$", lambda m: keep_indented(m, illustrated(m.group(2))), t)
     t = re.sub(r"(?m)^([ \t]*)\[\[(图|视频) ([^|\]]+?)[ \t]*\|[ \t]*([^\]]+?)[ \t]*\]\][ \t]*$", lambda m: keep_indented(
         m, (draft_image if m.group(2) == "图" else draft_video)(m.group(3), m.group(4))), t)
+    # [[图 NAS 路径]]（不带图注）：只放图，不出图注（week5 每类样图，用户 11-12 21:1x 只留核心）
+    t = re.sub(r"(?m)^([ \t]*)\[\[图 ([^|\]]+?)[ \t]*\]\][ \t]*$", lambda m: keep_indented(m, draft_image(m.group(2), None)), t)
     t = re.sub(r"(?m)^设置：(.+)$", lambda m: keep(setting(m.group(1).strip()), True), t)
     # 出处 / 条件标注整行上色（用户 11-05）：【ref】【无 ref】【我们定的】一种颜色，【条件】一种颜色；行尾两个空格的换行留在 span 外
     # （图例写成「- **【ref】**：……」的列表项也算，颜色与正文里的标注一致）
@@ -156,6 +158,8 @@ def draft_image(src, caption):
         raise SystemExit(f"[build_site] 讲稿里两张不同的图同名 {path.name}，assets/images/ 会互相覆盖，停止")
     if path not in NOTION_IMAGES:
         NOTION_IMAGES.append(path)
+    if caption is None:   # [[图 路径]]：不带图注
+        return f'<figure><img src="assets/images/{esc(path.name)}" alt="" loading="lazy"></figure>'
     return (f'<figure><img src="assets/images/{esc(path.name)}" alt="{esc(caption)}" loading="lazy">'
             f'<figcaption class="small">{esc(caption)}</figcaption></figure>')
 

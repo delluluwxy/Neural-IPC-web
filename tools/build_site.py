@@ -169,11 +169,22 @@ SUBFIGS = {
     "back_n_S1_1_before.png": 3, "back_n_S1_2_rest.png": 3, "back_n_S1_3_ratio.png": 3,
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
+# week5（用户 11-12 21:1x「图里的字和正文一样大」）：这些图一律占满正文栏（920px），作图时字高按
+# 16px × 图宽像素 / 920 定，显示后与正文同大；每类样图（*_1_before.png）同此
+FULL_WIDTH = {"F2_pipeline.png", "F7_ratio_intervals.png", "F8_skel_vs_hydro.png", "F9_mode_count.png"}
+
+
+def is_full_width(name):
+    """week5 讲稿里按正文栏全宽显示的图（FULL_WIDTH 或每类样图 *_1_before.png）。"""
+    if not name.startswith("w5t_"):
+        return False
+    base = name[len("w5t_"):]
+    return base in FULL_WIDTH or base.endswith("_1_before.png")
 
 
 def display_width(name, w, h):
     """显示宽度（px）：子图数 n（SUBFIGS），目标面积 = n × SHORT_SIDE²。先按最短边 = SHORT_SIDE 算，面积与目标之比在
-    AREA_BAND 内就用它；超出（长宽比特殊）就按目标面积等比缩放。"""
+    AREA_BAND 内就用它；超出（长宽比特殊）就按目标面积等比缩放。全宽图（is_full_width）不走这里。"""
     n = SUBFIGS.get(re.sub(r"^w(?:34|3i|5t)_", "", name), 1)
     s = SHORT_SIDE / min(w, h)
     target = n * SHORT_SIDE ** 2
@@ -197,7 +208,8 @@ def size_media(html):
             w, h = video_size(p) if p.suffix.lower() == ".mp4" else image_size(p)
         # 图片另写原图像素 width/height：浏览器据此在加载前按比例留出高度，懒加载的图加载完不会把下面的内容推走
         dims = f' width="{w}" height="{h}"' if m.group(1).startswith("<img") else ""
-        return m.group(1) + dims + f' style="width:{display_width(name, w, h)}px;max-width:100%;height:auto"'
+        width = "100%" if is_full_width(name) else f"{display_width(name, w, h)}px"
+        return m.group(1) + dims + f' style="width:{width};max-width:100%;height:auto"'
     html = re.sub(r'(<(?:img|video)\b[^>]*?\bsrc="(assets/(?:images|videos)/[^"]+)")', add_style, html)
     html = html.replace('<div class="grid"><figure>', '<div style="display:flex;flex-wrap:wrap;gap:0 18px"><figure>')
     return html.replace("<figure>", '<figure style="margin:12px 0">')   # 去掉浏览器默认的左右 40px，宽图少被压缩
@@ -417,6 +429,8 @@ def main():
             pages[p] = trim_copies(pages[p], TRIM_WEEKS[p.stem])
         if p.stem in FIXED_SIZE_WEEKS:
             pages[p] = size_media(pages[p])   # 标题编号与目录在 html_parts.page 里做（outline）
+        if p.stem == "week5":   # 用户 11-12 21:1x：图注字与正文同大
+            pages[p] = pages[p].replace('<figcaption class="small">', "<figcaption>")
         if p.name != "index.html":   # 带标注层的页最后嵌页面版本号（内容哈希）：笔画下时记进 drawn.page
             pages[p] = with_page_version(pages[p])
     # 讲稿里引用的 NAS 图（draft_md.notion_image / week2_hydro.setup_figure 在生成页面时登记）；留白副本另列，复制后 trim
