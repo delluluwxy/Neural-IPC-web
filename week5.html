@@ -247,37 +247,29 @@ html.annot-on #annot-capture { display: block; }
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
 <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a></header>
-<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 1. 要逼近的量</a>
-<a class="toc-level-2" href="#w2">2. 2. Pipeline</a>
-<a class="toc-level-3" href="#w2-1">2.1 Inference pipeline</a>
-<a class="toc-level-3" href="#w2-2">2.2 造数据 pipeline</a>
-<a class="toc-level-2" href="#w3">3. 3. Skeleton 的推导</a>
-<a class="toc-level-2" href="#w4">4. 4. 判定方法</a>
-<a class="toc-level-2" href="#w5">5. 5. 回应 TODO：edge case 上是否成立</a>
-<a class="toc-level-2" href="#w6">6. 6. 回应 TODO：与 baseline 对比</a>
-<a class="toc-level-2" href="#w7">7. 7. 主要发现：薄长部件的误差来自 mode 的选取</a>
-<a class="toc-level-2" href="#w8">8. 8. 回应 TODO：还需不需要 neural</a>
-<a class="toc-level-2" href="#w9">9. 9. 下一步</a>
-<a class="toc-level-2" href="#w10">10. 10. 讨论</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article><h1>第 5–6 周：skeleton 在 edge case 上是否成立</h1>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article><h1>第 5–6 周：skeleton 在 edge case 上是否成立</h1>
 <p>我们在 17 类刻意刁难的 edge case 上测了 skeleton，没有一类整体失效，它也比 hydroelastic 准得多。目前偏差最大的情况出在 mode 取得不够，公式本身没有发现问题。</p>
 <h2>1. 要算什么</h2>
 <p>粗模型里每个物体只有 12 个 affine DoF，能表示整体的移动和变形，表示不了接触处被压凹的那一小块。我们要补给粗模型的就是这部分能量：</p>
 <p>\[
 U(z) = \min_{w} \Pi(\Phi z + \Psi w) - \Pi(\Phi z)
-\]</p><p>其中：\(z\) 是粗状态，两个物体各 12 个 affine 自由度；\(\Phi z\) 是粗状态对应的精细网格位移，只有整体的移动和仿射变形；\(w\) 是精细网格在 affine 之外多出来的自由度，\(\Psi w\) 就是接触处压凹那部分位移；\(\Pi\) 是精细模型的总弹性势能；\(\min_w\) 表示让 \(w\) 自由变形到静止；\(U(z)\) 是要补给粗模型的接触能量。</p>
+\]</p>
 <p>也就是锁住 affine DoF 以后，让精细模型在接触处自由变形到静止，它的能量减去粗模型自己的能量。标准答案用 IPC 在精细 mesh 上算。</p>
+<p>式子里各个量的意思：\(z\) 是两个物体的 12 个 affine DoF，也就是粗模型的状态；\(\Phi z\) 是这 12 个数决定的整体变形；\(w\) 是粗模型表示不了的那部分变形，主要是接触处的局部压凹；\(\Psi w\) 是它在精细 mesh 上对应的位移；\(\Pi\) 是精细模型的总势能，包括弹性能和接触势；\(\min_w\) 表示固定 \(z\)、让 \(w\) 自己调到能量最小，也就是静止状态。</p>
 <h2>2. Pipeline</h2>
 <div style="margin:12px 0"><p><strong>每一帧运行（inference）</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">每个物体预处理一次：求整体变形模态和刚度</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">读入两物体的粗状态（12 自由度）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">在重叠处铺格子，算每格要抵消的深度</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">解凸二次规划，得到接触压力和 skeleton 能量</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">neural 修正 skeleton 的偏差（待设计）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">能量交回粗模型，推进下一帧</span></div><p><strong>离线造训练数据</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">采各类接触构型</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">IPC 在精细网格上锁住仿射自由度、跑到静止，得到标准答案</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">线性 / 二次单元线弹性对比，估计标准答案的误差区间</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">对同一粗状态跑 skeleton</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">训练目标 = 标准答案 − skeleton</span></div><p>两排中的 skeleton 用同一份代码，所以训练时和运行时 neural 看到的输入完全一致。</p></div>
 <p>运行时每个物体先预处理一次求出它的 mode，之后每一帧根据粗状态找出接触区，解 skeleton 得到能量，再由 neural 做小修正，交回粗仿真。造数据时用同一套 skeleton 代码，所以 neural 训练时看到的输入和运行时一样。</p>
 <h2>3. Skeleton 怎么算</h2>
-<p>我们把接触区铺成小格，未知量是每格上的压力 \(p_i\)，已知的是每格的重叠深度 \(\delta_i\)。压力会让两个物体的表面往回退，退多少由柔度 \(C\) 决定。柔度分成两部分相加：一部分把接触处附近当成一块无限大的弹性体，用 Boussinesq 解算局部压凹；另一部分用物体自己的低阶 mode 算整体的弯和扭。</p>
+<p>我们把接触区铺成小格，未知量是每格上的压力，已知的是每格的重叠深度。压力会让两个物体的表面往回退，退多少由柔度 \(C\) 决定。柔度分成两部分相加：一部分把接触处附近当成一块无限大的弹性体，用 Boussinesq 解算局部压凹；另一部分用物体自己的低阶 mode 算整体的弯和扭。</p>
 <p>\[
 C = C^{\text{loc}} + \sum_k \frac{\psi_k\psi_k^\top}{\lambda_k}
-\]</p><p>其中：\(C\) 是柔度矩阵，第 \(i\) 行第 \(j\) 列是在格 \(j\) 上加单位压力时格 \(i\) 表面往回退的距离；\(C^{\text{loc}}\) 是局部项，把接触处附近当成无限大弹性体，用 Boussinesq 解算出；\(\psi_k\) 是第 \(k\) 个整体 mode 在各接触格上的法向位移；\(\lambda_k\) 是这个 mode 的刚度，越大越难变形，贡献的柔度越小；\(\sum_k\) 对取的所有 mode 求和。</p>
+\]</p>
+<p>\(C\) 是一张「推一下会动多少」的表：第 \(i\) 行第 \(j\) 列表示在第 \(j\) 格用单位力推一下，第 \(i\) 格的表面会退多少。\(C^{\text{loc}}\) 是点力那部分，在 \(j\) 点压一下，周围会凹下去一个坑，离 \(j\) 越远凹得越浅，大约和距离成反比。\(\psi_k\) 是第 \(k\) 个 mode 的形状，比如「整条鳍往下弯」，在每个接触格上取一个值，表示这个格子在这种变形里动多少；\(\lambda_k\) 是这种变形的刚度，越小越容易发生。\(\psi_k\psi_k^\top/\lambda_k\) 的意思是：在 \(j\) 点推一下会激起多少第 \(k\) 种整体变形，这种变形又让 \(i\) 点动多少。所有 mode 加起来，就是整体弯、扭带来的位移，越软的 mode 贡献越大。\(C\) 由两个物体各自的这张表相加得到。</p>
 <p>有压力的格子，表面退回的量正好抵消重叠；没有压力的格子，表面不能穿进去。这组条件可以写成一个凸二次规划：</p>
 <p>\[
 U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)
-\]</p><p>其中：\(p\) 是各格压力组成的向量，\(p \ge 0\) 表示只能压不能拉；\(\delta\) 是各格的重叠深度；\(p^\top\delta\) 是压力推开重叠做的功，\(\tfrac12 p^\top C p\) 是物体被压变形存下的能量；取最大值时的 \(p\) 就是接触压力，最大值本身就是 skeleton 能量 \(U_{\text{skel}}\)。</p>
+\]</p>
+<p>\(p\) 是每个格子上的压力，只能推不能拉，所以 \(p \ge 0\)；\(\delta\) 是每个格子原本重叠的深度；\(p^\top\delta\) 是压力把重叠推开时做的功；\(\tfrac12 p^\top C p\) 是这些压力让两个物体变形后储存的弹性能。在 \(p \ge 0\) 里让两者之差最大，解出的压力正好让有压力的格子刚好推开重叠、没压力的格子不穿透。这时最大值恰好等于 \(\tfrac12 p^\top C p\)，就是两个物体被压出的弹性能 \(U_{\text{skel}}\)。</p>
 <p>整个过程不用训练，只要几何和材料，大约一秒出结果。</p>
 <h2>4. 怎么判对不对</h2>
 <figure style="margin:12px 0"><img src="assets/images/w5t_F5_tier_rule.png" style="width:100%;height:auto" alt="三档判定示例"><figcaption>黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。</figcaption></figure>
