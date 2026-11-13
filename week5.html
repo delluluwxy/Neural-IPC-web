@@ -242,41 +242,48 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "3b45f1d9c023";</script>
+<script>window.NIPC_PAGE = "f2e717bc0130";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
-<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a></header>
-<div class="layout"><aside><details id="contents" open><summary>本页目录</summary></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article><h1>第 5–6 周：skeleton 在 edge case 上是否成立</h1>
-<p>我们在 17 类刻意刁难的 edge case 上测了 skeleton，没有一类整体失效，它也比 hydroelastic 准得多。目前偏差最大的情况出在 mode 取得不够，公式本身没有发现问题。</p>
-<h2>1. 要算什么</h2>
+<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week5.html" aria-current="page">Week 5–6</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 1. 要算什么</a>
+<a class="toc-level-2" href="#w2">2. 2. Pipeline</a>
+<a class="toc-level-2" href="#w3">3. 3. Skeleton 怎么算</a>
+<a class="toc-level-2" href="#w4">4. 4. 怎么判对不对</a>
+<a class="toc-level-2" href="#w5">5. 5. 结果</a>
+<a class="toc-level-2" href="#w6">6. 6. 和 hydroelastic 比</a>
+<a class="toc-level-2" href="#w7">7. 7. 主要发现：薄长部件要取更多 mode</a>
+<a class="toc-level-2" href="#w8">8. 8. 还需不需要 neural</a>
+<a class="toc-level-2" href="#w9">9. 9. 为什么慢、卡在哪</a>
+<a class="toc-level-2" href="#w10">10. 10. 下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<header class="top"><h1>第 5–6 周：skeleton 在 edge case 上是否成立</h1></header>
+<div class="lead"><p>我们在 17 类刻意刁难的 edge case 上测了 skeleton，没有一类整体失效，它也比 hydroelastic 准得多。目前偏差最大的情况出在 mode 取得不够，公式本身没有发现问题。</p></div>
+<section id="w1"><h2>1. 要算什么</h2>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F1_energy_split.png" width="2379" height="678" style="width:100%;max-width:100%;height:auto" alt="兔背压平块：粗状态下两物体重叠约 0.0030（中左）；锁住 12 个 affine DoF、让精细模型松弛后，接触处各自压陷（中右，竖直放大 10 倍）。粗模型能量 Π(Φz) 几乎为零，松弛后是 0.01942，两者之差就是 U。" loading="lazy"><figcaption>兔背压平块：粗状态下两物体重叠约 0.0030（中左）；锁住 12 个 affine DoF、让精细模型松弛后，接触处各自压陷（中右，竖直放大 10 倍）。粗模型能量 Π(Φz) 几乎为零，松弛后是 0.01942，两者之差就是 U。</figcaption></figure>
 <p>粗模型里每个物体只有 12 个 affine DoF，能表示整体的移动和变形，表示不了接触处被压凹的那一小块。我们要补给粗模型的就是这部分能量：</p>
-<p>\[
-U(z) = \min_{w} \Pi(\Phi z + \Psi w) - \Pi(\Phi z)
-\]</p>
+<p>\[U(z) = \min_{w} \Pi(\Phi z + \Psi w) - \Pi(\Phi z)\]</p>
 <p>也就是锁住 affine DoF 以后，让精细模型在接触处自由变形到静止，它的能量减去粗模型自己的能量。标准答案用 IPC 在精细 mesh 上算。</p>
-<p>式子里各个量的意思：\(z\) 是两个物体的 12 个 affine DoF，也就是粗模型的状态；\(\Phi z\) 是这 12 个数决定的整体变形；\(w\) 是粗模型表示不了的那部分变形，主要是接触处的局部压凹；\(\Psi w\) 是它在精细 mesh 上对应的位移；\(\Pi\) 是精细模型的总势能，包括弹性能和接触势；\(\min_w\) 表示固定 \(z\)、让 \(w\) 自己调到能量最小，也就是静止状态。</p>
-<h2>2. Pipeline</h2>
+<p>式子里各个量的意思：\(z\) 是两个物体的 12 个 affine DoF，也就是粗模型的状态；\(\Phi z\) 是这 12 个数决定的整体变形；\(w\) 是粗模型表示不了的那部分变形，主要是接触处的局部压凹；\(\Psi w\) 是它在精细 mesh 上对应的位移；\(\Pi\) 是精细模型的总势能，包括弹性能和接触势；\(\min_w\) 表示固定 \(z\)、让 \(w\) 自己调到能量最小，也就是静止状态。</p></section>
+<section id="w2"><h2>2. Pipeline</h2>
 <div style="margin:12px 0"><p><strong>每一帧运行（inference）</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">每个物体预处理一次：求整体变形模态和刚度</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">读入两物体的粗状态（12 自由度）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">在重叠处铺格子，算每格要抵消的深度</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">解凸二次规划，得到接触压力和 skeleton 能量</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">neural 修正 skeleton 的偏差（待设计）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">能量交回粗模型，推进下一帧</span></div><p><strong>离线造训练数据</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">采各类接触构型</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">IPC 在精细网格上锁住仿射自由度、跑到静止，得到标准答案</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">线性 / 二次单元线弹性对比，估计标准答案的误差区间</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">对同一粗状态跑 skeleton</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">训练目标 = 标准答案 − skeleton</span></div><p>两排中的 skeleton 用同一份代码，所以训练时和运行时 neural 看到的输入完全一致。</p></div>
-<p>运行时每个物体先预处理一次求出它的 mode，之后每一帧根据粗状态找出接触区，解 skeleton 得到能量，再由 neural 做小修正，交回粗仿真。造数据时用同一套 skeleton 代码，所以 neural 训练时看到的输入和运行时一样。</p>
-<h2>3. Skeleton 怎么算</h2>
+
+<p>运行时每个物体先预处理一次求出它的 mode，之后每一帧根据粗状态找出接触区，解 skeleton 得到能量，再由 neural 做小修正，交回粗仿真。造数据时用同一套 skeleton 代码，所以 neural 训练时看到的输入和运行时一样。</p></section>
+<section id="w3"><h2>3. Skeleton 怎么算</h2>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F3_skeleton_parts.png" width="2404" height="802" style="width:100%;max-width:100%;height:auto" alt="同一算例：左是每格的重叠深度 δ_i；中是局部项，单位压力在半空间上压出的位移盆；右是在接触处影响最大的整体 mode（第 11 个，它的权重 1/λ 为负，让接触处比半空间更硬）。下方是两部分合起来的柔度 C。" loading="lazy"><figcaption>同一算例：左是每格的重叠深度 δ_i；中是局部项，单位压力在半空间上压出的位移盆；右是在接触处影响最大的整体 mode（第 11 个，它的权重 1/λ 为负，让接触处比半空间更硬）。下方是两部分合起来的柔度 C。</figcaption></figure>
 <p>我们把接触区铺成小格，未知量是每格上的压力，已知的是每格的重叠深度。压力会让两个物体的表面往回退，退多少由柔度 \(C\) 决定。柔度分成两部分相加：一部分把接触处附近当成一块无限大的弹性体，用 Boussinesq 解算局部压凹；另一部分用物体自己的低阶 mode 算整体的弯和扭。</p>
-<p>\[
-C = C^{\text{loc}} + \sum_k \frac{\psi_k\psi_k^\top}{\lambda_k}
-\]</p>
+<p>\[C = C^{\text{loc}} + \sum_k \frac{\psi_k\psi_k^\top}{\lambda_k}\]</p>
 <p>\(C\) 是一张「推一下会动多少」的表：第 \(i\) 行第 \(j\) 列表示在第 \(j\) 格用单位力推一下，第 \(i\) 格的表面会退多少。\(C^{\text{loc}}\) 是点力那部分，在 \(j\) 点压一下，周围会凹下去一个坑，离 \(j\) 越远凹得越浅，大约和距离成反比。\(\psi_k\) 是第 \(k\) 个 mode 的形状，比如「整条鳍往下弯」，在每个接触格上取一个值，表示这个格子在这种变形里动多少；\(\lambda_k\) 是这种变形的刚度，越小越容易发生。\(\psi_k\psi_k^\top/\lambda_k\) 的意思是：在 \(j\) 点推一下会激起多少第 \(k\) 种整体变形，这种变形又让 \(i\) 点动多少。所有 mode 加起来，就是整体弯、扭带来的位移，越软的 mode 贡献越大。\(C\) 由两个物体各自的这张表相加得到。</p>
 <p>有压力的格子，表面退回的量正好抵消重叠；没有压力的格子，表面不能穿进去。这组条件可以写成一个凸二次规划：</p>
-<p>\[
-U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)
-\]</p>
+<p>\[U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)\]</p>
 <p>\(p\) 是每个格子上的压力，只能推不能拉，所以 \(p \ge 0\)；\(\delta\) 是每个格子原本重叠的深度；\(p^\top\delta\) 是压力把重叠推开时做的功；\(\tfrac12 p^\top C p\) 是这些压力让两个物体变形后储存的弹性能。在 \(p \ge 0\) 里让两者之差最大，解出的压力正好让有压力的格子刚好推开重叠、没压力的格子不穿透。这时最大值恰好等于 \(\tfrac12 p^\top C p\)，就是两个物体被压出的弹性能 \(U_{\text{skel}}\)。</p>
-<p>整个过程不用训练，只要几何和材料，大约一秒出结果。</p>
-<h2>4. 怎么判对不对</h2>
-<figure style="margin:12px 0"><img src="assets/images/w5t_F5_tier_rule.png" style="width:100%;height:auto" alt="三档判定示例"><figcaption>黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。</figcaption></figure>
-<p>skeleton 能量除以标准答案，落在 0.9 到 1.1 之间就算对。标准答案自己也偏硬，因为精细 mesh 用的线性四面体在薄的地方和接近不可压时会锁死，所以每个算例我们给的是修正后的一个区间。整个区间都在 0.9 到 1.1 里记为基本对，跨过边界记为待定，只有确定是 skeleton 公式本身算不准才记为明显不对。</p>
-<h2>5. 结果</h2>
-<figure style="margin:12px 0"><img src="assets/images/w5t_F7_ratio_intervals.png" style="width:100%;height:auto" alt="82 个算例的比值区间"><figcaption>每根竖条是一个算例 skeleton ÷ IPC 的区间，灰带是 0.9–1.1；菱形是 hydroelastic，大多远离 1。</figcaption></figure>
-<table>
+<p>整个过程不用训练，只要几何和材料，大约一秒出结果。</p></section>
+<section id="w4"><h2>4. 怎么判对不对</h2>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F5_tier_rule.png" width="2371" height="1034" style="width:100%;max-width:100%;height:auto" alt="黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。" loading="lazy"><figcaption>黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。</figcaption></figure>
+<p>skeleton 能量除以标准答案，落在 0.9 到 1.1 之间就算对。标准答案自己也偏硬，因为精细 mesh 用的线性四面体在薄的地方和接近不可压时会锁死，所以每个算例我们给的是修正后的一个区间。整个区间都在 0.9 到 1.1 里记为基本对，跨过边界记为待定，只有确定是 skeleton 公式本身算不准才记为明显不对。</p></section>
+<section id="w5"><h2>5. 结果</h2>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F7_ratio_intervals.png" width="2391" height="1927" style="width:100%;max-width:100%;height:auto" alt="每根竖条是一个算例 skeleton ÷ IPC 的区间，灰带是 0.9–1.1；菱形是 hydroelastic，大多远离 1。" loading="lazy"><figcaption>每根竖条是一个算例 skeleton ÷ IPC 的区间，灰带是 0.9–1.1；菱形是 hydroelastic，大多远离 1。</figcaption></figure>
+<div class="tablewrap"><table>
 <thead>
 <tr>
 <th>结果</th>
@@ -305,58 +312,59 @@ U_{\text{skel}} = \max_{p \ge 0}\Big(p^\top\delta - \tfrac12 p^\top C p\Big)
 <td>6</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>整个场景转 45° 后能量不变。两侧刚度差 1000 倍、接近不可压、两侧都薄、压得很深这些情况，都没有出现 skeleton 整体算不准。</p>
-<details><summary>整体转动：把兔头压平块的整个场景转 45°，检验骨架的结果和摆放方向无关。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S2_rot45_1_before.png" width="1638" height="526" style="width:100%;max-width:100%;height:auto" alt="整体转动：兔头压平块，整场景转 45°，压入前。" loading="lazy"><figcaption>整体转动：兔头压平块，整场景转 45°，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 6%（基本对）</p></details>
-<details><summary>尖：用兔耳的尖端斜着压平块，接触区很小、应力很集中（只作参考）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ear_o_S3_1_before.png" width="1627" height="526" style="width:100%;max-width:100%;height:auto" alt="尖（只作参考）：兔耳尖斜压平块，压入前。" loading="lazy"><figcaption>尖（只作参考）：兔耳尖斜压平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 10%（待定·误差大）</p></details>
-<details><summary>棱：用 CAD 零件的一条棱压平块，接触面在棱的两侧不光滑。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E2_orh2_010_S3_1_before.png" width="1629" height="527" style="width:100%;max-width:100%;height:auto" alt="棱：CAD 零件的棱压平块，压入前。" loading="lazy"><figcaption>棱：CAD 零件的棱压平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 高 11%（待定·误差大）</p></details>
-<details><summary>面贴面：CAD 零件上一块几乎平的面压到平块上，接触区是一整片面而不是一个点。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E1_orh2_007_S3_1_before.png" width="1661" height="527" style="width:100%;max-width:100%;height:auto" alt="面贴面：CAD 零件近平的面压平块，压入前。" loading="lazy"><figcaption>面贴面：CAD 零件近平的面压平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 8%（基本对）</p></details>
-<details><summary>一侧薄：兔耳这种薄片压到平块上，被压的一侧很薄，整片会跟着弯。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ear_n_S2_1_before.png" width="1616" height="526" style="width:100%;max-width:100%;height:auto" alt="一侧薄：兔耳压平块，压入前。" loading="lazy"><figcaption>一侧薄：兔耳压平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 14%（基本对）</p></details>
-<details><summary>大应变：兔头在已经整体变形 1% 的状态下再压平块，检验骨架在粗模型有明显变形时是否还成立。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S5_1_before.png" width="1638" height="526" style="width:100%;max-width:100%;height:auto" alt="大应变：兔头压平块，叠加 1% 整体应变，压入前。" loading="lazy"><figcaption>大应变：兔头压平块，叠加 1% 整体应变，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 6%（待定·误差小）</p></details>
-<details><summary>两侧材料差：兔背压一块比兔子硬 1000 倍的平块，两侧软硬差别极大。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_M1_back_n_Bx1e3_S3_1_before.png" width="1649" height="526" style="width:100%;max-width:100%;height:auto" alt="两侧材料差：兔背压刚度 ×1000 的平块，压入前。" loading="lazy"><figcaption>两侧材料差：兔背压刚度 ×1000 的平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 10%（待定·误差小）</p></details>
-<details><summary>斜压：兔头不是正着压下去，而是斜 30° 压入平块。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_tilt_press_1112_head_nt30_loc_1_before.png" width="1649" height="526" style="width:100%;max-width:100%;height:auto" alt="斜压：兔头斜 30° 压平块，压入前。" loading="lazy"><figcaption>斜压：兔头斜 30° 压平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 5%（基本对）</p></details>
-<details><summary>靠连接处：接触点在兔子腿和身体相连的地方旁边，附近的几何突然变化。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G6_1o_junc_o_S1_1_before.png" width="1683" height="526" style="width:100%;max-width:100%;height:auto" alt="靠连接处：兔子腿身交界旁压拉长平块，压入前。" loading="lazy"><figcaption>靠连接处：兔子腿身交界旁压拉长平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 8%（待定·误差小）</p></details>
-<details><summary>多处接触：兔子的腿和身体两处同时压在平块上，两片接触通过物体整体互相影响。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G6_1_junc_n_S3_1_before.png" width="1683" height="526" style="width:100%;max-width:100%;height:auto" alt="多处接触：兔子腿和身体两片压拉长平块，压入前。" loading="lazy"><figcaption>多处接触：兔子腿和身体两片压拉长平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 9%（待定·误差小）</p></details>
-<details><summary>深压：兔头压得很深（0.1），接触区很大，远超小变形范围。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S16_1_before.png" width="1671" height="526" style="width:100%;max-width:100%;height:auto" alt="深压：兔头压平块，压深 0.1，压入前。" loading="lazy"><figcaption>深压：兔头压平块，压深 0.1，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 高 4%（待定·误差小）</p></details>
-<details><summary>大面积贴合：CAD 零件的柱面整片贴在平块上，接触区很宽。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G5_ore4_004_S3_1_before.png" width="1672" height="527" style="width:100%;max-width:100%;height:auto" alt="大面积贴合：CAD 柱面贴平块，压入前。" loading="lazy"><figcaption>大面积贴合：CAD 柱面贴平块，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 17%（待定·误差大）</p></details>
-<details><summary>近不可压：兔头材料几乎不可压缩（泊松比 0.49），像橡胶一样体积几乎不变。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S3_1_before.png" width="1649" height="526" style="width:100%;max-width:100%;height:auto" alt="近不可压：兔头压平块，ν = 0.49，压入前。" loading="lazy"><figcaption>近不可压：兔头压平块，ν = 0.49，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 15%（基本对）</p></details>
-<details><summary>凹面鞍面：两只兔子互压，接触点在一只兔子马鞍形（一个方向凸、另一方向凹）的位置。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_K27a_bb_saddle1_S3_1_before.png" width="1649" height="526" style="width:100%;max-width:100%;height:auto" alt="凹面鞍面：兔子鞍形处压兔子，压入前。" loading="lazy"><figcaption>凹面鞍面：兔子鞍形处压兔子，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 7%（待定·误差小）</p></details>
-<details><summary>尖：兔子身上的尖处压到龙上，两个一般形状物体互压，接触在尖端。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_or_013_S3_h600_1_before.png" width="1621" height="526" style="width:100%;max-width:100%;height:auto" alt="尖：兔子尖处压龙，压深 0.012，压入前。" loading="lazy"><figcaption>尖：兔子尖处压龙，压深 0.012，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 高 4%（待定·误差小）</p></details>
-<details><summary>尺寸比：龙压兔子，两个物体大小差 1.54 倍。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ore4_007_S3_h600_1_before.png" width="1627" height="526" style="width:100%;max-width:100%;height:auto" alt="尺寸比：龙压兔（大小比 1.54），压深 0.012，压入前。" loading="lazy"><figcaption>尺寸比：龙压兔（大小比 1.54），压深 0.012，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 6%（基本对）</p></details>
-<details><summary>两侧都薄：两个薄的球冠壳互压，两边都会整体弯曲（理想构型的检验用例）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_CS_shell_S19_1_before.png" width="1674" height="527" style="width:100%;max-width:100%;height:auto" alt="两侧都薄：球冠薄壳对球冠薄壳（理想构型的检验用例），压入前。" loading="lazy"><figcaption>两侧都薄：球冠薄壳对球冠薄壳（理想构型的检验用例），压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 6%（待定·误差小）</p></details>
-<details><summary>普通单片：鸭子压兔子，一般形状、一处接触的普通情况。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_or_029_S3_1_before.png" width="1649" height="526" style="width:100%;max-width:100%;height:auto" alt="普通单片：鸭子压兔子，压深 0.012，压入前。" loading="lazy"><figcaption>普通单片：鸭子压兔子，压深 0.012，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 4%（待定·误差小）</p></details>
-<details><summary>基线：兔背轻轻压平块，最普通、最小变形的情况，作为对照。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_back_n_S1_1_before.png" width="1649" height="526" style="width:100%;max-width:100%;height:auto" alt="基线：兔背压平块，压深 0.003，压入前。" loading="lazy"><figcaption>基线：兔背压平块，压深 0.003，压入前。</figcaption></figure>
-<p>结果：骨架能量比 IPC 低 8%（基本对）</p></details>
-<h2>6. 和 hydroelastic 比</h2>
-<figure style="margin:12px 0"><img src="assets/images/w5t_F8_skel_vs_hydro.png" width="1788" height="785" style="width:100%;max-width:100%;height:auto" alt="这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。" loading="lazy"><figcaption >这张图只回答一个问题：同一个算例上，skeleton 和 hydroelastic baseline 谁离标准答案更近。图里是同时有两种结果的 38 个算例，每一列是一个算例，蓝点是 skeleton 能量除以 IPC 标准答案，空心菱形是 hydroelastic 能量除以同一个标准答案，两者都没有做标准答案修正，用的是同一把尺子；灰线把同一算例的两点连起来，灰带是 0.9 到 1.1。算例按菱形的值从小到大排，纵轴是对数刻度。菱形从左下的 0.136 一路爬到右上的 25.2，只有 2 个落在灰带里；蓝点都在 0.804 到 1.11 之间，27 个落在灰带里；38 个算例中有 36 个蓝点比菱形更靠近 1。注意蓝点是未修正的比值，偏硬的标准答案会把它整体压低一些，所以落在灰带下沿外的蓝点不少；skeleton 是否成立以修正后的区间判档为准，这里只比两个模型离同一个标准答案有多远。</figcaption></figure>
-<p>两种方法都有结果的 56 个算例里，有 53 个是 skeleton 更接近标准答案。hydroelastic 的结果从标准答案的 0.10 倍到 6.5 倍都有（不含两侧都薄的球冠壳，它是 25.2 倍），skeleton 都在 0.80 到 1.11 之间。</p>
-<h2>7. 主要发现：薄长部件要取更多 mode</h2>
-<figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" style="width:100%;height:auto" alt="龙鳍 mode 数"><figcaption>龙鳍压平块：mode 数加到第 66 个时比值陡降到灰带边上；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。</figcaption></figure>
-<p>龙背上有一条又薄又长的鳍。只取前 24 个 mode 时，skeleton 算出来比标准答案硬了 36%，一直加到第 66 个 mode 时比值陡降到 1.1 附近，这个 mode 正好是鳍的整体弯曲。所以问题出在默认只取最低的前几十个 mode，薄长部件真正起作用的那个 mode 排得太靠后，被漏掉了。</p>
-<h2>8. 还需不需要 neural</h2>
-<p>现在还定不了。目前没有一个算例能确定是 skeleton 公式本身算不准，但还有 43 个待定，要等标准答案修正测准、mode 选取规则统一之后才知道 skeleton 还剩多少误差。如果剩下的误差在所有类别里都落在 0.9 到 1.1 之内，单靠 skeleton 就够了；如果某几类始终偏，neural 就用来补这几类。</p>
-<h2>9. 为什么慢、卡在哪</h2>
-<p>标准答案本身很难算：要算到完全静止才准，一个算例要几分钟到一小时，粗模型整体变形大的时候干脆不收敛。标准答案偏硬，要修正它就得在同一个 mesh 上用二次单元再算一遍，这一步比算标准答案还贵，所以现在大部分算例还停在待定。另外，薄长部件起作用的 mode 排得很靠后，这些高阶 mode 本身也不好算准。</p>
-<h2>10. 下一步</h2>
-<p>先定一条只看输入就能算出来的 mode 选取规则，用它把所有算例重跑一遍。然后逐个算例把标准答案的修正测准，把待定的判出来。兔耳压到 0.048 深时，补够 mode 还是硬了 11%，要查清是哪条假设不成立。最后再设计 neural 的输入和输出。</p></article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
+<details><summary>整体转动：把兔头压平块的整个场景转 45°，检验骨架的结果和摆放方向无关。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S2_rot45_1_before.png" width="1839" height="680" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>整体转动 · 0.937 → [0.939, 1.065] · 基本对</p></details>
+<details><summary>尖：用兔耳的尖端斜着压平块，接触区很小、应力很集中（只作参考）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ear_o_S3_1_before.png" width="1840" height="665" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>尖 · 0.896 → [0.978, 1.140] · 待定·误差大</p></details>
+<details><summary>棱：用 CAD 零件的一条棱压平块，接触面在棱的两侧不光滑。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E2_orh2_010_S3_1_before.png" width="1840" height="644" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>棱 · 1.109 → [1.116, 1.259] · 待定·误差大</p></details>
+<details><summary>面贴面：CAD 零件上一块几乎平的面压到平块上，接触区是一整片面而不是一个点。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E1_orh2_007_S3_1_before.png" width="1840" height="666" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>面贴面 · 0.916 → [0.920, 1.039] · 基本对</p></details>
+<details><summary>一侧薄：兔耳这种薄片压到平块上，被压的一侧很薄，整片会跟着弯。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ear_n_S2_1_before.png" width="1840" height="683" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>一侧薄 · 0.861 → [0.931, 1.022] · 基本对</p></details>
+<details><summary>大应变：兔头在已经整体变形 1% 的状态下再压平块，检验骨架在粗模型有明显变形时是否还成立。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S5_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>大应变 · 0.941 → [0.943, 1.146] · 待定·误差小</p></details>
+<details><summary>两侧材料差：兔背压一块比兔子硬 1000 倍的平块，两侧软硬差别极大。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_M1_back_n_Bx1e3_S3_1_before.png" width="1839" height="648" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>两侧材料差 · 0.904 → [0.910, 1.156] · 待定·误差小</p></details>
+<details><summary>斜压：兔头不是正着压下去，而是斜 30° 压入平块。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_tilt_press_1112_head_nt30_loc_1_before.png" width="1840" height="683" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>斜压 · 0.955 → [0.960, 1.084] · 基本对</p></details>
+<details><summary>靠连接处：接触点在兔子腿和身体相连的地方旁边，附近的几何突然变化。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G6_1o_junc_o_S1_1_before.png" width="1840" height="676" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>靠连接处 · 0.922 → [0.928, 1.124] · 待定·误差小</p></details>
+<details><summary>多处接触：兔子的腿和身体两处同时压在平块上，两片接触通过物体整体互相影响。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G6_1_junc_n_S3_1_before.png" width="1840" height="643" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>多处接触 · 0.912 → [0.918, 1.120] · 待定·误差小</p></details>
+<details><summary>深压：兔头压得很深（0.1），接触区很大，远超小变形范围。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S16_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>深压 · 1.037 → [1.033, 1.188] · 待定·误差小</p></details>
+<details><summary>大面积贴合：CAD 零件的柱面整片贴在平块上，接触区很宽。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G5_ore4_004_S3_1_before.png" width="1840" height="647" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>大面积贴合 · 0.805 → [0.811, 0.978] · 待定·误差大</p></details>
+<details><summary>近不可压：兔头材料几乎不可压缩（泊松比 0.49），像橡胶一样体积几乎不变。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S3_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>近不可压 · 0.854 → [0.997, 1.076] · 基本对</p></details>
+<details><summary>凹面鞍面：两只兔子互压，接触点在一只兔子马鞍形（一个方向凸、另一方向凹）的位置。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_K27a_bb_saddle1_S3_1_before.png" width="1840" height="665" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>凹面鞍面 · 0.931 → [1.003, 1.113] · 待定·误差小</p></details>
+<details><summary>尖：兔子身上的尖处压到龙上，两个一般形状物体互压，接触在尖端。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_or_013_S3_h600_1_before.png" width="1840" height="680" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>尖 · 1.040 → [1.063, 1.184] · 待定·误差小</p></details>
+<details><summary>尺寸比：龙压兔子，两个物体大小差 1.54 倍。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ore4_007_S3_h600_1_before.png" width="1840" height="692" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>尺寸比 · 0.941 → [0.920, 1.069] · 基本对</p></details>
+<details><summary>两侧都薄：两个薄的球冠壳互压，两边都会整体弯曲（理想构型的检验用例）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_CS_shell_S19_1_before.png" width="1841" height="632" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>两侧都薄 · 0.941 → [1.014, 1.349] · 待定·误差小</p></details>
+<details><summary>普通单片：鸭子压兔子，一般形状、一处接触的普通情况。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_or_029_S3_1_before.png" width="1840" height="694" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>普通单片 · 0.956 → [1.014, 1.119] · 待定·误差小</p></details>
+<details><summary>基线：兔背轻轻压平块，最普通、最小变形的情况，作为对照。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_back_n_S1_1_before.png" width="1839" height="648" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>基线 · 0.925 → [0.975, 1.089] · 基本对</p></details></section>
+<section id="w6"><h2>6. 和 hydroelastic 比</h2>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F8_skel_vs_hydro.png" width="2383" height="1049" style="width:100%;max-width:100%;height:auto" alt="每列一个算例：蓝点是 skeleton ÷ IPC，菱形是 hydroelastic ÷ IPC，灰带是 0.9–1.1；56 个算例中 53 个蓝点比菱形更靠近 1。" loading="lazy"><figcaption>每列一个算例：蓝点是 skeleton ÷ IPC，菱形是 hydroelastic ÷ IPC，灰带是 0.9–1.1；56 个算例中 53 个蓝点比菱形更靠近 1。</figcaption></figure>
+<p>两种方法都有结果的 56 个算例里，有 53 个是 skeleton 更接近标准答案。hydroelastic 的结果从标准答案的 0.10 倍到 6.5 倍都有（不含两侧都薄的球冠壳，它是 25.2 倍），skeleton 都在 0.80 到 1.11 之间。</p></section>
+<section id="w7"><h2>7. 主要发现：薄长部件要取更多 mode</h2>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" width="2387" height="753" style="width:100%;max-width:100%;height:auto" alt="龙鳍压平块：mode 数加到第 66 个时比值陡降到灰带边上；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。" loading="lazy"><figcaption>龙鳍压平块：mode 数加到第 66 个时比值陡降到灰带边上；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。</figcaption></figure>
+<p>龙背上有一条又薄又长的鳍。只取前 24 个 mode 时，skeleton 算出来比标准答案硬了 36%，一直加到第 66 个 mode 时比值陡降到 1.1 附近，这个 mode 正好是鳍的整体弯曲。所以问题出在默认只取最低的前几十个 mode，薄长部件真正起作用的那个 mode 排得太靠后，被漏掉了。</p></section>
+<section id="w8"><h2>8. 还需不需要 neural</h2>
+<p>现在还定不了。目前没有一个算例能确定是 skeleton 公式本身算不准，但还有 43 个待定，要等标准答案修正测准、mode 选取规则统一之后才知道 skeleton 还剩多少误差。如果剩下的误差在所有类别里都落在 0.9 到 1.1 之内，单靠 skeleton 就够了；如果某几类始终偏，neural 就用来补这几类。</p></section>
+<section id="w9"><h2>9. 为什么慢、卡在哪</h2>
+<p>标准答案本身很难算：要算到完全静止才准，一个算例要几分钟到一小时，粗模型整体变形大的时候干脆不收敛。标准答案偏硬，要修正它就得在同一个 mesh 上用二次单元再算一遍，这一步比算标准答案还贵，所以现在大部分算例还停在待定。另外，薄长部件起作用的 mode 排得很靠后，这些高阶 mode 本身也不好算准。</p></section>
+<section id="w10"><h2>10. 下一步</h2>
+<p>先定一条只看输入就能算出来的 mode 选取规则，用它把所有算例重跑一遍。然后逐个算例把标准答案的修正测准，把待定的判出来。兔耳压到 0.048 深时，补够 mode 还是硬了 11%，要查清是哪条假设不成立。最后再设计 neural 的输入和输出。</p></section>
+</article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
 <dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
 <script>
 (() => {
