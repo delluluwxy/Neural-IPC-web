@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "3363f8e9d9f6";</script>
+<script>window.NIPC_PAGE = "004a2c77d91b";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -270,7 +270,7 @@ html.annot-on #annot-capture { display: block; }
 <li>上次（<a href="week5.html">第 5–6 周页面</a>）：skeleton = 半空间解析项 + 每个物体预先算好的整体变形 mode，解一个凸二次规划得到接触能量；18 类 edge case 上没有判为明显不对的算例，但都是浅压（最深约物体高度的 1%）。</li>
 <li>第 1 节是上次组会之后完成的上周工作；本周三件事：① 把已实现的 baseline 列成一张表，每个实验都和它们比（第 2 节）；② 兔子压龙压到兔子高度的 1/16、1/8、1/6，并发现同一个压深有两个静止平衡（第 3、4 节）；③ 两侧材料不同、软硬对调（第 5 节）。RigidFormer 的调研在第 6 节。</li>
 </ul>
-<p class="kp">本页结论：只认等效模量、只看局部的 baseline（Hertz、半空间、hydroelastic、Winkler、势垒）在中等压深下给出的能量是标准答案的 3.7–21 倍（势垒为无穷大），也分不清软硬对调；有限物体各自的整体柔度决定了压深变大和材料分配下的能量，skeleton 在 1/8 偏硬 11%（参考值）、在 1/6 偏软 21%，软硬对调的方向对、幅度偏大一倍多。</p></div>
+<p class="kp">本页结论：只认等效模量、只看局部的 baseline（Hertz、半空间、hydroelastic、Winkler、势垒）在中等压深下给出的能量是标准答案的 3.7–21 倍（势垒为无穷大），也分不清软硬对调；有限物体各自的整体柔度决定了压深变大和材料分配下的能量，skeleton 在 1/8 偏硬 11%（参考值）、在 1/6 偏软 21%，软硬对调的方向对，兔压龙上硬 ÷ 软为 0.294（IPC 0.663）。</p></div>
 <section id="w1"><h2>1. 上次组会后完成的（上周 TODO）</h2>
 <ul>
 <li><strong>skeleton 的正式读法：缝隙和柔度都在两表面的中间面上量</strong>。上次的读法在斜面处把沿压入方向量的重叠和沿表面法向的柔度混用，表面越斜偏得越多；新读法按中间面的坡度把两者换算到同一方向，平处与旧读法完全相同。</li>
@@ -680,27 +680,30 @@ html.annot-on #annot-capture { display: block; }
 <tbody>
 <tr>
 <td>兔耳压平块</td>
-<td>5.02</td>
-<td>4.89</td>
-<td>0.97</td>
-<td>1.00</td>
-<td>1.00</td>
-<td>1.00</td>
-<td>1.93</td>
+<td>5.022</td>
+<td>4.888</td>
+<td>0.973</td>
+<td>1.000</td>
+<td>1.000</td>
+<td>1.000</td>
+<td>1.927</td>
 </tr>
 <tr>
 <td>兔头压平块</td>
-<td>1.11</td>
-<td>1.07</td>
-<td>0.99</td>
-<td>1.00</td>
-<td>1.00</td>
-<td>1.00</td>
-<td>1.89</td>
+<td>1.109</td>
+<td>1.072</td>
+<td>0.993</td>
+<td>1.000</td>
+<td>1.000</td>
+<td>1.000</td>
+<td>1.885</td>
 </tr>
 </tbody>
 </table></div>
-<p class="setting muted">设置：兔耳两格上次是固定 625 帧的读数；本周从终态续跑到判停（第 628 帧），能量变化不超过 \(6\times10^{-8}\)，硬 ÷ 软 5.022 不变。skeleton 用 19 个 mode，平块一侧只有半空间项。</p>
+<ul>
+<li><strong>兔耳这一组通过网格认证</strong>：兔耳网格再加密两档，最细一档相对次细一档的能量变 −0.62%（兔耳软）和 −0.75%（兔耳硬），硬 ÷ 软从 5.082 变到 5.076（−0.13%），在事先定的 1% 判据内。</li>
+</ul>
+<p class="setting muted">设置：兔耳两格上次是固定 625 帧的读数；本周从终态续跑到判停（第 628 帧），能量变化不超过 \(6\times10^{-8}\)，硬 ÷ 软 5.022 不变；表里是这一档网格的数。网格认证只加密兔耳，平块网格不变。skeleton 用 19 个 mode，平块一侧只有半空间项。</p>
 <h3 id="w5-2">兔子压龙 1/16（高度的 6.25%）</h3>
 
 <figure style="margin:12px 0"><img src="assets/images/w7_d1_16_base_deform.png" width="1503" height="843" style="width:749px;max-width:100%;height:auto" alt="压深 1/16，两侧同材料（\(E=10^5\)）：兔子身下的凸起压在龙背上，作为下面两格的对照。" loading="lazy"><figcaption>压深 1/16，两侧同材料（\(E=10^5\)）：兔子身下的凸起压在龙背上，作为下面两格的对照。</figcaption></figure>
@@ -727,7 +730,7 @@ html.annot-on #annot-capture { display: block; }
 <td>191.63</td>
 <td>460.98</td>
 <td>2839</td>
-<td>1</td>
+<td>1.000</td>
 <td>—</td>
 </tr>
 <tr>
@@ -771,10 +774,10 @@ html.annot-on #annot-capture { display: block; }
 <td>0.663</td>
 <td>0.294</td>
 <td>1.000</td>
-<td>1.00</td>
-<td>1.00</td>
+<td>1.000</td>
+<td>1.000</td>
 <td>两格都是 ∞</td>
-<td>2.59</td>
+<td>2.589</td>
 </tr>
 <tr>
 <td>同材料：÷ IPC − 1</td>
@@ -814,11 +817,11 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li><strong>E* 相同、软硬分配相反，IPC 能量差 1.51 倍、合力差 1.39 倍</strong>：只认 \(E^*\) 的模型对两格给同一个数（同材料的 1.818 倍），实际一格高 16.5%、一格低 22.8%。<strong>每个物体各自的 \(E\) 必须进标签和网络输入</strong>。</li>
 <li><strong>软的一侧存大部分能量，并且可能换接触位置</strong>：兔软时兔子占 88%，兔硬时龙占 95%（同材料时龙占 71%）；兔软龙硬一格合力方向变了 51°、接触片大 54%。</li>
-<li><strong>baseline</strong>：Hertz、Winkler、势垒、半空间 BEM 完全分不出（1.00）；hydro 能分出两格，但兔耳幅度只有 IPC 的四成（1.93 对 5.02）、兔头偏大（1.89 对 1.11）、兔压龙方向相反（2.59 对 0.663）。</li>
-<li><strong>skeleton 方向都对</strong>：兔耳 4.89 对 5.02、兔头 1.07 对 1.11；兔压龙 0.294 对 0.663，幅度大一倍多，兔软一格偏硬 110%（同材料 +5.6%、兔硬 −6.8%）。</li>
+<li><strong>baseline</strong>：Hertz、Winkler、势垒、半空间 BEM 完全分不出（1.000）；hydro 能分出两格，但兔耳幅度只有 IPC 的四成（1.927 对 5.022）、兔头偏大（1.885 对 1.109）、兔压龙方向相反（2.589 对 0.663）。</li>
+<li><strong>skeleton 方向都对</strong>：兔耳 4.888 对 5.022、兔头 1.072 对 1.109；兔压龙 0.294 对 0.663，方向相同、偏离 1 更多，兔软一格偏硬 110%（同材料 +5.6%、兔硬 −6.8%）。</li>
 <li>兔耳、兔头、兔压龙三组的对手物体、压深、本构都不同，硬 ÷ 软方向不同（5.02、1.11、0.663）只并列，不归因于某一项。</li>
 </ul>
-<p class="kp">等效模量相同时，有限物体的能量仍随软硬分配变化（兔压龙 1.51 倍，兔耳 5 倍），并可能换接触位置；只认 E* 的 baseline 给不出这种差别，skeleton 靠每个物体自己的 mode 跟上了方向，兔压龙上幅度仍偏大一倍多。</p></section>
+<p class="kp">等效模量相同时，有限物体的能量仍随软硬分配变化（兔压龙 1.51 倍，兔耳 5 倍），并可能换接触位置；只认 E* 的 baseline 给不出这种差别，skeleton 靠每个物体自己的 mode 跟上了方向，兔压龙上硬 ÷ 软为 0.294，IPC 为 0.663。</p></section>
 <section id="w6"><h2>6. RigidFormer（ongoing）</h2>
 <ul>
 <li><a href="week2.html#w2-4">第 2 周讲过</a>它的方法：点云 → 每个物体一个向量 → Transformer 在物体间交换信息 → 每个物体 4 个锚点的加速度 → 投影成刚体的下一帧位姿。</li>
@@ -873,7 +876,7 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>下一步</strong>：<ul>
 <li>skeleton 局部项换成有限物体的柔度，去掉半空间（无限厚）近似。</li>
 <li>在 1/6 的同一锁定状态上算二次单元线弹性，分清 skeleton 偏软 21% 是小变形极限还是 skeleton 近似；先把这条参照的耗时压到 1 小时以内。</li>
-<li>兔压龙软硬对调里 skeleton 幅度偏大一倍多的来源。</li>
+<li>兔压龙软硬对调里 skeleton 硬 ÷ 软 0.294 与 IPC 0.663 之差的来源。</li>
 <li>往兔子高度的 1/3–1/2 继续压。</li>
 <li>RigidFormer 编码器改造版，等多形状标签。</li>
 </ul>
