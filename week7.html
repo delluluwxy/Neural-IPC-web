@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "cdfb5ea577cf";</script>
+<script>window.NIPC_PAGE = "6c4580a3f5c8";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -270,7 +270,7 @@ html.annot-on #annot-capture { display: block; }
 <li>上次（<a href="week5.html">第 5–6 周页面</a>）：skeleton = 半空间解析项 + 每个物体预先算好的整体变形 mode，解一个凸二次规划得到接触能量；18 类 edge case 上没有判为明显不对的算例，但都是浅压（最深约物体高度的 1%）。</li>
 <li>第 1 节是上次组会之后完成的上周工作；本周三件事：① 把已实现的 baseline 列成一张表，每个实验都和它们比（第 2 节）；② 兔子压龙压到兔子高度的 1/16、1/8、1/6，并发现同一个压深有两个静止平衡（第 3、4 节）；③ 两侧材料不同、软硬对调（第 5 节）。RigidFormer 的调研在第 6 节。</li>
 </ul>
-<p class="kp">本页结论：只认等效模量、只看局部的 baseline（Hertz、半空间、hydroelastic、Winkler、势垒）在中等压深下给出的能量是标准答案的 4.3–21 倍（Hertz、hydro、Winkler；半空间 BEM 只作参考，势垒为无穷大），也分不清软硬对调；有限物体各自的整体柔度决定了压深变大和材料分配下的能量，skeleton 在 1/8 偏硬 11%（参考值），软硬对调的方向对，兔压龙上硬 ÷ 软为 0.293（IPC 0.663）。</p></div>
+<p class="kp">本页结论：只认等效模量、只看局部的 baseline（Hertz、半空间、hydroelastic、Winkler、势垒）在中等压深下给出的能量是标准答案的 4.3–21 倍（Hertz、hydro、Winkler；半空间 BEM 只作参考，势垒为无穷大），也分不清软硬对调；有限物体各自的整体柔度决定了压深变大和材料分配下的能量，skeleton 在 1/8 偏硬 11%、在 1/6 偏软 21%（都是参考值），软硬对调的方向对，兔压龙上硬 ÷ 软为 0.293（IPC 0.663）。</p></div>
 <section id="w1"><h2>1. 上次组会后完成的（上周 TODO）</h2>
 <ul>
 <li><strong>skeleton 的正式读法：缝隙和柔度都在两表面的中间面上量</strong>。上次的读法在斜面处把沿压入方向量的重叠和沿表面法向的柔度混用，表面越斜偏得越多；新读法按中间面的坡度把两者换算到同一方向，平处与旧读法完全相同。</li>
@@ -494,7 +494,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p class="setting muted">设置：这张表的标准答案全部取原网格标签，只看随压深的走势；1/8、1/6 的绝对误差以下一张表为准。势垒一列「×」是能量为标签的多少倍，「∞」是重叠超过了该 baseline 标定得到的作用距离 0.5。skeleton 与半空间 BEM 用正式读法（中间面），最后一列是同一状态下「只有半空间项」÷「半空间项 + mode」的能量。1/32 起 skeleton 与半空间 BEM 两列只作参考：原网格标签的接触面超出了加密区，加密区误差在 1/32 实测 2.1%、在 1/16 至少 3.6%，都超过 1%，1/8、1/6 没有实测；1/8 另有 skeleton 的格子没过自动检查。每档的 skeleton 按固定规则选格（先取计数格，没有就取格边长为接触半径 1/8 的格，再没有取最细格），1/32、1/16 两种格之间差 0.06、0.16 个百分点。按高度读法，skeleton 一列依次是 −5.1%、−3.1%、0.0%、+2.0%、−0.3%、−9.3%、−6.7%、−35.9%。</p>
+<p class="setting muted">设置：这张表的标准答案全部取原网格标签，只看随压深的走势；1/8、1/6 的绝对误差以下一张表为准。势垒一列「×」是能量为标签的多少倍，「∞」是重叠超过了该 baseline 标定得到的作用距离 0.5。skeleton 与半空间 BEM 用正式读法（中间面），最后一列是同一状态下「只有半空间项」÷「半空间项 + mode」的能量。1/32 起 skeleton 与半空间 BEM 两列只作参考：原网格标签的接触面超出了加密区，加密区误差在 1/32 实测 2.1%、在 1/16 至少 3.6%，都超过 1%，1/8、1/6 没有实测；1/8 另有 skeleton 的格子没过自动检查。每档的 skeleton 按固定规则选格（先取计数格，没有就取格边长为接触半径 1/8 的格，再没有取最细格），1/32、1/16 两种格之间差 0.06、0.16 个百分点。这张表 1/8、1/6 两行的分母是原网格标签（3834、8520），下一张表的分母是加密网格上的正式标签（3545.76、7844.66），同一个 baseline 能量在两张表里的误差不同，不矛盾。按高度读法，skeleton 一列依次是 −5.1%、−3.1%、0.0%、+2.0%、−0.3%、−9.3%、−6.7%、−35.9%。</p>
 <h3 id="w3-3">中等压深正式标签：baseline ÷ IPC − 1</h3>
 
 <div class="tablewrap"><table>
@@ -507,6 +507,7 @@ html.annot-on #annot-capture { display: block; }
 <th>Winkler</th>
 <th>势垒</th>
 <th>半空间 BEM</th>
+<th>skeleton</th>
 </tr>
 </thead>
 <tbody>
@@ -517,7 +518,8 @@ html.annot-on #annot-capture { display: block; }
 <td>+385%</td>
 <td>+1637%</td>
 <td>∞</td>
-<td>+417%</td>
+<td>+417%（参考）</td>
+<td>+11.3%（参考）</td>
 </tr>
 <tr>
 <td>1/6（16.7%）</td>
@@ -526,14 +528,12 @@ html.annot-on #annot-capture { display: block; }
 <td>+385%</td>
 <td>+1999%</td>
 <td>∞</td>
-<td>+266%</td>
+<td>+266%（参考）</td>
+<td>−20.9%（参考）</td>
 </tr>
 </tbody>
 </table></div>
-<ul>
-<li><strong>skeleton 在 1/8 的正式标签上偏硬 11.3%</strong>（参考值）；高能支上是 +7.3%（第 4 节）。</li>
-</ul>
-<p class="setting muted">设置：两档标签都在加密网格上、从较粗网格的终态出发跑到静止；1/6 另有一条从无接触开始压入的标签（圆柱形加密区网格），\(U\) 7850.37，各 baseline 误差与上表相差不超过 1 个百分点；同一张网格上冷、热启动两个候选能量差 0.007%。半空间 BEM、hydro、skeleton 在原网格的同一锁定目标状态上算（压深分数相同，换算到能量约差 0.4–0.5%），Hertz、Winkler、势垒在各标签自己的状态上算。参考标记：1/8 的 skeleton、半空间 BEM 格子没过自动检查（有的接触区受压格为 0）；1/6 的半空间 BEM 标签接触面超出加密区、加密区误差没有实测。按高度读法，1/8 的 skeleton 为 +0.9%，半空间 BEM 为 +367%（1/8）、+198%（1/6）。</p>
+<p class="setting muted">设置：两档标签都在加密网格上、从较粗网格的终态出发跑到静止；1/6 另有一条从无接触开始压入的标签（圆柱形加密区网格），\(U\) 7850.37，各 baseline 误差与上表相差不超过 1 个百分点；同一张网格上冷、热启动两个候选能量差 0.007%。半空间 BEM、hydro、skeleton 在原网格的同一锁定目标状态上算（压深分数相同，换算到能量约差 0.4–0.5%），Hertz、Winkler、势垒在各标签自己的状态上算。参考标记：1/8 的 skeleton、半空间 BEM 格子没过自动检查（有的接触区受压格为 0）；1/6 的 skeleton、半空间 BEM 有两条原因：一是它们在原网格的同一锁定目标状态上算，能量约差 0.4–0.5%，二是标签接触面超出加密区、加密区误差没有实测。按高度读法，skeleton 为 +0.9%（1/8）、−30.4%（1/6），半空间 BEM 为 +367%、+198%。</p>
 <h3 id="w3-4">解释</h3>
 
 <ul>
@@ -542,6 +542,8 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>hydro 从偏软变成偏硬</strong>：同一组参数在浅压偏软 57%、压深变大后偏硬 3.5 倍，能量随压深涨得比真解快。</li>
 <li><strong>Hertz 远出适用范围</strong>：1/8 时接触区半径约为等效曲率半径的 3.5 倍。</li>
 <li><strong>skeleton 在原网格标签上从 −4.4% 走到 +10.2%（1/32）再回到 +1.8%（1/16）</strong>，1/32 起只作参考；误差随压深变化，不是一个固定系数能修掉的。</li>
+<li><strong>skeleton 在 1/8 偏硬 11.3%、在 1/6 偏软 20.9%（都是参考值）</strong>。1/6 的偏差不来自 mode 截断（残差 \(1.8\times10^{-4}\)，合格线 \(10^{-2}\)），三种格距的能量相差 5.0%。</li>
+<li><strong>1/6 偏软的可能原因：线弹性小变形在这个压深下的极限</strong>；skeleton 的柔度来自小应变线弹性。区分方法是同一锁定状态上的二次单元（P2）线弹性有限元，和 skeleton、IPC 三方比：它也偏软同样多，就是小变形极限，属于网络要学的非线性；它接近 IPC，就是 skeleton 的近似。线弹性 P2 同态对照正在算。</li>
 </ul>
 <p class="kp">压深从 1/512 到 1/6，Hertz、半空间 BEM 的误差从约 +70%–100% 涨到约 +300%，hydro、Winkler 从偏软变成偏硬数倍，原因是有限物体的整体柔度随压深增大；只看局部的 baseline 抓不到这部分。</p>
 
@@ -874,6 +876,7 @@ html.annot-on #annot-capture { display: block; }
 </li>
 <li><strong>下一步</strong>：<ul>
 <li>skeleton 局部项换成有限物体的柔度，去掉半空间（无限厚）近似。</li>
+<li>用 1/6 同一锁定状态上的线弹性 P2 对照，分清 skeleton 偏软 20.9% 是小变形极限还是 skeleton 近似。</li>
 <li>兔压龙软硬对调里 skeleton 硬 ÷ 软 0.293 与 IPC 0.663 之差的来源。</li>
 <li>往兔子高度的 1/3–1/2 继续压。</li>
 <li>RigidFormer 编码器改造版，等多形状标签。</li>
