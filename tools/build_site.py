@@ -45,7 +45,7 @@ from webgen.pages import build_pages  # noqa: E402
 from webgen.week2_hydro import collect_hydro_sweeps  # noqa: E402
 
 SHORT_SIDE = 420                 # 配图最短边的显示像素（用户 2026-10-22：最短边固定，图里文字约与正文同大）
-FIXED_SIZE_WEEKS = ("week2", "week3_4", "week5")    # 按最短边定配图尺寸的周（size_media）
+FIXED_SIZE_WEEKS = ("week2", "week3_4", "week5", "week7")    # 按最短边定配图尺寸的周（size_media）
 # 复制图片时统一留白的周：本周页面引用的图复制成 <前缀><原名> 的副本、在副本上跑 sandbox fig_margin.trim_and_pad
 # （裁到内容 + 四边 3% × 内容最短边）；NAS 原图不动，也不和别的页共用的同名 asset 撞（主会话 10-22 定）
 TRIM_WEEKS = {"week3_4": "w34_", "week5": "w5t_"}
@@ -167,6 +167,10 @@ SUBFIGS = {
     "CS_shell_S19_1_before.png": 3, "CS_shell_S19_2_rest.png": 3, "CS_shell_S19_3_ratio.png": 3,
     "or_029_S3_1_before.png": 3, "or_029_S3_2_rest.png": 3, "or_029_S3_3_ratio.png": 3,
     "back_n_S1_1_before.png": 3, "back_n_S1_2_rest.png": 3, "back_n_S1_3_ratio.png": 3,
+    # week7 变形图（sandbox tools/figs/meeting_week5_6_1119/deform_figs_1119.py：整体 + 接触处放大两幅）
+    "d1_512_deform.png": 2, "d1_32_deform.png": 2, "w7_d1_8_L_deform.png": 2, "w7_d1_8_H_deform.png": 2,
+    "w7_d1_6_deform.png": 2, "w7_d1_16_base_deform.png": 2, "w7_d1_16_bunny_soft_deform.png": 2,
+    "w7_d1_16_bunny_hard_deform.png": 2, "w7_ear_soft_deform.png": 2, "w7_ear_hard_deform.png": 2,
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 # week5（用户 11-12 21:1x「图里的字和正文一样大」）：这些图一律占满正文栏（920px），作图时字高按
@@ -235,6 +239,8 @@ def parse_args():
     ap.add_argument("--preview-notes", type=Path, metavar="JSON",
                     help="配 --preview：把这份笔记（笔记仓库 notes/<页>.json 原样）当只读快照嵌进预览页，代替空快照；"
                          "页顶加一句快照时间（取 saved，太平洋时间）。标注层只读、不读写本机存储、不同步")
+    ap.add_argument("--pages", default="",
+                    help="逗号分隔的页面名（如 week7,index）：只写这些页，只压 / 复制它们引用的视频图片；默认全部")
     args = ap.parse_args()
     if args.preview_notes and not args.preview:
         ap.error("--preview-notes 只能和 --preview 同用")
@@ -429,7 +435,7 @@ def main():
             pages[p] = trim_copies(pages[p], TRIM_WEEKS[p.stem])
         if p.stem in FIXED_SIZE_WEEKS:
             pages[p] = size_media(pages[p])   # 标题编号与目录在 html_parts.page 里做（outline）
-        if p.stem == "week5":   # 用户 11-12 21:1x：图注字与正文同大
+        if p.stem in ("week5", "week7"):   # 用户 11-12 21:1x：图注字与正文同大
             pages[p] = pages[p].replace('<figcaption class="small">', "<figcaption>")
         if p.name != "index.html":   # 带标注层的页最后嵌页面版本号（内容哈希）：笔画下时记进 drawn.page
             pages[p] = with_page_version(pages[p])
@@ -439,6 +445,12 @@ def main():
               for name, src in TRIM_SRC.items()]
     # 讲稿 [[视频 …]] 引用的视频（draft_md.draft_video 在生成页面时登记），和其余视频走同一套压缩流程
     vjobs = merge_video_jobs(c["vjobs"], plan_videos(NOTION_VIDEOS, args.crf, args.force_videos)[0])
+    if args.pages:   # 只写点名的页（其余页的工作区版本不动）；点了不存在的页就停止
+        wanted = {s.strip() for s in args.pages.split(",") if s.strip()}
+        missing = wanted - {p.stem for p in pages}
+        if missing:
+            raise SystemExit(f"[build_site] --pages 里没有这些页：{sorted(missing)}")
+        pages = {p: t for p, t in pages.items() if p.stem in wanted}
     # 只压缩 / 复制页面真正引用的文件（扫描每档的视频不一定都上页面，没用到的不进 assets）
     used = "".join(pages.values())
     vjobs = [j for j in vjobs if f"assets/videos/{j['dst'].name}" in used]
