@@ -268,6 +268,7 @@ html.annot-on #annot-capture { display: block; }
 <header class="top"><h1>第 7 周：材料、更深的压入、和 baseline 放在一起比</h1></header>
 <div class="lead"><ul>
 <li>上次（<a href="week5.html">第 5–6 周页面</a>）：skeleton = 半空间解析项 + 每个物体预先算好的整体变形 mode，解一个凸二次规划得到接触能量；18 类 edge case 上没有判为明显不对的算例，但都是浅压（最深约物体高度的 1%）。</li>
+<li>skeleton 公式怎么一步步推出来、每一步要什么条件、文献里哪些公式是已知的：见第 5–6 周页面第 12 节（<a href="week5.html#a0-pipeline">完整 pipeline</a>、<a href="week5.html#w12b-1">第一项推导</a>、<a href="week5.html#a2m">mode 项</a>、<a href="week5.html#w12b-10">总体成立条件</a>、<a href="week5.html#w12a1">文献公式表</a>）。</li>
 <li>第 1 节是上次组会之后完成的上周工作；本周三件事：① 把已实现的 baseline 列成一张表，每个实验都和它们比（第 2 节）；② 兔子压龙压到兔子高度的 1/16、1/8、1/6，并发现同一个压深有两个静止平衡（第 3、4 节）；③ 两侧材料不同、软硬对调（第 5 节）。RigidFormer 的调研在第 6 节。</li>
 </ul>
 <p class="kp">本页结论：只认等效模量、只看局部的 baseline（Hertz、半空间、hydroelastic、Winkler、势垒）在中等压深下给出的能量是标准答案的 4.3–21 倍（Hertz、hydro、Winkler；半空间 BEM 只作参考，势垒为无穷大），也分不清软硬对调；有限物体各自的整体柔度决定了压深变大和材料分配下的能量，skeleton 在 1/8 偏硬 11%、在 1/6 偏软 21%（都是参考值），软硬对调的方向对，兔压龙上硬 ÷ 软为 0.293（IPC 0.663）。</p></div>

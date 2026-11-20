@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neural-IPC 周汇报 · Week 5（TODO 2026-10-26）</title>
+<title>Neural-IPC 周汇报 · Week 5–6（第 5–6 周）</title>
 <style>
 :root {
   color-scheme: light;
@@ -242,1056 +242,1253 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "842746546065";</script>
+<script>window.NIPC_PAGE = "5801d276e91d";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
-<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week5.html" aria-current="page">Week 5</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
-<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 用更普通的形状做数据集</a>
-<a class="toc-level-3" href="#w1-1">1.1 这一节要回答什么</a>
-<a class="toc-level-3" href="#w1-2">1.2 怎么做</a>
-<a class="toc-level-3" href="#w1-3">1.3 结果</a>
-<a class="toc-level-3" href="#w1-4">1.4 结论和局限</a>
-<a class="toc-level-2" href="#w2">2. 用普通形状验证架构、对比 baseline</a>
-<a class="toc-level-3" href="#w2-1">2.1 这一节要回答什么</a>
-<a class="toc-level-3" href="#w2-2">2.2 架构是什么</a>
-<a class="toc-level-3" href="#w2-3">2.3 怎么判：第 2–5 关的判据</a>
-<a class="toc-level-3" href="#w2-4">2.4 结果</a>
-<a class="toc-level-3" href="#w2-5">2.5 和 baseline 比</a>
-<a class="toc-level-3" href="#w2-6">2.6 结论和局限</a>
-<a class="toc-level-2" href="#w3">3. 文献：有多少公式是已知的</a>
-<a class="toc-level-3" href="#w3-1">3.1 这一节要回答什么</a>
-<a class="toc-level-3" href="#w3-2">3.2 怎么做</a>
-<a class="toc-level-3" href="#w3-3">3.3 结果：一张表看完</a>
-<a class="toc-level-3" href="#w3-4">3.4 我们方法每一步的出处</a>
-<a class="toc-level-3" href="#w3-5">3.5 这个方向上已有的公式</a>
-<a class="toc-level-3" href="#w3-6">3.6 结论和局限</a>
-<a class="toc-level-2" href="#w4">4. 理想情况下的 test case</a>
-<a class="toc-level-3" href="#w4-1">4.1 这一节要回答什么</a>
-<a class="toc-level-3" href="#w4-2">4.2 怎么做</a>
-<a class="toc-level-3" href="#w4-3">4.3 结果：有精确解的接触问题</a>
-<a class="toc-level-3" href="#w4-4">4.4 结果：半空间、粘底薄层、薄板</a>
-<a class="toc-level-3" href="#w4-5">4.5 结果：碰撞时最大压深随速度的次方</a>
-<a class="toc-level-3" href="#w4-6">4.6 结论和局限</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
-<header class="top"><h1>Week 5（TODO 2026-10-26）</h1><p class="summary">用更普通的形状做数据集；用普通形状验证架构、对比 baseline；文献：有多少公式是已知的；理想情况下的 test case。</p></header>
-<div class="lead"><style>article .slot { margin: 14px 0; padding: 10px 14px; border: 2px dashed #c7902a; border-radius: 8px; background: #fff8e8; color: #7a5a14; font-size: 14px; line-height: 1.7; } article .slot b { color: #8a5a0b; }</style>
+<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week5.html" aria-current="page">Week 5–6</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 1. 主公式：从几何和材料推到 skeleton 能量</a>
+<a class="toc-level-3" href="#w1-1">1.1 要算什么</a>
+<a class="toc-level-3" href="#w1-2">1.2 Pipeline</a>
+<a class="toc-level-3" href="#w1-3">1.3 每格的量：格距、重叠、压力</a>
+<a class="toc-level-3" href="#w1-4">1.4 主公式</a>
+<a class="toc-level-3" href="#w1-5">1.5 柔度 C 拼起来</a>
+<a class="toc-level-2" href="#w2">2. 2. 刚度 E 和泊松比 ν 怎么进公式</a>
+<a class="toc-level-3" href="#w2-1">2.1 进入半空间项</a>
+<a class="toc-level-3" href="#w2-2">2.2 进入 mode 项</a>
+<a class="toc-level-3" href="#w2-3">2.3 软硬对调</a>
+<a class="toc-level-2" href="#w3">3. 3. 线性、Hertz、非线性：公式管到哪</a>
+<a class="toc-level-3" href="#w3-1">3.1 三种非线性</a>
+<a class="toc-level-3" href="#w3-2">3.2 skeleton 管到哪</a>
+<a class="toc-level-3" href="#w3-3">3.3 非线性弹性怎么接上</a>
+<a class="toc-level-2" href="#w4">4. 4. 标准答案（IPC）怎么得到</a>
+<a class="toc-level-2" href="#w5">5. 5. 预处理</a>
+<a class="toc-level-2" href="#w6">6. 6. mode 怎么求</a>
+<a class="toc-level-3" href="#w6-1">6.1 mode 是什么</a>
+<a class="toc-level-3" href="#w6-2">6.2 方程</a>
+<a class="toc-level-3" href="#w6-3">6.3 怎么解</a>
+<a class="toc-level-3" href="#w6-4">6.4 同一组 mode 里多用几阶，比值为什么会降</a>
+<a class="toc-level-2" href="#w7">7. 7. 结果</a>
+<a class="toc-level-3" href="#w7-1">7.1 怎么判对不对</a>
+<a class="toc-level-3" href="#w7-2">7.2 总表</a>
+<a class="toc-level-3" href="#w7-3">7.3 判定档变化的算例（换成 80 个合格 mode 后）</a>
+<a class="toc-level-3" href="#w7-4">7.4 中等压深与中等整体应变</a>
+<a class="toc-level-3" href="#w7-5">7.5 每类一个例子</a>
+<a class="toc-level-2" href="#w8">8. 8. 和 hydroelastic 比</a>
+<a class="toc-level-2" href="#w9">9. 9. 主要发现：薄长部件要取更多 mode</a>
+<a class="toc-level-2" href="#w10">10. 10. 还需不需要 neural</a>
+<a class="toc-level-2" href="#w11">11. 11. 为什么慢、卡在哪</a>
+<a class="toc-level-2" href="#w12">12. 12. 骨架公式的推导、成立条件和已知公式</a>
+<a class="toc-level-3" href="#a0-pipeline">12.1 完整 pipeline：从原始输入到比较的两个数</a>
+<a class="toc-level-3" href="#a0p">12.2 GT 和骨架的材料、接触：我们 vs 导师代码</a>
+<a class="toc-level-3" href="#w12b-1">12.3 骨架第一项：一步一步推导</a>
+<a class="toc-level-3" href="#a2m">12.4 骨架第二项：mode 是怎么得到的</a>
+<a class="toc-level-3" href="#w12b-10">12.5 总体成立条件</a>
+<a class="toc-level-3" href="#w12a1">12.6 文献里哪些接触公式是已知的</a>
+<a class="toc-level-2" href="#w13">13. 13. 下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<header class="top"><h1>第 5–6 周：skeleton 在 edge case 上是否成立</h1></header>
+<div class="lead"><p>我们在 18 类刻意刁难的 edge case 上测了 82 个算例：39 个基本对、37 个待定、6 个没有有效标准答案。14 类至少有一个基本对的算例；靠连接处、棱、两侧都薄、中等整体应变这 4 类尚无基本对的算例。判为明显不对的 0 个，但这一档能否判出故意做错的算例还没有验证；大压深（压入约物体高度的 1/3–1/2）和大应变尚未验证。在现有的 IPC 标签上，skeleton 比 hydroelastic 更接近。目前已查清原因的最大偏差（龙鳍，只取 24 个 mode 时偏硬 36%）出在 mode 取得不够，加够 mode 后回到 1.1 附近。</p></div>
+<section id="w1"><h2>1. 主公式：从几何和材料推到 skeleton 能量</h2>
+<h3 id="w1-1">要算什么</h3>
+
+<figure style="margin:12px 0"><img src="assets/images/w5t_F1_energy_split.png" width="2379" height="678" style="width:100%;max-width:100%;height:auto" alt="兔背压平块：粗状态下两物体重叠约 0.0030（中左）；锁住 12 个 affine DoF、让精细模型松弛后，接触处各自压陷（中右，竖直放大 10 倍）。粗模型能量 Π(Φz) 几乎为零，松弛后是 0.01942，两者之差就是 U。" loading="lazy"><figcaption>兔背压平块：粗状态下两物体重叠约 0.0030（中左）；锁住 12 个 affine DoF、让精细模型松弛后，接触处各自压陷（中右，竖直放大 10 倍）。粗模型能量 Π(Φz) 几乎为零，松弛后是 0.01942，两者之差就是 U。</figcaption></figure>
+<ul>
+<li>
+<p><strong>粗模型每个物体只有 12 个 affine DoF</strong>：能表示整体移动和变形，表示不了接触处被压凹的那一小块；我们补给粗模型的就是这部分能量。</p>
+<p>\[\color{#c0392b}{U(z)=\min_{w}\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z)}\]</p>
+</li>
+<li>
+<p>\(z\)：两个物体各自的 12 个 affine DoF（共 24 个），即粗模型的状态；\(\Phi z\) 是它们决定的整体变形。</p>
+</li>
+<li>\(w\)：锁住这 12 个数以后剩下的全部变形（接触处的局部压凹、整体的弯和扭）；\(\Psi w\) 是它在精细 mesh 上的位移。</li>
+<li>\(\Pi\)：精细模型的弹性能（stable neo-Hookean）；\(\min_w\)：固定 \(z\)、让剩下的变形调到能量最小，即静止状态。</li>
+</ul>
+<h3 id="w1-2">Pipeline</h3>
+
+<div style="margin:12px 0"><p><strong>每一帧运行（inference）</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">每个物体预处理一次：求剩余柔度的 mode 和每个 mode 的柔度 σ</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">读入两物体的粗状态（每个物体 12 自由度）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">在重叠处铺格子，算每格要抵消的深度</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">解二次规划（C 正定时是凸的），得到接触压力和 skeleton 能量</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">neural 修正 skeleton 的偏差（待设计）</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">能量交回粗模型，推进下一帧</span></div><p><strong>离线造训练数据</strong></p><div style="line-height:2.4"><span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">采各类接触构型</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">IPC 在精细网格上锁住仿射自由度、跑到静止，得到标准答案</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">线性 / 二次单元线弹性对比，估计标准答案的误差区间</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">对同一粗状态跑 skeleton</span> <span style="font-size:1.4em">→</span> <span style="display:inline-block;border:2px solid #4a7;border-radius:8px;padding:8px 12px;margin:4px 0">训练目标 = 标准答案 − skeleton</span></div><p>两排中的 skeleton 用同一份代码，所以训练时和运行时 neural 看到的输入完全一致。</p></div>
+
+<h3 id="w1-3">每格的量：格距、重叠、压力</h3>
 
 <ul>
-<li><strong>这周的四条 TODO</strong>：<ol>
-<li>用更普通的形状（不对称的，甚至兔子这样的）做数据集；</li>
-<li>用普通形状验证架构是对的，并和 baseline 比；</li>
-<li>查文献，看模型里的公式有多少是已知的；</li>
-<li>整理理想情况下的 test case。</li>
-</ol>
+<li>
+<p><strong>接触区自动找</strong>：在两物体互相穿进去的最深点，取对方表面的外法向 \(n\) 当压入方向，在垂直于 \(n\) 的平面上铺边长 \(h\) 的小格。</p>
+<p>\[\color{#c0392b}{h=\tfrac14\sqrt{\hat d/\kappa_{\max}},\qquad w_i=w_{A,i}+w_{B,i}+o}\]</p>
+</li>
+<li>
+<p>\(\kappa_{\max}\)：重叠区两表面相对弯曲程度（曲率）的最大值；\(\hat d\)：IPC 的安全距离，两面距离小于它才有斥力。弯得越厉害 → \(h\) 越小，因为弯曲处压力变化快。</p>
+</li>
+<li>\(w_i\)：第 \(i\) 格两表面沿 \(n\) 互相穿进的深度之和；\(o\)：IPC 停住时两面间的缝，在 0 到安全距离之间，取上界 \(o=\hat d\)。</li>
+<li>龙压鸭的算例：\(h=0.0020\)，最大重叠约 0.0031，3614 个候选格。</li>
+</ul>
+<h3 id="w1-4">主公式</h3>
+
+<p>已知：每格重叠 \(w\)、柔度矩阵 \(C\)（下一小节展开）、格距 \(h\)；求：接触能量 \(U\)。</p>
+
+<p>\[\begin{cases}\color{#c0392b}{u=C\,p} &amp; \color{#c0392b}{(1)}\\[4pt] \color{#c0392b}{u_i\ge w_i,\quad p_i\ge 0,\quad p_i\,(u_i-w_i)=0} &amp; \color{#c0392b}{(2)}\\[4pt] \color{#c0392b}{U=\tfrac12 h^2\,p^\top u} &amp; \color{#c0392b}{(3)}\end{cases}\]</p>
+<p>\[\color{#c0392b}{\Longrightarrow\ U=\max_{p\ge 0}\ h^2\Big[p^\top w-\tfrac12\,p^\top C\,p\Big]=\tfrac12 h^2\,p^{*\top}w}\]</p>
+<p>式 (1)：线弹性。\(p\) 是所有格子的压强排成的向量，\(u\) 是每格表面沿 \(n\) 退回去的距离（两物体相加），\(C_{ij}\) 是「第 \(j\) 格加单位压强、第 \(i\) 格退多少」。小变形下材料是胡克的，所以位移和压强成正比、可以叠加。</p>
+
+<p>式 (2)：接触条件。\(u_i\ge w_i\)：表面退回的量至少抵消重叠，接触后两物体不再互相穿透；\(p_i\ge0\)：接触只能推不能拉；\(p_i(u_i-w_i)=0\)：有压力的格子刚好贴上，没贴上的格子没有压力。</p>
+
+<p>式 (3)：弹性能。每格的力是 \(h^2p_i\)（压强 × 格面积），力乘位移再除以 2 就是存下的弹性能，和弹簧的 \(\tfrac12Fx\) 一样。</p>
+
+<p>结果：「压强推开重叠做的功」减「物体存下的弹性能」取最大，最大处的压力正好满足式 (1)(2)，最大值就是式 (3) 的弹性能；\(C\) 正定时解唯一。重叠越深 → 能量越大；柔度越大（物体越软）→ 能量越小。</p>
+
+<details><summary>推导：从接触条件到 max 形式</summary><p>定义余能函数（\(p\ge0\) 上）：</p>
+<p>\[\Pi^*(p)=\tfrac12h^2\,p^\top Cp-h^2\,p^\top w\]</p>
+<p>在 \(p\ge0\) 约束下求 \(\Pi^*\) 的最小值，引入乘子 \(\lambda_i\ge0\)，最优性条件为</p>
+<p>\[h^2(Cp-w)_i-\lambda_i=0,\qquad \lambda_i\ge0,\qquad \lambda_i\,p_i=0\]</p>
+<p>由第一式 \(\lambda_i=h^2\big((Cp)_i-w_i\big)\)，代入 \(\lambda_i\ge0\) 和 \(\lambda_ip_i=0\)，再用式 (1) \(u=Cp\)：</p>
+<p>\[u_i-w_i\ge0,\qquad p_i\,(u_i-w_i)=0,\qquad p_i\ge0\]</p>
+<p>这正是式 (2)。所以满足式 (1)(2) 的 \(p^*\) 就是 \(\Pi^*\) 的最小点，也就是 \(-\Pi^*=h^2\big[p^\top w-\tfrac12p^\top Cp\big]\) 的最大点。</p>
+<p>把 \(p_i^*(u_i-w_i)=0\) 对 \(i\) 求和：</p>
+<p>\[p^{*\top}u=p^{*\top}w\quad\Longrightarrow\quad p^{*\top}Cp^*=p^{*\top}w\]</p>
+<p>代回最大值：</p>
+<p>\[h^2\Big[p^{*\top}w-\tfrac12p^{*\top}Cp^*\Big]=h^2p^{*\top}w-\tfrac12h^2p^{*\top}w=\tfrac12h^2p^{*\top}w\]</p>
+<p>再用 \(p^{*\top}w=p^{*\top}u\)，得 \(\tfrac12h^2p^{*\top}u\)，即式 (3) 的 \(U\)。</p>
+<p>\(C\) 正定时 \(\Pi^*\) 严格凸，最小点唯一。</p></details>
+<h3 id="w1-5">柔度 C 拼起来</h3>
+
+<p>已知：两物体的表面、材料 \(E_b\)、\(\nu_b\)（\(b=A,B\)）、每个物体预先算好的 \(k\) 个 mode；求：\(C\) 的每一个元素。</p>
+
+<p>\[\begin{cases}\color{#c0392b}{u(r)=\dfrac{F}{\pi E&#x27; r},\qquad E&#x27;=\dfrac{E}{1-\nu^2}} &amp; \color{#c0392b}{(4)}\\[8pt] \color{#c0392b}{u=u_A+u_B} &amp; \color{#c0392b}{(5)}\\[4pt] \color{#c0392b}{G_{R}(x,y)\approx\textstyle\sum_{m=1}^{k}\sigma_m\,r_m(x)\,r_m(y)} &amp; \color{#c0392b}{(6)}\end{cases}\]</p>
+<p>\[\color{#c0392b}{\Longrightarrow\ C_{ij}=\sum_{b\in\{A,B\}} c_{b,i}\,c_{b,j}\Big[\frac{L_{ij}}{E&#x27;_b}+h^2\sum_{m=1}^{k}\sigma_{b,m}\,r_{b,m}(x_{b,i})\,r_{b,m}(x_{b,j})\Big],\qquad L_{ij}=\frac1\pi\iint_{\text{格}\,j}\frac{dA_y}{|x_i-y|}}\]</p>
+<p>式 (4)：Boussinesq 点力解。无限大弹性体表面一点受力 \(F\)，距离 \(r\) 处下沉 \(u(r)\)，按 \(1/r\) 衰减；\(E\) 是杨氏模量（材料多硬），\(\nu\) 是泊松比（压扁时往旁边鼓多少），\(E&#x27;\) 是平面应变模量。</p>
+
+<p>式 (5)：串联。两侧表面各自退回，加起来才是抵消重叠的总量，和两根弹簧串联时伸长相加一样。</p>
+
+<p>式 (6)：剩余柔度。有限物体同一点受压比无限大弹性体下沉得多（或少），差值 \(G_R(x,y)\) 用 \(k\) 个表面振型（mode）展开：\(r_m\) 是第 \(m\) 个 mode 在表面上的值，\(\sigma_m\) 是它的柔度，可正可负（第 6 节讲怎么求）。</p>
+
+<p>结果：每个物体贡献两项。「半空间项」\(L_{ij}/E&#x27;_b\)：把式 (4) 在第 \(j\) 格上积分、在第 \(i\) 格心读出的下沉；「mode 项」：有限物体多出（或少出）的柔度，主要是整体的弯和扭。\(c_{b,i}\) 是物体 \(b\) 在第 \(i\) 格处表面法向与 \(n\) 夹角的余弦，平处约为 1；\(x_{b,i}\) 是第 \(i\) 格沿 \(n\) 打到物体 \(b\) 表面的点。</p>
+
+<details><summary>推导：从点力解到 C 的元素</summary><p>第 \(j\) 格上均布单位压强，小面积 \(dA_y\) 上的力是 \(dF=1\cdot dA_y\)；代入式 (4) \(u=\dfrac{F}{\pi E&#x27;r}\)，对第 \(j\) 格积分，得物体 \(b\) 在第 \(i\) 格心沿表面法向的下沉：</p>
+<p>\[u_{b,i}=\frac{1}{\pi E&#x27;_b}\iint_{\text{格}\,j}\frac{dA_y}{|x_i-y|}=\frac{L_{ij}}{E&#x27;_b}\]</p>
+<p>压强沿压入方向 \(n\)，表面法向和 \(n\) 夹角余弦为 \(c_{b,j}\)，所以沿表面法向的压强是 \(c_{b,j}\) 倍；下沉沿表面法向，投回 \(n\) 方向再乘 \(c_{b,i}\)：</p>
+<p>\[u_{b,i}^{\text{半空间}}=c_{b,i}\,c_{b,j}\,\frac{L_{ij}}{E&#x27;_b}\]</p>
+<p>剩余柔度：第 \(j\) 格的力是 \(h^2\cdot1\)，代入式 (6)，同样带上两个余弦：</p>
+<p>\[u_{b,i}^{\text{mode}}=c_{b,i}\,c_{b,j}\,h^2\sum_{m=1}^{k}\sigma_{b,m}\,r_{b,m}(x_{b,i})\,r_{b,m}(x_{b,j})\]</p>
+<p>两部分相加得物体 \(b\) 的贡献；由式 (5) \(u=u_A+u_B\) 对 \(b=A,B\) 求和，就是 \(C_{ij}\)。</p></details>
+<ul>
+<li><strong>龙压鸭</strong>：加 80 个 mode 后 \(U=0.00518\)，标准答案 0.00605，比值 0.857；其中 55% 来自 mode 项。只用半空间项时 \(U\) 是加 mode 后的 2.5 倍、合力是 2.8 倍。</li>
+</ul>
+<p class="kp">skeleton 只用几何和材料：重叠 \(w\) 由两物体的表面现量，柔度 \(C\) = 半空间解析项 + 每个物体预先算好的 mode 项，解一个凸二次规划就得到接触能量。</p></section>
+<section id="w2"><h2>2. 刚度 E 和泊松比 ν 怎么进公式</h2>
+<h3 id="w2-1">进入半空间项</h3>
+
+<p>\[\color{#c0392b}{\frac{1}{E&#x27;_b}=\frac{1-\nu_b^2}{E_b}}\]</p>
+<ul>
+<li><strong>E 越大 → 柔度 \(1/E&#x27;\) 越小 → 同样的重叠要更大的压力 → 能量越大。</strong></li>
+<li><strong>ν 越大 → \(1-\nu^2\) 越小 → 表面越硬 → 能量越大。</strong> \(\nu=0.3\) 时 \(E&#x27;=1.099E\)，\(\nu=0.49\) 时 \(E&#x27;=1.316E\)，硬 19.8%。</li>
+<li>
+<p>两侧法向余弦相同（平处都约为 1）且只有半空间项时，两侧合成一个等效模量，由更软的一侧主导；重叠不变时能量与它成正比，有压力的格子不变：</p>
+<p>\[\color{#c0392b}{\frac{1}{E^*}=\frac{1}{E&#x27;_A}+\frac{1}{E&#x27;_B}\quad\Longrightarrow\quad U\propto E^*}\]</p>
 </li>
 </ul>
-<p>（页首摘要最后写）</p></div>
-<section id="w1"><h2>用更普通的形状做数据集</h2>
-<h3 id="w1-1">这一节要回答什么</h3>
+<details><summary>推导：U 与 E* 成正比</summary><p>前提下半空间项为 \(C=C_0/E^*\)，\(C_0\) 与材料无关。令 \(p=E^*q\)：</p>
+<p>\[\max_{p\ge0}h^2\Big[p^\top w-\tfrac{1}{2E^*}p^\top C_0p\Big]=\max_{q\ge0}h^2\Big[E^*q^\top w-\tfrac{1}{2E^*}(E^*)^2q^\top C_0q\Big]=E^*\max_{q\ge0}h^2\Big[q^\top w-\tfrac12q^\top C_0q\Big]\]</p>
+<p>右边的最大化与 \(E^*\) 无关，所以 \(U\propto E^*\)；最优 \(q\) 不变，\(p=E^*q\) 的非零位置也不变。</p></details>
+<h3 id="w2-2">进入 mode 项</h3>
 
 <ul>
-<li><strong>训练数据能不能代表普通的接触。</strong>形状不对称，接触位置、朝向、压深都随机，物体压平块和物体压物体两类都有。</li>
-<li><strong>用训练前的第 1 关来判。</strong>判据在看到数据之前定下，不随结果改：<ol>
-<li>训练形状至少 8 个，其中有 Thingi10K 里的形状；</li>
-<li>物体压平块、物体压物体两类都有；</li>
-<li>接触点、两物体之间的转角、压深都随机抽；</li>
-<li>只因数值失败剔除样本（仿真不收敛、停不下来、单元翻转、求解失败），不因几何条件剔除；</li>
-<li>留出 2 个形状，不参加任何训练和调参，只在第 5 关最后检验一次。</li>
-</ol>
+<li>
+<p>mode 来自「锁住 affine 后的真实表面柔度 − 半空间柔度」，ν 固定时两者都与 \(1/E\) 成正比：</p>
+<p>\[\color{#c0392b}{\sigma_m\propto\frac1E,\qquad r_m\ \text{不随}\ E\ \text{变}}\]</p>
 </li>
-</ul>
-<h3 id="w1-2">怎么做</h3>
-
-<ul>
-<li><strong>一个样本 = 把物体 A 压到另一个东西上、压到一个深度、等它静止后读出两边的弹性能。</strong>A 离接触点较远的一片区域被整体往下推，被压的一方远端固定，两边是同样软的材料。</li>
-<li><strong>被压的一方有两种</strong>：平块（约三分之一），或另一个物体 B。A、B 从同一个形状池里取，可以是同一个形状。</li>
-</ul>
-<p><strong>形状</strong></p>
-<ul>
-<li><strong>本地 3 个经典扫描形状</strong>：兔子、龙、鸭子。</li>
-<li><strong>Thingi10K 里按固定规则抽 8 个。</strong>Thingi10K 是一万个 3D 打印模型的公开数据集，形状五花八门。条件事先写好：表面封闭、是流形、只有一整块、没有自交、没有把手和洞，表面光滑；许可证允许研究、发表和改编。符合条件的按固定随机种子打乱，依次收满 8 个。</li>
-<li><strong>抽到的 8 个</strong>：字母 I、字母 J、靴子、巫师帽、耳朵销钉、尾巴，以及最后收下的花、融合球。后两个整体留出。</li>
-<li><strong>留出形状另加一个图形学经典模型 Blub（一条卡通鱼）</strong>，因为花和融合球的样本丢得多、留出行不够。</li>
-<li>所有形状统一缩放到最长边为 10，和兔子同一尺度。</li>
-</ul>
-<p><strong>接触点和压深</strong></p>
-<ul>
-<li><strong>接触点在表面上按面积均匀随机取。</strong>在 A 表面随机取一点、看它朝外的方向，再沿这个方向找 A 最突出的点当接触点，把 A 摆在一个水平面上方；B 同样取最突出的点摆在下方，再绕竖直方向随机转一个角度。两个物体一开始被这个平面隔开，所以起始状态必然没有穿透。</li>
-<li><strong>压深按接触处的弯曲程度定</strong>：</li>
-</ul>
-<p>\[\color{#c0392b}{\frac{\delta}{R}\sim\mathcal U\big[\,0.01,\ 0.1\,\big],\qquad R=\frac{1}{\sqrt{\kappa_1\kappa_2}}}\]</p>
-
-<ul>
-<li><strong>每个符号</strong>：δ 是压深；R 是接触处的等效半径（Hertz 等效半径），\(\kappa_1\)、\(\kappa_2\) 是两侧表面相对曲率相加后的两个主曲率；\(\mathcal U\) 表示均匀抽样。</li>
-<li><strong>为什么除以 R</strong>：同样压 0.01，压在凸起处和压在平处完全是两回事；除以 R 以后才是可比的「压得多深」。上限 0.1 让变形留在小变形附近；下限 0.01 再往下，接触斑太小，网格分辨不出来。</li>
-<li><strong>凹、鞍或比现有数据里最平的接触还平时</strong>，\(R\) 换成一个事先定的长度尺度（现有兔子数据里等效半径的中位数，按物体大小等比例换算），照样压、打标记。</li>
-<li><strong>随机数用拉丁超立方抽样</strong>：每个随机量的范围均匀切成 n 段，n 个样本在每段里恰好各落一个，样本少时也能把范围铺满。</li>
-</ul>
-<p><strong>网格和骨架的前提</strong></p>
-<ul>
-<li><strong>骨架要看得清这块接触。</strong>抽到的接触点在最浅压深下，接触斑至少盖住骨架的 4 个格子；不满足就换一个方向重抽，最多 20 次。</li>
-<li><strong>远处还有第二块接触的，记为多接触样本。</strong>标签照算，单独计数，不进单接触的统计。</li>
-<li><strong>接触区的网格不能比已验证过的粗</strong>：接触斑半径 a 除以接触区最长的网格边，A、B 两侧都要 ≥ 4.32。4.32 是兔子数据里能下结论的 28 行中这个比值的最小值，那些行的标签误差已经量过。不够就把接触区的网格边逐层一分为二，最多 2 层。</li>
-</ul>
-<p><strong>标签</strong></p>
-<ul>
-<li><strong>一套冻结的流程批量生成。</strong>IPC 加有限元，每个样本压到指定深度、等静止后读能量；IPC 两个表面最后会隔着一个很小的安全距离停下，所以每个样本用三档安全距离各跑一次，外推到 0。</li>
-<li><strong>线性部分交给更准的单元，IPC 只提供非线性的那部分</strong>：</li>
-</ul>
-<p>\[\color{#c0392b}{U_{\text{标签}}=\frac{U_{\text{IPC}}}{U_{\text{P1}}}\times U_{\text{P2,细}}}\]</p>
-
-<ul>
-<li><strong>每个符号</strong>：\(U_{\text{IPC}}\) 是 IPC 读出的弹性能；\(U_{\text{P1}}\) 是同一张网格上用线性四面体（P1，和 IPC 同一种单元）算的线弹性能；\(U_{\text{P2,细}}\) 是更细的网格上用二次四面体（P2）算的线弹性能。</li>
-<li><strong>直观理解</strong>：IPC 只有线性四面体，一个单元里应变是常数，弯不起来，整体偏硬。前一个比值里两边偏硬的原因相同，大致抵消，剩下的是「大变形让能量多了或少了几成」；再乘上准确的线弹性能，就是标签。</li>
-<li><strong>每一行标签带一个误差带 ±3.57%</strong>，在看普通形状数据之前定下。模型和标签的差在误差带以内，写「在标签精度以内」，不再细分。</li>
-<li><strong>行分两档。</strong>按线弹性参照上接触半径盖住几个压力格 \(a/h\) 分：\(a/h\ge2\) 是结论档，用来下结论；\(1.5\le a/h&lt;2\) 是统计档，只进统计。</li>
-</ul>
-<details><summary>为什么不能直接拿 IPC 的结果当真值</summary><ul>
-<li>单元太简单：libuipc 只有线性四面体，薄的、会弯的部位整体偏硬；把整只物体都加密到足够细又算不起。所以线性部分用 P2 的线弹性解。</li>
-<li>两个表面之间留着安全距离：读到的能量随安全距离变，所以外推到 0。</li>
-<li>它是我们自己算的数值解：每行标签带着误差带，当作一把精度已知的尺子，小于误差带的差别不去分辨。和 hydro 在原理上比时，裁判是独立于双方的弹性力学精确解（第 4 节）。</li>
-<li>±3.57% 由三部分相加：标签规范对这套网格档给的 ±1.5%；比值里没能抵消掉的压力格误差 0.457 个百分点；线弹性参照换一档网格时的变化 1.611 个百分点。</li>
-</ul></details>
-<p class="setting muted">设置：IPC 只跑中档网格（粗档只用于收敛检查，已砍）；安全距离 2.5e-4、1.25e-4、6.25e-5 三档；连续 3 帧位移和能量不再变才算静止；材料模量按 snk1 改写；随机种子 20261108；周日 15:00 后不再起新作业。</p>
-<h3 id="w1-3">结果</h3>
-
-<p><strong>数据从抽样到进表</strong></p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th></th>
-<th>训练</th>
-<th>留出</th>
-<th>合计</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>抽到的样本</td>
-<td>48</td>
-<td>18</td>
-<td>66</td>
-</tr>
-<tr>
-<td>进表的样本</td>
-<td>22</td>
-<td>8</td>
-<td>30</td>
-</tr>
-<tr>
-<td>其中多接触</td>
-<td>2</td>
-<td>0</td>
-<td>2</td>
-</tr>
-<tr>
-<td>结论档的行（\(a/h\ge2\)，细参照已算）</td>
-<td>4</td>
-<td>1</td>
-<td>5</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>每个样本只压一个深度，所以一个样本就是一行。</strong></li>
-<li><strong>能进结论档的很少</strong>：训练样本里只有 4 行，全是物体压物体，压平块 0 行。</li>
-<li><strong>少的原因有两层</strong>：<ul>
-<li>线弹性参照的压力格是固定的，接触半径只有 0.02–0.05，大多数样本的接触斑在这张格上只盖住 1–1.5 个格子半径，落不进结论档；</li>
-<li>进了结论档的样本还要再算一次细参照，细网格接触区不够细的样本会失败，约 5/8 能算出来。</li>
-</ul>
+<li>
+<p>实测：同一个兔耳网格，\(E\) 从 \(10^5\) 换成 \(10^6\)，前三个 mode 的柔度 0.01394、0.01380、0.00404 变成 0.001394、0.001380、0.000404，正好 1/10。</p>
 </li>
+<li><strong>E 越大 → \(\sigma\) 越小 → 有限物体多出来的柔软越少 → 能量越接近只用半空间项的值。</strong></li>
+<li>ν 改变锁住 affine 后柔度场的形状（接近不可压时体积几乎不能变），换 ν 要重算 mode。</li>
 </ul>
-<div class="slot"><b>待填（15:00 后）：</b>补抽链（训练 extra4–7、留出 Blub）到 15:00 截止时的行数，以及三张表的终版：按形状数样本（形状、用途、压平块、作 A、作 B、进表、结论档）；按接触类型数样本（凸、鞍、凹、薄、多接触 × 压平块 / 物体压物体）；δ/R 三段从抽到 → 进表 → 结论档。来源 gate1_tables.py 对三条 v1 链和补抽链合表的输出。</div>
+<h3 id="w2-3">软硬对调</h3>
 
-<p><strong>压深分布</strong>：抽样是均匀的，后面的步骤也没有把哪一段压深掉得特别多。</p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>\(\delta/R\) 区间</th>
-<th>抽到的训练样本</th>
-<th>进表的训练行</th>
-<th>结论档的行</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.01–0.04</td>
-<td>14</td>
-<td>6</td>
-<td>1</td>
-</tr>
-<tr>
-<td>0.04–0.07</td>
-<td>17</td>
-<td>7</td>
-<td>1</td>
-</tr>
-<tr>
-<td>0.07–0.10</td>
-<td>15</td>
-<td>7</td>
-<td>2</td>
-</tr>
-</tbody>
-</table></div>
+<p>\[\color{#c0392b}{C=\sum_{b\in\{A,B\}}\Big[\frac{1}{E&#x27;_b}\,D_bLD_b+\frac{1}{E_b}\,\tilde\Phi_b\Sigma^{(1)}_b\tilde\Phi_b^\top\Big]}\]</p>
 <ul>
-<li>抽到的另有 2 个在放置阶段就没有建成，没有压深。</li>
-<li>结论档只有 4 行，判不了分布是否均匀。</li>
+<li>\(D_b\)：物体 \(b\) 每格法向余弦排成的对角阵；\(L\)：半空间积分 \(L_{ij}\) 排成的矩阵；\(\tilde\Phi_b\Sigma^{(1)}_b\tilde\Phi_b^\top\)：物体 \(b\) 在 \(E=1\) 时的 mode 项。</li>
+<li><strong>每一项只属于一个物体</strong>：每个物体带自己的形状和材料进场、两侧相加，软硬对调直接套同一个公式。</li>
+<li>半空间项：\(D_A=D_B\) 时只认 \(1/E&#x27;_A+1/E&#x27;_B\)，对调后不变；一侧是曲面时会变一点。</li>
+<li>mode 项各乘各的 \(1/E\)：对调后硬的一侧 mode 缩小、软的一侧放大；两物体形状不同，能量就不对称。</li>
 </ul>
-<p><strong>丢掉的 36 个样本，按真实原因分三类</strong></p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
-<th>类</th>
-<th>个数</th>
-<th>怎么丢的</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>数值</td>
-<td>15</td>
-<td>接触区加密以后四面体剖分失败 10 个；线弹性 P1 求解失败 4 个；输入表面自相交 1 个</td>
-</tr>
-<tr>
-<td>几何</td>
-<td>12</td>
-<td>骨架计算域装不下 4 个；驱动区放不下 3 个；骨架判为多处接触 3 个；重抽 20 次仍看不清 1 个；凹接触被骨架拒收 1 个</td>
-</tr>
-<tr>
-<td>成本</td>
-<td>9</td>
-<td>加密 2 层后接触区仍比下限粗、要第 3 层，成本没批 8 个；骨架格数超上限 1 个</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>数值类集中在 Thingi10K 形状上</strong>：加密以后剖分失败的 10 个全是 Thingi10K 形状。字母 I、字母 J、靴子三个形状的样本全部丢掉（剖分失败、驱动区放不下、骨架拒收），所以训练形状只剩 6 个。</li>
-<li><strong>几何类逐个列在下面「局限」里。</strong></li>
-</ul>
-<p><strong>第 1 关逐条判</strong></p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>判据</th>
-<th>要求</th>
-<th>实际</th>
+<th>两侧材料不同的算例</th>
+<th>skeleton ÷ IPC</th>
+<th>修正后区间</th>
 <th>判定</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>训练形状数</td>
-<td>≥ 8，含 Thingi10K</td>
-<td>6：兔子、龙、鸭子、尾巴、巫师帽、耳朵销钉</td>
-<td>差 2 个</td>
+<td>兔头压平块，平块硬 1000 倍</td>
+<td>0.958</td>
+<td>[0.964, 1.088]</td>
+<td>基本对</td>
 </tr>
 <tr>
-<td>两类接触</td>
-<td>压平块、物体压物体都有</td>
-<td>都有</td>
-<td>满足</td>
+<td>一般形状互压，下侧硬 10 倍</td>
+<td>0.926</td>
+<td>[0.997, 1.065]</td>
+<td>基本对</td>
 </tr>
 <tr>
-<td>随机抽样</td>
-<td>接触点、转角、压深都随机</td>
-<td>每个样本都有抽样记录</td>
-<td>满足</td>
+<td>兔背压平块，平块硬 10 倍</td>
+<td>0.931</td>
+<td>[0.937, 1.131]</td>
+<td>待定</td>
 </tr>
 <tr>
-<td>只因数值失败剔除</td>
-<td>几何原因丢 0 个</td>
-<td>判关代码统计 7 个（骨架判拒 4、驱动区 3）；按真实原因 12 个</td>
-<td>差 7 / 12</td>
+<td>兔背压平块，平块硬 1000 倍</td>
+<td>0.930</td>
+<td>[0.936, 1.129]</td>
+<td>待定</td>
 </tr>
 <tr>
-<td>留出 2 个形状</td>
-<td>花、融合球</td>
-<td>留出结论档 1 行</td>
-<td>满足（行数见第 5 关）</td>
+<td>兔头泊松比 0.49</td>
+<td>0.854</td>
+<td>[0.997, 1.076]</td>
+<td>基本对</td>
 </tr>
 </tbody>
 </table></div>
-<p class="kp">第 1 关未过：训练形状 6 个（要求 8 个），并有 12 个样本因几何原因被丢；后面第 2–5 关的结论都是「关 1 未过下的条件性结果」。</p>
-
-<p><strong>接下来的 v2 怎么补</strong></p>
-<ul>
-<li><strong>网格迁就样本。</strong>v1 的行丢在「接触斑在参照格上盖不住 2 个格子」。v2 的参照格距跟着每个样本自己的接触半径 \(\sqrt{R\delta}\) 走，让接触半径从构造上盖住 2 个格子以上；接触区的网格再加密到这张格能用的细度，加密后仍不够的按成本丢弃、逐个列出。</li>
-<li><strong>每个样本压 3 个深度。</strong>三个 \(\delta/R\) 各自在 \([0.01,\,0.1]\) 里独立均匀地抽，不取固定倍数，所以行数约变 3 倍、\(\delta/R\) 的分布不变。同一次仿真里由浅到深逐级压、逐级等静止、逐级读数，三行共用一张网格。</li>
-<li><strong>统计时按样本算独立性</strong>：同一个样本的 3 行不当 3 个独立样本。</li>
-<li><strong>判据一条不动。</strong>标签沿用 v1 的做法，误差带沿用 ±3.57%，这套新设置上还没实测；夜里挑 2 个 v2 样本把接触区再加密一层重做标签，给出实测的变化量。</li>
-</ul>
-<p class="setting muted">设置：v2 只用现有 6 个训练形状和 3 个留出形状；hydro 只算每个样本最深的那一行。</p>
-<div class="slot"><b>待填（v2，周一早上）：</b>v2 的抽样 → 进表 → 结论档行数（训练 / 留出）；丢弃按数值 / 几何 / 成本分类；δ/R 三段；第 1 关逐条重判；2 个 v2 样本的网格收敛对照（标签换一档网格变了多少，和 ±3.57% 比）。</div>
-
-<div class="slot"><b>待填（demo 视频）：</b>每个进表的形状至少一段准静态压入视频（字幕写 δ/R），只从结论档样本里选；物体压平块、物体压物体各至少一段。v1 结论档候选：鸭子压兔子（两段）、兔子压龙、尾巴压耳朵销钉，留出的花压平块。</div>
-
-<h3 id="w1-4">结论和局限</h3>
+<p class="kp">E 和 ν 只通过每个物体自己的 \(1/E&#x27;\) 和自己的 mode 进入柔度，两侧串联相加；软硬对调时半空间部分基本不变，差别落在各自的 mode 上。</p></section>
+<section id="w3"><h2>3. 线性、Hertz、非线性：公式管到哪</h2>
+<h3 id="w3-1">三种非线性</h3>
 
 <ul>
-<li><strong>结论</strong>：v1 数据覆盖了 6 个训练形状、两类接触、随机压深，但没过第 1 关：形状少 2 个，几何原因丢了 12 个样本。</li>
-<li><strong>v2 也补不上形状数。</strong>v2 只用现有 6 个训练形状加留出形状，所以第 1 关「形状数」这一条在 v2 上仍然不过；要补上，得重新选形状（典型模型优先、Thingi10K 换成细分后再判光滑），这放到下周。</li>
-<li><strong>几何原因丢掉的 12 个样本</strong>：</li>
-</ul>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>原因</th>
-<th>样本（A / B）</th>
-<th>\(\delta/R\)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>骨架计算域装不下（大压深压平块，重叠区超出计算域）</td>
-<td>鸭子 / 平块</td>
-<td>0.087</td>
-</tr>
-<tr>
-<td></td>
-<td>兔子 / 平块</td>
-<td>0.097</td>
-</tr>
-<tr>
-<td></td>
-<td>兔子 / 平块</td>
-<td>0.064</td>
-</tr>
-<tr>
-<td></td>
-<td>巫师帽 / 平块</td>
-<td>0.081</td>
-</tr>
-<tr>
-<td>驱动区放不下</td>
-<td>字母 I / 巫师帽</td>
-<td>0.040</td>
-</tr>
-<tr>
-<td></td>
-<td>字母 J / 靴子</td>
-<td>0.045</td>
-</tr>
-<tr>
-<td></td>
-<td>字母 I / 靴子</td>
-<td>0.015</td>
-</tr>
-<tr>
-<td>骨架判为多处接触</td>
-<td>耳朵销钉 / 字母 J</td>
-<td>0.011</td>
-</tr>
-<tr>
-<td></td>
-<td>融合球 / 融合球（留出）</td>
-<td>0.095</td>
-</tr>
-<tr>
-<td></td>
-<td>融合球 / 花（留出）</td>
-<td>0.071</td>
-</tr>
-<tr>
-<td>重抽 20 次仍看不清</td>
-<td>尾巴 / 字母 J</td>
-<td>未建成</td>
-</tr>
-<tr>
-<td>凹接触被骨架拒收（两主曲率一正一负）</td>
-<td>字母 J / 平块</td>
-<td>0.087</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>凹接触这周进不来，有两层原因</strong>：放置只取凸包上最突出的点，凹面里的接触抽不出来；就算抽到，骨架要求接触处两个相对主曲率都为正，也会拒收。</li>
-<li><strong>因成本丢掉的 8 个可能带偏向</strong>：它们是加密 2 层后接触区仍不够细的样本，多是接触斑小的情形。另外有两个样本加密以后比值没有变，加密是否真的作用到了接触区还没查。</li>
-<li><strong>薄、鞍、凸三类要等 15:00 提取后才能分</strong>；放置只取凸包上的点，预计绝大多数是凸。</li>
-</ul>
-<details><summary>组会可能被问的问题</summary><ul>
-<li><strong>为什么不把几何原因丢的样本算成「骨架适用范围外」，让第 1 关过？</strong>那等于看到结果以后改判据。照实报未过，原因和差多少都摆出来，后面的结果照样给，只是带着条件。</li>
-<li><strong>为什么每个样本只压一个深度？</strong>v1 沿用了「一个样本一个随机压深」的抽法，保证压深分布均匀；代价是行数少。v2 每个样本独立抽 3 个深度，分布不变、行数约 3 倍。</li>
-<li><strong>结论档为什么要 \(a/h\ge2\)？</strong>线弹性参照本身有格距误差；兔子上量过，接触半径盖住 2 个格子以上时误差约 ±1.3%，1.5–2 个格子时约 ±3.3%，再少就分不清模型误差和格距误差。</li>
-<li><strong>标签误差带 ±3.57% 是哪来的？</strong>冻结标签规范的 ±1.5%，加上两项在 4 个兔子压兔子构型上实测、比值里抵消不掉的网格误差，在看普通形状数据之前定下。</li>
-<li><strong>字母和靴子为什么一个样本都没剩？</strong>这些 Thingi10K 网格的三角形大小极不均匀，接触区加密以后四面体剖分失败；调剖分的质量参数也没救回来。</li>
-</ul></details></section>
-<section id="w2"><h2>用普通形状验证架构、对比 baseline</h2>
-<h3 id="w2-1">这一节要回答什么</h3>
-
-<ul>
-<li><strong>架构分两层</strong>：一层是能用公式算准的骨架（线弹性，在接触面上铺小方格算），另一层是一个逐格的小网络，只修骨架算不了的大变形那一小块。</li>
-<li><strong>验证按顺序回答四个问题，就是训练前的第 2–5 关</strong>：<ul>
-<li>第 2 关：骨架的线性部分算对了没有；</li>
-<li>第 3 关：骨架和标签之间剩下的差，是不是真的需要网络来学；</li>
-<li>第 4 关：网络的输入和这个差有没有关系；</li>
-<li>第 5 关：网络在没见过的形状上是不是确实比骨架好。</li>
-</ul>
+<li><strong>材料非线性</strong>：应力和应变不成正比（neo-Hookean 等超弹性模型，应变一大就弯离胡克直线）。</li>
+<li><strong>几何非线性</strong>：位移、转动大到小变形近似不成立。</li>
+<li>
+<p><strong>接触非线性</strong>：材料胡克、变形也小，但接触区随压深变化，力和压深不成正比。Hertz 属于这一类：</p>
+<p>\[\color{#c0392b}{a^2=Rd\quad\Longrightarrow\quad F=\tfrac43E^*\sqrt R\,d^{3/2}}\]</p>
 </li>
-<li><strong>再和 baseline 比</strong>：hydro 和几种常用的接触模型。</li>
-</ul>
-<h3 id="w2-2">架构是什么</h3>
-
-<ul>
-<li><strong>设定</strong>：两个物体按粗模型摆好以后，表面会互相叠进去一点。在最近点附近铺一片小方格，第 i 格两个表面叠进去 \(w_i\)，这一格的压强是 \(p_i\)。</li>
-</ul>
-<p>\[\color{#c0392b}{\begin{aligned}&U=\max_{p\ge0}\;h^2\Big[p^\top w-\tfrac12p^\top Cp\Big]\\&C=C_{\text{局部}}+\Phi A\Phi^\top,\qquad \Phi=[\,1,\ x,\ z\,]\\&w_i=\delta-s_i\end{aligned}}\]</p>
-
-<ul>
-<li><strong>第一行，能量</strong>：U 是骨架给出的弹性能，h 是格子边长。每一格要么压着（有压强、正好让开），要么没压着（没压强、还留着缝），压强只能往外推；满足这些条件的压强正好让方括号取到最大，这个最大值就是弹性能，它对压深求导就是力。</li>
-<li><strong>第二行，柔度</strong>：\(C_{ij}\) 表示第 j 格受单位压力时第 i 格陷多少。\(C_{\text{局部}}\) 把物体当成无限大来算，一点受压周围按 \(1/r\) 跟着陷；\(\Phi A\Phi^\top\) 是有限大物体「整体让开」的部分：整片往下沉、沿 x 歪、沿 z 歪，A 是 3×3 的矩阵，每个形状提前用有限元算好成表，按接触位置查。</li>
-<li><strong>第三行，叠进量</strong>：δ 是最近点处的压深，\(s_i\) 是第 i 格比最近点多隔开的距离。</li>
-<li><strong>网络只改一处</strong>：给每一格输出一个正数 \(d_i\)，把 \(w_i\) 换成 \(w_i/d_i\)，柔度 C 不改：</li>
-</ul>
-<p>\[\color{#c0392b}{w_i\;\longrightarrow\;w_i/d_i,\qquad \ln d_i=W_2\tanh(W_1f_i+b_1)+b_2}\]</p>
-
-<ul>
-<li><strong>每个符号</strong>：\(f_i\) 是第 i 格的输入特征（第 4 关过了的那些）；\(W_1\)、\(b_1\)、\(W_2\)、\(b_2\) 是一个 16 个单元隐层的小网络的参数；取指数保证 \(d_i\) 是正数。</li>
-<li><strong>直观理解</strong>：\(d_i&gt;1\)，这一格像是叠得浅了，存的能量少，显得更软；\(d_i&lt;1\) 反之。\(W_2\)、\(b_2\) 从 0 开始，所以 \(d\equiv1\)，训练的起点就是骨架，网络只能在骨架上做修正。</li>
-<li><strong>骨架的性质原样保留</strong>：换了以后仍是同一个凸二次规划，能量非负、力是能量的精确导数、越压越硬，都不靠训练。</li>
-</ul>
-<details><summary>推导：改 \(w_i\) 等于把牵连 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\)</summary><ol>
-<li>记 \(D=\operatorname{diag}(d_1,\dots,d_n)\)，改过的能量是 \(\max_{p\ge0}h^2\big[p^\top D^{-1}w-\tfrac12p^\top Cp\big]\)。</li>
-<li>换元 \(p=Dq\)。因为每个 \(d_i&gt;0\)，\(p\ge0\) 和 \(q\ge0\) 等价。</li>
-<li>代入：\(p^\top D^{-1}w=q^\top DD^{-1}w=q^\top w\)；\(p^\top Cp=q^\top DCDq\)。</li>
-<li>所以能量等于 \(\max_{q\ge0}h^2\big[q^\top w-\tfrac12q^\top DCDq\big]\)，就是把 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\)。</li>
-<li>D 是正的对角阵，C 对称正定，所以 DCD 仍对称正定，问题仍是凸二次规划。</li>
-</ol></details>
-<details><summary>推导：训练用的一阶近似和权重</summary><ol>
-<li>压着的格子满足 \(Cp=w\)，能量 \(U=\tfrac12h^2\sum_ip_iw_i\)。</li>
-<li>d 改变相当于叠进量变成 \(w_i/d_i\)。在 \(d=1\) 处对 \(\ln d_i\) 求导，最大值点上 U 对 p 的导数为 0，只剩显式的一项：\(\partial U/\partial\ln d_i=-h^2p_iw_i\)。</li>
-<li>除以 U：\(c_i=\partial\ln U/\partial\ln d_i=-2p_iw_i/\sum_jp_jw_j\)，加起来是 −2。</li>
-<li>所以 \(d_i\) 接近 1 时 \(\ln(U/U_{\text{骨架}})\approx\sum_ic_i\ln d_i\)，训练就是拟合这个加权和；检验时把训练好的 d 放回骨架精确重解。</li>
-<li>检查：所有 \(d_i\) 都等于同一个 c，相当于叠进量都除以 c，能量是叠进量的二次式，变成 \(c^{-2}\) 倍，对数是 \(-2\ln c\)，和权重之和 −2 一致。</li>
-</ol></details>
-<h3 id="w2-3">怎么判：第 2–5 关的判据</h3>
-
-<ul>
-<li><strong>判据都在看普通形状数据之前定下，不随结果改。</strong></li>
-<li><strong>第 2 关，骨架对</strong>：骨架和精细线弹性有限元（细网格、二次单元 P2，下称细参照）比能量，\(e_{\text{lin}}=U_{\text{骨架}}/U_{\text{细参照}}-1\)，每一行都要在误差带内。两边都是线弹性，所以这一关只检验线性部分，和大变形无关。误差带用细参照自己的收敛误差：接触半径盖住 2 格以上 ±1.3%，1.5–2 格 ±3.3%；普通形状上要先实测确认，没测出来写「未判」。超出的行先找有出处的现成公式（薄层、板）修，不交给网络。</li>
-<li><strong>第 3 关，确实要学</strong>：骨架对标签的误差 \(e=U_{\text{骨架}}/U_{\text{标签}}-1\)，超出误差带 ±3.57% 的行要同时满足三条：占结论档行数 ≥ 30%；统计下界 ≥ 15%，排除行数少时的偶然；按压深分三组，至少一组里超出的行不少于 3 行、80% 以上同号（骨架一致地偏软或偏硬，而不是随机上下抖）。不满足，结论是「骨架已够，不需要网络」。</li>
-<li><strong>第 4 关，特征有用</strong>：6 个候选特征，每个都说得出通过什么机制影响能量。先把「接触半径有几个格子」的影响扣掉，再看它和误差还相关不相关；6 个同时检验，置信水平校正到 99.17%。每类接触有 6 行以上才查这一类里方向是否一致，不足 6 行写「样本不足，未判」。</li>
-<li><strong>第 5 关，网络更好</strong>：只在留出的 2 个形状上算一次。三条同时满足：误差中位数比骨架明显小；超出误差带的行比骨架少；没有一行比骨架差出它自己的误差带。</li>
-</ul>
-<details><summary>第 3–5 关判据的细节</summary><ul>
-<li><strong>第 3 关</strong>：n 是结论档行数，B 是 \(|e|&gt;b\) 的行。(1) \(|B|/n\ge0.30\)；(2) \(|B|\)、n 的 Wilson 95% 置信下界 \(\ge0.15\)；(3) 按 \(\delta/R\) 三分位分 3 组，至少一组里 B 的行 ≥ 3 行，且其中 ≥ 80% 同号。</li>
-<li><strong>第 4 关的 6 个候选</strong>：<ul>
-<li>\(\delta/R\)：压得越深，有限应变越大；</li>
-<li>\(a/R\)：接触片表面的斜率，越大几何非线性越大；</li>
-<li>\(p_i/E^*\)：这一格的压强除以合成模量，是局部法向应变；</li>
-<li>\(s_i/\delta\)：这一格在接触片里靠中心还是靠边，边上斜率和剪切大；</li>
-<li>\(\theta_i=\arctan|\nabla g|\)：这一格表面相对对面的倾角，片内的相对转角；</li>
-<li>\(t/a\)：接触处局部厚度除以接触半径，越薄越容易整体弯。</li>
-<li>逐格的量按这一格在骨架能量里的份额汇总到行。</li>
-</ul>
-</li>
-<li><strong>第 4 关的检验</strong>：偏 Spearman 相关（先扣掉 \(a/h\)），置信区间按形状整簇自助抽样 2000 次；区间不含 0 且 \(|\rho|\ge0.30\) 才算过。6 个特征各按 95% 检验时，即使都和误差无关，也有约 26% 的机会至少一个碰巧过，所以取 \(1-0.05/6\approx99.17\%\)。只有原始相关显著、扣掉 \(a/h\) 后不显著的，判「只通过 \(a/h\) 相关」，不算过。两个过关特征强相关（\(|\rho|&gt;0.8\)）时只留机制更直接的那个。</li>
-<li><strong>第 5 关的训练</strong>：损失是每行拟合差除以这一行误差带再平方取平均，加权重衰减（四档里选，只在训练形状上每次留出一个形状来选）；全批 L-BFGS 300 步，5 个随机种子各训一个取平均。精确重解和一阶近似差超过误差带一半的行，标「一阶近似不够准」，不判过。</li>
-<li><strong>第 5 关的判据</strong>：(1) 误差绝对值中位数 ≤ 骨架的中位数 − 0.5 × 这些行误差带的中位数；(2) 超出误差带的行数严格少于骨架；(3) 没有一行比骨架差出它自己的误差带。三个中位数（骨架、骨架 + 网络、两者之差）都附按样本整簇自助抽样的 95% 区间。</li>
-</ul></details>
-<h3 id="w2-4">结果</h3>
-
-<p><strong>第 2 关：兔子上，骨架的线性部分已经和细参照对上</strong></p>
-<ul>
-<li><strong>结论档 22 行里 21 行在 ±1.3% 以内，统计档 40 行里 39 行在带内。</strong></li>
-<li><strong>唯一超出的一行</strong>：兔子压兔子、薄处、压深 0.012，骨架比细参照硬 1.53%，超出 0.23 个百分点。两边都是软的薄部位，薄层和薄板这两个现成公式的前提（一边是刚性压头、底面粘住或周边固支）都不满足，所以列为骨架的局限，不调参。</li>
-<li><strong>细参照算不出的行不进判定</strong>：结论档 6 行、统计档 7 行，它们的接触区网格比细参照格距的一半还粗。</li>
-</ul>
-<p><strong>第 2 关：普通形状上，细参照自己的误差带先量过</strong></p>
-<ul>
-<li><strong>做法</strong>：4 个结论档样本，同一张网格，只把细参照的压力格放大到 1.5 倍和 2 倍，看能量变多少。格子越粗误差越大，所以这个变化量是细参照误差的上限。</li>
-<li><strong>结果</strong>：接触半径盖住 2 格以上的 6 个读数，变化最大 0.19%，都在 ±1.3% 以内，所以普通形状沿用兔子上的 ±1.3% / ±3.3%。</li>
-<li><strong>8 个读数全是正的</strong>，说明细参照很可能略偏硬，骨架对它的误差会系统地偏负一点，量级不超过约 0.6%。</li>
-<li><strong>1.5–2 格那一档只有 1 个读数（1.31%）</strong>，在 ±3.3% 内，但支撑很弱。这个误差带只量了压力格，细参照的有限元网格误差没有量。</li>
-</ul>
-<div class="slot"><b>待填（15:00 正式出）：</b>普通形状 v1 第 2 关。逐形状列出（无结论行的形状也列），每个结论档样本一行：形状（A / B）、a/h、e_lin、误差带、在带内否、诊断列「带整体项骨架的接触半径 ÷ 细参照的接触半径」；细参照算不出的行逐行列出（训练结论档 2 行：兔子压兔子、鸭子压鸭子；统计档 2 行：龙压鸭子、巫师帽压平块）。结论句写「关 1 未过下的条件性结果：在 N 个物体压物体样本上，骨架与细参照的差在误差带内 / 超出」；压平块单独一句「普通形状上未检验」。</div>
-
-<p><strong>第 3 关：v1 只有 4 行</strong></p>
-<div class="slot"><b>待填（15:00 后）：</b>v1 训练结论档 4 行上的第 3 关：超出 ±3.57% 的行数与占比、Wilson 下界、三组各自超出几行与同号比例、三条各自过否。</div>
-
-<ul>
-<li>n = 4，第 3 条判据在这个行数下几乎达不到。这个「不过」是行数造成的，不能读成「骨架就够」。</li>
-</ul>
-<p><strong>第 4、5 关：样本不足，未判</strong></p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>关</th>
-<th>需要</th>
-<th>v1 实际</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>第 4 关</td>
-<td>每类接触 ≥ 6 行才能查类内方向；全体检验要在多个形状上做整簇抽样</td>
-<td>训练结论档 4 行，来自 4 个样本、全是物体压物体，没有一类够 6 行</td>
-</tr>
-<tr>
-<td>第 5 关</td>
-<td>留出形状的结论档 8–10 行</td>
-<td>1 行（花压平块）；另有 3 个候选还在算细参照</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>v1 不训网络。</strong>在 4 行上训出来的网络什么都判不出来，标了不可信也会被引用。整条管线在这 4 行上跑一遍，只证明能跑通。</li>
-</ul>
-<div class="slot"><b>待填（v2，周一早上）：</b>v2 上第 2–5 关逐关的结果。第 2 关：每形状一行（结论档行数、e_lin 中位 / 最大、在带内的行数）+ 细参照收敛对照；第 3 关：三条判据的数；第 4 关：每个特征一行（原始与偏 Spearman、99.17% 区间、过否、各类方向）；第 5 关：留出形状逐样本骨架与骨架 + 网络的误差、三个中位数及区间、三条判据。每关结论句后标「关 1 未过下的条件性结果」。</div>
-
-<h3 id="w2-5">和 baseline 比</h3>
-
-<ul>
-<li><strong>hydro 的做法</strong>：在每个物体里放一个压力场，表面上是 0，越往里越大。两个物体叠在一起时，重叠的地方每一点取两边压力里小的那个，全部加起来就是能量。</li>
-<li><strong>它在球上的能量是压深的 3 次方，真实的厚物体（Hertz）是 2.5 次方</strong>：</li>
-</ul>
-<p>\[\color{#c0392b}{U_{\text{hydro}}=\frac{\pi kR}{6}\,\delta^{3},\qquad U_{\text{Hertz}}=\frac{8}{15}E^*\sqrt R\,\delta^{5/2}}\]</p>
-
-<ul>
-<li><strong>每个符号</strong>：k 是 hydro 压力场的刚度（压力 = k × 到表面的距离）；R 是球的曲率半径；\(E^*\) 是两边合成的模量。</li>
-<li><strong>次方不对，调参救不了</strong>：hydro 只有一个 k 可以调，只能把整条曲线放大缩小，改不了次方，所以只能在一个压深上对上。</li>
-</ul>
-<details><summary>推导：hydro 的能量是压深的 3 次方</summary><p>设压力场 \(p=k\,d\)，d 是到表面的距离；球（曲率半径 R）压进平面，压深 δ。</p>
-<ol>
-<li>离中心 r 的地方，两个表面重叠的厚度是 \(t=\delta-\dfrac{r^2}{2R}\)。</li>
-<li>沿这条竖线，两边压力各自从自己的表面开始线性涨，在正中间相等，高度 \(kt/2\)。每一点取小的那个，是两个小三角形，面积 \(2\times\tfrac12\cdot\tfrac t2\cdot\tfrac{kt}2=\dfrac{kt^2}{4}\)。</li>
-<li>在整个重叠圆上积分：\(U=\displaystyle\int_0^{\sqrt{2R\delta}}\frac{kt^2}{4}\,2\pi r\,dr\)。</li>
-<li>令 \(u=\dfrac{r^2}{2R}\)，则 \(r\,dr=R\,du\)，上下限 \(u:0\to\delta\)：\(U=\dfrac{\pi kR}{2}\displaystyle\int_0^\delta(\delta-u)^2du\)。</li>
-<li>\(\displaystyle\int_0^\delta(\delta-u)^2du=\dfrac{\delta^3}{3}\)，所以 \(U=\dfrac{\pi kR}{6}\delta^3\)。</li>
-</ol></details>
-<figure style="margin:12px 0"><img src="assets/images/w5t_w5_energy_powers.png" width="1478" height="1173" style="width:529px;max-width:100%;height:auto" alt="同一个球越压越深，三种模型给的能量画在双对数坐标里，所以次方就是斜率。绿线是真实的厚物体（Hertz）\(\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)，斜率 2.5；蓝线是弹簧垫 \(\pi kR/3\cdot\delta^3\)，红线是 hydro \(\pi kR/6\cdot\delta^3\)，两条斜率都是 3，压得越深涨得比真实越快。两条灰虚线是 hydro 的 k 乘 100、除 100：整条线只上下平移，斜率还是 3，所以调 k 只能在一个压深上对上。图里的 R、E*、k 是为了画出形状取的示意值，不是实测。" loading="lazy"><figcaption class="small">同一个球越压越深，三种模型给的能量画在双对数坐标里，所以次方就是斜率。绿线是真实的厚物体（Hertz）\(\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)，斜率 2.5；蓝线是弹簧垫 \(\pi kR/3\cdot\delta^3\)，红线是 hydro \(\pi kR/6\cdot\delta^3\)，两条斜率都是 3，压得越深涨得比真实越快。两条灰虚线是 hydro 的 k 乘 100、除 100：整条线只上下平移，斜率还是 3，所以调 k 只能在一个压深上对上。图里的 R、E*、k 是为了画出形状取的示意值，不是实测。</figcaption></figure>
-<p><strong>兔子上已经看到的</strong>（兔子压平块、压球、压兔子，结论档 28 行，对比值修正后的 IPC 标签）</p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>方法</th>
-<th>误差中位数</th>
-<th>最大</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>骨架</td>
-<td>约 0.8%</td>
-<td>5.3%</td>
-</tr>
-<tr>
-<td>hydro</td>
-<td>约 43%</td>
-<td>943%</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>薄的地方 hydro 差得最多。</strong>兔子压在龙身上很薄的地方，龙那边的变形主要在离接触点很远的地方，是整块在动；hydro 只看重叠区，看不到这部分，硬了 6 到 134 倍。</li>
-<li><strong>IPC 标签是我们自己造的，这张表只作参照</strong>；和 hydro 在原理上比的正式裁判是独立于双方的弹性力学精确解（第 4 节）。</li>
-</ul>
-<p><strong>其它接触模型</strong>：同一批样本上一起比，看骨架多出来的整体项和「接触片各处互相影响」各值多少。</p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>方法</th>
-<th>算进了哪些变形</th>
-<th>要定的参数</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>骨架（我们的）</td>
-<td>局部凹陷 + 整体让开</td>
-<td>无（A 提前算好）</td>
-</tr>
-<tr>
-<td>Hertz</td>
-<td>局部凹陷（等效成一个球）</td>
-<td>无</td>
-</tr>
-<tr>
-<td>半空间边界元</td>
-<td>局部凹陷，接触片各处互相影响</td>
-<td>无</td>
-</tr>
-<tr>
-<td>弹簧垫</td>
-<td>每一小块正下方压扁，互不相干</td>
-<td>层厚</td>
-</tr>
-<tr>
-<td>IPC 势垒（刚体 / 仿射体）</td>
-<td>两表面距离的势垒</td>
-<td>势垒刚度、安全距离</td>
-</tr>
-<tr>
-<td>hydro</td>
-<td>重叠区里的压力场</td>
-<td>刚度 k</td>
-</tr>
-</tbody>
-</table></div>
-<div class="slot"><b>待填（v1 15:00 后、v2 周一）：</b>普通形状上各方法对标签的误差：每个方法一行，结论档行的中位数、最大、超出 ±3.57% 的行数，训练与留出分开；v1 只有 4 + 1 行，只列不评。</div>
-
-<h3 id="w2-6">结论和局限</h3>
-
-<ul>
-<li><strong>兔子上</strong>：骨架的线性部分在 22 行里 21 行和细参照对上；超出的一行是两个软物体的薄部位，现有薄结构公式不适用。</li>
-<li><strong>普通形状上</strong>：细参照的误差带已实测，沿用 ±1.3% / ±3.3%；第 2 关本身 15:00 出，只有物体压物体进了结论档，压平块未检验；第 3 关在 4 行上算不出有意义的结论；第 4、5 关样本不足、未判。所有结论都是「关 1 未过下的条件性结果」，并且只对「接触斑至少盖住骨架 4 个格子的光滑接触」成立。</li>
-<li><strong>hydro 的能量次方不对、看不到整体让开</strong>，这两点是原理上的，不依赖我们的标签；普通形状上它差多少要等 v2 的行数。</li>
-<li><strong>骨架本身的适用范围</strong>（来自第 1 节丢掉的样本）：只处理一处接触；接触处两个相对主曲率都要为正，凹接触进不来；压平块压得深、重叠区超出计算域时算不了。</li>
-</ul>
-<details><summary>组会可能被问的问题</summary><ul>
-<li><strong>第 2 关为什么不用标签比？</strong>骨架是线弹性模型，拿它和线弹性的细参照比，差别只来自骨架自己的近似；和标签比会把大变形混进来，分不清是哪一部分错了。</li>
-<li><strong>网络为什么改每格的 \(w_i\)，不直接输出能量？</strong>改 \(w_i\) 等于把牵连 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\)，问题仍是凸二次规划，能量非负、力是能量导数、越压越硬都自动成立；\(d\equiv1\) 时逐位等于骨架，网络学坏了也只是偏离骨架。</li>
-<li><strong>第 3 关如果判「不过」，是不是就不需要网络了？</strong>在足够的行上不过，才能说骨架已够。v1 只有 4 行，第 3 条判据（某一组至少 3 行超带）几乎不可能满足，这时的「不过」是行数造成的，不能这么读。</li>
-<li><strong>为什么要扣掉 \(a/h\) 再看特征？</strong>骨架和参照都有格距误差，误差会随「接触半径有几个格子」变；不扣掉它，一个特征可能只是因为和格子数相关而显得有用。</li>
-<li><strong>v2 的行够不够？</strong>按已有作业外推，一夜约 45–85 个样本、结论档约 40–70 行，每样本 3 个深度后再乘约 3；这是外推，没有实测。</li>
-<li><strong>骨架的线性部分已经对了，为什么还可能要网络？</strong>骨架只管线性部分，标签里还有大变形那一块。这一块是否系统地超出标签误差带，就是第 3 关要判的；普通形状上要等 v2 的行数。</li>
-</ul></details></section>
-<section id="w3"><h2>文献：有多少公式是已知的</h2>
-<h3 id="w3-1">这一节要回答什么</h3>
-
-<ul>
-<li><strong>骨架的每一步，哪些是接触力学里已有的结果，哪些是我们自己定的。</strong>定下来以后，组会上被问「这一步凭什么」时，能指出原文的式子，或者说清是我们的选择和理由。</li>
-</ul>
-<h3 id="w3-2">怎么做</h3>
-
-<ul>
-<li><strong>模型推导的每一步都对着原文找出处</strong>，来源是力学、机械工程、图形学三方面的调研；式号都对着原文核过，核不到原文的注明了。</li>
-<li><strong>标法统一</strong>：<ul>
-<li><span class="note-src"><strong>【ref】</strong>：有出处，写出是哪篇文献、哪个式子。</span></li>
-<li><span class="note-src"><strong>【无 ref】</strong>：没找到出处，写它是从哪一步、用什么推出来的。</span></li>
-<li><span class="note-src"><strong>【我们定的】</strong>：建模时我们自己做的选择，写理由。</span></li>
-<li><span class="note-cond"><strong>【条件】</strong>：这一步成立需要的前提。</span></li>
-</ul>
+<li>
+<p>\(a\)：接触圆半径；\(R\)：球半径；\(d\)：压深；\(F\)：合力。压得越深 → 接触面越大 → 越压越硬。</p>
 </li>
 </ul>
-<h3 id="w3-3">结果：一张表看完</h3>
+<h3 id="w3-2">skeleton 管到哪</h3>
 
+<ul>
+<li><strong>柔度来自小应变线弹性</strong>；<strong>有压力的格子由求解决定</strong>，在每个状态重新铺的候选格内随压深变化。龙压鸭：重叠格 3229 个，只用半空间项时 1650 个有压力，加 80 个 mode 后 822 个。</li>
+<li>所以接触非线性能算出来：平头 \(F\propto d\)、球 \(F\propto d^{1.5}\)、锥 \(F\propto d^{2}\)（平头和锥对刚性压头成立），较早的二维求解器已对上这三种形状。</li>
+<li><strong>管不到</strong>：材料非线性；几何非线性（半空间解的误差量级是表面斜率的平方）。</li>
+</ul>
+<h3 id="w3-3">非线性弹性怎么接上</h3>
+
+<ul>
+<li>闭式接触解靠线弹性的叠加原理，材料非线性时叠加原理不成立，我们用 IPC 数值求解。</li>
+<li><strong>公式 + 小网络残差</strong>：公式算线弹性部分，IPC（跑 neo-Hookean）给真值，小网络只学两者之差。另一条路是增量线性化：大变形拆成小步，每步在当前状态上用线性公式。</li>
+<li>中等压深、中等整体应变两类就是用来量这个差的，数字在结果节。</li>
+</ul>
+<p class="kp">skeleton 覆盖线弹性下的接触非线性（Hertz 类），材料非线性和几何非线性留给 neural 残差。</p></section>
+<section id="w4"><h2>4. 标准答案（IPC）怎么得到</h2>
+<ul>
+<li><strong>场景与状态</strong>：两物体的精细四面体网格，材料各给 \(E\)、\(\nu\)；每个物体的 12 个 affine DoF 定成目标值（例如上面的物体下移 0.003、0.006、0.012）。</li>
+<li><strong>锁 affine</strong>：每帧用逐顶点外力把质心和体积平均变形梯度 \(\bar F\) 拉回目标值，其余变形放开。</li>
+<li><strong>IPC 求解</strong>：无摩擦接触、stable neo-Hookean，加载后保持，连续 2 帧几乎不动且保持帧数够才停。</li>
+<li>
+<p><strong>读能量</strong>：</p>
+<p>\[\color{#c0392b}{U=\sum_b E^{\text{fine}}_b-\sum_b V_b\Big[\Psi\big(\bar F_b\big)-\tfrac{\mu_b^2}{2\lambda_b}\Big]}\]</p>
+</li>
+<li>
+<p>\(E^{\text{fine}}_b\)：物体 \(b\) 精细网格的弹性能；第二项是粗模型自己已有的能量：\(V_b\) 体积，\(\Psi\) 同一材料的能量密度，\(\mu_b\)、\(\lambda_b\) 是 stable neo-Hookean 的两个材料参数（\(\mu_b=\mu\)，\(\lambda_b=\lambda+\mu\)，\(\mu\)、\(\lambda\) 为 Lamé 常数；\(E=10^5\)、\(\nu=0.3\) 时 \(\lambda_b=96153.8\)），减去 \(\mu_b^2/(2\lambda_b)\) 让静止形状能量为 0。</p>
+</li>
+<li>龙压鸭：\(U=0.00605\)，龙存 0.00437、鸭存 0.00168，粗模型能量只有 \(3.4\times10^{-7}\)。</li>
+<li>
+<p><strong>线性单元偏硬</strong>：薄处和接近不可压时尤其明显。同一网格、同一状态上用二次和线性单元各算一次线弹性能，标准答案乘上二者之比：</p>
+<p>\[\color{#c0392b}{\text{修正后比值}=\frac{U_{\text{skel}}}{U_{\text{IPC}}\times U^{\text{二次}}_{\text{线弹}}/U^{\text{线性}}_{\text{线弹}}}}\]</p>
+</li>
+<li>
+<p>例：一般形状互压、下侧硬 10 倍，二次 / 线性 = 0.899，原始比值 0.926 修正到约 1.031（参照格距还不够细，作参考值）。</p>
+</li>
+<li><strong>网格加密</strong>：兔耳压深 0.048，单元边长 0.13 → 0.10 → 0.07，IPC 能量 0.5483 → 0.5443 → 0.5406，每档降约 0.7%，这部分误差记进区间。</li>
+</ul>
+<p class="kp">标准答案锁住和粗模型相同的 12 个 affine DoF、跑到静止，只取弹性能之差；线性单元偏硬用二次单元的比值修正。</p></section>
+<section id="w5"><h2>5. 预处理</h2>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th>步骤</th>
-<th>内容</th>
-<th>出处情况</th>
+<th>什么时候做</th>
+<th>输入 → 输出</th>
+<th>实测（第一行为兔耳，其余为龙，表面 27930 点）</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>第 1 步</td>
-<td>点力下陷与叠加</td>
-<td>【ref】Popov 等手册</td>
+<td>四面体网格</td>
+<td>每个物体一次</td>
+<td>表面 → 四面体</td>
+<td>兔耳整体加密一档约 1.3 分钟</td>
 </tr>
 <tr>
-<td>第 2 步</td>
-<td>两边的软度相加</td>
-<td>【ref】Popov 等手册</td>
+<td>组装刚度</td>
+<td>每个物体一次</td>
+<td>网格 + \(E\)、\(\nu\) → 刚度、表面载荷</td>
+<td>37 秒</td>
 </tr>
 <tr>
-<td>第 3 步</td>
-<td>压力是一个能量的最大值点</td>
-<td>【ref】Bemporad &amp; Paggi 2015</td>
+<td>半空间矩阵</td>
+<td>每个物体一次</td>
+<td>表面 → 每对表面点之间的半空间柔度</td>
+<td>33 分钟</td>
 </tr>
 <tr>
-<td>第 4 步</td>
-<td>最大值就是弹性能，求导就是力</td>
-<td>【ref】Bemporad &amp; Paggi 2015、包络定理；中间两行是代数推导</td>
+<td>锁 affine 的真实柔度</td>
+<td>每个物体一次</td>
+<td>刚度 → 表面柔度作用</td>
+<td>2.5 分钟</td>
 </tr>
 <tr>
-<td>第 5 步</td>
-<td>整体让开的那部分</td>
-<td>【ref】静力凝聚、惯性释放；只取三个自由度是【我们定的】</td>
+<td>求 mode</td>
+<td>每个物体一次</td>
+<td>两个柔度之差 → \(\sigma_m\)、\(r_m\)</td>
+<td>合计 37 分钟</td>
 </tr>
 <tr>
-<td>第 6 步</td>
-<td>每一格叠进去多少</td>
-<td>【我们定的】</td>
+<td>Krylov 续算</td>
+<td>每个物体一次</td>
+<td>上一步的中间结果 → 更准的 mode</td>
+<td>2 秒</td>
 </tr>
 <tr>
-<td>第 7 步</td>
-<td>网络改哪里</td>
-<td>【我们定的】</td>
+<td>找接触区、铺格、取 mode 值</td>
+<td>运行时，每个状态</td>
+<td>粗状态 → \(h\)、\(w\)、\(C\)</td>
+<td>—</td>
 </tr>
 <tr>
-<td>第 8 步</td>
-<td>标签的比值修正</td>
-<td>【我们定的】</td>
+<td>解二次规划</td>
+<td>运行时，每个状态</td>
+<td>\(C\)、\(w\) → \(p\)、\(U\)</td>
+<td>0.2–1.6 秒</td>
 </tr>
 </tbody>
 </table></div>
-<p class="kp">8 步里前 4 步是接触力学里已有的结果，第 5 步的框架有出处、自由度的取法是我们定的，第 6–8 步是我们自己的建模选择；兔子上出问题的地方，全都在标了【我们定的】的那几步里。</p>
-
-<h3 id="w3-4">我们方法每一步的出处</h3>
-
 <ul>
-<li><strong>设定</strong>：两个物体按粗模型摆好以后，表面会互相叠进去一点。在最近点附近铺一片小方格，第 i 格两个表面叠进去 \(w_i\)，这一格的压强是 \(p_i\)。要算的是真实物体凹下去、把对方让开时存了多少弹性能 U。全程假设线弹性、小变形、没有摩擦。</li>
+<li><strong>大头是半空间矩阵</strong>：表面每两个点之间算一次积分，随点数平方增长。</li>
+<li><strong>每个物体只做一次，只依赖它自己的几何和材料</strong>。</li>
 </ul>
-<h4>第 1 步：表面上按一下，周围怎么陷</h4>
-<ul>
-<li><strong>下陷可以叠加。</strong>表面上某一点陷下去多少，等于各处压强造成的下陷加起来；单个点力造成的下陷随距离按 \(1/r\) 衰减。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w5t_fig03_boussinesq_1_over_r.png" width="1215" height="691" style="width:557px;max-width:100%;height:auto" alt="这张图说明 Boussinesq 点力解的核心：在弹性半空间表面按住一个点，周围一圈都跟着陷下去，离得越远陷得越少。红色箭头是作用在一点上的点力 \(F\)；米色是半空间，上方灰色虚线是它原来的表面。距离 \(r\) 处表面下沉 \(u\)（蓝色标注），到距离 \(2r\) 处只下沉 \(u/2\)：下沉和距离成反比，正对应 \(u=P/(\pi E^*s)\) 里的 \(1/s\)。" loading="lazy"><figcaption class="small">这张图说明 Boussinesq 点力解的核心：在弹性半空间表面按住一个点，周围一圈都跟着陷下去，离得越远陷得越少。红色箭头是作用在一点上的点力 \(F\)；米色是半空间，上方灰色虚线是它原来的表面。距离 \(r\) 处表面下沉 \(u\)（蓝色标注），到距离 \(2r\) 处只下沉 \(u/2\)：下沉和距离成反比，正对应 \(u=P/(\pi E^*s)\) 里的 \(1/s\)。</figcaption></figure>
-<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics: Exact Solutions of Axisymmetric Contact Problems</em>, Springer 2019, 式 2.2（点力解）、式 2.3（叠加）。</span></p>
-<p><span class="note-cond">【条件】把物体当成无限大、表面是平的一块（手册原话是表面坡度 \(\theta\ll1\)，误差约为 \(\theta^2\)）。物体有限大、会整体弯的时候由第 5 步补上。</span></p>
-<h4>第 2 步：两边的软度相加</h4>
-<ul>
-<li><strong>两个弹性体可以换成「一个刚的压头加一个合成模量」</strong>：\(\dfrac1{E^*}=\dfrac{1-\nu_A^2}{E_A}+\dfrac{1-\nu_B^2}{E_B}\)。这就是两边的柔度能直接相加 \(C=C^A+C^B\) 的来源。</li>
-</ul>
-<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.1。</span></p>
-<p><span class="note-cond">【条件】没有摩擦。</span></p>
-<h4>第 3 步：压力是一个能量的最大值点</h4>
-<ul>
-<li><strong>每一格只有两种状态</strong>：要么压着（有压强，而且正好让开），要么没压着（没压强，还留着缝）；压强只能往外推不能往里拉。满足这几条的压强，正好让下面这个式子取到最大：</li>
-</ul>
-<p>\[\color{#c0392b}{U=\max_{p\ge0}\;h^2\Big[p^\top w-\tfrac12p^\top Cp\Big]}\]</p>
-
-<p><span class="note-src">【ref】Bemporad &amp; Paggi, "Optimization algorithms for the solution of the frictionless normal contact between rough surfaces", <em>International Journal of Solids and Structures</em>, 2015, 式 16–19。文中写的是「余能在 \(p\ge0\) 下的最小点」，我们的 U 是它取负号。Kalker 的原文没有核，是经这篇转述的。</span></p>
-<p><span class="note-cond">【条件】C 对称正定。</span></p>
-<h4>第 4 步：这个最大值就是弹性能，对它求导就是力</h4>
-<figure style="margin:12px 0"><img src="assets/images/w5t_w5_cell_energy_max.png" width="2510" height="1244" style="width:847px;max-width:100%;height:auto" alt="两幅图都是单独一格的 \(f(p)=pw-\tfrac12cp^2\)；灰色区域是 \(p&lt;0\)（往里拉），不允许，所以只看蓝色实线。左边这一格叠进去了（w &gt; 0）：抛物线在 \(p=w/c\) 处最高，最大值 \(w^2/2c\)，正好是一根柔度为 c 的弹簧被压缩 w 存的能量。右边这一格还留着缝（w &lt; 0）：曲线从 \(p=0\) 一路往下，最大值就在 \(p=0\)、\(f=0\)，这一格不受压。" loading="lazy"><figcaption class="small">两幅图都是单独一格的 \(f(p)=pw-\tfrac12cp^2\)；灰色区域是 \(p&lt;0\)（往里拉），不允许，所以只看蓝色实线。左边这一格叠进去了（w &gt; 0）：抛物线在 \(p=w/c\) 处最高，最大值 \(w^2/2c\)，正好是一根柔度为 c 的弹簧被压缩 w 存的能量。右边这一格还留着缝（w &lt; 0）：曲线从 \(p=0\) 一路往下，最大值就在 \(p=0\)、\(f=0\)，这一格不受压。</figcaption></figure>
-<ol>
-<li>
-<p>先只看一格，\(f(p)=pw-\tfrac12cp^2\)，求导令它等于 0，得到 \(p=w/c\)，也就是刚好把这一格让开需要的压强。<br />
-    <span class="note-src">【无 ref】对第 3 步的式子求极值。</span></p>
-</li>
-<li>
-<p>把它代回去，\(f=\dfrac{w^2}{c}-\dfrac{w^2}{2c}=\dfrac{w^2}{2c}\)，正好是一根弹簧压缩 w 时存的能量。<br />
-    <span class="note-src">【无 ref】代数代入。</span></p>
-</li>
-<li>
-<p>很多格的时候也一样，压着的那些格满足 \(Cp=w\)，代回去得到 \(U=\tfrac12h^2p^\top Cp\)，也就是弹性能。<br />
-    <span class="note-src">【ref】Bemporad &amp; Paggi 2015, 式 18。</span><br />
-    <span class="note-cond">【条件】同第 3 步。</span></p>
-</li>
-<li>
-<p>U 对 \(w_i\) 求导时，因为在最大值点上 U 对 p 的导数已经是 0，所以只剩下 \(\partial U/\partial w_i=h^2p_i\)，这就是这一格的力。<br />
-    <span class="note-src">【ref】包络定理，Milgrom &amp; Segal, "Envelope theorems for arbitrary choice sets", <em>Econometrica</em> 70(2), 2002, 推论 4。用到我们 \(p\ge0\) 这个集合上是我们的推断。用脚本核过：离散问题的「力 = 能量导数」误差在 \(3\times10^{-10}\) 以内。</span><br />
-    <span class="note-cond">【条件】C 正定。</span></p>
-</li>
-</ol>
-<h4>第 5 步：加上整体让开的那部分</h4>
-<ul>
-<li><strong>真实的柔度 = 无限大物体的柔度 + 一个修正。</strong>这个修正写成「整片平移加两个方向歪」，即 \(C=C_{\text{局部}}+\Phi A\Phi^\top\)，\(\Phi=[1,x,z]\)（第 2 节「架构是什么」）。A 是把有限元的整体柔度投影到这三个自由度上得到的。</li>
-</ul>
-<p><span class="note-src">【ref】把整个结构的刚度缩到少数自由度上，是 Guyan, "Reduction of stiffness and mass matrices", <em>AIAA Journal</em> 3(2), 1965, p.380 的静力凝聚（原文付费，只核了书目）。没有固定面的物体（碰撞那一级）的柔度矩阵，见 Craig &amp; Chang, NASA CR-2781, 1977, 式 140–149。</span></p>
-<p><span class="note-src">【ref】旁证：有限大物体的 Green 函数 = Boussinesq 解 + 一个常数，见 Argatov, <em>JMPS</em> 70, 2014, 式 24；层很厚的时候，有限厚度对点力解的一阶修正也是一个跟距离无关的常数，见 Argatov &amp; Sabina, "Asymptotic analysis of the substrate effect for an arbitrary indenter", <em>Q. J. Mech. Appl. Math.</em> 66(1), 2013, 式 2.5–2.8。这支持「局部加一个整体项」的写法；两个歪的项由我们补上。</span></p>
-<p><span class="note-src">【我们定的】只取平移加两个方向歪这三个自由度，理由是实测够用。</span></p>
-<p><span class="note-cond">【条件】一个物体上只有一处接触；有好几处接触时，要换成片和片之间的矩阵。</span></p>
-<h4>第 6 步：每一格叠进去多少</h4>
-<ul>
-<li><strong>沿法向量两个表面的距离</strong>：这一格比最近点多隔开 \(s_i\)，所以要让开的量是 \(w_i=\delta-s_i\)。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w5t_w5_gap_w.png" width="1588" height="1172" style="width:569px;max-width:100%;height:auto" alt="上面橙色是物体 A，下面绿色是物体 B，两个弯曲的表面叠在一起，红色是叠进去的部分，竖直方向就是法向。最近点（正中间）两面叠进 δ，两条灰虚线是 B 的最高点和 A 的最低点。到第 i 格，A 的表面比它的最低点抬高了 \(f_A\)，B 的表面比它的最高点降低了 \(f_B\)，两段加起来 \(s_i=f_A+f_B\) 就是这一格比最近点多隔开的量，剩下的红色一段就是这一格要让开的 \(w_i=\delta-s_i\)。最下面一排是接触区铺的小方格，第 i 格标蓝。" loading="lazy"><figcaption class="small">上面橙色是物体 A，下面绿色是物体 B，两个弯曲的表面叠在一起，红色是叠进去的部分，竖直方向就是法向。最近点（正中间）两面叠进 δ，两条灰虚线是 B 的最高点和 A 的最低点。到第 i 格，A 的表面比它的最低点抬高了 \(f_A\)，B 的表面比它的最高点降低了 \(f_B\)，两段加起来 \(s_i=f_A+f_B\) 就是这一格比最近点多隔开的量，剩下的红色一段就是这一格要让开的 \(w_i=\delta-s_i\)。最下面一排是接触区铺的小方格，第 i 格标蓝。</figcaption></figure>
-<p><span class="note-src">【我们定的】没找到出处，是我们定的量法。</span></p>
-<p><span class="note-cond">【条件】两个表面在接触区差不多平行。法向转得快的地方（比如耳朵）和凹进去的地方会不太准。</span></p>
-<h4>第 7 步：网络改哪里</h4>
-<ul>
-<li><strong>网络只给每一格一个倍数 \(d_i\)，把这一格要让开的量 \(w_i\) 换成 \(w_i/d_i\)，柔度 C 不改</strong>；它和把牵连 \(C_{ij}\) 换成 \(d_iC_{ij}d_j\) 是同一件事（第 2 节「架构是什么」）。</li>
-</ul>
-<p><span class="note-src">【我们定的】理由：大变形集中在接触区附近，远一点的地方变形小，线弹性是准的，按格修正就够；\(d\equiv1\) 时与骨架逐位相同；仍是同一个凸二次规划，第 3、4 步的结论原样成立。</span></p>
-<p><span class="note-src">【无 ref】两种写法能量相同，由换元 \(p=Dq\) 得到。</span></p>
-<h4>第 8 步：标签的比值修正</h4>
-<ul>
-<li>\(U_{\text{标签}}=U_{\text{IPC}}\times U_{\text{好单元}}/U_{\text{简单单元}}\)，见第 1 节「标签」。</li>
-</ul>
-<p><span class="note-src">【我们定的】理由是在同一张网格上，简单单元偏硬的原因对线弹性和对 IPC 是一样的；实测修正以后，不同网格的结果收到了一起。</span></p>
-<p><span class="note-cond">【条件】非线性不能太大，太大时要另外核。</span></p>
-<h3 id="w3-5">这个方向上已有的公式</h3>
+<p class="kp">预处理每个物体一次、只看自己的几何和材料；目前 37 分钟，大头是稠密的半空间矩阵，需要提速。</p></section>
+<section id="w6"><h2>6. mode 怎么求</h2>
+<h3 id="w6-1">mode 是什么</h3>
 
 <ul>
-<li><strong>下面是接触力学、结构力学和图形学里跟我们直接有关的结果</strong>，默认前提跟上一小节一样。</li>
+<li><strong>剩余柔度</strong>：真实下沉 = 无限大弹性体给的下沉 + 有限大小、边界、薄处带来的额外下沉；后者在光滑表面处是光滑的，能用少数几个表面振型表示（棱、角、尖端处这一点不成立）。</li>
+<li><strong>自由漂浮、只锁 12 个 affine DoF</strong>：整体移动和仿射变形归粗模型管，接触项不重复算。</li>
 </ul>
-<h4>平底圆柱压进去</h4>
-<ul>
-<li><strong>力和压深成正比</strong>：半径 a 的平底压进软的平面，压深 δ，力是 \(F=2E^*a\,\delta\)。底面大小不变，所以力跟压深成正比；边缘处的压强按 \(1/\sqrt{a^2-r^2}\) 趋于无穷。</li>
-</ul>
-<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.20–2.22。</span></p>
-<p><span class="note-cond">【条件】压头是刚的（手册原文强调只对刚性压头严格成立）。</span></p>
-<ul>
-<li><strong>带圆角的平底也有精确解。</strong></li>
-</ul>
-<p><span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.97–2.99。</span></p>
-<h4>球压进去（Hertz）</h4>
-<ol>
-<li>
-<p>球压进平面，力是 \(F=\tfrac43E^*\sqrt R\,\delta^{3/2}\)。压得越深，接触面积也越大，所以力比线性涨得快。<br />
-    <span class="note-src">【ref】Popov, Heß &amp; Willert, <em>Handbook of Contact Mechanics</em>, Springer 2019, 式 2.34（式 2.29 是用接触半径写的同一个力）。</span></p>
-</li>
-<li>
-<p>对力积分得到能量：\(U=\int_0^\delta F\,d\delta&#x27;=\tfrac43E^*\sqrt R\cdot\tfrac25\delta^{5/2}=\tfrac{8}{15}E^*\sqrt R\,\delta^{5/2}\)。<br />
-    <span class="note-src">【ref】Popov, Heß &amp; Willert 2019, 式 2.35。</span></p>
-</li>
-<li>
-<p>压得越深越硬，对任意形状的接触区都成立。<br />
-    <span class="note-src">【ref】Barber, "Bounds on the electrical resistance between contacting elastic rough bodies", <em>Proc. R. Soc. A</em> 459, 2003, 定理 4.1。</span></p>
-</li>
-</ol>
-<h4>薄层：弹簧垫</h4>
-<ul>
-<li><strong>很薄的软层像一床互不相干的弹簧。</strong>一层软材料铺在硬的底座上，如果这层很薄，每一小块只能被直接压扁，力来不及传到旁边。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w5t_w5_winkler_layer.png" width="2646" height="1167" style="width:952px;max-width:100%;height:auto" alt="两边是同一个刚球、同样的压深。左边是一大块厚的软材料，球压下去以后，接触区外面的表面也跟着往下陷（红箭头），各处互相牵连。右边是一层很薄的软层铺在硬底座上、底面能滑：这层像一床弹簧，每一小块只被正上方直接压扁，球底下的蓝色弹簧被压短，旁边的灰色弹簧不动。每单位面积的刚度 \(k=E&#x27;/t\)，t 是层厚。" loading="lazy"><figcaption class="small">两边是同一个刚球、同样的压深。左边是一大块厚的软材料，球压下去以后，接触区外面的表面也跟着往下陷（红箭头），各处互相牵连。右边是一层很薄的软层铺在硬底座上、底面能滑：这层像一床弹簧，每一小块只被正上方直接压扁，球底下的蓝色弹簧被压短，旁边的灰色弹簧不动。每单位面积的刚度 \(k=E&#x27;/t\)，t 是层厚。</figcaption></figure>
-<ol>
-<li>
-<p>底面能滑动的时候，每单位面积的刚度是 \(k=E&#x27;/t\)，\(E&#x27;=E/(1-\nu^2)\)，t 是层厚。<br />
-    <span class="note-src">【ref】Ciavarella &amp; Papangelo, "Ultrastrong adhesion in the contact with thin elastic layers on a rigid foundation", arXiv:1801.00677, 2018, 式 3（原文式 3 印刷漏了 \(1/t\)，可由同文式 5 反推）。</span><br />
-    <span class="note-cond">【条件】层厚比接触圈小得多。</span></p>
-</li>
-<li>
-<p>底面粘住的时候，\(k=\dfrac{E(1-\nu)}{(1+\nu)(1-2\nu)\,t}\)。\(\nu\to0.5\) 时 \(k\to\infty\)，因为材料不可压、又被底座夹住，这时弹簧垫模型就失效了。<br />
-    <span class="note-src">【ref】Argatov, Mishuris &amp; Popov, "Asymptotic modelling of the JKR adhesion contact for a thin elastic layer", <em>Q. J. Mech. Appl. Math.</em> 69(2), 2016, 式 13。</span><br />
-    <span class="note-cond">【条件】层厚比接触圈小得多，材料不能接近不可压。</span></p>
-</li>
-<li>
-<p>球压深 δ 时，离中心 r 的地方弹簧压缩了 \(\delta-\dfrac{r^2}{2R}\)，存的能量是 \(\tfrac12k\big(\delta-\tfrac{r^2}{2R}\big)^2\)。<br />
-    <span class="note-src">【无 ref】由第 1 步和球面的几何推出。</span></p>
-</li>
-<li>
-<p>在面积上积分，换元方法跟第 2 节 hydro 的推导一样，得到 \(U=\dfrac{\pi kR}{3}\delta^3\)。<br />
-    <span class="note-src">【ref】力 \(F=\pi kR\delta^2\) 见 Argatov, Mishuris &amp; Popov 2016, 式 28–30（取粘附项为 0），能量是对它积分。</span></p>
-</li>
-<li>
-<p><strong>hydro 就是一床弹簧垫。</strong>hydro 在球上算出来是 \(\tfrac{\pi kR}{6}\delta^3\)，跟弹簧垫的形式完全一样，只差一个系数。所以 hydro 对薄层是对的，对厚物体就不对了。</p>
-</li>
-</ol>
-<p><span class="note-src">【ref】「hydro 是弹簧垫」这个说法 Elandt 2019 §II 自己就写了；\(1/6\) 对 \(1/3\) 的系数对比没找到出处，由第 2 节 hydro 的推导和上面第 4 条对比得出。</span></p>
-<h4>两处接触互相影响</h4>
-<ul>
-<li><strong>每一处的压深 = 自己压的 + 别处带下去的。</strong>一处受力会把远处的表面也压下去一点（就是第 1 步那个点力的解）。</li>
-</ul>
-<p><span class="note-src">【ref】逐点叠加点力解是 Ciavarella, Delfine &amp; Demelio, <em>JMPS</em> 54(12), 2006；Ciavarella, Greenwood &amp; Paggi, "Inclusion of 'interaction' in the Greenwood and Williamson contact theory", <em>Wear</em> 265, 2008, pp.729–734 把它化成均匀的形式。</span></p>
-<p><span class="note-cond">【条件】只取一阶相互作用（点力的远场近似）。</span></p>
-<ul>
-<li><strong>我们直接在整个接触面上铺格子算。</strong>两处挨得近的时候这个近似差 0.7% 到 0.8%，铺格子算只差 0.04%。</li>
-<li><strong>不能重复计入。</strong>Ciavarella 2008 里的「均匀下沉项」是半空间里格与格之间的耦合，对应的是我们 \(C_{\text{局部}}\) 里已经有的部分，不是整体项，不能在 \(C_{\text{局部}}\) 之外再加一遍。</li>
-</ul>
-<h4>碰撞时最大压深怎么随速度变</h4>
-<ol>
-<li>
-<p>撞得够慢的话，动能会全部变成接触能：\(\tfrac12mv^2=\tfrac{8}{15}E^*\sqrt R\,\delta_{\max}^{5/2}\)。<br />
-    <span class="note-src">【ref】Popov, Heß &amp; Willert 2019, 式 2.36。</span><br />
-    <span class="note-cond">【条件】手册原文：撞击速度远小于弹性波速，弹性波带走的能量可以忽略。有限大的物体还要撞击时间比物体自己振一下的时间长得多（Love《A Treatise on the Mathematical Theory of Elasticity》第 4 版第 139 节）；留在物体振动里的能量约为「速度 ÷ 波速」的 1/50（Rayleigh 1906, <em>Phil. Mag.</em> 11）。</span></p>
-</li>
-<li>
-<p>两边开 2.5 次方，得到 \(\delta_{\max}\propto v^{0.8}\)，接触时间 \(t_S\approx2.94\,\delta_{\max}/v\)。<br />
-    <span class="note-src">【ref】Popov, Heß &amp; Willert 2019, 式 2.37；一般形状见式 2.69–2.70。</span></p>
-</li>
-</ol>
-<h4>把大物体缩成几个自由度</h4>
-<ul>
-<li><strong>静力凝聚</strong>只留下少数几个自由度，其余的按静力平衡消掉，我们的整体项 A 就是这么来的。</li>
-</ul>
-<p><span class="note-src">【ref】Guyan, "Reduction of stiffness and mass matrices", <em>AIAA Journal</em> 3(2), 1965, p.380。</span></p>
-<p><span class="note-cond">【条件】线弹性，被消掉的那部分没有惯性（跟上面「撞得够慢」是一回事）。</span></p>
-<ul>
-<li><strong>再留几个振动模态，动力学也能缩。</strong>以后如果想让粗模型自己带上弯曲，比如把耳朵的弯交给粗模型来管，用的就是这个。</li>
-</ul>
-<p><span class="note-src">【ref】Craig &amp; Bampton, "Coupling of substructures for dynamic analyses", <em>AIAA Journal</em> 6(7), 1968, pp.1313–1319（原文付费，只核了书目）。</span></p>
-<p><span class="note-cond">【条件】线弹性。</span></p>
-<ul>
-<li><strong>物体在动时用「惯性释放」定义整体柔度</strong>：先把载荷减掉刚体加速度对应的惯性力，变成自平衡的载荷，再只加最少的约束去解。</li>
-</ul>
-<p><span class="note-src">【ref】Cavaliere 等, "Nonintrusive reduced order model for parametric solutions of inertia relief problems", arXiv:2012.01961, 2020, §3 式 11–20；矩阵写法见 Craig &amp; Chang, NASA CR-2781, 1977, 式 140–149。</span></p>
-<h4>图形学和机械里最接近的做法</h4>
-<ul>
-<li><strong>Pauly, Pai &amp; Guibas 2004（准刚体接触，SCA）</strong>：和我们一样是刚体加接触处的局部变形，用同一个 \(1/r\) 核，两边响应相加，压力由「压着或留缝」的互补条件求。我们多了有限物体的整体项和能量形式（能量形式可以直接放进牛顿求解）。</li>
-<li><strong>Duriez 等 2006（IEEE TVCG）</strong>：也是「局部柔度 + 低秩项」，低秩项来自刚体惯性，柔度由有限元刚度矩阵求逆得到。</li>
-<li><strong>James &amp; Pai 1999 / 2003</strong>：capacitance matrix 就是物体 Green 函数在接触点上的那一块，存整只物体的稠密矩阵，物体有固定支座。</li>
-<li><strong>Rückwald, Held &amp; Seifried 2021 / 2023（柔性多体动力学）</strong>：接触区的局部变形当静力处理，物体的低阶振动保留完整动力学。</li>
-</ul>
-<p class="kp">接触力学已经给了骨架的每一块砖：点力解、合成模量、能量最大值形式、静力凝聚；我们的工作是把它们拼成一个能放进引擎的能量，并补上有限大物体的整体项。</p>
+<h3 id="w6-2">方程</h3>
 
-<h3 id="w3-6">结论和局限</h3>
+<p>已知：物体的四面体网格、\(E\)、\(\nu\)；求：前 \(k\) 个 mode 的柔度 \(\sigma_m\) 和表面值 \(r_m\)。</p>
+
+<p>\[\begin{cases}\color{#c0392b}{K_{\text{lock}}:\ \text{锁住 12 个 affine DoF 后，表面帽函数压强 → 表面位移的线弹性柔度}} &amp; \color{#c0392b}{(7)}\\[6pt] \color{#c0392b}{H_{ij}=\displaystyle\iint\frac{\phi_i(x)\,\phi_j(y)}{\pi E&#x27;\,|x-y|}\,dA_x\,dA_y} &amp; \color{#c0392b}{(8)}\\[10pt] \color{#c0392b}{W=\mathrm{diag}\Big(\textstyle\int\phi_i\,dA\Big)} &amp; \color{#c0392b}{(9)}\end{cases}\]</p>
+<p>\[\color{#c0392b}{\Longrightarrow\ W^{-1/2}\big(K_{\text{lock}}-H\big)W^{-1/2}\,v_m=\sigma_m v_m,\qquad r_m=W^{-1/2}v_m}\]</p>
+<p>式 (7)：真实柔度。表面每个顶点放一个帽函数 \(\phi_i\)（该顶点处为 1、向相邻顶点线性降到 0）；\(K_{\text{lock}}\) 的 \((i,j)\) 元是「\(j\) 处帽函数压强在 \(i\) 处产生的位移」按帽函数加权的积分，位移由锁住 affine 的线弹性问题解出。</p>
+
+<p>式 (8)：同一组帽函数下的半空间柔度，把式 (4) 在两个帽函数上积分；积分方式和 \(K_{\text{lock}}\) 相同，两者才能直接相减。</p>
+
+<p>式 (9)：每个表面点管的面积（帽函数的积分），用它把大小不同的三角形拉平，相减后是对称的特征值问题。</p>
+
+<p>结果：取绝对值最大的 \(k\) 个特征值 \(\sigma_m\) 和特征向量，\(G_R\approx\sum_m\sigma_mr_mr_m^\top\)。\(\sigma_m&gt;0\)：这个振型上真实物体比无限大弹性体软；\(\sigma_m&lt;0\)：更硬。龙的 80 个 mode 里 5 个为负，鸭的 80 个里 29 个为负。</p>
+
+<h3 id="w6-3">怎么解</h3>
 
 <ul>
-<li><strong>结论</strong>：骨架的前 4 步（点力解、合成模量、能量最大值形式、能量求导是力）都是接触力学已有的结果；整体项的框架（静力凝聚、惯性释放）有出处，只取三个自由度是我们定的；叠进量的量法、网络改哪里、标签的比值修正是我们自己的建模选择。</li>
-<li><strong>局限</strong>：Kalker 的原文没有核，是经 Bemporad &amp; Paggi 2015 转述的；Guyan 1965 和 Craig &amp; Bampton 1968 原文付费，只核了书目；包络定理用到 \(p\ge0\) 这个集合上是我们的推断，用脚本数值核过。</li>
+<li>每乘一次 \(K_{\text{lock}}\) 都要解一次大的线弹性方程，所以只能「乘几次」。</li>
+<li><strong>随机化求特征值</strong>：\(k+20\) 个随机向量乘一次，再反复乘 4 次让大的特征方向浮出来，在子空间里解小特征值问题。</li>
+<li><strong>块 Krylov 续算</strong>：把每次乘出来的结果拼成一个大子空间（龙 479 维）再解一次，不多乘就得到更准的 mode。</li>
+<li><strong>合格判据</strong>：每个 mode 的 Ritz 残差（离真特征向量的相对距离）不超过 1%；所用前 \(k\) 个都满足，\(k\) 才合格。</li>
+<li>龙压鸭：续算后两个物体的 80 个 mode 全部合格，最大残差 \(2.5\times10^{-4}\)；原来只乘 2 次时，鸭从第 20 个 mode 起就不合格，只能用 19 个。</li>
 </ul>
-<details><summary>组会可能被问的问题</summary><ul>
-<li><strong>骨架和 Pauly 2004 的准刚体接触有什么区别？</strong>局部部分是同一个 \(1/r\) 核、同一个「压着或留缝」的条件；骨架多了有限大物体的整体项，并写成能量最大值的形式，能量和力可以直接放进牛顿求解。</li>
-<li><strong>为什么整体项只取平移和两个方向的歪？</strong>实测够用：一个物体一处接触时，这三个自由度已经把整体柔度补回来；有好几处接触时换成片和片之间的矩阵。</li>
-<li><strong>hydro 和弹簧垫是什么关系？</strong>在球上两者能量形式完全一样，都是压深的 3 次方，只差系数 1/6 对 1/3；所以 hydro 对薄层是对的，对厚物体次方就不对。</li>
-</ul></details></section>
-<section id="w4"><h2>理想情况下的 test case</h2>
-<h3 id="w4-1">这一节要回答什么</h3>
+<h3 id="w6-4">同一组 mode 里多用几阶，比值为什么会降</h3>
 
-<ul>
-<li><strong>骨架和 hydro 都是近似，当裁判的答案必须独立于两边。</strong>所以只用弹性力学里有精确解（或解析解）的接触问题，检验公式和骨架本身。</li>
-<li><strong>它们和普通形状数据集分开</strong>：理想构型（半空间、粘底薄层、薄板、碰撞）只用来检验，不放进训练数据。</li>
-</ul>
-<h3 id="w4-2">怎么做</h3>
+<p>已知：两个柔度矩阵 \(C_1\)、\(C_2\)，\(C_2-C_1\) 半正定；求：两者能量的大小关系。</p>
 
-<ul>
-<li><strong>单个压头和两处接触</strong>：和手册里的精确解逐个比能量、力和压强分布；求解器另外和开源接触库 ContactMechanics 逐个值对。</li>
-<li><strong>三种理想托法</strong>：同一个刚球压中心，看骨架的线性部分能不能用有出处的公式闭合，再看 IPC 标签相对线弹性剩下的非线性有多大。</li>
-<li><strong>碰撞</strong>：软球以不同速度撞平块，看最大压深随速度的次方，这一项不需要任何标签。</li>
-</ul>
-<h3 id="w4-3">结果：有精确解的接触问题</h3>
+<p>\[\color{#c0392b}{C_1\preceq C_2\ \Longrightarrow\ U(C_2)\le U(C_1)}\]</p>
+<p>结果：对任意 \(p\)，\(p^\top w-\tfrac12p^\top C_2p\le p^\top w-\tfrac12p^\top C_1p\)，取最大也保持。同一组 mode 里多加一个 \(\sigma_m&gt;0\) 的阶，就是给 \(C\) 加一个半正定项 → skeleton 变软 → 能量不增；多加一个 \(\sigma_m&lt;0\) 的阶 → 能量不减。</p>
 
 <div class="tablewrap"><table>
 <thead>
 <tr>
-<th>情况</th>
+<th>用的 mode 数</th>
+<th>skeleton ÷ IPC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>2.157</td>
+</tr>
+<tr>
+<td>5</td>
+<td>0.935</td>
+</tr>
+<tr>
+<td>19</td>
+<td>0.868</td>
+</tr>
+<tr>
+<td>40</td>
+<td>0.863</td>
+</tr>
+<tr>
+<td>79</td>
+<td>0.85678</td>
+</tr>
+<tr>
+<td>80</td>
+<td>0.85684</td>
+</tr>
+</tbody>
+</table></div>
+<p class="setting muted">设置：龙压鸭，压深 0.003，80 个 mode 全部合格。</p>
+<ul>
+<li>总体随 mode 数下降；79 → 80 升一点，因为龙和鸭的第 80 个 mode 柔度都是负的。</li>
+<li>越往后降得越慢：mode 按 \(|\sigma|\) 从大到小排，龙第 1 个是 0.0152，第 80 个约 \(2.6\times10^{-5}\)。</li>
+<li><strong>换一组 mode</strong>（比如换成更准的 80 个）时 mode 本身变了，这个关系不适用，比值可升可降：兔背压平块（平块硬 10 倍）从 0.908 升到 0.931，平块硬 1000 倍的从 0.904 升到 0.930。</li>
+<li>被截掉的 mode 柔度全为正时，截断让 skeleton 偏硬。</li>
+</ul>
+<p class="kp">mode 是「锁住 affine 后的真实表面柔度 − 半空间柔度」的主要特征方向；同一组 mode 里加正柔度的阶只会让 skeleton 变软，合格 mode 要够多。</p></section>
+<section id="w7"><h2>7. 结果</h2>
+<h3 id="w7-1">怎么判对不对</h3>
+
+<figure style="margin:12px 0"><img src="assets/images/w5t_F5_tier_rule.png" width="2371" height="1034" style="width:100%;max-width:100%;height:auto" alt="黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。" loading="lazy"><figcaption>黑点是原始比值，彩条是修正后区间：整条落在灰带里是基本对，原始比值在带内是待定·误差小，在带外是待定·误差大。</figcaption></figure>
+<ul>
+<li><strong>skeleton 能量 ÷ 标准答案，落在 0.9 到 1.1 之间算对。</strong></li>
+<li>标准答案自己有误差（线性单元偏硬、平块网格、格距、mode 截断），每个算例给修正后的一个区间：整段在 0.9–1.1 里记基本对；跨过边界，或整段在带外但还没测完，记待定；测完、确定是公式本身算不准，才记明显不对。</li>
+</ul>
+<h3 id="w7-2">总表</h3>
+
+<div class="tablewrap"><table>
+<thead>
+<tr>
 <th>结果</th>
+<th>算例数</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>单个压头：球、平底、圆锥、幂律形状、椭圆</td>
-<td>误差大多在千分之一以下（平底尖边 0.38%，带圆角的平底 ≤ 0.5%）</td>
+<td>基本对</td>
+<td>39</td>
 </tr>
 <tr>
-<td>两处接触挨在一起</td>
-<td>骨架差 0.04%，手写耦合公式差 0.7%–0.8%</td>
+<td>待定，原始比值已在 0.9–1.1 内</td>
+<td>25</td>
 </tr>
 <tr>
-<td>薄层 → 中间厚度 → 很厚（回到 Hertz）</td>
-<td>都对上</td>
+<td>待定，原始比值在带外</td>
+<td>12</td>
 </tr>
 <tr>
-<td>应该成立的性质：越压越硬、力是能量的导数、两个弯曲方向对调不变、两块接触连成一块时能量不跳</td>
-<td>都成立</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>两处接触那一行直接说明</strong>：要在整个接触面上铺格子算，不靠手写的耦合公式。</li>
-<li><strong>求解器另外和开源接触库 ContactMechanics 一个个值对过</strong>：Hertz 和平底 15 个例子、兔子 24 个例子，全部一致。</li>
-</ul>
-<p class="kp">能写出精确答案的理想情况，骨架测过的都对上了。</p>
-
-<h3 id="w4-4">结果：半空间、粘底薄层、薄板</h3>
-
-<ul>
-<li><strong>三种理想托法，同一个刚球压中心</strong>，看骨架的线性部分是否闭合、IPC 标签里剩下的非线性有多大。标签和第 1 节同一套冻结配方。</li>
-<li><strong>半空间（很厚的块）</strong>：骨架就是半空间公式本身，线性部分精确；标签相对线弹性剩下的非线性比粘底薄层小得多，随压深变大。</li>
-<li><strong>粘底薄层</strong>：底面粘在刚性底座上的一层软材料，层越薄越像一床弹簧（第 3 节「薄层：弹簧垫」）。厚的一头回到 Hertz、薄的一头回到弹簧垫，中间两个公式都不准；线性部分用精确的层核闭合（上面表里「薄层 → 中间厚度 → 很厚」一行）。<ul>
-<li><strong>压得深的行，标签相对线弹性的非线性残差明显超出标签误差带</strong>，是真信号、不是标签噪声。</li>
-<li><strong>只用「接触半径 / 球半径」和层厚做特征，拟合不进每一行的误差带。</strong></li>
-<li><strong>最好的是一参数修正</strong>：残差 \(e=c\cdot(a/R)\cdot\rho\)，ρ 是骨架约束比（层核骨架能量 ÷ 半空间核骨架能量，半空间上 ρ = 1）。每次留一行拟合、预测这一行，最大差 0.88 个百分点；但按逐行判据（每行差 ≤ 0.5 个百分点或它自己的误差带），所有候选都没过。</li>
-</ul>
-</li>
-<li><strong>薄板（周边固支、底面自由）</strong>：板会整体弯，骨架的局部部分仍用半空间核，整体弯曲用固支圆板的 Green 函数叠加上去，再加秩 3 整体项。骨架对 P2 落在灰区：在判据门槛以内，但还没到能硬判「过」的精度。</li>
-</ul>
-<p>\[w(x;\xi)=\frac{P\,R_p^2}{16\pi D_{\text{板}}}\,H\!\left(\frac{x}{R_p},\frac{\xi}{R_p}\right)\]</p>
-
-<p>\[D_{\text{板}}=\frac{Et^3}{12(1-\nu^2)}\]</p>
-
-<ul>
-<li><strong>每个符号</strong>：\(w(x;\xi)\) 是在 ξ 处加点力 P 时 x 处的挠度；\(R_p\) 是板半径，t 是板厚，\(D_{\text{板}}\) 是板的弯曲刚度（板厚的 3 次方，薄一半软八倍）；H 是单位圆上的双调和 Green 函数，在边上挠度和斜率都是 0（固支）。</li>
-</ul>
-<p><span class="note-src">【ref】固支圆板 Green 函数：Begehr, "Biharmonic Green functions", <em>Le Matematiche</em> 61(2), 2006, p.401；中心载荷时与 Love《A Treatise on the Mathematical Theory of Elasticity》第 4 版 §305 式 (58) 逐项一致。</span></p>
-<p><span class="note-src">【我们定的】局部用半空间核、整体弯曲用板的 Green 函数叠加，是我们的模型选择，两块各自有出处。</span></p>
-<p><span class="note-cond">【条件】Kirchhoff 薄板：不含横向剪切和厚度方向的压缩。</span></p>
-<p><strong>半空间和粘底薄层：IPC 标签相对线弹性剩下的非线性</strong></p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>情况</th>
-<th>行数</th>
-<th>非线性残差</th>
-<th>残差 ÷ 标签误差带</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>半空间（很厚的块）</td>
-<td>2</td>
-<td>+0.43%、+0.60%</td>
-<td>0.9、4.2</td>
+<td>明显不对</td>
+<td>0</td>
 </tr>
 <tr>
-<td>粘底薄层，浅压（\(\delta/R\) 0.005、0.012）</td>
+<td>标准答案待补</td>
 <td>6</td>
-<td>+0.27% 到 +0.87%</td>
-<td>0.3 到 1.3</td>
-</tr>
-<tr>
-<td>粘底薄层，深压（\(\delta/R\) 0.025 到 0.1）</td>
-<td>8</td>
-<td>+1.46% 到 +2.41%</td>
-<td>3.1 到 6.8</td>
 </tr>
 </tbody>
 </table></div>
 <ul>
-<li>深压的行全部明显超出误差带，说明这部分非线性是真信号，比标签自身的误差大得多。</li>
+<li>平块一侧的 skeleton 只用半空间项；这一项对平块格的影响正在用一格实测量化。</li>
 </ul>
+<h3 id="w7-3">判定档变化的算例（换成 80 个合格 mode 后）</h3>
+
 <div class="tablewrap"><table>
 <thead>
 <tr>
-<th>修正方式</th>
-<th>每次留一行预测，最大差</th>
-<th>均方根差</th>
-<th>每次留一族预测，最大差</th>
+<th>算例</th>
+<th>原始比值（前 → 后）</th>
+<th>修正后区间（后）</th>
+<th>判定</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>一个常数</td>
-<td>1.24 个百分点</td>
-<td>0.85</td>
-<td>1.32</td>
+<td>龙压鸭，压深 0.006</td>
+<td>0.898 → 0.885</td>
+<td>[0.960, 1.097]</td>
+<td>待定 → 基本对</td>
 </tr>
 <tr>
-<td>\(e=c\cdot(a/R)\cdot\rho\)</td>
-<td>0.88 个百分点</td>
-<td>0.50</td>
-<td>1.13</td>
+<td>兔头压平块，平块硬 1000 倍</td>
+<td>0.980 → 0.958</td>
+<td>[0.964, 1.088]</td>
+<td>待定 → 基本对</td>
+</tr>
+<tr>
+<td>凹面鞍面处接触</td>
+<td>0.919 → 0.900</td>
+<td>[0.917, 1.094]</td>
+<td>待定 → 基本对</td>
+</tr>
+<tr>
+<td>尖处压龙，压深 0.006</td>
+<td>0.995 → 0.935</td>
+<td>[1.003, 1.072]</td>
+<td>待定 → 基本对</td>
+</tr>
+<tr>
+<td>尖处压龙，压深 0.012</td>
+<td>1.040 → 0.963</td>
+<td>[1.026, 1.096]</td>
+<td>待定 → 基本对</td>
+</tr>
+<tr>
+<td>一般形状尖处互压</td>
+<td>0.964 → 0.950</td>
+<td>[1.027, 1.098]</td>
+<td>待定 → 基本对</td>
+</tr>
+<tr>
+<td>尺寸比，压深 0.012</td>
+<td>0.998 → 0.961</td>
+<td>[1.036, 1.065]</td>
+<td>待定 → 基本对</td>
+</tr>
+<tr>
+<td>龙压兔子（兔子大 3.6 倍），压深 0.006</td>
+<td>0.923 → 0.882</td>
+<td>[0.897, 1.002]</td>
+<td>基本对 → 待定</td>
+</tr>
+<tr>
+<td>一侧薄的一般形状，压深 0.003</td>
+<td>0.937 → 0.895</td>
+<td>[0.984, 1.202]</td>
+<td>待定·误差小 → 待定·误差大</td>
+</tr>
+<tr>
+<td>一般形状凹面鞍面处接触</td>
+<td>0.993 → 0.888</td>
+<td>[0.893, 1.078]</td>
+<td>待定·误差小 → 待定·误差大</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>薄板：骨架加上板的弯曲以后</strong>（板厚 0.1，骨架对 P2 的误差）</p>
+<ul>
+<li>7 个从待定变成基本对；1 个从基本对变成待定，它的区间下沿从 0.902 降到 0.897，刚跨出 0.9；2 个仍待定，原始比值移出了 0.9–1.1。</li>
+</ul>
+<h3 id="w7-4">中等压深与中等整体应变</h3>
+
 <div class="tablewrap"><table>
 <thead>
 <tr>
-<th>压深</th>
-<th>只用半空间核 + 整体项：能量 / 力</th>
-<th>加板的 Green 函数：能量 / 力</th>
+<th>算例</th>
+<th>原始比值</th>
+<th>修正后区间</th>
+<th>判定</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>0.0125</td>
-<td>+24.4% / +23.5%</td>
-<td>+0.41% / +0.58%</td>
+<td>一般形状压平块（一），压深 0.1</td>
+<td>0.930</td>
+<td>[0.932, 1.061]</td>
+<td>基本对</td>
 </tr>
 <tr>
-<td>0.09</td>
-<td>−3.0% / −11.4%</td>
-<td>−1.12% / −1.31%</td>
+<td>一般形状压平块（二），压深 0.1</td>
+<td>1.015</td>
+<td>[1.017, 1.234]</td>
+<td>待定·误差小</td>
+</tr>
+<tr>
+<td>兔头压平块，压深 0.1</td>
+<td>1.013</td>
+<td>[1.019, 1.150]</td>
+<td>待定·误差小</td>
+</tr>
+<tr>
+<td>兔背压平块，压深 0.024</td>
+<td>0.927</td>
+<td>[0.933, 1.052]</td>
+<td>基本对</td>
+</tr>
+<tr>
+<td>兔背压平块，压深 0.048</td>
+<td>0.910</td>
+<td>[0.916, 1.033]</td>
+<td>基本对</td>
+</tr>
+<tr>
+<td>兔背压平块，压深 0.1</td>
+<td>0.874</td>
+<td>[0.880, 0.992]</td>
+<td>待定·误差大</td>
+</tr>
+<tr>
+<td>兔头整体应变 1% 再压</td>
+<td>0.933</td>
+<td>[0.939, 1.133]</td>
+<td>待定·误差小</td>
 </tr>
 </tbody>
 </table></div>
 <ul>
-<li>加上板的弯曲以后，两档压深都回到 2% 以内；但没到能硬判「过」的 0.5%，所以算灰区。参照自己换格距时在深压那档还会变 0.6%–1.0%。</li>
+<li>中等压深：6 个算例 3 个基本对、3 个待定。</li>
+<li>中等整体应变：应变 1% 的兔头算例待定；应变 1%–5% 的另外 5 个算例 IPC 还停不下来，标准答案待补。</li>
 </ul>
-<p class="kp">理想托法上，线性部分都能用有出处的公式闭合；留下的只有和压深、约束程度有关的那一小块非线性，正是网络要学的量。</p>
+<h3 id="w7-5">每类一个例子</h3>
 
-<h3 id="w4-5">结果：碰撞时最大压深随速度的次方</h3>
-
+<details><summary>整体转动：把兔头压平块的整个场景转 45°，检验 skeleton 的结果和摆放方向无关。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S2_rot45_1_before.png" width="1839" height="680" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>整体转动 · 0.929 → [0.935, 1.054] · 基本对</p></details>
+<details><summary>尖：用兔耳的尖端斜着压平块，接触区很小、应力很集中（只作参考）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ear_o_S3_1_before.png" width="1840" height="665" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>尖 · 0.896 → [0.978, 1.140] · 待定·误差大</p></details>
+<details><summary>棱：用 CAD 零件的一条棱压平块，接触面在棱的两侧不光滑。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E2_orh2_010_S3_1_before.png" width="1840" height="644" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>棱 · 1.109 → [1.116, 1.259] · 待定·误差大</p></details>
+<details><summary>面贴面：CAD 零件上一块几乎平的面压到平块上，接触区是一整片面。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_E1_orh2_007_S3_1_before.png" width="1840" height="666" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>面贴面 · 0.913 → [0.919, 1.037] · 基本对</p></details>
+<details><summary>一侧薄：兔耳这种薄片压到平块上，被压的一侧很薄，整片会跟着弯。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ear_n_S2_1_before.png" width="1840" height="683" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>一侧薄 · 0.851 → [0.930, 1.011] · 基本对</p></details>
+<details><summary>中等整体应变：兔头在已经整体变形 1% 的状态下再压平块，检验 skeleton 在粗模型有明显变形时是否还成立。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S5_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>中等整体应变 · 0.933 → [0.939, 1.133] · 待定·误差小</p></details>
+<details><summary>两侧材料差：兔背压一块比兔子硬 1000 倍的平块，两侧软硬差别极大。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_M1_back_n_Bx1e3_S3_1_before.png" width="1839" height="648" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>两侧材料差 · 0.930 → [0.936, 1.129] · 待定·误差小</p></details>
+<details><summary>斜压：兔头斜 30° 压入平块。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_tilt_press_1112_head_nt30_loc_1_before.png" width="1840" height="683" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>斜压 · 0.955 → [0.960, 1.084] · 基本对</p></details>
+<details><summary>靠连接处：接触点在兔子腿和身体相连的地方旁边，附近的几何突然变化。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G6_1o_junc_o_S1_1_before.png" width="1840" height="676" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>靠连接处 · 0.927 → [0.933, 1.126] · 待定·误差小</p></details>
+<details><summary>多处接触：兔子的腿和身体两处同时压在平块上，两片接触通过物体整体互相影响。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G6_1_junc_n_S3_1_before.png" width="1840" height="643" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>多处接触 · 0.912 → [0.918, 1.120] · 待定·误差小</p></details>
+<details><summary>中等压深：兔头压入 0.1，约为兔头高度的 0.9%，接触区比基线大，仍是小变形。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S16_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>中等压深 · 1.013 → [1.019, 1.150] · 待定·误差小</p></details>
+<details><summary>大面积贴合：CAD 零件的柱面整片贴在平块上，接触区很宽。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_G5_ore4_004_S3_1_before.png" width="1840" height="647" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>大面积贴合 · 0.805 → [0.811, 0.978] · 待定·误差大</p></details>
+<details><summary>近不可压：兔头材料几乎不可压缩（泊松比 0.49），像橡胶一样体积几乎不变。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_head_n_S3_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>近不可压 · 0.854 → [0.997, 1.076] · 基本对</p></details>
+<details><summary>凹面鞍面：两只兔子互压，接触点在一只兔子马鞍形（一个方向凸、另一方向凹）的位置。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_K27a_bb_saddle1_S3_1_before.png" width="1840" height="665" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>凹面鞍面 · 0.934 → [1.006, 1.106] · 待定·误差小</p></details>
+<details><summary>尖：兔子身上的尖处压到龙上，两个一般形状物体互压，接触在尖端。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_or_013_S3_h600_1_before.png" width="1840" height="680" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>尖 · 0.963 → [1.026, 1.096] · 基本对</p></details>
+<details><summary>尺寸比：龙压兔子，兔子比龙大，体积约 3.6 倍（长度约 1.53 倍）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_ore4_007_S3_h600_1_before.png" width="1840" height="692" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>尺寸比 · 0.896 → [0.912, 1.018] · 基本对</p></details>
+<details><summary>两侧都薄：两个薄的球冠壳互压，两边都会整体弯曲（理想构型的检验用例）。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_CS_shell_S19_1_before.png" width="1841" height="632" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>两侧都薄 · 0.941 → [1.014, 1.349] · 待定·误差小</p></details>
+<details><summary>普通单片：鸭子压兔子，一般形状、一处接触的普通情况。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_or_029_S3_1_before.png" width="1840" height="694" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>普通单片 · 0.954 → [1.011, 1.113] · 待定·误差小</p></details>
+<details><summary>基线：兔背轻轻压平块，最普通、最小变形的情况，作为对照。</summary><figure style="margin:12px 0"><img src="assets/images/w5t_back_n_S1_1_before.png" width="1839" height="648" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p>基线 · 0.925 → [0.975, 1.089] · 基本对</p></details>
+<p class="kp">82 个算例里 39 个基本对、37 个待定、0 个明显不对；换成 80 个合格 mode 后 7 个待定变成基本对。</p></section>
+<section id="w8"><h2>8. 和 hydroelastic 比</h2>
 <ul>
-<li><strong>软球带着速度撞平块。</strong>撞得够慢时动能全部变成接触能，最大压深跟速度的关系是 \(v^{2/n}\)，n 是能量的次方。</li>
-<li><strong>真实情况 n = 2.5，应该是 \(v^{0.8}\)；我们测出来是 \(v^{0.7994}\)。</strong></li>
-<li><strong>hydro 的 n = 3</strong>，理论上是 \(v^{0.667}\)（把 hydro 实际的能量曲线代进能量守恒，算出来是 \(v^{0.655}\)），所以换一个速度，hydro 的误差就会变。</li>
-</ul>
-<figure style="margin:12px 0"><img src="assets/images/w5t_w5_impact_powerlaw.png" width="1505" height="1189" style="width:532px;max-width:100%;height:auto" alt="软球以不同速度撞平块，横轴是撞击速度，纵轴是最大压深，两个轴都是对数，所以幂律在图上是直线，斜率就是次方。真实物体（Hertz）能量是压深的 2.5 次方，斜率应是 0.8；我们在引擎里撞出来的点落在这条线上，斜率 0.7994。hydro 的能量接近压深的 3 次方，理论斜率 0.667；把它的能量曲线代入能量守恒算出的点斜率是 0.655。hydro 的刚度已经调到在 v = 0.8 时和真实一致，换一个速度就偏开，因为调参只能把曲线整体放大缩小，改不了次方。" loading="lazy"><figcaption class="small">软球以不同速度撞平块，横轴是撞击速度，纵轴是最大压深，两个轴都是对数，所以幂律在图上是直线，斜率就是次方。真实物体（Hertz）能量是压深的 2.5 次方，斜率应是 0.8；我们在引擎里撞出来的点落在这条线上，斜率 0.7994。hydro 的能量接近压深的 3 次方，理论斜率 0.667；把它的能量曲线代入能量守恒算出的点斜率是 0.655。hydro 的刚度已经调到在 v = 0.8 时和真实一致，换一个速度就偏开，因为调参只能把曲线整体放大缩小，改不了次方。</figcaption></figure>
-<p class="kp">碰撞的次方是一个不用任何标签就能判对错的检查：骨架接进引擎后给出 Hertz 的 0.8，hydro 给不出。</p>
-
-<h3 id="w4-6">结论和局限</h3>
-
+<li>这里的标准答案是我们自己的 IPC 标签；以独立的弹性解析解为裁判的比较排在后面。</li>
+<li><strong>两种方法都有结果的 56 个算例里，53 个是 skeleton 更接近我们的 IPC 标签</strong>（都按未修正的原始比值比）。</li>
+<li>hydroelastic ÷ 标准答案：两侧都薄的球冠壳是 25.2 倍，其余在 0.10 到 6.5 倍之间；skeleton 在 0.80 到 1.11 之间。</li>
+</ul></section>
+<section id="w9"><h2>9. 主要发现：薄长部件要取更多 mode</h2>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" width="2387" height="753" style="width:100%;max-width:100%;height:auto" alt="龙鳍压平块：mode 数加到第 66 个时比值陡降到灰带边上；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。" loading="lazy"><figcaption>龙鳍压平块：mode 数加到第 66 个时比值陡降到灰带边上；右边是第 66 个 mode 的形状，红点是接触点，正是鳍的整体弯曲。</figcaption></figure>
+<p>龙背上有一条又薄又长的鳍。只取前 24 个 mode 时，skeleton 算出来比标准答案硬了 36%，一直加到第 66 个 mode 时比值陡降到 1.1 附近，这个 mode 正好是鳍的整体弯曲。mode 按柔度 \(|\sigma|\) 从大到小排，薄长部件真正起作用的那个排得靠后。现在每个物体取 80 个 mode、要求 80 个的 Ritz 残差都 ≤ 1%，结果表里已有 47 个算例换成这一口径。</p></section>
+<section id="w10"><h2>10. 还需不需要 neural</h2>
+<p>现在还定不了。已判定的算例都是基本对；还有 37 个待定，要等标准答案修正测准、mode 选取规则统一之后才知道 skeleton 还剩多少误差。如果剩下的误差在所有类别里都落在 0.9 到 1.1 之内，单靠 skeleton 就够了；如果某几类始终偏，neural 就用来补这几类。</p></section>
+<section id="w11"><h2>11. 为什么慢、卡在哪</h2>
+<p>标准答案本身很难算：要算到完全静止才准，一个算例要几分钟到一小时，粗模型整体变形大的时候干脆不收敛。标准答案偏硬，要修正它就得在同一个 mesh 上用二次单元再算一遍，每个算例还要再花几分钟到十几分钟，所以现在大部分算例还停在待定。另外，薄长部件起作用的 mode 排得很靠后，这些高阶 mode 本身也不好算准。</p></section>
+<section id="w12"><h2>12. 骨架公式的推导、成立条件和文献里已知的公式</h2>
 <ul>
-<li><strong>结论</strong>：能写出精确答案的单个压头、两处接触、薄层到厚块的过渡，骨架都对上；薄板加上板的弯曲后在 2% 以内；碰撞的次方骨架给出 0.8，和 Hertz 一致。</li>
-<li><strong>局限</strong>：<ul>
-<li>这些都是一边刚性压头、托法理想的构型；两个软物体都薄的地方（兔子压兔子薄处）没有可直接套的公式，第 2 节那一行超带就是这种情况。</li>
-<li>粘底薄层上的一参数修正 \(c\cdot(a/R)\cdot\rho\) 用的是 IPC 实测的接触外缘半径；普通形状上的接触半径口径和它对不齐，这个修正这周不用在普通形状上，下周定口径。</li>
-<li>薄板的结果是灰区：在 2% 以内，还没到 0.5% 的硬判精度。</li>
+<li>这一节对应 week5 TODO 第 3 条「literature search 有多少公式是已知的」：先把整条 pipeline 和两边用的模型摆清楚，再一步一步推 skeleton 的两项、写清每一步要什么条件，最后列文献里已知的公式和它们的条件。</li>
+<li>代码行号对应 sandbox 仓库当前的 <code>main</code>；文献行号对应 sandbox <code>refs/</code> 下的全文。写「未实测」「未核实」的地方是没有结果文件或没核到原文。</li>
 </ul>
+<h3 id="a0-pipeline">完整 pipeline：从原始输入到比较的两个数</h3>
+<ul>
+<li>这一小节把 <a href="#w1-2">1.2 Pipeline</a> 和 <a href="#w4">4. 标准答案怎么得到</a> 串成一条完整的链：每个箭头都写「由什么、经过哪个式子、得到什么」，并给出代码位置和一个真实数字。</li>
+<li>两条分支吃的是<strong>同一份原始输入</strong>：两个物体的表面网格、各自的 \(E\)、\(\nu\)、以及两个物体的摆放。上面一条造标准答案（GT，IPC+FEM），下面一条算 skeleton，最后在同一个粗状态上相除。</li>
+</ul>
+
+<figure style="margin:12px 0">
+<svg viewBox="0 0 960 400" width="100%" role="img" aria-label="两条分支的 pipeline：上面 GT（IPC+FEM），下面 skeleton，最后在比较框汇合" style="max-width:100%;height:auto;color:inherit;font-size:13px">
+<defs><marker id="a0arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<g fill="none" stroke="currentColor" stroke-width="1.5">
+<rect x="10" y="170" width="120" height="60" rx="8"/>
+<rect x="190" y="30" width="120" height="60" rx="8"/><rect x="370" y="30" width="120" height="60" rx="8"/><rect x="550" y="30" width="120" height="60" rx="8"/>
+<rect x="190" y="310" width="120" height="60" rx="8"/><rect x="370" y="310" width="120" height="60" rx="8"/><rect x="550" y="310" width="120" height="60" rx="8"/>
+<rect x="780" y="170" width="170" height="60" rx="8" stroke-width="2.5"/>
+<path d="M130,190 L190,70" marker-end="url(#a0arr)"/><path d="M130,210 L190,330" marker-end="url(#a0arr)"/>
+<path d="M310,60 L370,60" marker-end="url(#a0arr)"/><path d="M490,60 L550,60" marker-end="url(#a0arr)"/>
+<path d="M310,340 L370,340" marker-end="url(#a0arr)"/><path d="M490,340 L550,340" marker-end="url(#a0arr)"/>
+<path d="M670,60 L780,185" marker-end="url(#a0arr)"/><path d="M670,340 L780,215" marker-end="url(#a0arr)"/>
+<path d="M610,90 C610,200 400,200 250,310" stroke-dasharray="5 4" marker-end="url(#a0arr)"/>
+</g>
+<g fill="currentColor" text-anchor="middle">
+<text x="70" y="195">两物体表面网格</text><text x="70" y="215">E、ν、摆放</text>
+<text x="250" y="55">四面体网格</text><text x="250" y="75">+ 材料 NH</text>
+<text x="430" y="55">贴近摆放 + 锁</text><text x="430" y="75">质心与转角</text>
+<text x="610" y="55">静止后读能量</text><text x="610" y="75">U_IPC、力 P</text>
+<text x="250" y="335">缝隙图 ŵ</text><text x="250" y="355">（格距 h）</text>
+<text x="430" y="335">柔度 C =</text><text x="430" y="355">半空间 + mode</text>
+<text x="610" y="335">凸 QP</text><text x="610" y="355">U_skel</text>
+<text x="865" y="195">比值 U_skel / U_IPC</text><text x="865" y="215">修正区间 vs 0.9–1.1</text>
+<text x="340" y="20" font-size="12">由网格 + E、ν 得到 fine 弹性能</text>
+<text x="520" y="20" font-size="12">由锁力 μ 得到 P</text>
+<text x="340" y="395" font-size="12">由两表面法向距离得到 ŵ</text>
+<text x="520" y="395" font-size="12">由 p ≥ 0 最大化得到 U</text>
+<text x="470" y="215" font-size="12">GT 静止后的粗状态（p̄、F̄）交给 skeleton</text>
+</g>
+</svg>
+<figcaption>上面一排是标准答案（IPC+FEM）的造法，下面一排是 skeleton 的算法。两排吃同一份原始输入；虚线表示 skeleton 用的粗状态就是 GT 静止后读出来的那组 12 个数，所以两边比的是同一个状态。最后一格把两个能量相除，再看修正后的区间落不落在 0.9–1.1。</figcaption>
+</figure>
+
+<h4 id="a0-gt">分支 (i)：标准答案 GT = IPC + FEM</h4>
+<ul>
+<li><strong>本周改了什么（先说清楚）</strong>：
+<ul>
+<li>week5–6 的 82 个算例用的是旧锁法 <code>--lock_dofs affine</code>：每个物体的 12 个数（质心 3 + 体积平均变形梯度 \(\bar F\) 9）全部锁死，形状被粗模型规定好。</li>
+<li>现在（11-20，AGENTS.md 第 0 条，commit e6490486）改成 <code>--lock_dofs rigid</code>：每个物体只锁质心 3 个数 + 转角 3 个数（\(\bar F\) 的反对称部分），拉伸、剪切全部放开，变形由两物体自然接触产生。</li>
+<li>中间试过只锁质心（<code>--lock_dofs centroid</code>），实测不行：两个物体从爬坡起就转开、滑开。实测表 <code>…/window_conv_1119/squash_figs_1120/contact_state_table_0653.md</code>：爬坡末与保持段龙的转角 24.3°–74.6°，陷入深度只有兔高 H 的 0.9%–5.4%，两表面距离 &lt; d̂ 的接触区只剩一小片（例：d0500 Bx10 保持段第 86 帧，龙转 65.6°、陷入 0.054 H）。这批 centroid 作业已作废。</li>
+<li>为什么旧的 12 维全锁也不用：锁住 \(\bar F\) 等于由粗模型强加整体形状，和用户的定义「你不要自己去用莫须有的力压扁一个东西 必须他们是自由的」冲突。</li>
+</ul></li>
+<li><strong>第 1 步 网格</strong>：原始输入 = 两个物体的表面网格 → 操作：在采样的接触点附近加密后 tetgen 四面体化（<code>bunny_mesh.py</code> 普通形状入口 <code>ordinary_loop</code> :5603，tetgen 读写 :1333–1368），c / m / f 三档网格 → 得到四面体网格 \((V, T)\)。例：or_013（<code>run_local/sample/or_013/meta.json</code>：A = bunny、B = dragon）兔 <code>tet_m.npz</code> 45584 点、207987 个四面体；龙 <code>tet_b_m.npz</code> 59549 点、267847 个四面体。</li>
+<li><strong>第 2 步 材料</strong>：原始输入 = \(E\)、\(\nu\) → 式子：深压标签用带 \(\ln J\) 屏障的标准 neo-Hookean
+\[\Psi(F)=\tfrac{\mu}{2}(I_c-3)-\mu\ln J+\tfrac{\lambda}{2}(\ln J)^2\]
+（<code>uipc_nh.py</code> 文件头第 8–12 行、<code>nh_psi</code> :61；写进 libuipc 的是真 Lamé 参数，<code>set_nh_barrier_moduli</code> :301）→ 得到每个四面体的 \((\mu,\lambda)\)。例：<code>contact_d0500_base_rigid/result.json</code> 的 meta：material = nh_barrier，E = 1e5、ν = 0.3。
+<ul><li>大白话：\(J\) 是体积比，压到 \(J\to0\) 时 \(-\mu\ln J\to\infty\)，所以单元不会被压翻；小变形时它和线弹性一样。</li>
+<li>week5–6 的旧标签用的是 snk1，要先做模量修正 mu = μ、lambda = λ + μ（AGENTS.md 第 259 行，<code>uipc_snh.snk1_attributes</code> :39–42），否则实际 E ≈ 1.245e5、ν ≈ 0.214。</li></ul></li>
+<li><strong>第 3 步 摆放（状态 SQ）</strong>：原始输入 = 兔（上，A）、龙（下，B）的网格，压深比例 <code>--squash_depth_frac</code>，<code>--squash_c_frac 0</code> → 式子：
+\[H_A=\max y-\min y,\qquad D=\text{depth\_frac}\cdot H_A,\qquad L_A=I,\; d_A=(0,-D,0),\; B\ \text{不动}\]
+（<code>ipc_locked_labels.py</code> <code>squash_state</code> :627–650；c_frac = 0 时 \(\lambda_\perp=1\)、\(\delta_r=D\)）→ 得到两物体的目标质心位置（兔的质心比贴合位置下移 D）。例：d0500（1/2 H）里 \(H_A=9.2426\)、\(D=4.6213\)，爬坡 76 帧（同一 result.json 的 row meta）。
+<ul><li>大白话：只是把兔子的质心往龙里推 D，不预先压扁任何一个物体；推得越深 → 两物体互相挤得越厉害 → 自然变形越大。</li></ul></li>
+<li><strong>第 4 步 锁（rigid）</strong>：原始输入 = 每个物体的静止网格 → 式子：
+\[\bar p=\frac{\sum_i v_i x_i}{V},\qquad \bar F=\frac{1}{V}\sum_i x_i\otimes a_i,\qquad \text{锁住 }\bar p\ (3)\ \text{与}\ \operatorname{skew}\bar F\ (3)\]
+（<code>uipc_snh.affine_lock_operator</code> :376–405、<code>affine_lock_state</code> :408–411、<code>rigid_lock_basis</code> :736–748）。锁力按每帧更新的乘子 \(\mu=[\mu_t;M]\) 加成逐顶点外力
+\[f_i=\frac{v_i}{V}\mu_t+\frac{1}{V}M a_i,\qquad \sum_i f_i=\mu_t\]
+（<code>affine_lock_force</code> :421–426）→ 得到：每个物体受一个均匀体力，合力 \(\mu_t\) 就是两物体之间的接触合力 P（等大反向），加一个只保持转角的力矩 \(\tau\)（<code>lock_rotation_readout</code> :1920–1937）。
+<ul><li>大白话：\(v_i\) 是顶点分到的体积，所以 \(\mu_t\) 按体积均匀摊到每个顶点上，像重力一样；M 只在反对称方向上不为零，只拧不压。</li>
+<li>和导师 <code>gen3d_softsoft.py</code> 的区别：导师只加体力 P、不锁转动；我们多一个保持转角的反力矩，因为只锁质心实测会转开（见上）。</li></ul></li>
+<li><strong>第 5 步 IPC 求解</strong>：原始输入 = 场景 → 操作：Genesis IPC coupler，dt = 0.02、重力 0、无摩擦、\(\hat d=1.25\times10^{-4}\)（<code>build_scene</code> :1025–1027，<code>--d_hat</code> 默认 :3093）；先线性爬坡（至少 25 帧，按每帧最大位移步长加长，<code>ramp_frames</code> :677–689、<code>phases</code> :692–707），再保持 → 得到每帧精细网格顶点位置 \(x\)。</li>
+<li><strong>第 6 步 停止规则</strong>：式子：保持段里连续 2 帧（N_STILL）同时满足
+\[|r_{\text{locked}}|\le\varepsilon\quad\text{且}\quad \max_i|x_i^{(t)}-x_i^{(t-1)}|\le\tau=v_{\rm tol}\,dt=5\times10^{-4}\times0.02=10^{-5}\]
+（<code>run_state</code> :1555–1564，常数 :107–118）；超过 hold_max 帧还没满足就记 hold_budget（<code>frame_end</code> :1284–1308）→ 得到静止帧。
+<ul><li>大白话：锁住的那 6 个数已经到位、而且所有点一帧内动得比 \(10^{-5}\) 还少，才算真的静止；停早会让能量偏高。</li></ul></li>
+<li><strong>第 7 步 读能量和力</strong>：式子：
+\[U_c=\sum_k\Big[E_k^{\rm fine}(x_k)-V_k\,\Psi\big(\bar F_k\big)\Big],\qquad P=\mu_t\]
+（<code>readout</code> :1685–1753：\(E^{\rm fine}\) 是精细网格逐单元能量之和，第二项是同一材料下「整块按 \(\bar F\) 均匀变形」的粗模型能量；NH 静止能为 0，所以不需要 snk1 那个 \(\mu^2/2\lambda\) 的减项）→ 得到标签 \(U_c\)（能量单位）和接触合力 P。
+<ul><li>大白话：精细网格存的弹性能里，扣掉粗模型自己能表达的那部分（整体均匀变形），剩下的就是「接触造成的局部变形能」，也就是网络要学的那项。</li>
+<li>真实例子（旧 12 维锁、snk1、浅压 S3）：or_013 S3 <code>overnight_1111/or_013/S3_h600/ipc/result.json</code>：625 帧，\(E^{\rm fine}=0.0965172\)、\(E^{\rm coarse}=1.40\times10^{-7}\)、\(U=0.0965171\)。</li>
+<li>新 rigid 锁的深压标签：10 条作业 11-20 07:2x 正在跑（<code>window_conv_1119/contact_*_rigid/</code>），还没有静止帧，<strong>U 未实测</strong>。已有的前几帧：d0500 base 爬坡第 5 帧兔/龙转角 0.02°/0.07°（只锁质心时同一 run 第 41 帧已是 5.5°/18.6°）。</li></ul></li>
+<li><strong>第 8 步 验收（每条深压标签必须报）</strong>：AGENTS.md 第 0 条「每条深压标签的验收线」，读数由 <code>tools/verify/contact_state_table_1120.py</code>（Kabsch 拟合转角、龙陷入兔静止体积的深度 / H、两表面距离 &lt; d̂ 的面积）给出：
+<ul><li>接触深度 ≈ depth·H；</li><li>接触区面积：要「一大片贴在一起」；</li><li>两物体各自的高度比和最大位移，两个都看得出变形；</li><li>接触处放大变形图。</li>
+<li>第 1、2 项对不上，这条标签作废，不进任何表。</li></ul></li>
+</ul>
+
+<h4 id="a0-skel">分支 (ii)：skeleton</h4>
+<ul>
+<li><strong>第 1 步 粗状态</strong>：原始输入 = GT 静止帧 → 读出每个物体达到的 \((\bar p,\bar F)\)，写成 \(x=LX+d\)（<code>ipc_locked_labels.py</code> <code>locked_state_for_skeleton</code> :2914）→ 得到两物体的粗状态。skeleton 和 GT 用同一个状态，所以比的是同一件事。</li>
+<li><strong>第 2 步 缝隙图 \(\hat w\)</strong>：两物体表面 + 粗状态 → 找接触区、定格距 h、沿区法向 n 量两表面距离 \(w=w_a+w_b\)（&gt;0 为穿透）（<code>bunny_gapmap.py</code> <code>detect_zones</code> :4882、<code>zone_gap</code> :4727）→ 每格一个 \(\hat w_i\)。细节见 <a href="#w12b-6">(A2) 第一项</a>。</li>
+<li><strong>第 3 步 柔度 C</strong>：每格法向因子 + E′ + 预计算的 mode → \(C=\sum_b c_b c_b^{\top}\odot L/E'_b+\tilde\Phi\Sigma\tilde\Phi^{\top}\)（<code>zone_system</code> :5171）→ \(N\times N\) 柔度。半空间项见 <a href="#w12b-6">(A2) 第一项</a>，mode 项（<code>linear_ref.py</code> <code>mode_surface_modes</code> :7051，每物体一次）见 <a href="#a2m">(A2) mode 项</a>。例：or_013 兔、龙各 80 个 mode，预计算墙钟 1245 s、1827 s（<code>modes_v4/or_013_{A_bunny,B_dragon}_k80q4/job/gpu_job_result.json</code>）。</li>
+<li><strong>第 4 步 QP</strong>：\(\hat w\)、C、h → \(U_{\rm skel}=\max_{p\ge0}h^2[p^{\top}\hat w-\tfrac12p^{\top}Cp]=\tfrac12h^2\sum p\hat w\)（<code>solve_zones</code> :5345）→ 能量 U、每区合力 \(h^2\sum p\)。例：or_013 S3，k = 0（只用半空间项）\(U=0.154256\)，k = 80 \(U=0.092937\)（<code>S3_h600/skel_modes_gap_k80q4kry/ksweep_dhat_kall.json</code>）。</li>
+</ul>
+
+<h4 id="a0-compare">比较这一步：比值和判定线</h4>
+<ul>
+<li><strong>原始比值</strong>：\(r=U_{\rm skel}/U_{\rm IPC}=1+\text{relative\_energy\_error}\)（<code>bunny_gapmap.py</code> :6276–6281）。取 Ritz 残差 ≤ 1% 的最大 k 那一行（<code>corrected_verdict_table.py</code> 文件头）。例：or_013 S3，k = 0 时 1.5982，k = 80 时 0.9629。
+<ul><li>大白话：k 越大 → 补进来的整体柔度越多 → skeleton 越软 → 比值越小。</li></ul></li>
+<li><strong>修正后区间</strong>：标准答案自己有已测的误差（一次单元偏硬 P2/P1、mode 截断、格距、平块网格、标签停早），每项按实测方向和大小把 r 撑成区间 \([r_{lo},r_{hi}]\)（<code>tier_of</code> :714–733）。</li>
+<li><strong>判定线</strong>：带 = [0.9, 1.1]（<code>edgecase_web_table.py</code> :39 <code>BAND</code>）。
+<ul><li>整段区间在带内 → <strong>基本对</strong>；</li>
+<li>整段在带外、且原因有证据 → <strong>明显不对</strong>；</li>
+<li>跨线（或在带外但没测完）→ <strong>待定</strong>，原始比值在带内记「待定·误差小」，在带外记「待定·误差大」（:836–876）。</li></ul></li>
+<li>这就是 <a href="#w7-1">7.1 怎么判对不对</a> 那张图的规则来源。</li>
+</ul>
+
+<h3 id="a0p">GT 和骨架各是什么材料、什么接触：我们 vs 导师代码（按最新代码）</h3>
+<ul>
+<li>这张表只看<strong>最新代码</strong>：我们是 sandbox <code>main</code> 3a7d7be6；导师代码是 NeuralIPC <code>origin/main</code> 0f605ea（2026-11-15，已含 softsoft-baselines 分支的合并）。每一格都带文件和行号。</li>
+<li>「线弹性」= 应力和应变成正比、小应变；「超弹性 neo-Hookean」= 应变一大就偏离正比，而且按大变形算。</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr><th></th><th>(1) 我们的 GT（IPC+FEM 标签）</th><th>(2) 导师的 GT</th><th>(3) 我们的骨架</th><th>(4) 导师的模型</th></tr>
+</thead>
+<tbody>
+<tr><td><b>本构</b></td>
+<td>week7 深压：带 \(\log J\) 屏障的标准 neo-Hookean，\(\Psi=\tfrac\mu2(I_c-3)-\mu\ln J+\tfrac\lambda2(\ln J)^2\)，真 Lamé 参数（<code>uipc_nh.py:61–74</code>；启动器传 <code>--material nh_barrier</code>，<code>launch_contact_swaps_1120.sh:65</code>）。week5 标签：libuipc snk1，\(\Psi=\tfrac12[\mu(I_c-3)+\lambda(J-1-\mu/\lambda)^2]\)，属性改写成 \((\mu,\lambda+\mu)\)（<code>uipc_snh.py:28–42</code>；Genesis <code>FEM.Elastic(model="stable_neohookean")</code>，<code>ipc_locked_labels.py:1035–1036</code>）</td>
+<td>libuipc 0.0.25 的 <code>StableNeoHookean</code>（Smith 2018 形式：\(\mu'=4\mu/3,\ \lambda'=\lambda+5\mu/6\)，含 \(-\tfrac{\mu'}2\ln(I_c+1)\) 项）：<code>gen3d_softsoft.py:31,105</code>、<code>gen3d_press.py:52–66</code>；批量标签用自写 torch 求解器、同一能量：<code>condense_pair.py:10–11,45</code>。二维轴对称参照另有线弹性、neo-Hookean、Gent：<code>axisym_hertz.py:112–132,423–426</code></td>
+<td><strong>线弹性</strong>：半空间项 \(\sum_b c_bLc_b/E'_b\)（<code>bunny_gapmap.py:5207,5227</code>）和 mode 项（P2 小应变刚度 \(K_e=\lambda GG+\mu(\dots)\)，<code>linear_ref.py:211</code>；模态由 <code>linear_ref.py --mode surface_modes</code> 算，<code>:5517</code>）都只来自线弹性</td>
+<td>Hertz 先验 \(\tfrac{8}{15}E^*\sqrt{R_\text{fit}}\,\delta^{5/2}\)（线弹性、半空间）乘 \(\exp(g)\)，\(g\) 是 MLP（3 层 64 宽 SiLU）：<code>gap_patch.py:6,114–115</code>、<code>patch_model.py:77–85</code>；非线性全在 \(g\) 里</td></tr>
+<tr><td><b>小 / 大应变</b></td>
+<td>大变形：牛顿法解完整的超弹性能量（同上本构）</td>
+<td>大变形（同上）；轴对称的 <code>linear</code> 选项是小应变（<code>axisym_hertz.py:123–130</code>）</td>
+<td>小应变、几何线性；唯一的非线性是接触本身：\(p\ge0\) 的主动集求解（<code>bunny_gapmap.py:138–185</code>）。<code>tools/week5/</code> 里没有任何神经网络（无 <code>nn.Module</code>）</td>
+<td>先验是小应变；大变形、材料非线性靠 \(g\) 拟合</td></tr>
+<tr><td><b>接触模型</b></td>
+<td>IPC barrier（<code>contact_constitution="ipc"</code>，<code>ipc_locked_labels.py:1027</code>），\(\hat d=1.25\times10^{-4}\)（<code>:3093</code>），κ = <code>--contact_resistance 1149662148593404</code>（约 1.15e15，<code>launch_contact_swaps_1120.sh:65</code>）</td>
+<td>3D libuipc：al-ipc，\(\hat d=10^{-3}\)，κ = 1e9（<code>gen3d_softsoft.py:4,44–46,98–101</code>）；批量 torch：罚函数 \(\tfrac12\kappa\sum_ia_i\,\mathrm{relu}(\text{offset}-d_i)^2\)（<code>condense_pair.py:13,154</code>），κ = 1e9（<code>gen_softsoft_dataset.py:28</code>）；轴对称：罚函数 κ = 1e10（<code>axisym_hertz.py:327</code>）</td>
+<td>无势垒：互补条件 \(p\ge0\)、\(w-Cp\le0\)，余能二次规划</td>
+<td>无接触求解：直接给能量</td></tr>
+<tr><td><b>摩擦</b></td>
+<td>无（<code>contact_friction_enable=False</code>，<code>ipc_locked_labels.py:1027</code>）</td>
+<td>无（<code>gen3d_softsoft.py:98</code>；轴对称「frictionless」<code>axisym_hertz.py:15</code>；罚函数只有法向 <code>condense_pair.py:13</code>）</td>
+<td>无（只有法向压强 \(p\)）</td>
+<td>无（只有法向能量）</td></tr>
+<tr><td><b>加载 / 边界</b></td>
+<td><code>--lock_dofs rigid</code>：每个物体锁质心 3 个数 + 转动 3 个数（\(\bar F\) 的反对称部分），拉伸、剪切自由（<code>ipc_locked_labels.py:3138–3145</code>、<code>uipc_snh.py:736–748</code>）。锁力 \(f_i=\tfrac{v_i}{V}\mu_t+\tfrac1V Ma_i\)：\(\mu_t\) 就是一个均匀体力，合力 = P；\(M\) 的反对称部分是保持转角的力矩（<code>uipc_snh.py:421–426</code>、<code>ipc_locked_labels.py:1921–1923</code>）</td>
+<td>3D libuipc：只加等大反向的均匀体力 \(a_k=\mp P/M_k\)，不锁任何自由度（<code>gen3d_softsoft.py:6–7,107–108</code>）；批量 torch：12 个 affine 数<strong>全锁</strong>（\(z_1,z_2\) held FIXED，<code>condense_pair.py:4–5</code>）；轴对称：rigid = 锁质心平移，或 affine（<code>axisym_hertz.py:11–12</code>）</td>
+<td>输入是粗模型的 12 个 affine 数（标签终态 \(\bar F\)、质心，<code>bunny_gapmap.py:6166–6174</code>）</td>
+<td>输入是两个 affine 摆放（\(A_k\)）+ 压深</td></tr>
+<tr><td><b>几何</b></td>
+<td>真实网格：兔子、龙、鸭子、CAD 件等（例：or_013 用 <code>tet_m.npz</code> / <code>tet_b_m.npz</code>，<code>launch_contact_swaps_1120.sh:65</code>）</td>
+<td>球：<code>solid_ball</code>（<code>gen3d_softsoft.py:78</code>）、<code>graded_ball</code>（<code>gen_softsoft_dataset.py:66–67</code>）；轴对称二维半圆盘（<code>axisym_hertz.py:43–46</code>）</td>
+<td>同 (1) 的真实网格表面</td>
+<td>椭球闭式表面 <code>_ellipsoid</code>（<code>gap_patch.py:38–46</code>）</td></tr>
+<tr><td><b>实际跑到的压深</b></td>
+<td>week5 页的 82 个算例：0.003–0.1；week7：接触深度 = 兔高的 1/2、1/3（<code>--squash_depth_frac</code>，<code>rigid_rerun_launch_list_1120.txt</code> 第 1–4 条）</td>
+<td>3D libuipc：\(\delta/R_\text{eff}=0.01\)–0.10（<code>gen3d_softsoft.py:47</code>）；批量：0.005–0.04（\(R_1=1\)，<code>gen_softsoft_dataset.py:26</code>）；轴对称：到 0.2 \(R_\text{eff}\)（<code>axisym_hertz.py:34</code>），材料非线性扫到 1.0 \(R_\text{eff}\)，自身 ν 的 4 组从 0.5–0.65 \(R_\text{eff}\) 起失败（<code>results/softsoft_axisym_nl.txt:1–3</code>）</td>
+<td>同 (1) week5 的算例；week7 深档上的骨架压深 未核实</td>
+<td>同 (2) 的训练压深</td></tr>
+<tr><td><b>维度</b></td><td>3D</td><td>3D（球）+ 二维轴对称参照</td><td>3D 表面上的二维压力格</td><td>3D（特征来自接触平面上的缝隙图）</td></tr>
+<tr><td><b>能量标签</b></td>
+<td>\(U=E_\text{fine}-E_\text{coarse}\)，\(E_\text{coarse}=\sum_bV_b\Psi(\bar F_b)\)，\(\bar F\) 为体积平均变形梯度（<code>ipc_locked_labels.py:4–6</code>）</td>
+<td>\(U_c=\sum_k[E_k(x_k)-E_k(\Phi z_k)]\)，\(z_k\) 为质量加权 affine 拟合（<code>gen3d_softsoft.py:12</code>）；批量另扣无接触时的凝聚能 \(U_\text{contact}=U_c-U_{0,1}-U_{0,2}\)（<code>gen_softsoft_dataset.py:10–12</code>）</td>
+<td>\(U=\max_{p\ge0}h^2[\sum p_i\hat w_i-\tfrac12p^\top Cp]\)</td>
+<td>\(U=\text{prior}\cdot\exp(g)\)，对 \(U_\text{contact}\) 拟合</td></tr>
+<tr><td><b>(a) E、ν 怎么设</b></td>
+<td>默认两体 \(E=10^5,\ \nu=0.3\)（<code>ipc_locked_labels.py:109</code>）；逐物体用 <code>--e_a_scale/--e_b_scale/--a_nu/--b_nu</code> 改（<code>:48–62</code>）；week7 固定 4 组：base、B×10、A×10、ν 0.2↔0.45（E 同乘 0.9657）（<code>launch_contact_swaps_1120.sh:28–34</code>）。固定值，不随机采样</td>
+<td>3D libuipc：6 组固定配对，E 从 2e4 到 1e7，ν 0.3 或 0.45（<code>gen3d_softsoft.py:49–56</code>）；批量数据集<strong>随机采样</strong>：\(E_1=10^5\)，\(E_2=10^5\cdot e^{U(\ln0.25,\ln4)}\)，\(\nu_1,\nu_2\sim U(0.25,0.45)\)（<code>gen_softsoft_dataset.py:30–41</code>）</td>
+<td>逐物体从标签的 meta 读同一组 E、ν（<code>bunny_gapmap.py:6171</code>）；模态文件的 E、ν 必须与场景一致，否则报错（<code>:4482</code>）</td>
+<td>跟训练数据同（E 比 0.25–4，ν 0.25–0.45）</td></tr>
+<tr><td><b>(b) E、ν 怎么进公式</b></td>
+<td>FEM 里逐单元：\((\mu,\lambda)\) 由每个物体自己的 E、ν 算（<code>ipc_locked_labels.py:164–177,1033</code>），两体不合并</td>
+<td>同左：每个球自己的 Lamé（<code>condense_pair.py:33–45</code>）；ν 最高 0.45，可选 P2 单元减轻锁死（<code>gen_softsoft_dataset.py:64</code>）</td>
+<td>半空间项每个物体各用自己的 \(E'_b=E_b/(1-\nu_b^2)\)、各乘自己的法向余弦，再两侧相加（<code>bunny_gapmap.py:4566,5201–5207</code>）；只有两侧余弦相同时才化成 \(1/E^*=1/E'_A+1/E'_B\)。mode 项另外按完整的 \((\lambda,\mu)\) 解线弹性，ν 在这里单独起作用（<code>linear_ref.py:211</code>）。ν→0.5 没有专门处理：只靠 P2 单元（AGENTS.md L212），代码里没找到不可压的专门分支</td>
+<td>\(E^*=1/\sum_k(1-\nu_k^2)/E_k\) 进先验（<code>gap_patch.py:90–91</code>），另外 \(\nu_k\) 和柔度份额 \(E^*(1-\nu_k^2)/E_k\) 作为每个物体的网络特征（<code>:108–109</code>）</td></tr>
+<tr><td><b>(c) 刚度、泊松比是网络输入吗</b></td>
+<td>不涉及（是仿真）</td>
+<td>不涉及（是仿真）</td>
+<td>没有网络；E、ν 直接写在柔度 \(C\) 里，能量不做归一化</td>
+<td>E 的量纲由先验 \(E^*\) 解析地提出来；网络只看到无量纲的 \(\nu_k\) 和柔度份额（<code>gap_patch.py:109,114–115</code>）</td></tr>
+<tr><td><b>(d) 软硬对调答案变不变</b></td>
+<td>变：FEM 里每个物体带着自己的形状和材料</td>
+<td>变（同左）</td>
+<td>变：半空间项在两侧余弦相同时不变，mode 项各属各的物体，形状不同就不对称（week5 页 <a href="#w2-3">2.3</a>）。例：兔头压平块、平块硬 1000 倍，骨架 ÷ IPC = 0.958（week5 页 2.3 的表）</td>
+<td>交换两个物体的标号时结果严格不变（网络对两种顺序取平均，<code>patch_model.py:84</code>）；只对调材料、几何不动时，每个物体的 \(\nu_k\) 和柔度份额跟着变，答案可以变，但先验 \(E^*\) 本身对调不变</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>GT 两边都是超弹性 + 大变形</strong>：我们 week7 深压用带 \(\log J\) 屏障的 neo-Hookean，week5 用 libuipc 的 snk1；导师用 libuipc 0.0.25 的 Stable Neo-Hookean。区别在接触和边界：我们是 IPC 势垒、锁质心和转角；导师 3D 是 al-ipc、只加体力，批量标签是罚函数、锁全部 12 个 affine 数。</li>
+<li><strong>我们的骨架是纯线弹性</strong>：半空间项和 mode 项都由线弹性来，唯一的非线性是「压强只能推不能拉」的 \(p\ge0\)。所以大压深和材料非线性带来的差，骨架算不出来，要留给以后的 neural 残差。</li>
+<li><strong>导师的模型是 Hertz × 网络修正</strong>：线弹性只占 Hertz 那一个式子，其余全交给网络 \(g\)；E 被 \(E^*\) 提出去，网络只看 ν 和柔度份额。</li>
+<li><strong>软硬对调</strong>：两边的 GT 都会给出不同答案。我们的骨架靠各自的 mode 区分两侧；导师的模型在先验上对调不变，差别只能来自网络特征。</li>
+</ul>
+
+<h3 id="w12b-1">骨架第一项：从原始输入一步一步推到能量 U</h3>
+<ul>
+<li>第 1 节（<a href="#w1-4">主公式</a>、<a href="#w1-5">柔度 C 拼起来</a>）已经给出 skeleton 的式子。这一节把它从原始输入开始拆成一条链，<strong>每一步写三件事：原始输入 → 式子（代码行）→ 得到什么</strong>，并写出这一步需要什么条件、条件不成立时会坏在哪里。</li>
+<li>重点讲 \(C\) 的第一项，也就是半空间项 \(c_{b,i}c_{b,j}L_{ij}/E'_b\)。第二项 mode 项只占一个位置，链上直接用它的输出 \(\sigma_m\)、\(r_m\)。</li>
+<li>例子统一用「兔背压平块」back_n S1：兔子整体往下平移 0.0030，没有转动和变形。数值来自它的 skeleton 结果文件 <code>back_n/S1/skel_modes/ksweep_h0.016_gap.json</code>；代码行号对应 <code>tools/week5/bunny_gapmap.py</code> 的当前版本，没写文件名的都在这个文件里。</li>
+<li>每一步标出依据来自哪里：【ref】是文献原文的式子，【我们定的】是建模时自己做的选择。</li>
+</ul>
+
+<h4 id="w12b-2">第 0 步：原始输入，算出每个物体的平面应变模量</h4>
+<ul>
+<li><strong>原始输入</strong>：每个物体给一张四面体网格（skeleton 只用它的表面三角形），以及杨氏模量 \(E_b\)、泊松比 \(\nu_b\)，再加粗模型状态的 12 个数（平移 \(t\) 加 3×3 矩阵 \(A\)）。表面点的当前位置是 \(x=A\bar x+t\)。</li>
+<li><strong>式子</strong>：\(E'_b=\dfrac{E_b}{1-\nu_b^2}\)，刚体取 \(E'=\infty\)（<code>scene_bodies</code>，:4566）。</li>
+<li><strong>得到什么</strong>：每个物体一个数，单位是压强。back_n S1 两侧都是 \(E=10^5\)、\(\nu=0.3\)，所以 \(E'=10^5/0.91=109890.11\)。</li>
+<li>读法：\(\nu\) 越大，\(E'\) 越大。因为横向被周围材料挡住、鼓不出去，表面就更难压下去。</li>
+</ul>
+
+<h4 id="w12b-3">第 1 步：找接触区，定压入方向 n</h4>
+<ul>
+<li><strong>原始输入</strong>：两物体当前位置的表面。</li>
+<li><strong>式子</strong>：先取到对方表面的有符号距离小于「本侧平均边长 × 2」的顶点，按网格连通分块，每块最深的那个顶点当种子。\(n\) 取对方表面上离种子最近的三角形的外法向，\(p_0\) 取种子与对方最近点的中点（<code>zone_seeds</code>，:4605–4645）。平面坐标由 \(n\) 定：\(u\) 是与 \(n\) 夹角最大的世界轴去掉 \(n\) 分量后单位化，\(v=n\times u\)（<code>_zone_frame</code>，:4683–4689）。【我们定的】</li>
+<li><strong>得到什么</strong>：每处接触一个单位向量 \(n\)（从 B 指向 A）和一个原点 \(p_0\)。back_n S1 有 3 个种子，两个穿透的合成 1 个区；\(n=(0,1,0)\)，\(p_0\) 的 y 坐标是 −0.0015，正好在两表面中间。</li>
+<li><strong>条件</strong>：接触处的法向要唯一。back_n S1 上，兔子一侧命中三角形的平均法向与 \(n\) 只差 0.0797°，平块一侧差 0°（<code>zones[0].normal_angle</code>）。</li>
+<li><strong>不成立时</strong>：深压时重叠很大，「最深顶点的最近面」这条规则随采样乱跳。同一状态换一张网格，法向相差 126°，能量读数随之变 +40%（代码注释 :4653–4655）。11-20 新加了可选的重叠梯度法向 <code>--zone_normal_mode overlap_flux</code>（:4652–4681），默认仍是旧规则 <code>seed</code>（:4648）。</li>
+</ul>
+
+<h4 id="w12b-4">第 2 步：铺格子，定格距 h</h4>
+<ul>
+<li><strong>原始输入</strong>：\(n\)、\(p_0\)、\(u\)、\(v\)，以及缝隙图拟合出的两表面相对曲率的最大值 \(k_{\max}\)。</li>
+<li><strong>式子</strong>：\(h=\sqrt{\hat d/k_{\max}}\,/\,N_S\)，其中 \(\hat d=1.25\times10^{-4}\)、\(N_S=4\)（:41–42，<code>zone_pass1</code> :4811）。格心 \(c_{ij}=p_0+(i+\tfrac12)h\,u+(j+\tfrac12)h\,v\)（<code>lattice</code> :77–83），格子半宽 \(\rho=r_{\text{foot}}+4h\)（:4825）。【我们定的】</li>
+<li><strong>得到什么</strong>：一张 \(n_x\times n_z\) 的方格，每格面积 \(h^2\)。back_n S1 的命令直接给了 \(h=0.016\)（<code>args.zone_h</code>），没用自动规则（规则值是 0.0027）；格子 26×26 = 676 格。</li>
+<li>读法：表面弯得越厉害（\(k_{\max}\) 越大），\(h\) 越小。因为弯曲处压力变化快，格子要细才跟得上。</li>
+<li><strong>条件</strong>：一个接触半径里要有足够多的格子。用 \(a/h=\sqrt{n_{\text{active}}/\pi}\) 衡量（<code>solve_zones</code> :5393，主动格数换算成等面积圆的半径格数）。实测误差带：\(a/h\ge2\) 约 ±1.3%，1.5–2 约 ±3.3%（AGENTS.md:217，出自 <code>week5_linear_ref.md</code> §16.9）。back_n S1 的 skeleton \(a/h=4.07\)。</li>
+</ul>
+
+<h4 id="w12b-5">第 3 步：缝隙图，每格要抵消多深</h4>
+<ul>
+<li><strong>原始输入</strong>：格心、\(n\)、两物体当前表面。</li>
+<li><strong>式子</strong>：从每个格心沿 \(\pm n\) 打射线，与表面三角形求交，每侧取一个交点（<code>zone_gap</code> :4727–4768；求交在 <code>skeleton_frame_model.py</code> 的 <code>gap_and_jacobian</code> :105–182，每格取最低交点用 <code>amin</code>，:157）：
+<p>\[\color{#c0392b}{w_i=\max_{B\text{ 在格 }i}n\cdot(x-p_0)\;-\;\min_{A\text{ 在格 }i}n\cdot(x-p_0),\qquad \delta_i=w_i+o\ \ (i\in S)}\]</p>
+\(o\) 是 IPC 停住时两面之间留的缝（<code>apply_gap_offset</code> :5596）。候选格 \(S\) = 含原点格的重叠块向外扩 2 格（:4847），\(S\) 以外的格设 \(\delta=-10^3\)，相当于永不接触。【我们定的】</li>
+<li><strong>得到什么</strong>：长度为 \(N\) 的向量 \(\delta\)，单位是长度。back_n S1 有 96 个重叠格、168 个候选格，最深约 0.0030，\(o=1.2406\times10^{-4}\)（<code>gap_offset</code>）。</li>
+<li>读法：两物体叠得越深 → \(\delta\) 越大 → 要推开的量越多 → 能量越大。</li>
+<li><strong>条件</strong>：沿 \(n\) 的每条线上，每个物体只穿过一层接触面，这时缝隙是单值的。默认读法是「最高减最低」（<code>ZONE_GAP_MODE = extreme</code>，:4694）。</li>
+<li><strong>不成立时</strong>：深压、薄件折叠时，一条线会穿过同一物体好几层，「最高减最低」会把不该算的层也算进来。为此 11-19 加了可选的同层配对读法 <code>same_layer</code>（:4693–4697），格子选不出或存疑的比例超过 20% 就判失败。</li>
+<li><strong>\(o\) 的取法版本不一致</strong>：第 1 节写的是取上界 \(o=\hat d\)。back_n S1 用的却是从 IPC 末帧位置量出的 \(d_{\text{eq}}\)，这用到了标准答案自己的量。v8.23 判档表 84 行里，22 行用 \(\hat d\)，3 行用 \(d_{\text{eq}}\)，59 行没记（<code>table_v8.23_k80cells4.json</code> 的 <code>gap_key</code>）。两种取法只差 0.75%：线弹性参照里把 \(o\) 从 \(d_{\text{eq}}\) 换成 \(\hat d\)，能量变 +0.076%（<code>skeleton_explicit_formulas_1113.md</code> 第 4 步）。</li>
+</ul>
+
+<h4 id="w12b-6">第 4 步：C 的第一项（半空间项），一步一步推</h4>
+<p>这一步要得到的是：第 \(j\) 格加单位压强时，第 \(i\) 格两个表面沿 \(n\) 一共退回多少。分五小步。</p>
+
+<p><strong>4a　点力解（Boussinesq）</strong></p>
+<ul>
+<li><strong>原始输入</strong>：\(E\)、\(\nu\)，一个法向点力 \(P\)。</li>
+<li><strong>式子</strong>：表面上离受力点 \(r\) 处的法向下沉是
+<p>\[\color{#c0392b}{w(r)=\frac{(1-\nu^2)\,P}{\pi E\,r}=\frac{P}{\pi E' r}}\]</p>
 </li>
+<li>【ref】Popov, Heß &amp; Willert, <i>Handbook of Contact Mechanics</i>, 2019，式 2.2（<code>refs/popov_hess_willert2019_handbook.txt</code>:540–543）：「w(r) = 1/(πE*) · Fz/r」。</li>
+<li>【ref】Love, <i>Treatise</i> 第 4 版，Art. 135（<code>refs/love_treatise_elasticity_4th_ed_archiveorg_ocr.txt</code>:15342–15445）。原文给出边界面上的竖直位移 \(P(\lambda+2\mu)/[4\pi\mu(\lambda+\mu)r]\)（OCR 第 15442 行乱码，式子按 Popov 式 2.2 换算核对）。代入 \(\lambda+\mu=\mu/(1-2\nu)\)、\(\lambda+2\mu=2\mu(1-\nu)/(1-2\nu)\)，系数化为 \((1-\nu)/(2\mu)\cdot\tfrac1\pi=(1-\nu^2)/(\pi E)\)，和上式相同。</li>
+<li>读法：离受力点越远 → 下沉越小，按 \(1/r\) 衰减，因为力在越来越大的半球面上摊开。</li>
+<li><strong>切向那一项去了哪里</strong>：同一个点力还让表面点沿径向往受力点移动，大小 \(P/[4\pi(\lambda+\mu)r]=(1-2\nu)P/(4\pi\mu r)\)（Love 同节第 15438–15439 行）。两物体 \(\nu\) 不同时，它们的径向位移不一样，接触面会相对滑动。Popov 第 506–511 行把这件事分成两种极限：无摩擦（Boussinesq 问题）与完全粘住（Mossakovskii 问题）。skeleton 只取法向下沉、不算切向牵引，也就是取无摩擦这个极限；我们的 IPC 标签同样关掉了摩擦（<code>ipc_locked_labels.py</code>:1027 <code>contact_friction_enable=False</code>），两边口径一致。Johnson《Contact Mechanics》不在 refs/ 里，没有引用。</li>
+<li><strong>条件</strong>：Love 原文第 15346 行：「all the linear dimensions of the body are large compared with those of the area subjected to the load」，即物体的各个尺寸都远大于受力区；第 15410 行：式子只在「not too near to the origin」处成立。紧挨受力点的问题由下一步按格积分处理掉。物体不够大的部分，交给第 5 步的 mode 项补。</li>
 </ul>
-<details><summary>组会可能被问的问题</summary><ul>
-<li><strong>为什么和 hydro 比不能用 IPC 标签当答案？</strong>IPC 标签是我们自己造的；拿它当标准答案，等于默认我们的方法是对的。原理上的比较只能用独立于双方的精确解。</li>
-<li><strong>深压的薄层残差超出误差带 3–7 倍，说明什么？</strong>说明大变形带来的非线性是能分辨出来的真信号；这正是网络要学的那一块，前提是第 3 关在普通形状上也看到它。</li>
-<li><strong>这周只做静态，为什么还放碰撞？</strong>这一项只用来检查能量随压深的次方：撞得够慢时动能全部变成接触能，最大压深按 \(v^{2/n}\) 变，n 是能量的次方，所以不需要任何标签就能判对错。</li>
-</ul></details></section>
+
+<p><strong>4b　叠加</strong></p>
+<ul>
+<li><strong>式子</strong>：任意压强分布产生的下沉，等于各处点力产生的下沉加起来：\(w(x)=\dfrac{1}{\pi E'}\iint\dfrac{p(y)\,dA_y}{|x-y|}\)。</li>
+<li>【ref】Popov 式 2.3（:544–547）。原文第 564–566 行写明，叠加原理和式 2.4 那种边界条件写法都要求「linearity of the material behavior as well as the half-space approximation」。</li>
+<li><strong>条件</strong>：线弹性、小应变。</li>
+</ul>
+
+<p><strong>4c　在一个方格上积分，得到 \(L_{ij}\)</strong></p>
+<ul>
+<li><strong>原始输入</strong>：格距 \(h\)、格心差 \((\Delta x,\Delta z)\)。</li>
+<li><strong>式子</strong>：假设每格压强是常数，把 4b 在第 \(j\) 格上积分，在第 \(i\) 格的格心读数。积分有闭式解（Love 1929 矩形解），记 \(x_\pm=\Delta x\pm\tfrac h2\)、\(y_\pm=\Delta z\pm\tfrac h2\)，\(R_1..R_4\) 是到四个角的距离：
+<p>\[\color{#c0392b}{L_0=\frac1\pi\Big[x_+\ln\frac{y_++R_1}{y_-+R_4}+y_+\ln\frac{x_++R_1}{x_-+R_2}+x_-\ln\frac{y_-+R_3}{y_++R_2}+y_-\ln\frac{x_-+R_3}{x_++R_4}\Big]}\]</p>
+代码 <code>NeuralIPC/nipc/analytic/hertz_contact.py</code>:46–57 <code>love_coeff</code>（经 <code>tools/ipc_sweep/bem_two_punch.py</code>:47 导入）。同一个区里<strong>每一对格子都用这个闭式</strong>，不是只有自项才用；乘法用 FFT 卷积实现（<code>tools/ipc_sweep/bem_two_punch.py</code>:2476–2510 <code>GapmapFFT</code>，本文件 :5273）。</li>
+<li><strong>得到什么</strong>：一张只依赖格心差的系数表，单位是长度（还没除以 \(E'\)）。自项 \(L_0(0,0)=4h\,\mathrm{asinh}(1)/\pi=1.1222\,h\)。back_n S1 的 \(h=0.016\)，所以自项是 0.0179552（本次用 <code>love_coeff</code> 重算核对）。</li>
+<li>读法：格子越大 → 自项越大，按 \(h\) 线性增长。因为一格的总力 \(\propto h^2\)，而它在自己格心造成的下沉只 \(\propto h^2/h\)。</li>
+<li><strong>离散误差</strong>：只有两处，一是「每格压强取常数」，二是「在格心读数」。实测：\(a/h\ge2\) 时整体约 ±1.3%（第 2 步）。</li>
+<li><strong>不同接触区之间改用点力规则</strong> \(K_{ij}=h^2/(\pi E'r_{ij})\)（:5227）。本次用 <code>love_coeff</code> 量了点力规则相对闭式的误差：相隔 1 格 −3.67%，相隔 2 格 −1.01%，相隔 3 格 −0.46%，相隔 5 格 −0.17%，相隔 10 格 −0.04%。不同区之间通常隔很多格，但多区算例里实际隔几格没有统计（未实测）。</li>
+</ul>
+
+<p><strong>4d　斜面投影：两个余弦</strong></p>
+<ul>
+<li><strong>原始输入</strong>：每格每侧命中三角形的单位法向 \(n^{\text{tri}}_{b,i}\)，以及这一侧的投影方向 \(e_b\)（A 侧 \(e=n\)，B 侧 \(e=-n\)）。</li>
+<li><strong>式子</strong>：\(c_{b,i}=|n^{\text{tri}}_{b,i}\cdot e_b|\)（<code>_side_ne_abs</code> :5164–5169），半空间项写成 \(c_{b,i}c_{b,j}L_0/E'_b\)（:5207、:5273）。</li>
+<li>为什么是两个余弦：压强沿 \(n\) 加上去，垂直于斜面的那部分要乘一次 \(c_{b,j}\)；表面沿自身法向下沉后，读回到 \(n\) 方向又要乘一次 \(c_{b,i}\)。【我们定的】文献里没有找到这种写法的出处。</li>
+<li><strong>得到什么</strong>：每格每侧一个 0 到 1 之间的数。back_n S1 上法向偏差 0.08°，\(c\approx0.999999\)；掠射格（\(c&lt;0.3\)，<code>skeleton_frame_model.py</code>:43 <code>GRAZING_NE</code>）0 个。</li>
+<li>读法：表面越斜 → \(c\) 越小 → 沿 \(n\) 看越软。因为同样的力只有一部分在压表面。</li>
+<li>第 7 周起的正式读数改用「中间面」读法 mid_wc_surf：两侧不再各乘自己的 \(|n\cdot e|\)，而是共用两表面中间面的坡度因子 \(c_{\text{mid}}=1/\sqrt{1+|\nabla y_{\text{mid}}|^2}\)（<code>tools/verify/surface_metric_projection.py</code> <code>candidate_projection(geometry="mid")</code> :197，经 <code>tools/verify/projection_modes_1117.py</code>:17 套在 bunny_gapmap 之上）。平处两种读法完全相同；本小节写的是 <code>bunny_gapmap.py</code> 本身的读法。</li>
+<li><strong>条件</strong>：【ref】Popov 第 566–569 行：「the surface gradient must be small in the relevant area ... If we call the gradient θ then the condition is θ ≪ 1. The relative error ... is of the order of θ²」。两个余弦只把斜面换算成一阶，坡度大了，半空间近似本身的误差按 \(\theta^2\) 增长。</li>
+</ul>
+
+<p><strong>4e　两个物体相加</strong></p>
+<ul>
+<li><strong>式子</strong>：
+<p>\[\color{#c0392b}{C^{\text{半空间}}_{ij}=\sum_{b\in\{A,B\}}\frac{c_{b,i}\,c_{b,j}\,L_0(x_i-x_j,\,z_i-z_j)}{E'_b}}\]</p>
+\(c\equiv1\) 时就是 \(L_0/E^*\)，\(1/E^*=1/E'_A+1/E'_B\)。</li>
+<li>【ref】Popov 式 2.1（:533–535），它出现在第 2.2 节「Boussinesq Problems (Frictionless)」里：两个弹性体的无摩擦接触，等价于刚性压头压一个模量为 \(E^*\) 的半空间。</li>
+<li><strong>得到什么</strong>：\(N\times N\) 矩阵的第一项。back_n S1：\(E^*=54945.05\)（<code>zones[0].Estar</code>），对角元 \(C_{ii}=2\times0.0179552/109890.11=3.2678\times10^{-7}\)。</li>
+<li>读法：两个物体串联，像两根弹簧串联。较软的一侧主导：一侧硬到无穷，柔度就只剩另一侧。</li>
+</ul>
+
+<h4 id="w12b-7">第 5 步：C 的第二项（mode 项）</h4>
+<ul>
+<li>→ 见 <a href="#a2m">下一小节 mode 项</a>。这一步的输入是每个物体预先算好的 \(\sigma_m\)、\(r_m\)，输出是加到 \(C\) 上的低秩项 \(h^2\sum_m\sigma_m c\,c\,r_m r_m\)（拼法见 <a href="#w1-5">1.5</a>）。</li>
+<li>它要补的正是 4a 的条件「物体远大于受力区」不成立的那部分。两个对照：
+<ul>
+<li>back_n S1（兔背，厚、接触区小）：只用半空间项时 \(U=0.0179241\)，加 20 个 mode 后是 0.0179534，只差 0.16%（ksweep 文件 <code>rows[k=0,20].U</code>）。</li>
+<li>龙鳍压平块（薄长部件）：只用半空间项时，skeleton ÷ 标准答案是 2.91（压深 0.012）和 2.24（压深 0.006）。加到 80 个 mode 后是 1.075 和 0.982（<code>edge_cases_1112/week5md_figs/F9_mode_count.txt</code>）。</li>
+</ul></li>
+</ul>
+
+<h4 id="w12b-8">第 6 步：解二次规划，得到能量 U</h4>
+<ul>
+<li><strong>原始输入</strong>：\(C\)（第 4、5 步）、\(\delta\)（第 3 步）、\(h\)。</li>
+<li><strong>式子</strong>：\(U=\max_{p\ge0}h^2\big[p^\top\delta-\tfrac12p^\top Cp\big]=\tfrac12h^2\sum_ip_i\delta_i\)（推导见 <a href="#w1-4">1.4</a>）。用主动集法加共轭梯度解，KKT 残差上限 \(10^{-10}\)（<code>solve_zones</code> :5345–5400，能量在 :5389，合力 \(F=h^2\sum p_i\) 在 :5393）。</li>
+<li>【ref】Bemporad &amp; Paggi 2015, IJSS（<code>refs/bemporad_paggi2015_ijss.txt</code>）：第 352 行「H = H′ ≻ 0」（柔度矩阵对称正定）；第 360–361 行「Property 1 ... admits a unique solution」；第 363–368 行，接触互补问题就是凸二次规划「min ½p′Hp − ū′p s.t. p ≥ 0」的 KKT 条件；第 384 行内余能「U = ½∫ p u dx」。</li>
+<li><strong>条件</strong>：\(C\) 正定。半空间项本身是正定的；mode 项的 \(\sigma\) 可正可负，所以每次解之前先核 \(\lambda_C=1+\lambda_{\min}(N^{1/2}\Sigma N^{1/2})&gt;0\)（<code>lowrank_pd_value</code> :5328–5343，在 :5367 调用），不满足就不解，记数值失败。</li>
+<li><strong>得到什么</strong>：一个能量数，以及每格的压强。back_n S1（\(k=20\)）：\(U=0.0179534\)，\(F=14.438\)，52 个主动格，\(\lambda_C=0.99625\)（后两项取自 <code>skeleton_explicit_formulas_1113.md</code> 第 9 步，本次没有重读）。标准答案 \(U_{\text{IPC}}=0.0194171\)，比值 0.9246，修正后区间 [0.975, 1.099]，判「基本对」（<code>table_v8.23_k80cells4.json</code>，<code>label = "back_n S1"</code>）。</li>
+<li>读法：叠得越深 → 能量越大；\(C\) 越大（越软）→ 能量越小。因为同样的重叠只需要更小的压力就能推开。</li>
+</ul>
+
+<h4 id="w12b-9">一张表看完</h4>
+<div class="tablewrap"><table>
+<thead><tr><th>步骤</th><th>公式</th><th>需要的条件</th><th>不成立时坏在哪</th><th>证据</th></tr></thead>
+<tbody>
+<tr><td>0 材料</td><td>\(E'=E/(1-\nu^2)\)</td><td>各向同性线弹性</td><td>材料非线性不进 \(C\)，只能交给 neural</td><td>:4566；back_n S1 \(E'=109890.11\)</td></tr>
+<tr><td>1 法向</td><td>\(n\) = 最深点对面三角形的外法向</td><td>接触处法向唯一</td><td>深压时法向跳 126°，读数变 +40%</td><td>:4653–4655；back_n S1 偏 0.08°</td></tr>
+<tr><td>2 格距</td><td>\(h=\sqrt{\hat d/k_{\max}}/4\)</td><td>\(a/h\ge2\)（进结论），≥1.5（进统计）</td><td>误差带从 ±1.3% 涨到 ±3.3%，&lt;1.5 时判档表取 5.6%</td><td>AGENTS.md:217；back_n S1 \(a/h=4.07\)</td></tr>
+<tr><td>3 缝隙</td><td>\(\delta=w+o\)，\(w\) = 最高减最低</td><td>每条线上每个物体只有一层接触面</td><td>多层时把不该算的层也算进来</td><td>:4693–4697（同层配对开关）</td></tr>
+<tr><td>4a 点力</td><td>\(w=P/(\pi E'r)\)</td><td>物体远大于受力区；只取法向（无摩擦）</td><td>薄件、小物体偏硬</td><td>Love Art.135 :15346；Popov 式 2.2 :543</td></tr>
+<tr><td>4b 叠加</td><td>\(w=\frac1{\pi E'}\iint p/r\)</td><td>线弹性、小应变</td><td>大变形时叠加原理不成立</td><td>Popov :544–566</td></tr>
+<tr><td>4c 方格</td><td>Love 矩形闭式 \(L_0\)</td><td>每格压强取常数</td><td>格太粗时误差变大；跨区点力规则相隔 1 格偏 −3.67%</td><td><code>love_coeff</code>；本次重算</td></tr>
+<tr><td>4d 投影</td><td>\(c_{b,i}c_{b,j}\)</td><td>坡度 \(\theta\ll1\)</td><td>误差 \(\sim\theta^2\)</td><td>Popov :566–569；:5164</td></tr>
+<tr><td>4e 串联</td><td>\(\sum_b 1/E'_b\)</td><td>无摩擦</td><td>有摩擦时两侧切向位移不同，会产生剪力</td><td>Popov 式 2.1 :535，:506–511</td></tr>
+<tr><td>5 mode</td><td>见 mode 项</td><td>mode 取够：Ritz 残差 ≤ 1%</td><td>薄件偏硬：龙鳍只用半空间项时是 2.91</td><td><code>F9_mode_count.txt</code></td></tr>
+<tr><td>6 能量</td><td>\(\max_{p\ge0}h^2[p^\top\delta-\frac12p^\top Cp]\)</td><td>\(C\) 正定</td><td>非凸、解不唯一，记数值失败</td><td>Bemporad &amp; Paggi :352、:360–368；:5367</td></tr>
+</tbody></table></div>
+
+<p class="kp">半空间项的推导只用了三件事：Boussinesq 点力解、线性叠加、在方格上精确积分，三者都有原文出处；两个余弦和缝隙的取法是我们定的。它本身要求物体远大于接触区、坡度小、线弹性、无摩擦，物体不够大的部分交给 mode 项，非线性交给 neural。</p>
+
+<h3 id="a2m">第二项：mode 项是怎么得到的</h3>
+<p>第 1.5 节式 (6) 只写了结果 \(G_R\approx\sum_m\sigma_m r_m(x)r_m(y)\)，第 6 节写了特征值方程。这里把它从「一个物体的网格 + 材料」一步一步推到 \(C\) 里的那一块，每一步写清：原始输入 → 式子（带代码行号）→ 得到什么（形状、单位、一个实测数），以及这一步要什么条件、条件不成立会怎样。</p>
+<ul>
+<li><strong>设计目标</strong>：每个物体在一张与接触位置无关的网格上只算一组 mode，之后任何接触都复用。预处理时不知道会撞哪里。</li>
+<li><strong>现在的数不是这样得到的（已知限制）</strong>：现有 mode 是每个场景各算一组（如 or_001_A、or_005_A、or_012_A，各自的网格哈希不同，表面点 12921–30371 个），用的是该场景的 IPC 四面体网格，而这张网格在该场景已知的接触点附近加密过（<code>bunny_mesh.py</code> 的 <code>refine_near</code>，:1021）。所以现在的预处理用到了接触位置。</li>
+<li><strong>复用的路径代码里有，但没验证</strong>：<code>bunny_gapmap.py</code> 的 <code>--locked_modes_tet</code> / <code>--locked_modes_frame</code>（B-10，:6647–6649）可以把另一张网格上算的 mode 拿来用；现有检查只核过几何对齐，还没有任何测试核过这样算出的 \(U\) 对不对（<code>docs/agent_progress_second_shape_labels_1119.md</code> 第 195 行）。</li>
+</ul>
+
+<h4 id="a2m-0">它补的是什么</h4>
+<ul>
+<li><strong>定义</strong>：\(G_R(x,y)=G_{\text{lock}}(x,y)-\dfrac{1}{\pi E'|x-y|}\)。\(G_{\text{lock}}\) 是这个物体<strong>锁住 12 个 affine 自由度</strong>以后，表面 \(y\) 点单位法向压强在 \(x\) 点造成的法向位移；减掉的是同一材料半空间的 Boussinesq 核（第一项用的就是它）。</li>
+<li>代码里不是逐点相减，而是在同一组表面帽函数上做 Galerkin 积分再相减：\(R=K_{\text{lock}}-H\)（LR <code>_modes_surface_modes_impl</code> 文档串第 2 条，:6699–6705；<code>apply_SR</code> :6857）。</li>
+<li>读法：物体有限大、有边界、有薄处 → 同样的压强下陷得和无限大弹性体不一样；陷得多的方向 \(\sigma_m&gt;0\)，陷得少的方向 \(\sigma_m&lt;0\)。</li>
+</ul>
+
+<h4 id="a2m-1">一步一步：从网格到 \(C\) 里的 mode 块</h4>
+<ol>
+<li><strong>刚度矩阵 \(K\)</strong>
+<ul>
+<li>原始输入：物体的四面体网格（只读顶点 V、四面体 T），\(E\)、\(\nu\)；不固定任何节点（<code>fixed</code> 全 False，LR :6764–6765）。</li>
+<li>式子：二次四面体（P2）线弹性，\(\lambda=\dfrac{E\nu}{(1+\nu)(1-2\nu)}\)、\(\mu=\dfrac{E}{2(1+\nu)}\)，<code>assemble</code>（LR :510）。</li>
+<li>得到：龙（用的是 or_019 这个场景的网格，在龙压鸭的接触点附近加密过）\(K\) 为 1206954 × 1206954（<code>n_dof</code>），\(E=10^5\)、\(\nu=0.3\)，组装 33.5 s。</li>
+<li>读法：\(E\) 越大 → \(K\) 越大 → 后面所有柔度（\(K_{\text{lock}}\)、\(H\)、\(\sigma\)）都按 \(1/E\) 缩小。</li>
+</ul></li>
+<li><strong>表面帽函数载荷 \(\hat B\) 与面积权 \(W\)</strong>
+<ul>
+<li>原始输入：同一网格的外表面三角形（只属于一个四面体的面）。</li>
+<li>式子：第 \(j\) 列 = 帽函数 \(\varphi_j\) 形状的单位压强沿内法向作用时的一致节点力；\(A_{s,j}=\int\varphi_j\,dA=\sum_{t\ni j}A_t/3\)，\(W=\mathrm{diag}(A_s)\)（<code>surface_hat_load</code>，LR :6101–6116）。</li>
+<li>得到：龙表面点 \(n_s=27930\)，\(\hat B\) 为 1206954 × 27930；耗时 3.6 s。</li>
+<li>读法：一个表面点管的面积越大 → 它的帽函数推得越多，所以后面要用 \(W^{-1/2}\) 把大小不同的三角形拉平。</li>
+</ul></li>
+<li><strong>锁 12 个 affine 自由度的真实柔度 \(K_{\text{lock}}\)</strong>
+<ul>
+<li>原始输入：\(K\)；锁定的定义 = 质心平移 3 个数 + 体积平均变形梯度 \(\bar F=\frac1V\int F\,dV\) 9 个数（<code>lock_setup</code> 文档串，LR :1879–1881）。</li>
+<li>式子：\(w(f)=\arg\min_{G^\top w=0}\tfrac12w^\top Kw-f^\top w\)，\(K_{\text{lock}}X=\hat B^\top w(\hat BX)\)；实现是自平衡投影 → 3-2-1 支承下求特解 → 扣掉 6 个对称均匀应变（<code>condense_lock</code> 文档串，LR :2116–2124），线性方程用 cuDSS 稀疏 Cholesky 直接解（<code>--backend cudss</code>），没有迭代容差。</li>
+<li>得到：只以「乘一块向量」的形式存在，从不组成稠密阵。龙 6 轮共调用 <code>condense_lock</code> 累计 152.6 s。</li>
+<li>读法：锁住的 12 个数归粗模型管；锁得越多 → 物体在这些方向上被「顶住」→ 相应方向的表面柔度变小，这正是后面负 \(\sigma\) 的来源。</li>
+</ul></li>
+<li><strong>半空间 Galerkin 矩阵 \(H\)</strong>
+<ul>
+<li>原始输入：第 2 步的表面三角形，\(E'=E/(1-\nu^2)\)（LR :6784）。</li>
+<li>式子：\(H_{ij}=\dfrac1{\pi E'}\sum_{t\ni i}\sum_{s\ni j}\int_t\!\int_s\dfrac{\lambda_i(x)\lambda_j(y)}{|x-y|}dA_x dA_y\)，同一三角形闭式、共边共点用 Duffy 奇异求积、近中远三档 Gauss 规则（<code>halfspace_galerkin_matrix</code>，LR :5862–5870；分档常数 :5519–5523）。</li>
+<li>得到：龙 \(E'=109890.11\)，\(H\) 为 27930 × 27930 稠密阵，耗时 2001.5 s，是整个预处理的大头。</li>
+<li>读法：两点越远 → \(1/|x-y|\) 越小 → 互相影响越弱；\(H\) 和 \(K_{\text{lock}}\) 用同一组帽函数积分，两者相减才不会混进求积误差。</li>
+</ul></li>
+<li><strong>剩余算子与对称化</strong>
+<ul>
+<li>原始输入：\(K_{\text{lock}}\)（乘法形式）、\(H\)、\(W\)。</li>
+<li>式子：\(S_R=W^{-1/2}(K_{\text{lock}}-H)W^{-1/2}\)，作用方式 \(S_RX=W^{-1/2}\big(\hat B^\top w(\hat BW^{-1/2}X)-HW^{-1/2}X\big)\)（<code>apply_SR</code>，LR :6857–6858）。</li>
+<li>得到：一个 27930 × 27930 的对称算子，只能「乘」，每乘一次要解一次 120 万自由度的线弹性方程。</li>
+</ul></li>
+<li><strong>随机化求主特征子空间</strong>
+<ul>
+<li>原始输入：\(S_R\)；参数 \(k_{\max}=80\)、多取 20 个随机方向（\(\ell=100\)）、幂迭代 4 次、种子 0。</li>
+<li>式子：\(Y_0=S_R\Omega\)（\(\Omega\) 高斯 \(n_s\times\ell\)），\(Y_{i+1}=S_R\,\mathrm{qr}(Y_i)\)，\(Q=\mathrm{qr}(Y)\)，\(Z=S_RQ\)（LR :7021–7028；Halko, Martinsson &amp; Tropp 2011 Alg. 4.1，出处写在 LR :6705）。</li>
+<li>得到：\(Q\) 为 27930 × 100，共乘 6 轮。</li>
+<li>读法：幂迭代次数越多 → 大 \(|\sigma|\) 的方向越突出 → 前面的 mode 越准；后面小 \(|\sigma|\) 的 mode 仍可能不准，所以还有第 8 步。</li>
+</ul></li>
+<li><strong>Rayleigh–Ritz：得到 \(\sigma_m\) 与 \(r_m\)</strong>
+<ul>
+<li>原始输入：\(Q\)、\(Z\)、\(W\)。</li>
+<li>式子：\(T=\tfrac12(Q^\top Z+Z^\top Q)=V\,\mathrm{diag}(\sigma)V^\top\)，按 \(|\sigma|\) 从大到小取前 80 个；\(r_m=W^{-1/2}Qv_m\)；Ritz 残差 \(\rho_m=\|Zv_m-\sigma_mQv_m\|/|\sigma_m|\)（<code>_modes_rayleigh_ritz</code>，LR :6613–6623；\(r\) 在 :7031）。</li>
+<li>得到：\(\sigma\) 80 个（单位 长度/压强），\(r\) 为 80 × 27930（每个表面点一个值）。</li>
+<li>读法：\(\rho_m\) 越小 → 这个 mode 越接近真特征向量；\(\rho_m\le1\%\) 才算合格。</li>
+</ul></li>
+<li><strong>块 Krylov 续算（不多乘一次）</strong>
+<ul>
+<li>原始输入：第 6 步每一轮存下的 \(Y_0,\dots,Y_4\) 和 \(Z\)（断点）。</li>
+<li>式子：把 5 个正交基拼成 \(B\)（500 列），SVD 后保留奇异值 \(&gt;10^{-10}\times\) 最大值的方向，再做一次第 7 步（<code>_modes_krylov_mode</code>，LR :6626–6672；容差默认 \(10^{-10}\)，:7130）。</li>
+<li>得到：龙保留 479 维，鸭 490 维；两者前 80 个全部合格（<code>qualified_prefix</code> 80），续算前只有前 58 个合格；最大残差龙 \(6.9\times10^{-5}\)、鸭 \(2.5\times10^{-4}\)；耗时各约 2 s。</li>
+<li>读法：子空间越大 → 后面那些小 \(|\sigma|\) 的 mode 越准，不用再解一次大方程。</li>
+</ul></li>
+<li><strong>在接触格上取 mode 值，拼进 \(C\)</strong>
+<ul>
+<li>原始输入：mode 表（\(V_s,F_s,r,\sigma\)）；第 \(i\) 格在物体 \(b\) 上的命中点 \(X^b_i\)（当前坐标）；物体的 affine 状态 \(A_b,t_b\)；格距 \(h\)；余弦 \(c_{b,i}=|n\cdot e|\)。</li>
+<li>式子：\(\bar X_i=A_b^{-1}(X^b_i-t_b)\) 拉回静止形状 → 投到最近的表面三角形、用重心坐标插值 \(\Phi^b_{i,m}=\sum_k\beta_kr_m(\text{顶点}_k)\)（<code>zone_modes_at</code>，BG :5124–5139）→ \(\tilde\Phi^b_{i,m}=h\,c_{b,i}\Phi^b_{i,m}\)（BG :5248、:5251）→
+\[C^{\text{mode}}=\tilde\Phi\,\mathrm{diag}(\sigma)\,\tilde\Phi^\top,\quad C^{\text{mode}}_{ij}=h^2\sum_b\sum_{m\le k}\sigma_{b,m}c_{b,i}c_{b,j}\Phi^b_{i,m}\Phi^b_{j,m}\]
+（BG :5278 <code>((P @ Phi) * sig) @ Phi.T</code>；每个物体取前 \(k\) 个，<code>_mode_cols</code> :5402）。</li>
+<li>得到：龙压鸭 \(h=0.0020442\)，命中点到 mode 表面的最大距离 \(1.1\times10^{-6}\)，超过 0.5 倍边长的点 0 个。</li>
+<li>读法：两个 \(c\) 一个管「压强对 mode 做功」、一个管「mode 位移读回压入方向」；表面越斜 → \(c\) 越小 → mode 项越弱。</li>
+</ul></li>
+</ol>
+
+<h4 id="a2m-2">为什么 \(\sigma_m\) 可以是负的</h4>
+<ul>
+<li>\(R=K_{\text{lock}}-H\) 本来就不定号：哪一个方向上锁定后的真实物体比半空间<strong>硬</strong>，那个方向的 \(\sigma\) 就是负的。</li>
+<li>球上有精确谱可对：\(R_\ell=\mu_\ell-\kappa_\ell\)，\(\ell=0,1,2\) 三层（1 + 3 + 5 = 9 个）为负，和算出来的 \(\sigma\) 差 0.05%–1.5%；\(\ell=0\) 的均匀胀缩被 affine 锁完全锁住，所以 \(\mu_0=0\)（审核记录 <code>docs/drafts/review_skel_positive_sigma_1112.md</code> 第 16–28 行）。</li>
+<li>龙的 80 个里 5 个为负，鸭的 80 个里 29 个为负。带着负 \(\sigma\)，\(C\) 仍然正定：82 个 json 的 \(\lambda_{\min}\) 最小 0.938（同一审核记录第 29 行）；龙压鸭 \(k=80\) 时 0.99999996。</li>
+<li>读法：丢掉负 \(\sigma\) → \(C\) 只增不减 → skeleton 偏软、能量系统性偏小，所以代码保留它们。</li>
+</ul>
+
+<h4 id="a2m-3">实测例子：龙压鸭（压深 0.003）</h4>
+<ul>
+<li>只用半空间项（\(k=0\)）：\(U=0.013048\)，有压力的格 1650 个。</li>
+<li>加 80 个 mode：\(U=0.0051830\)，有压力的格 822 个；标准答案 0.0060489，比值 0.857。</li>
+<li>mode 项在 \(\tfrac12h^2p^\top Cp\) 里那一部分 \(U_{\text{lowrank}}=0.0028651\)，占 \(U\) 的 55.3%（<code>s_quad</code>，BG :5550）。另一种口径：相对只用半空间项，能量变成 \(1/2.52\)，合力变成 \(1/2.85\)。</li>
+<li>mode 数从 0 加到 80：\(U\) 依次 0.013048（0）、0.005656（5）、0.005249（19）、0.005221（40）、0.0051826（79）、0.0051830（80）。</li>
+<li>读法：这个算例里一半以上的能量来自预先算好的 mode 项；有限物体的整体变形不是小修正。</li>
+</ul>
+
+<h4 id="a2m-4">每一步的条件，不成立时会怎样</h4>
+<div class="tablewrap"><table>
+<thead><tr><th>步骤</th><th>需要的条件</th><th>不成立时</th><th>证据</th></tr></thead>
+<tbody>
+<tr><td>1–5 线弹性柔度</td><td>小应变线弹性：\(K\)、\(K_{\text{lock}}\)、\(H\) 都是线性的，所以 \(\sigma\propto1/E\)</td><td>大压深下柔度随状态变，mode 项不会跟着变</td><td>兔耳、兔头 \(E\) 从 \(10^5\) 到 \(10^6\) 时 \(\sigma\) 正好缩为 1/10（审核记录，未亲自复算）；兔压龙 1/6 深 skeleton 偏软 20.9%，mode 残差 \(1.8\times10^{-4}\)，不是截断（第 7 周页面）</td></tr>
+<tr><td>3 锁定</td><td>粗模型恰好是这 12 个数（质心 + \(\bar F\)）</td><td>换别的粗模型要重算 mode</td><td>定义在 LR :1879–1881；换锁法会改 \(w\) 本身（LR :2126）</td></tr>
+<tr><td>4 半空间项</td><td>\(H\) 的求积够准</td><td>求积误差会混进 \(R\)</td><td>自检阈值 \(10^{-4}\)（LR :5526）；兔背网格实测近中远档 \(\le3.8\times10^{-7}\)（<code>skeleton_explicit_formulas_1113.md</code> 7.5 节）</td></tr>
+<tr><td>6–8 mode 收敛</td><td>所用前 \(k\) 个的 Ritz 残差都 \(\le1\%\)</td><td>超了这一行不判（<code>modes_unconverged</code>）</td><td>门槛 <code>TN_RITZ_MAX</code>（BG :4410）、<code>_ritz_max_used</code>（BG :5695）；鸭只乘 2 次时前 19 个合格，续算后 80 个合格</td></tr>
+<tr><td>截断到 \(k\)</td><td>起作用的 mode 都在前 \(k\) 个里</td><td>漏掉的正 \(\sigma\) 让 skeleton 偏硬</td><td>龙鳍压平块（压深 0.012）：\(k=24\) 比值 1.365，\(k=65\) 1.186，\(k=66\) 1.102（第 66 个是鳍自己的弯曲），\(k=80\) 1.075</td></tr>
+<tr><td>mode 网格分辨率</td><td>mode 用的四面体网格足够细（每个物体用 m 档网格、P2）</td><td>\(\sigma\)、\(r\) 有离散误差</td><td>未实测（没有对同一物体换网格重算 mode 的结果）</td></tr>
+<tr><td>9 取值</td><td>命中点离静止表面近，逆 affine 拉回有意义</td><td>超过 0.5 倍边长的点计数、场景记 <code>mode_far</code></td><td>阈值 BG :4404；龙压鸭 0 个</td></tr>
+<tr><td>9 大变形</td><td>mode 在静止形状上算，运行时不按变形后的形状重新线性化</td><td>大压深、大整体应变时 mode 项不跟着几何变</td><td>代码自己写明的限制（BG :6119）；粗模型整体应变 1%–5% 的 5 个算例标准答案还没有</td></tr>
+<tr><td>大转动</td><td>转动由 \(\bar X=A^{-1}(X-t)\) 精确拉回，\(\sigma r r\) 是标量法向核，不随转动变</td><td>—</td><td>整场景转 45° 的兔头压平块 0.929 → [0.935, 1.054]，基本对（第 7.5 节）</td></tr>
+</tbody>
+</table></div>
+
+<h4 id="a2m-6">已知不一致：mode 的锁法与现在标准答案的锁法不同</h4>
+<ul>
+<li>mode 是在 <strong>12 自由度 affine 锁</strong>下算的：质心 3 个 + \(\bar F\) 9 个都锁住，对称应变那 6 个方向做秩 6 下调（<code>condense_lock</code>，LR :2116–2117）。</li>
+<li>现在的标准答案（IPC 标签）用的是 <strong>刚体锁</strong>：只锁质心 3 个 + 转动 3 个（\(\bar F\) 的反对称部分），拉伸、剪切放开（AGENTS 决策规范第 0 条，commit e6490486）。</li>
+<li>所以 mode 项代表的「锁住以后剩下的柔度」和标准答案里物体实际被约束的方式不一样：标准答案里物体还能整体拉伸、剪切，mode 项把这 6 个方向当成粗模型已经管了。这里只记录这个不一致，还没有修。</li>
+</ul>
+
+<h4 id="a2m-7">为什么用整体 mode 而不是局部查表</h4>
+<p>导师的问题：「撞不同的位置应该是不同的形变，为啥用整体」。回答分三点。</p>
+<ul>
+<li><strong>mode 不是「形变」，是柔度核的一组基。</strong>\(G_R(x,y)\) 回答的是「在 \(y\) 压一下，\(x\) 退多少」；它被拆成 \(G_R(x,y)\approx\sum_m\sigma_m r_m(x)r_m(y)\)。\(r_m\) 是拼出这张「谁影响谁」的表的积木，不是某一次碰撞的形状。</li>
+<li><strong>碰不同位置，系数不同，形状就不同。</strong>一次接触的压强是 \(p\)，剩余位移是
+\[u(x)=\sum_m\sigma_m\,r_m(x)\Big(\sum_j r_m(y_j)\,p_j\,h^2\Big).\]
+括号里是这次接触的压强在第 \(m\) 个 mode 上的投影：压在鳍上，鳍弯曲那个 mode 的系数大；压在背上，它几乎为 0。代码里也是这样：<code>zone_modes_at</code>（BG :5124）只在这次接触的命中点上取 \(r_m\)（调用在 BG :5245，结果放进 BG :5239 建的 \(\Phi\)），再由 <code>make_apply_C_zones</code>（BG :5260）里的低秩项 \(\tilde\Phi\,\mathrm{diag}(\sigma)\,\tilde\Phi^\top\)（BG :5278）作用到这次的 \(p\) 上。好比同一组 Fourier 基函数能拼出任意曲线：基是固定的，不同曲线只是系数不同。</li>
+<li><strong>为什么几十个 mode 就够。</strong>和位置有关、变化很尖锐的那部分（接触点附近的 \(1/r\) 奇异）在第一项半空间项里，每次接触都精确算。剩下的 \(G_R\) 是整个物体的光滑部分（有限大、整体弯曲、锁定带来的修正），所以低秩，少数几个 mode 就能表示。<strong>限制</strong>：薄的局部部件要更多 mode。龙鳍取 24 个时比值 1.365，取到 66 个才降到 1.102（<code>docs/qa_answers_1112_1113.md</code> 第 199 行），这正是导师的担心成立的地方。mode 全部保留时是精确的，因为那就是整个矩阵的特征分解。</li>
+</ul>
+<p><strong>代价对比：</strong></p>
+<ul>
+<li>整体 mode：按设计每个物体只预处理一次（现在实际是每个场景一次，见本节开头）。兔背（表面 10740 点）一次预处理共 245 s，其中半空间 204 s、锁定柔度 28 s；之后每个接触状态只解一个小二次规划，实测 0.06–1.9 s。</li>
+<li>按需局部解：每次接触都要对每个可能接触的格各回代一次。按预处理里一次回代 ≤ 0.14 s、兔背 S1 有 168 个可能接触的格算，<strong>估算</strong>每次接触约 168 × 0.14 ≈ 24 s。这是估算，没有实际跑过；它没有截断误差，适合当检验。</li>
+<li>局部预存查表：接触位置是连续的，跨 patch 的交叉项要成对存，存储和预处理都最贵。</li>
+<li>出处：<code>docs/qa_answers_1112_1113.md</code> 第 172–240 行（back_n_k40 的 t_pre_json）。</li>
+</ul>
+
+<h4 id="a2m-5">预处理的实测代价（现在是每个场景一次）</h4>
+<ul>
+<li>龙（表面 27930 点）：组装 33.5 s、半空间矩阵 2001.5 s、锁定求解 152.6 s，合计 2198.3 s（约 37 分钟）；GPU 峰值 16308 MiB；Krylov 续算 2.1 s。</li>
+<li>鸭（表面 8847 点）：合计 10157.2 s，其中组装 1383.4 s、半空间矩阵 8318.8 s。点数比龙少却慢得多，原因没有查（未核实）。</li>
+<li>读法：表面点数 \(n_s\) 越多 → 稠密的 \(H\) 按 \(n_s^2\) 变大 → 预处理越慢，这一项需要提速。</li>
+</ul>
+<p class="kp">mode 项 = 锁住 12 个 affine 自由度后的真实表面柔度减去半空间柔度，取它绝对值最大的 80 个特征方向，在接触格上插值后乘两个余弦和 \(h^2\) 进 \(C\)。设计上它只依赖一个物体的网格和材料；现有的数用的是按场景接触点加密的网格，复用路径还没验证。它要求线弹性、mode 收敛、起作用的 mode 都在前 \(k\) 个里，并且不随变形重新线性化。</p>
+
+<h3 id="w12b-10">总体成立条件</h3>
+<ul>
+<li><strong>线弹性、小应变</strong>（4b 的前提）。
+<ul><li>成立的例子：兔背压平块压深 0.024、0.048，比值 0.927、0.910，都判「基本对」（<a href="#w7-4">7.4</a>，<code>table_v8.23_k80cells4.json</code>）。</li>
+<li>不成立的例子：week7 深压 1/6，skeleton 偏软 20.9%（参考值，<code>docs/drafts/web_week7.md</code>:102）。同一档上，只用半空间的 BEM 是 +266%（参考值）。</li></ul></li>
+<li><strong>无摩擦</strong>（4a、4e）。
+<ul><li>成立：IPC 标签也关了摩擦（<code>ipc_locked_labels.py</code>:1027）。</li>
+<li>不成立的例子：没有带摩擦的对照（未实测）。</li></ul></li>
+<li><strong>物体远大于接触区，物体够厚</strong>（4a；不满足时靠 mode 项补）。
+<ul><li>成立：back_n S1 只用半空间项与加 mode 后只差 0.16%。</li>
+<li>不成立：龙鳍只用半空间项时比值 2.91（<code>F9_mode_count.txt</code>）；深压 1/8 只用半空间的 BEM 是 +417%（参考值，<code>web_week7.md</code>:101）。</li></ul></li>
+<li><strong>接触区里表面坡度小</strong>（4d）。
+<ul><li>成立：back_n S1 法向偏 0.08°。</li>
+<li>不成立的例子：只看坡度单独造成多大误差，没有拆开测（未实测）。</li></ul></li>
+<li><strong>法向唯一、缝隙单值</strong>（第 1、3 步）。
+<ul><li>成立：back_n S1 两个种子合成一区，两侧法向一致。</li>
+<li>不成立：深压时法向跳 126°、读数变 +40%（:4653–4655）。深压 1/3 时，最深的两个种子是同一处接触的两面，换成重叠梯度法向后两个区共用命中三角形，旧代码直接报「区重叠」（<code>_dedup_shared_zones</code> :5042–5046）。</li></ul></li>
+<li><strong>格子够细</strong>（第 2 步、4c）。
+<ul><li>成立：back_n S1 \(a/h=4.07\)；\(a/h\ge2\) 时误差约 ±1.3%。</li>
+<li>不成立：\(a/h\) 在 1.5–2 时误差约 ±3.3%；判档表对 \(a/h&lt;1.5\) 或拿不到的格取 5.6%（<code>table_v8.23_k80cells4.json</code> <code>tier_reason</code>）。</li></ul></li>
+<li><strong>mode 取够</strong>（第 5 步）。
+<ul><li>成立：back_n S16 用 80 个 mode，从 79 加到 80 个比值只变 0.01%（同表）。</li>
+<li>不成立：龙鳍只取 24 个 mode 时偏硬 36%，加到第 66 个才回到 1.10。back_n S1 用到第 40 个 mode 时 Ritz 残差是 0.2547，超过 1% 的门槛（<code>TN_RITZ_MAX</code> :4410），这一档不进判定。</li></ul></li>
+<li><strong>\(C\) 正定</strong>（第 6 步）。
+<ul><li>成立：back_n S1 \(\lambda_C=0.99625\)。</li>
+<li>不成立的场景会记数值失败，全表里出现过几次没有统计（未实测）。</li></ul></li>
+<li><strong>准静态</strong>：只取压到某个深度、等稳定后的能量（AGENTS.md:219），不管撞击过程。动态没有验证（未实测）。</li>
+</ul>
+<p class="kp">整体成立条件：线弹性小应变、无摩擦、准静态、坡度小、法向唯一且缝隙单值、格子够细、mode 取够且 C 正定；物体远大于接触区不再是前提，由 mode 项补。</p>
+<h3 id="w12a1">文献里哪些接触公式是已知的</h3>
+<ul>
+<li>这一小节回答 week5 TODO 第 3 条「literature search 有多少公式是已知的」：把文献里和我们直接有关的接触公式列成一张表，每条写清<strong>原文要求的条件</strong>，再看我们的算例满不满足这些条件。</li>
+<li>每个式子和条件都对着原文全文核过，「出处」一栏写的是原文所在的文件和行号。<code>refs/</code> 在 sandbox 仓库里；Zhang 2014 用的是 NAS 上的 PDF。</li>
+<li>通用记号：\(E^*\) 是两侧串联起来的合成模量，\(d\) 是压深，\(a\) 是接触圆半径，\(R\) 是球半径，\(F\) 是合力。</li>
+</ul>
+<div class="tablewrap"><table>
+<thead>
+<tr><th>公式 · 一句话读法</th><th>原文条件</th><th>我们哪些算例能用</th><th>出处（原文行）</th></tr>
+</thead>
+<tbody>
+<tr>
+<td><b>Boussinesq 点力 + 叠加</b><br>\(w(r)=\dfrac{F_z}{\pi E^* r}\)，\(w(x,y)=\dfrac1{\pi E^*}\iint\dfrac{p(x',y')}{r}\,dx'dy'\)<br>离力点越远 → 陷得越少，按 \(1/r\) 衰减；多处的压强各自造成的下陷直接相加。</td>
+<td>材料线弹性；半空间近似：表面坡度 \(\theta\ll1\)，「变形前和变形后都要满足」；误差量级 \(\theta^2\)；无摩擦</td>
+<td>所有算例里 skeleton 第一项的来源（见 <a href="#w12b-1">下一小节</a>）；单靠它不能当任何一个算例的标准答案，因为我们的物体都有限大</td>
+<td>Popov, Heß &amp; Willert 2019 手册 式 2.2、2.3；条件原文「require linearity of the material behavior as well as the half-space approximation … the surface gradient must be small … of the order of θ²」：<code>popov_hess_willert2019_handbook.txt</code> L535–570</td>
+</tr>
+<tr>
+<td><b>合成模量</b><br>\(\dfrac1{E^*}=\dfrac{1-\nu_1^2}{E_1}+\dfrac{1-\nu_2^2}{E_2}\)<br>哪一侧更软 → 它的 \((1-\nu^2)/E\) 越大 → 在 \(1/E^*\) 里占得越多；两侧的软度直接相加。</td>
+<td>两个弹性体<strong>无摩擦</strong>法向接触，等价成「刚性压头 + 弹性半空间」</td>
+<td>所有两侧都软的算例，包括软硬对调（两侧材料差、week7 刚度 / 泊松比互换）；在有限物体上只是局部主项</td>
+<td>手册 式 2.1，原文「frictionless normal contact between two elastic bodies … equivalent to the contact of a rigid indenter … and an elastic half-space」：<code>popov_hess_willert2019_handbook.txt</code> L521–536</td>
+</tr>
+<tr>
+<td><b>平底圆柱冲头</b><br>\(F=2E^*a\,d\)，刚度 \(k=2E^*a\)<br>底面大小 \(a\) 不随压深变 → 力和压深成正比；底面越大越硬。</td>
+<td>半空间、线弹性、无摩擦、轴对称；原文强调「solely valid for rigid cylindrical indenters」，弹性冲头不满足半空间近似</td>
+<td>面贴面、大面积贴合（CAD 平面 / 柱面贴平块）只能对照「力 ∝ 压深」这个趋势；两侧都是弹性有限体，严格条件不满足</td>
+<td>手册 式 2.20–2.21：<code>popov_hess_willert2019_handbook.txt</code> L832–857</td>
+</tr>
+<tr>
+<td><b>圆锥</b><br>\(d=\tfrac{\pi}{2}a\tan\theta\)，\(F=\tfrac{\pi}{2}a^2E^*\tan\theta\)<br>压得越深 → 接触圆按 \(a\propto d\) 变大 → \(F\propto d^2\)。</td>
+<td>锥的倾角 \(\theta\) 小；半空间；同样只对刚性锥严格成立</td>
+<td>尖（兔耳尖斜压平块、尖处压龙）只能对照趋势；我们的尖不轴对称、也不是刚的</td>
+<td>手册 式 2.24–2.26：<code>popov_hess_willert2019_handbook.txt</code> L894–921</td>
+</tr>
+<tr>
+<td><b>Hertz（抛物面 / 球）</b><br>\(d=a^2/R\)，\(F=\tfrac43E^*\sqrt R\,d^{3/2}\)，\(U=\tfrac{8}{15}E^*\sqrt R\,d^{5/2}\)<br>压得越深 → 接触面越大 → 越压越硬，所以力比线性涨得快；能量是力对压深积分。</td>
+<td>接触半径远小于球半径 \(a\ll R\)（原文：小变形理论要求半空间假设，「can be written as a ≪ R」）；半空间、线弹性、无摩擦；本手册写的是轴对称情形</td>
+<td>光滑凸面、小压深的那几类（基线、普通单片、斜压、整体转动、尺寸比、两侧材料差、近不可压、中等压深）只在接触区附近、形状接近二次曲面时<strong>近似</strong>可对照；形状不轴对称、物体有限大，严格条件不满足</td>
+<td>手册 式 2.28–2.29、2.34–2.35：<code>popov_hess_willert2019_handbook.txt</code> L1011–1047、L1316–1328；a≪R 条件 L1392–1395</td>
+</tr>
+<tr>
+<td><b>MDR（任意轴对称剖面）</b><br>\(g(x)=|x|\int_0^{|x|}\dfrac{f'(r)}{\sqrt{x^2-r^2}}dr\)，\(d=g(a)\)，\(F=2E^*\int_0^a[d-g(x)]dx\)<br>把三维轴对称接触换成一排独立弹簧；剖面越陡 → 同样压深接触圆越小。</td>
+<td>原文「all results are exact for axially symmetrical contacts」；仍是半空间、线弹性</td>
+<td>我们没有轴对称的算例，只能用来造理想 test case</td>
+<td>手册 式 2.6、2.9、2.11：<code>popov_hess_willert2019_handbook.txt</code> L579–660</td>
+</tr>
+<tr>
+<td><b>JKR / DMT 粘附（球的拉脱力）</b><br>JKR：\(F_A=\tfrac32\pi\Delta\gamma R\)；DMT / Bradley：\(F_A=2\pi\Delta\gamma R\)<br>粘附功 \(\Delta\gamma\) 越大、球越大 → 拉开要的力越大。</td>
+<td>JKR：粘附力作用范围趋于 0；DMT：变形仍按 Hertz 算、粘附力作用范围长；两者都是半空间</td>
+<td>无：我们的接触没有粘附</td>
+<td>手册 式 3.1、3.2：<code>popov_hess_willert2019_handbook.txt</code> L4583–4620</td>
+</tr>
+<tr>
+<td><b>薄层 = 弹簧垫（Winkler）</b><br>底面能滑：\(p=\dfrac{2\mu}{1-\nu}\,\dfrac{w}{b}\)；底面粘住：\(p=k(\delta_0-\varphi)\)，\(k=\dfrac{A_{33}}{h}\)，\(A_{33}=\dfrac{E(1-\nu)}{(1+\nu)(1-2\nu)}\)<br>层越薄（\(b\)、\(h\) 越小）→ 每单位面积越硬；每一小块只被正上方直接压扁，和旁边无关。</td>
+<td>层贴在<strong>刚性</strong>底座上；层厚远小于接触尺寸 \(b\ll a\)；只在接触区内部、离边界远处成立；粘住时 \(\nu\to0.5\) 要换不可压的另一套式子</td>
+<td>无：我们的薄部位（兔耳、龙鳍、球冠壳）是两面自由、会整体弯的薄片，不是贴在刚性底座上的层</td>
+<td>Ciavarella &amp; Papangelo 2018 式 3（原文印成 \(p=2\mu w/(1-\nu)\)，\(1/b\) 由同文式 5 反推）、\(b\ll a\)：<code>ciavarella_papangelo2018_arxiv1801.00677.txt</code> L89–135、L380–383；Argatov, Mishuris &amp; Popov 2016 式 13、30：<code>argatov_mishuris_popov2016_arxiv1512.02944.txt</code> L169–214、L486–491</td>
+</tr>
+<tr>
+<td><b>hydroelastic（压力场接触）</b><br>\(p_0=E\,\epsilon\)，\(U_{p_0}=\int_{V^\cap}p_0\,dV\)<br>叠进去越深（\(\epsilon\) 越大）→ 压力越大；能量就是重叠体积里压力场的积分。</td>
+<td>原文：压力场「need not satisfy any mechanical equilibrium conditions」，不是弹性力学解；只在表面平缓弯曲时和弹性地基、重叠体积模型一致</td>
+<td>第 8 节和 hydroelastic 比的 56 个算例用的就是它（它是 baseline，不是裁判）</td>
+<td>Elandt 等 2019：<code>related_work/02_Hydroelastic_contact/01 - A pressure field model ….md</code> L56、L83–89、L112、L233</td>
+</tr>
+<tr>
+<td><b>neo-Hookean 大压深（刚球）</b><br>\(P_{nH}=\tfrac{16}{3}\mu_0\sqrt R\,h^{3/2}\big(1-0.15\,\tfrac hR\big)\)<br>压深 \(h/R\) 越大 → 比 Hertz 越软；\(h/R=1\) 时差 15%，\(h/R\le0.3\) 时差不到 5%。</td>
+<td>到 \(h/R=1\) 有效；刚性球、轴对称、不可压 neo-Hookean、底面固定的「半无限」基体；忽略摩擦；系数是有限元拟合，不是解析式</td>
+<td>无：week7 的深压（压深 1/2、1/3 兔高）是两个软的有限体、形状不对称，条件都不满足，只能对照「越深越偏离 Hertz」这个趋势</td>
+<td>Zhang, Cao, Li &amp; Feng 2014 式 14、17：<code>/nas/xiaoyingwang/Neural-IPC/data/validation_refs_raw/lit_v3_nonlinear/zhang2014_bmmb_spherical_indentation_hyperelastic.pdf</code>（pdftotext 第 250–335 行）</td>
+</tr>
+<tr>
+<td><b>余能二次规划（离散接触）</b><br>\(\min_{p\ge0}\ \tfrac12p^\top Hp-\bar u^\top p\)，等价于互补条件 \(w=Hp-\bar u\ge0,\ p\ge0,\ w^\top p=0\)<br>每一格要么压着（有压强、正好让开），要么留缝（没压强）；\(H\) 对称正定 → 解唯一。</td>
+<td>线弹性；\(H\) 对称正定；无摩擦法向接触；原文用的是半空间的 \(H\)</td>
+<td>这就是我们 skeleton 的骨架式（把 \(H\) 换成有限体的柔度 \(C\)），见 <a href="#w12b-1">下一小节</a></td>
+<td>Bemporad &amp; Paggi 2015 式 14–18：<code>bemporad_paggi2015_ijss.txt</code> L336–385</td>
+</tr>
+<tr>
+<td><b>有限体的 Green 函数 = Boussinesq + 正则部分</b><br>\(G(x)=T(x)+O(1)\)，\(g=G-T\)；一阶接触模型里只多一个常数 \(g_3(O)\)<br>离接触点很近时有限物体和半空间一样；物体的形状和支撑只以一个和距离无关的修正出现。</td>
+<td>接触点 O 处主曲率取 0；物体有一部分边界被固定（\(\Gamma_u\)）；渐近式，接触区要小</td>
+<td>支持我们「半空间项 + 修正项」的写法（第二项就是这个修正，见 <a href="#w6">第 6 节</a>）；我们的物体是自由漂浮、扣掉 affine，和原文的固定边界不同</td>
+<td>Argatov, arXiv 1311.5365 式 12、21–24：<code>argatov_afm_tomography_1311.5365.txt</code> L168–175、L300–334</td>
+</tr>
+<tr>
+<td><b>压得越深越硬（单调性）</b><br>定理 4.1：处处 \(U_1\ge U_2\) ⇒ \(F_1\ge F_2\)；接触面积随压深不减 ⇒ 增量刚度 \(dF/dw\) 不减<br>某处多压一点 → 总力只会变大不会变小。</td>
+<td>无摩擦；表面坡度小、两侧都能当半空间</td>
+<td>可作所有线弹性算例的定性检查（力–压深曲线应上凹）</td>
+<td>Barber 2003 定理 4.1：<code>barber2003_bounds_resistance.txt</code> L12、L27–29</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>数一数</strong>：我们第 7 节的 18 类、82 个算例，加上 week7 的深压和软硬对调，<strong>没有一个严格满足上表任何一个闭式解的全部条件</strong>。原因都一样：两个物体都有限大、形状一般、两侧都软。</li>
+<li>能<strong>近似</strong>对照的有 8 类：基线、普通单片、斜压、整体转动、尺寸比、两侧材料差、近不可压、中等压深，都是光滑凸面、小压深，可以对照 Hertz 的量级。另外面贴面、大面积贴合可以对照平底冲头「力 ∝ 压深」，尖可以对照圆锥「力 ∝ 压深²」，这三类只能对照趋势。</li>
+<li><strong>没有已知公式</strong>的有：棱、一侧薄、两侧都薄、靠连接处、多处接触、凹面鞍面、中等整体应变，以及 week7 的深压（1/2、1/3 兔高）和刚度 / 泊松比互换。所以这些类只能拿 IPC+FEM 当标准答案。</li>
+<li>上面的「能用 / 不能用」是逐条对照条件得出的判断，不是实测。</li>
+</ul>
+<p class="kp">文献给了骨架的每一块砖（点力解、合成模量、余能二次规划、有限体 = 半空间 + 修正），但闭式解都要求半空间、轴对称或刚性对手；我们的算例没有一个完全满足，所以裁判只能是 IPC+FEM。</p>
+</section>
+<section id="w13"><h2>13. 下一步</h2>
+<p>先定一条只看输入就能算出来的 mode 选取规则，用它把所有算例重跑一遍。然后逐个算例把标准答案的修正测准，把待定的判出来。兔耳压到 0.048 深时，补够 mode 还是硬了 11%，要查清是哪条假设不成立。最后再设计 neural 的输入和输出。</p></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
 <dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
 <script>
