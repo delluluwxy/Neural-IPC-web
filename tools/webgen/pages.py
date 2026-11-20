@@ -19,10 +19,9 @@ def week_summaries(demos, tests, gsweeps):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
-        "week7": ("上次组会后：skeleton 正式读法、有限球精确解、IPC 标签的两项偏差；本周：已实现的五个局部 baseline 与 skeleton 并列比；"
-                  "兔子压龙压到兔子高度的 1/16、1/8、1/6（中等压深）；1/8 有两个静止平衡，"
-                  "标签取总势能最低的一支；等效模量相同时软硬对调；RigidFormer 的调研。"),   # 首页卡片摘要，与 sandbox web_week7.md 各节对应
-        "week5":"我们在 18 类刻意刁难的 edge case 上测了 82 个算例：39 个基本对、37 个待定、6 个没有有效标准答案。14 类至少有一个基本对的算例；靠连接处、棱、两侧都薄、中等整体应变这 4 类尚无基本对的算例。判为明显不对的 0 个，但这一档能否判出故意做错的算例还没有验证；大压深（压入约物体高度的 1/3–1/2）和大应变尚未验证。在现有的 IPC 标签上，skeleton 比 hydroelastic 更接近。目前已查清原因的最大偏差（龙鳍，只取 24 个 mode 时偏硬 36%）出在 mode 取得不够，加够 mode 后回到 1.1 附近。",   # v8.23 汇总口径；与 sandbox 的 reviewed web_week5.md 导语同步
+        "week7": ("上次组会后：skeleton 中间面读法、IPC 标签的两项偏差；本周：已实现的五个局部 baseline 和它们的假设；"
+                  "兔高 1/2、1/3 的软体大压深（rigid 锁）正在重划网格，能量未实测；RigidFormer 的调研。"),   # 首页卡片摘要，与 sandbox web_week7.md 各节对应（11-20 合规修改）
+        "week5":"本页只放两侧都是软体普通网格（兔、龙、鸭）的算例：7 类 27 个，其中 18 个基本对、8 个待定、1 个没有有效标准答案，判为明显不对的 0 个（这一档能否判出故意做错的算例还没有验证）。尖、尺寸比、凹面鞍面、一侧薄、两侧材料差 5 类至少有一个基本对；普通单片暂时都是待定，两侧都薄的唯一一格没有有效标准答案。都是浅压（最深约物体高度的 1%）；大压深（压入约物体高度的 1/3–1/2）和大应变尚未验证。在这些算例上，skeleton 比 hydroelastic 更接近现有的 IPC 标签。",   # 11-20 合规修改：与 sandbox web_week5.md 导语同步
         "week3_4": ("要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，"
                     "Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。"),
         "week2": "文献（hydroelastic、神经网络接触模型）、NeuralIPC 代码、Genesis + hydroelastic demo、实验方案、问题与待决定。",
