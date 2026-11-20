@@ -20,7 +20,8 @@ def week_summaries(demos, tests, gsweeps):
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
         "week7": ("上次组会后：skeleton 中间面读法、IPC 标签的两项偏差；本周：已实现的五个局部 baseline 和它们的假设；"
-                  "兔高 1/2、1/3 的软体大压深（rigid 锁）正在重划网格，能量未实测；RigidFormer 的调研。"),   # 首页卡片摘要，与 sandbox web_week7.md 各节对应（11-20 合规修改）
+                  "兔高 1/2、1/3 的软体大压深怎么造（导师的 rigid 锁 + IPC 接触 + nh_barrier）与刚度、泊松比互换的 8 个算例；"
+                  "和导师的区别；RigidFormer 的调研。"),   # 首页卡片摘要，与 sandbox web_week7.md 各节对应（11-20 10:0x KKT 重构）
         "week5":"本页只放两侧都是软体普通网格（兔、龙、鸭）的算例：7 类 27 个，其中 18 个基本对、8 个待定、1 个没有有效标准答案，判为明显不对的 0 个（这一档能否判出故意做错的算例还没有验证）。尖、尺寸比、凹面鞍面、一侧薄、两侧材料差 5 类至少有一个基本对；普通单片暂时都是待定，两侧都薄的唯一一格没有有效标准答案。都是浅压（最深约物体高度的 1%）；大压深（压入约物体高度的 1/3–1/2）和大应变尚未验证。在这些算例上，skeleton 比 hydroelastic 更接近现有的 IPC 标签。",   # 11-20 合规修改：与 sandbox web_week5.md 导语同步
         "week3_4": ("要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，"
                     "Genesis 中 hydro 实测；网络结构与多接触区耦合；接进引擎、体力法造标签、试训与椭圆骨架；待定事项。"),
