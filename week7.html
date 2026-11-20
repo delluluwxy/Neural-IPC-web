@@ -242,49 +242,62 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "545c6774567d";</script>
+<script>window.NIPC_PAGE = "181c612c67f1";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
 <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week7.html" aria-current="page">Week 7</a><a href="week5.html">Week 5–6</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
-<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 1. baseline：谁在比、各自假设了什么</a>
-<a class="toc-level-3" href="#w1-1">1.1 跑过的五个 baseline</a>
-<a class="toc-level-3" href="#w1-2">1.2 本周不比的</a>
-<a class="toc-level-3" href="#w1-3">1.3 浅压的起点（上次 28 个够格算例）</a>
-<a class="toc-level-2" href="#w2">2. 2. 往深处压：兔子压龙到 1/6</a>
-<a class="toc-level-3" href="#w2-1">2.1 压的时候长什么样</a>
-<a class="toc-level-3" href="#w2-2">2.2 压深序列：baseline ÷ IPC − 1</a>
-<a class="toc-level-3" href="#w2-3">2.3 深档正式标签：baseline ÷ IPC − 1</a>
-<a class="toc-level-3" href="#w2-4">2.4 解释</a>
-<a class="toc-level-2" href="#w3">3. 3. 同一个压深，两个静止平衡</a>
-<a class="toc-level-3" href="#w3-1">3.1 为什么会有两个平衡</a>
-<a class="toc-level-3" href="#w3-2">3.2 标签取哪一支</a>
-<a class="toc-level-3" href="#w3-3">3.3 两支上的 baseline</a>
-<a class="toc-level-2" href="#w4">4. 4. 材料：等效模量相同，软硬对调</a>
-<a class="toc-level-3" href="#w4-1">4.1 为什么只认 E* 的 baseline 分不出</a>
-<a class="toc-level-3" href="#w4-2">4.2 浅压：兔耳、兔头压平块（上次的对调，本周跑到判停）</a>
-<a class="toc-level-3" href="#w4-3">4.3 深压：兔子压龙 1/16</a>
-<a class="toc-level-3" href="#w4-4">4.4 解释</a>
-<a class="toc-level-2" href="#w5">5. 5. RigidFormer（ongoing）</a>
-<a class="toc-level-2" href="#w6">6. 6. 现在能说什么、下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 1. 上次组会后完成的（上周 TODO）</a>
+<a class="toc-level-2" href="#w2">2. 2. baseline：谁在比、各自假设了什么</a>
+<a class="toc-level-2" href="#w3">3. 3. 中等压深：兔子压龙到高度的 1/6</a>
+<a class="toc-level-3" href="#w3-1">3.1 压的时候长什么样</a>
+<a class="toc-level-3" href="#w3-2">3.2 压深序列：baseline ÷ IPC − 1</a>
+<a class="toc-level-3" href="#w3-3">3.3 中等压深正式标签：baseline ÷ IPC − 1</a>
+<a class="toc-level-3" href="#w3-4">3.4 解释</a>
+<a class="toc-level-3" href="#w3-5">3.5 大压深（高度的 1/3 到 1/2）</a>
+<a class="toc-level-2" href="#w4">4. 4. 同一个压深，两个静止平衡</a>
+<a class="toc-level-3" href="#w4-1">4.1 为什么会有两个平衡</a>
+<a class="toc-level-3" href="#w4-2">4.2 标签取哪一支</a>
+<a class="toc-level-3" href="#w4-3">4.3 两支上的 baseline</a>
+<a class="toc-level-2" href="#w5">5. 5. 材料：等效模量相同，软硬对调</a>
+<a class="toc-level-3" href="#w5-1">5.1 浅压：兔耳、兔头压平块（上次的对调，本周跑到判停）</a>
+<a class="toc-level-3" href="#w5-2">5.2 兔子压龙 1/16（高度的 6.25%）</a>
+<a class="toc-level-3" href="#w5-3">5.3 解释</a>
+<a class="toc-level-2" href="#w6">6. 6. RigidFormer（ongoing）</a>
+<a class="toc-level-2" href="#w7">7. 7. 现在能说什么、下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 7 周：材料、更深的压入、和 baseline 放在一起比</h1></header>
 <div class="lead"><ul>
 <li>上次（<a href="week5.html">第 5–6 周页面</a>）：skeleton = 半空间解析项 + 每个物体预先算好的整体变形 mode，解一个凸二次规划得到接触能量；18 类 edge case 上没有判为明显不对的算例，但都是浅压（最深约物体高度的 1%）。</li>
-<li>本周三件事：① 把所有已实现的 baseline 列成一张表，每个实验都和它们比（第 1 节）；② 兔子压龙往深处压到兔子高度的 1/16、1/8、1/6，并发现同一个压深有两个静止平衡（第 2、3 节）；③ 两侧材料不同、软硬对调（第 4 节）。RigidFormer 的调研放在第 5 节。</li>
+<li>第 1 节是上次组会之后完成的上周工作；本周三件事：① 把已实现的 baseline 列成一张表，每个实验都和它们比（第 2 节）；② 兔子压龙压到兔子高度的 1/16、1/8、1/6，并发现同一个压深有两个静止平衡（第 3、4 节）；③ 两侧材料不同、软硬对调（第 5 节）。RigidFormer 的调研在第 6 节。</li>
 </ul>
-<p class="kp">本页结论：只认等效模量、只看局部的 baseline（Hertz、半空间、hydroelastic、Winkler、势垒）在深压下给出的能量是标准答案的 3–21 倍（势垒为无穷大），也分不清软硬对调；有限物体各自的整体柔度决定了深压和材料分配下的能量，skeleton 在 1/8 与正式标签差 0.9%，在 1/6 偏软 30%，软硬对调的方向对、幅度偏大一倍。</p></div>
-<section id="w1"><h2>1. baseline：谁在比、各自假设了什么</h2>
+<p class="kp">本页结论：只认等效模量、只看局部的 baseline（Hertz、半空间、hydroelastic、Winkler、势垒）在中等压深下给出的能量是标准答案的 3.7–21 倍（势垒为无穷大），也分不清软硬对调；有限物体各自的整体柔度决定了压深变大和材料分配下的能量，skeleton 在 1/8 偏硬 11%（参考值）、在 1/6 偏软 21%，软硬对调的方向对、幅度偏大一倍。</p></div>
+<section id="w1"><h2>1. 上次组会后完成的（上周 TODO）</h2>
 <ul>
-<li><strong>比法</strong>：同一个粗状态下，baseline 给一个能量 \(U\)，IPC 标准答案给一个 \(U\)，报 baseline ÷ IPC − 1。正数 = baseline 偏硬（能量偏大），负数 = 偏软。</li>
-<li><strong>标准答案</strong>：精细四面体网格上锁住两个物体各自的 12 个 affine 自由度（整体平移、转动、拉伸、剪切），其余变形放开，IPC 跑到静止，读两物体的弹性能之和减去粗模型自己的能量。</li>
+<li><strong>skeleton 的正式读法：缝隙和柔度都在两表面的中间面上量</strong>。上次的读法在斜面处把沿压入方向量的重叠和沿表面法向的柔度混用，表面越斜偏得越多；新读法按中间面的坡度把两者换算到同一方向，平处与旧读法完全相同。</li>
+<li><strong>四类有闭式解的小算例全部在 1% 以内</strong>（球压平面、倾斜平冲头、两球斜压、V 形槽，各三种格距）：最大是倾斜平冲头 0° 在最粗格上的 −0.69%；格距每减半偏差约减半，最细一档最大约 0.21%。</li>
+<li><strong>完整 skeleton（局部项 + 36 个 mode）对有限球的精确解只差 −0.02% 到 −0.34%</strong>，格距减半复核 −0.19%；只用局部项时偏低 2.8%–8.3%，这部分就是「球有限大、比无限大弹性体硬」，由 mode 补上。</li>
 </ul>
-<h3 id="w1-1">跑过的五个 baseline</h3>
-
+<figure style="margin:12px 0"><img src="assets/images/W6c_sphere_exact.png" width="1498" height="975" style="width:521px;max-width:100%;height:auto" alt="横轴是接触半径占球半径的比例，纵轴是 skeleton 能量相对精确解的偏差，灰带 ±1%。灰色虚线只用局部半空间项，把球当成无限大，接触面越大偏得越低，最大一档低 8%；红线加上 36 个 mode 后四档都贴在 0 附近，空心圈是格距减半的复核点。" loading="lazy"><figcaption>横轴是接触半径占球半径的比例，纵轴是 skeleton 能量相对精确解的偏差，灰带 ±1%。灰色虚线只用局部半空间项，把球当成无限大，接触面越大偏得越低，最大一档低 8%；红线加上 36 个 mode 后四档都贴在 0 附近，空心圈是格距减半的复核点。</figcaption></figure>
+<ul>
+<li><strong>普通形状上标签可信的两档（兔子压龙 1/512、1/256），skeleton ÷ IPC 为 0.956、0.983</strong>。</li>
+<li><strong>IPC 标签自己有两项偏差，方向都是能量偏高</strong>：<ul>
+<li>线性四面体单元偏硬：同网格二次 ÷ 线性单元的能量比，兔子 0.910、0.911，鸭子 0.926，即偏高约 9% 和 7.4%。</li>
+<li>接触区加密范围不够：把加密区放大到盖住整个接触面后，能量在 1/64 降 0.885%、1/32 降 2.115%、1/16 至少降 3.557%（鸭子 1/256 降 0.897%、1/32 降 2.459%）；1/32 起超过 1%，原网格标签要换网格重出。</li>
+</ul>
+</li>
+<li><strong>加密区内按目标边长重划表面，标签只变 +0.178%（边长 0.03）和 +0.296%（边长 0.035）</strong>，在 0.35% 的判据内，四面体少四成到四成五。第 3 节的中等压深标签就用这种网格。</li>
+</ul>
+<p class="setting muted">设置：四类小算例只检验 skeleton 的局部部分，裁判是半空间闭式解；有限球的裁判是整球受力的精确级数解（Titovich &amp; Norris 2012），算例为弹性球压刚性平面、锁 12 个 affine 自由度，接触区小于球半径的 7%。</p>
+<p class="kp">skeleton 的正式读法在有闭式解的小算例上都在 1% 以内，加上 mode 后对有限球的精确解在 0.35% 以内；IPC 标签的线性单元偏硬约 9%、接触区加密不够的偏差随压深变大，压深变大后的标签改用重划表面的加密网格。</p></section>
+<section id="w2"><h2>2. baseline：谁在比、各自假设了什么</h2>
+<ul>
+<li><strong>比法</strong>：同一个粗状态下，baseline ÷ IPC 标准答案 − 1。正数 = 偏硬（能量偏大），负数 = 偏软。标准答案：精细网格上锁住每个物体的 12 个 affine 自由度（整体平移、转动、拉伸、剪切），其余放开，IPC 跑到静止，读弹性能减去粗模型自己的能量。</li>
+</ul>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th>baseline</th>
-<th>一句话</th>
+<th>做法</th>
 <th>假设</th>
 </tr>
 </thead>
@@ -311,70 +324,24 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 <tr>
 <td>势垒当接触模型</td>
-<td>直接把 IPC 防穿透的势垒函数当接触能量</td>
+<td>把 IPC 防穿透的势垒函数直接当接触能量</td>
 <td>势垒能就是弹性能</td>
 </tr>
 </tbody>
 </table></div>
 <p>\[\color{#c0392b}{U_{\text{Hertz}}=\tfrac{8}{15}\,E^*\sqrt{R}\,\delta^{5/2},\qquad \frac{1}{E^*}=\frac{1-\nu_A^2}{E_A}+\frac{1-\nu_B^2}{E_B}}\]</p>
 <ul>
-<li>\(\delta\)：两物体按刚体算的重叠深度；\(R\)：接触点处两表面的等效曲率半径，越平 \(R\) 越大；\(E\)：杨氏模量（材料多硬）；\(\nu\)：泊松比（压扁时往旁边鼓多少）；\(E^*\)：等效模量。</li>
-<li><strong>\(\delta\) 加倍 → 能量约 5.7 倍</strong>：接触区随压深变大，越压越硬。<strong>\(E^*\) 由更软的一侧主导</strong>：两侧串联，柔度相加。</li>
-<li>
-<p><strong>成立条件</strong>：线弹性、小变形、无摩擦、接触区半径 \(a\ll R\)、两物体都当成无限大的弹性体（半空间）。这些是 Hertz 的假设，不是我们的；我们的物体有限大小、任意形状，这里只用它说明 baseline 为什么会错。</p>
-<p>\[\color{#c0392b}{U_{\text{半空间}}=\max_{p\ge0}\ h^2\Big[p^\top w-\tfrac{1}{2E^*}\,p^\top C_0\,p\Big],\qquad (C_0)_{ij}\approx\frac{1}{\pi\,|x_i-x_j|}}\]</p>
-</li>
-<li>
-<p>\(w\)：每个小格里两表面的重叠；\(p\)：每格的接触压强，只能推不能拉；\(h\)：格边长；\(C_0\)：无限大弹性体上「\(j\) 格加压、\(i\) 格下沉多少」，按距离 \(1/r\) 衰减。</p>
-</li>
-<li>
-<p><strong>和 skeleton 只差一项</strong>：skeleton 在 \(C\) 里再加上每个物体自己的整体变形 mode（上次讲的「整只耳朵一起弯」）；去掉这一项就是半空间 BEM。所以它是 skeleton 最直接的对照。</p>
-<p>\[\color{#c0392b}{p_b(x)=E_{h,b}\,\epsilon_b(x),\qquad \mathcal S=\{x:\ p_A(x)=p_B(x)\}}\]</p>
-</li>
-<li>
-<p>hydro：\(\epsilon_b\) 是点 \(x\) 在物体 \(b\) 里的深度比例（表面 0、最深处 1），\(E_{h,b}\) 是 hydro 模量；接触面 \(\mathcal S\) 取两侧压力相等处，能量是重叠区里压力的积分。\(E_h\) 只在「球压平块、很浅」上对 Hertz 标定一次，之后固定；换材料时按 \(E/(1-\nu^2)\) 等比例缩放。</p>
-</li>
-<li>Winkler：\(U=\tfrac12 k h^2\sum_i w_i^2\)，弹簧刚度 \(k\) 同样在球压平块上标定一次。</li>
-<li>势垒：\(U=\kappa h^2\sum_i(d_i^2-\hat d^2)^2\ln^2(d_i^2/\hat d^2)\)，\(d_i\) 是第 \(i\) 格的间距，\(\hat d\) 是安全距离（间距小于它才有能量），\(\kappa\) 是强度。\(\kappa\)、\(\hat d\) 都在球压平块上标定，标定出的作用距离落在搜索区间的上界 0.5，拟合本身就差（能量随压深按五次方涨，Hertz 是 2.5 次方）。<strong>间距趋于 0 时能量趋于无穷</strong>：重叠超过这个标定得到的作用距离，能量就是无穷大；换成 IPC 标签自己用的安全距离，深档同样是无穷大。</li>
+<li>\(\delta\)：两物体按刚体算的重叠深度；\(R\)：接触点处的等效曲率半径；\(E\)：杨氏模量；\(\nu\)：泊松比（压扁时往旁边鼓多少）；\(E^*\)：等效模量。<strong>\(\delta\) 加倍 → 能量约 5.7 倍</strong>（接触区随压深变大）；<strong>\(E^*\) 由更软的一侧主导</strong>（两侧柔度相加）。</li>
+<li><strong>成立条件</strong>：线弹性、小变形、无摩擦、接触区半径远小于 \(R\)、两物体都当成无限大弹性体。这是 Hertz 的假设，不是我们的；这里只用它说明 baseline 为什么会错。</li>
+<li><strong>半空间 BEM 与 skeleton 只差一项</strong>：两者解同一个二次规划 \(\max_{p\ge0}h^2[p^\top w-\tfrac12p^\top Cp]\)（\(w\) 每格重叠，\(p\) 每格压强，\(h\) 格边长）；半空间 BEM 的柔度 \(C\) 只有无限大弹性体的 \(1/(\pi E^* r)\) 核，skeleton 再加上每个物体自己的整体变形 mode。</li>
+<li><strong>skeleton 是我们之前方法的参照，它的局部项现在仍用半空间（无限厚）柔度，这是已知限制</strong>：我们的问题是两个有限物体的接触，局部项下一步要换成有限物体自己的柔度。skeleton 的结果不支持「物体可以当半空间」这一假设，本页它和 IPC 对上或对不上，都只说明当前近似的精度。</li>
+<li>hydro、Winkler、势垒的参数各在「球压平块、很浅」上标定一次，之后固定。势垒标定出的作用距离落在搜索区间的上界 0.5，拟合本身就差；<strong>重叠超过这个标定得到的作用距离，势垒能就是无穷大</strong>，换成 IPC 标签自己用的安全距离，压深变大后同样是无穷大。</li>
+<li>本周不比的：Drake、OpenSim、MuJoCo、SOFA 要先安装引擎（前两个与已算的 Hertz、Winkler 同类）；James &amp; Pai、Jain &amp; Liu、Taxim、刚体 / 仿射体直接跑 IPC 没有现成实现；学习类方法要成批多形状标签；RigidFormer 见第 6 节。</li>
 </ul>
-<h3 id="w1-2">本周不比的</h3>
-
 <div class="tablewrap"><table>
 <thead>
 <tr>
-<th>baseline</th>
-<th>原因</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Drake 点接触、OpenSim 弹性基础</td>
-<td>与已算的 Hertz、Winkler 是同一类模型</td>
-</tr>
-<tr>
-<td>MuJoCo 软接触、SOFA 预计算柔度</td>
-<td>需要先安装引擎</td>
-</tr>
-<tr>
-<td>James &amp; Pai 2001、Jain &amp; Liu 2011、Taxim、刚体 / 仿射体直接跑 IPC</td>
-<td>没有现成实现</td>
-</tr>
-<tr>
-<td>学习类（MeshGraphNets、Simplicits、Romero 系列等）</td>
-<td>需要成批多形状标签才能训练</td>
-</tr>
-<tr>
-<td>RigidFormer</td>
-<td>输出刚体下一帧位姿，没有能量输出（第 5 节）</td>
-</tr>
-</tbody>
-</table></div>
-<h3 id="w1-3">浅压的起点（上次 28 个够格算例）</h3>
-
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>方法</th>
+<th>浅压 28 个够格算例</th>
 <th>能量误差：中位 / 最大</th>
 </tr>
 </thead>
@@ -406,23 +373,21 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <ul>
-<li><strong>只看局部的五个 baseline 在浅压就有两位数误差</strong>：最大误差都出在凹面里压球，那里整体变形占主导。</li>
-<li><strong>半空间 28 个全部偏硬</strong>：它缺的正是有限物体的整体柔度，这部分在 skeleton 里由 mode 补上。</li>
+<li><strong>五个局部 baseline 在浅压就有两位数误差</strong>，最大都出在凹面里压球（整体变形占主导）；半空间 28 个全偏硬，它缺的正是有限物体的整体柔度。</li>
 </ul>
-<p class="setting muted">设置：比值的分母是比值修正后的标签（线性单元偏硬按二次 ÷ 线性单元的能量比修正）；Hertz 与半空间没有可调参数；hydro、Winkler、势垒的参数各在球压平块上标定一次，之后不再调。</p>
-<p class="kp">已实现的五个 baseline 都把物体当成无限大或只看局部压入，在浅压上已有两位数误差；skeleton 与半空间 BEM 只差每个物体自己的整体柔度，后面每个实验都同时报这五列和 skeleton。</p></section>
-<section id="w2"><h2>2. 往深处压：兔子压龙到 1/6</h2>
+<p class="kp">已实现的五个 baseline 都把物体当成无限大或只看局部压入，浅压已有两位数误差；skeleton 与半空间 BEM 只差每个物体自己的整体柔度，后面每个实验都同时报这五列和 skeleton。</p></section>
+<section id="w3"><h2>3. 中等压深：兔子压龙到高度的 1/6</h2>
 <ul>
-<li><strong>压深 = 兔子向下平移的距离 ÷ 兔子高度</strong>（兔子高 9.23）。只平移，不旋转、不压扁粗模型，所以粗模型自己的能量约为 0，\(U\) 就是两物体被对方顶出来的弹性能。</li>
-<li><strong>深档标签用接触区加密的网格</strong>：原网格只在接触点附近加密，压深后接触面比加密区大，原网格标签在 1/8 偏硬 8.1%、在 1/6 偏硬 8.6%。</li>
+<li><strong>压深 = 兔子向下平移的距离 ÷ 兔子高度</strong>（兔子高 9.23）：1/8 = 12.5%，1/6 = 16.7%，属中等压深。只平移，粗模型自己的能量约为 0，\(U\) 就是两物体被对方顶出来的弹性能。</li>
+<li><strong>这两档的标签用第 1 节的重划表面加密网格</strong>：原网格标签在 1/8 偏硬 8.1%、在 1/6 偏硬 8.6%。</li>
 </ul>
-<h3 id="w2-1">压的时候长什么样</h3>
+<h3 id="w3-1">压的时候长什么样</h3>
 
-<figure style="margin:12px 0"><img src="assets/images/d1_512_deform.png" width="1465" height="843" style="width:730px;max-width:100%;height:auto" alt="压深 1/512，IPC 跑到静止。红色是兔子，蓝色是龙；左边是整体，右边是接触处放大。兔子身下一个凸起刚碰到龙背，看不出变形。" loading="lazy"><figcaption>压深 1/512，IPC 跑到静止。红色是兔子，蓝色是龙；左边是整体，右边是接触处放大。兔子身下一个凸起刚碰到龙背，看不出变形。</figcaption></figure>
-<figure style="margin:12px 0"><img src="assets/images/d1_32_deform.png" width="1469" height="843" style="width:732px;max-width:100%;height:auto" alt="压深 1/32：接触处开始看得见压陷。" loading="lazy"><figcaption>压深 1/32：接触处开始看得见压陷。</figcaption></figure>
-<figure style="margin:12px 0"><img src="assets/images/w7_d1_8_L_deform.png" width="1545" height="843" style="width:770px;max-width:100%;height:auto" alt="压深 1/8，正式标签（低能支，下一节讲）：兔子身下的凸起压进龙背，接触处两侧都有明显压陷，接触面比 1/32 宽得多。" loading="lazy"><figcaption>压深 1/8，正式标签（低能支，下一节讲）：兔子身下的凸起压进龙背，接触处两侧都有明显压陷，接触面比 1/32 宽得多。</figcaption></figure>
-<figure style="margin:12px 0"><img src="assets/images/w7_d1_6_deform.png" width="1496" height="843" style="width:745px;max-width:100%;height:auto" alt="压深 1/6，正式标签：压入约 1.54，是兔子高度的六分之一，本周最深的一档；凸起和龙背在接触处都被压扁。" loading="lazy"><figcaption>压深 1/6，正式标签：压入约 1.54，是兔子高度的六分之一，本周最深的一档；凸起和龙背在接触处都被压扁。</figcaption></figure>
-<h3 id="w2-2">压深序列：baseline ÷ IPC − 1</h3>
+<figure style="margin:12px 0"><img src="assets/images/d1_512_deform.png" width="1465" height="843" style="width:730px;max-width:100%;height:auto" alt="压深 1/512（高度的 0.2%），IPC 跑到静止。红色是兔子，蓝色是龙；左边是整体，右边是接触处放大。兔子身下一个凸起刚碰到龙背，看不出变形。" loading="lazy"><figcaption>压深 1/512（高度的 0.2%），IPC 跑到静止。红色是兔子，蓝色是龙；左边是整体，右边是接触处放大。兔子身下一个凸起刚碰到龙背，看不出变形。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/d1_32_deform.png" width="1469" height="843" style="width:732px;max-width:100%;height:auto" alt="压深 1/32（高度的 3.1%）：接触处开始看得见压陷。" loading="lazy"><figcaption>压深 1/32（高度的 3.1%）：接触处开始看得见压陷。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_d1_8_L_deform.png" width="1545" height="843" style="width:770px;max-width:100%;height:auto" alt="中等压深 1/8（高度的 12.5%），正式标签（低能支，第 4 节讲）：兔子身下的凸起压进龙背，接触处两侧都有明显压陷，接触面比 1/32 宽得多。" loading="lazy"><figcaption>中等压深 1/8（高度的 12.5%），正式标签（低能支，第 4 节讲）：兔子身下的凸起压进龙背，接触处两侧都有明显压陷，接触面比 1/32 宽得多。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_d1_6_deform.png" width="1496" height="843" style="width:745px;max-width:100%;height:auto" alt="中等压深 1/6（高度的 16.7%，压入约 1.54），正式标签：凸起和龙背在接触处都被压扁。" loading="lazy"><figcaption>中等压深 1/6（高度的 16.7%，压入约 1.54），正式标签：凸起和龙背在接触处都被压扁。</figcaption></figure>
+<h3 id="w3-2">压深序列：baseline ÷ IPC − 1</h3>
 
 <div class="tablewrap"><table>
 <thead>
@@ -446,9 +411,9 @@ html.annot-on #annot-capture { display: block; }
 <td>−57%</td>
 <td>−29%</td>
 <td>+40%</td>
-<td>+69%</td>
-<td>−5.1%</td>
-<td>1.79</td>
+<td>+72%</td>
+<td>−4.4%</td>
+<td>1.80</td>
 </tr>
 <tr>
 <td>1/256</td>
@@ -457,9 +422,9 @@ html.annot-on #annot-capture { display: block; }
 <td>−23%</td>
 <td>+27%</td>
 <td>×10</td>
-<td>+102%</td>
-<td>−3.1%</td>
-<td>2.08</td>
+<td>+107%</td>
+<td>−1.7%</td>
+<td>2.10</td>
 </tr>
 <tr>
 <td>1/128</td>
@@ -468,9 +433,9 @@ html.annot-on #annot-capture { display: block; }
 <td>+39%</td>
 <td>+134%</td>
 <td>×74</td>
-<td>+146%</td>
-<td>0.0%</td>
-<td>2.46</td>
+<td>+157%</td>
+<td>+2.7%</td>
+<td>2.50</td>
 </tr>
 <tr>
 <td>1/64</td>
@@ -479,9 +444,9 @@ html.annot-on #annot-capture { display: block; }
 <td>+137%</td>
 <td>+321%</td>
 <td>×550</td>
-<td>+194%</td>
-<td>+2.0%</td>
-<td>2.88</td>
+<td>+216%</td>
+<td>+8.1%</td>
+<td>2.93</td>
 </tr>
 <tr>
 <td>1/32</td>
@@ -490,9 +455,9 @@ html.annot-on #annot-capture { display: block; }
 <td>+245%</td>
 <td>+593%</td>
 <td>×3900</td>
-<td>+217%</td>
-<td>−0.4%</td>
-<td>3.18</td>
+<td>+258%</td>
+<td>+10.1%</td>
+<td>3.25</td>
 </tr>
 <tr>
 <td>1/16</td>
@@ -501,9 +466,9 @@ html.annot-on #annot-capture { display: block; }
 <td>+377%</td>
 <td>+1062%</td>
 <td>∞</td>
-<td>+247%</td>
-<td>−9.2%</td>
-<td>3.82</td>
+<td>+312%</td>
+<td>+2.0%</td>
+<td>4.04</td>
 </tr>
 <tr>
 <td>1/8</td>
@@ -512,9 +477,9 @@ html.annot-on #annot-capture { display: block; }
 <td>+349%</td>
 <td>+1514%</td>
 <td>∞</td>
-<td>+331%</td>
-<td>−6.7%</td>
-<td>4.62</td>
+<td>+378%</td>
+<td>+2.9%</td>
+<td>4.64</td>
 </tr>
 <tr>
 <td>1/6</td>
@@ -523,14 +488,14 @@ html.annot-on #annot-capture { display: block; }
 <td>+346%</td>
 <td>+1843%</td>
 <td>∞</td>
-<td>+175%</td>
-<td>−35.9%</td>
-<td>4.28</td>
+<td>+237%</td>
+<td>−27.1%</td>
+<td>4.62</td>
 </tr>
 </tbody>
 </table></div>
-<p class="setting muted">设置：这张表的标准答案全部取原网格标签，只看随压深的走势；深档的绝对误差以下一张表为准。势垒一列「×」是能量为标签的多少倍，「∞」是重叠超过了该 baseline 标定得到的作用距离 0.5。最后一列是同一状态下「只有半空间项」÷「半空间项 + mode」的能量。</p>
-<h3 id="w2-3">深档正式标签：baseline ÷ IPC − 1</h3>
+<p class="setting muted">设置：这张表的标准答案全部取原网格标签，只看随压深的走势；1/8、1/6 的绝对误差以下一张表为准。势垒一列「×」是能量为标签的多少倍，「∞」是重叠超过了该 baseline 标定得到的作用距离 0.5。skeleton 与半空间 BEM 用正式读法（中间面），最后一列是同一状态下「只有半空间项」÷「半空间项 + mode」的能量；按高度读法，skeleton 一列依次是 −5.1%、−3.1%、0.0%、+2.0%、−0.4%、−9.2%、−6.7%、−35.9%。</p>
+<h3 id="w3-3">中等压深正式标签：baseline ÷ IPC − 1</h3>
 
 <div class="tablewrap"><table>
 <thead>
@@ -547,44 +512,46 @@ html.annot-on #annot-capture { display: block; }
 </thead>
 <tbody>
 <tr>
-<td>1/8</td>
+<td>1/8（12.5%）</td>
 <td>3545.76</td>
 <td>+360%</td>
 <td>+385%</td>
 <td>+1637%</td>
 <td>∞</td>
-<td>+367%</td>
-<td>+0.9%</td>
+<td>+417%</td>
+<td>+11.3%</td>
 </tr>
 <tr>
-<td>1/6</td>
+<td>1/6（16.7%）</td>
 <td>7844.66</td>
 <td>+330%</td>
 <td>+385%</td>
 <td>+1999%</td>
 <td>∞</td>
-<td>+198%</td>
-<td>−30.4%</td>
+<td>+266%</td>
+<td>−20.9%</td>
 </tr>
 </tbody>
 </table></div>
-<p class="setting muted">设置：两档标签都在接触区加密的网格上、从较粗网格的终态出发跑到静止；1/6 另有一条从无接触开始压入的标签（圆柱形加密区网格），\(U\) 7850.37，各 baseline 误差与上表相差不超过 1 个百分点。1/8 这一档 skeleton 的格子没过自动检查（有的接触区受压格为 0），只作参考。</p>
-<h3 id="w2-4">解释</h3>
+<p class="setting muted">设置：两档标签都在加密网格上、从较粗网格的终态出发跑到静止；1/6 另有一条从无接触开始压入的标签（圆柱形加密区网格），\(U\) 7850.37，各 baseline 误差与上表相差不超过 1 个百分点；同一张网格上冷、热启动两个候选能量差 0.007%。1/8 这一档 skeleton 的格子没过自动检查（有的接触区受压格为 0），只作参考。按高度读法，skeleton 为 +0.9%（1/8）、−30.4%（1/6），半空间 BEM 为 +367%、+198%。</p>
+<h3 id="w3-4">解释</h3>
 
 <ul>
 <li><strong>局部 baseline 从最浅一档就偏，压得越深偏得越多</strong>：Hertz 从 +97% 到 +325%，Winkler 从 −29% 到 +1843%；势垒从 1/16 起重叠（0.58、1.15、1.54）超过它标定得到的作用距离 0.5，能量为无穷大。</li>
-<li><strong>偏差的来源是有限物体的整体柔度</strong>：最后一列「半空间 ÷ skeleton」从 1.8 涨到 4.6，表示兔子、龙的整体变形把能量压低了 1.8–4.6 倍；无限大弹性体的假设算不到这部分，压得越深这部分越大。</li>
-<li><strong>hydro 从偏软变成偏硬</strong>：它的能量随压深涨得比真解快，同一组参数在浅压偏软 57%、深压偏硬 3.5 倍。</li>
-<li><strong>Hertz 在深档远出适用范围</strong>：1/8 时接触区半径约为等效曲率半径的 3.5 倍，公式要求它远小于等效曲率半径。</li>
-<li><strong>skeleton 在 1/8 与正式标签差 0.9%，在 1/6 偏软 30%</strong>。1/6 的偏差不是格距或 mode 截断造成的：三种格距的能量只差 2.4%，mode 的残差 \(1.8\times10^{-4}\)（合格线 \(10^{-2}\)）。</li>
-<li><strong>1/6 偏软的推测：线弹性小变形在大压深下的极限</strong>。skeleton 的柔度来自小应变线弹性；1/6 时接触处应变已不小。区分方法：在同一锁定状态上算二次单元线弹性有限元，和 skeleton、IPC 三方比；它也偏软同样多，就是小变形的极限，网络要学的非线性；它接近 IPC，就是 skeleton 的近似。这一步单次耗时下限约 71 分钟，排在提速之后。</li>
+<li><strong>偏差的来源是有限物体的整体柔度</strong>：「半空间 ÷ skeleton」从 1.8 涨到 4.6，即兔子、龙的整体变形把能量压低了 1.8–4.6 倍；无限大弹性体的假设算不到这部分。</li>
+<li><strong>hydro 从偏软变成偏硬</strong>：同一组参数在浅压偏软 57%、压深变大后偏硬 3.5 倍，能量随压深涨得比真解快。</li>
+<li><strong>Hertz 远出适用范围</strong>：1/8 时接触区半径约为等效曲率半径的 3.5 倍。</li>
+<li><strong>skeleton 在 1/8 偏硬 11%（参考值），在 1/6 偏软 21%</strong>。1/6 的偏差不来自 mode 截断（残差 \(1.8\times10^{-4}\)，合格线 \(10^{-2}\)），三种格距的能量相差 5.0%。</li>
+<li><strong>1/6 偏软的推测：线弹性小变形在这个压深下的极限</strong>。skeleton 的柔度来自小应变线弹性。区分方法：在同一锁定状态上算二次单元线弹性有限元，和 skeleton、IPC 三方比；它也偏软同样多，就是小变形极限，属于网络要学的非线性；它接近 IPC，就是 skeleton 的近似。这一步单次耗时下限约 71 分钟，排在提速之后。</li>
 </ul>
-<p class="kp">压深从 1/512 到 1/6，Hertz、半空间 BEM 的误差从 +97%、+69% 涨到约 +300%，hydro、Winkler 从偏软变成偏硬数倍，原因是有限物体的整体柔度随压深增大；skeleton 在 1/8 与正式标签差 0.9%，到 1/6 偏软 30%，误差随压深变化，不是一个固定系数能修掉的。</p></section>
-<section id="w3"><h2>3. 同一个压深，两个静止平衡</h2>
+<p class="kp">压深从 1/512 到 1/6，Hertz、半空间 BEM 的误差从约 +70%–100% 涨到约 +300%，hydro、Winkler 从偏软变成偏硬数倍，原因是有限物体的整体柔度随压深增大；skeleton 在 1/6 偏软 21%，误差随压深变化，不是一个固定系数能修掉的。</p>
+
+<h3 id="w3-5">大压深（高度的 1/3 到 1/2）</h3></section>
+<section id="w4"><h2>4. 同一个压深，两个静止平衡</h2>
 <ul>
 <li><strong>现象</strong>：1/8 这一档，同一张网格、同一组 12 个锁定的数，从无接触开始压入（冷启动）和从较粗网格的终态出发（热启动），停在两个不同的静止状态。</li>
 </ul>
-<figure style="margin:12px 0"><img src="assets/images/w7_d1_8_H_deform.png" width="1527" height="843" style="width:761px;max-width:100%;height:auto" alt="压深 1/8，冷启动停下的状态（高能支），同一视角。整体看和上一节的低能支相近，差别在接触落点：两支的接触片中心相距 0.43，合力方向差 22°。" loading="lazy"><figcaption>压深 1/8，冷启动停下的状态（高能支），同一视角。整体看和上一节的低能支相近，差别在接触落点：两支的接触片中心相距 0.43，合力方向差 22°。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/below_zoom_HL.png" width="1748" height="1200" style="width:612px;max-width:100%;height:auto" alt="从下往上看兔子底面的接触区，左边冷启动（高能支），右边热启动（低能支，正式标签），同一个相机；深红点是离龙表面不到 0.03 的兔子顶点。左边主接触区是一块圆片，共 404 个顶点；右边是一条向右下延伸的长条，共 864 个顶点；两块接触区的质心相距 0.43。两支锁定的 12 个数完全相同，差别只在龙背由哪一块表面承载。" loading="lazy"><figcaption>从下往上看兔子底面的接触区，左边冷启动（高能支），右边热启动（低能支，正式标签），同一个相机；深红点是离龙表面不到 0.03 的兔子顶点。左边主接触区是一块圆片，共 404 个顶点；右边是一条向右下延伸的长条，共 864 个顶点；两块接触区的质心相距 0.43。两支锁定的 12 个数完全相同，差别只在龙背由哪一块表面承载。</figcaption></figure>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -617,33 +584,33 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <ul>
-<li><strong>两支接触落点不同</strong>：接触片中心相距 0.43（约为安全距离的 3400 倍），合力方向差 22°；低能支的总势能低 3.6%。</li>
+<li><strong>两支接触落点不同</strong>：接触区质心相距 0.43（约为安全距离的 3400 倍），接触顶点 404 对 864，合力方向差 22°；低能支的总势能低 3.6%。</li>
 </ul>
-<p class="setting muted">设置：两支用同一张网格（另一张拓扑不同的网格上两支都复现：同一支的能量差 0.26%（高能支）和 0.45%（低能支），两张网格上都是低能支的总势能更低）。势垒能约 0.02，占总势能约 \(5\times10^{-6}\)。特征值一行在另一张网格上算。</p>
-<h3 id="w3-1">为什么会有两个平衡</h3>
+<p class="setting muted">设置：另一张拓扑不同的网格上两支都复现（同一支的能量差 0.26%（高能支）和 0.45%（低能支），两张网格上都是低能支的总势能更低）；特征值一行在那张网格上算。势垒能约 0.02，占总势能约 \(5\times10^{-6}\)。</p>
+<h3 id="w4-1">为什么会有两个平衡</h3>
 
 <p>\[\color{#c0392b}{\Pi(x)=\Psi(x)+B(x),\qquad Jx=c,\qquad \nabla\Pi(x^*)=J^\top\mu^*}\]</p>
 <ul>
 <li>\(x\)：两物体全部顶点位置；\(\Psi\)：两物体的 neo-Hookean 弹性能；\(B\)：IPC 的接触势垒能；\(Jx=c\)：每个物体的质心与体积平均变形梯度等于粗模型给的 12 个数（共 24 个约束）。</li>
-<li>第三式是静止条件：弹性力 + 接触力恰好被锁定力 \(J^\top\mu^*\) 平衡，\(\mu^*\) 就是锁定力。</li>
+<li>第三式是静止条件：弹性力 + 接触力恰好被锁定力 \(J^\top\mu^*\) 平衡。</li>
 <li>
-<p><strong>线弹性、小变形时解唯一</strong>；大变形下无穿透的可行区域在弯曲表面上不是凸的，neo-Hookean 能量也不是凸的，所以同一个 \(c\) 可以有多个极小。接触片沿弯曲表面换一个地方承载，就是从一个极小跨到另一个。</p>
+<p><strong>线弹性、小变形时解唯一</strong>；大变形下无穿透的可行区域在弯曲表面上不是凸的，neo-Hookean 能量也不是凸的，所以同一个 \(c\) 可以有多个极小。接触片沿弯曲表面换一处承载，就是从一个极小跨到另一个。</p>
 <p>\[\color{#c0392b}{Z^\top\,\nabla^2\Pi(x^*)\,Z\succ 0}\]</p>
 </li>
 <li>
 <p>\(Z\)：满足锁定约束的所有方向；\(\nabla^2\Pi\)：能量的二阶导数矩阵（Hessian）。<strong>正定 = 往任何允许的方向挪一点能量都会升高</strong>，即严格局部极小，不是鞍点。</p>
 </li>
-<li>实测：两支都正定，负主元数恰好等于约束数 24，最低特征值 204 和 291，约为材料尺度 \(\mu/H^2\approx450\) 的一半（\(\mu\) 剪切模量，\(H\) 兔子高度），离 0 很远。<strong>两支都是真平衡，不是停早了、网格或势垒造成的假象</strong>。</li>
+<li>实测：两支都正定，负主元数恰好等于约束数 24，最低特征值 204 和 291，约为材料尺度 \(\mu/H^2\approx450\) 的一半（\(\mu\) 剪切模量，\(H\) 兔子高度）。<strong>两支都是真平衡，不是停早了、网格或势垒造成的假象</strong>。</li>
 </ul>
-<h3 id="w3-2">标签取哪一支</h3>
+<h3 id="w4-2">标签取哪一支</h3>
 
 <ul>
 <li><strong>规则：在算出的候选平衡里取总势能最低的一支</strong>；候选至少两类：冷启动、从较粗网格终态出发的热启动。</li>
 <li>冷启动不能当定义：原网格上的冷启动在第 4000–4500 帧自己从高能支走到低能支（能量降 4.4%），细网格上停在高能支；加载步长减半，冷启动停在同一个点。落在哪支由网格决定。</li>
-<li>文献：超弹性接触的稳定构型就是能量的局部极小，解的存在性尚无定论（Youett, Sander, Kornhuber 2017），所以只能写「候选中最低」，不能写全局最小；「固定宏观变形、对其余自由度取下确界」是均匀化里宏观能量的标准定义（Geymonat, Müller, Triantafyllidis 1993），与我们「锁 12 个数、读能量」结构相同。</li>
+<li>文献：超弹性接触的稳定构型就是能量的局部极小，解的存在性尚无定论（Youett, Sander, Kornhuber 2017），所以只能写「候选中最低」；「固定宏观变形、对其余自由度取下确界」是均匀化里宏观能量的标准定义（Geymonat, Müller, Triantafyllidis 1993），与「锁 12 个数、读能量」结构相同。</li>
 <li>libuipc 开发者在 issue #503 说明：微小数值差异会导致不同的接触对、进而走不同路径，每个结果都在解空间内，不作为 bug 修复。所以多个平衡必须由标签定义处理。</li>
 </ul>
-<h3 id="w3-3">两支上的 baseline</h3>
+<h3 id="w4-3">两支上的 baseline</h3>
 
 <div class="tablewrap"><table>
 <thead>
@@ -664,8 +631,8 @@ html.annot-on #annot-capture { display: block; }
 <td>+360%</td>
 <td>+385%</td>
 <td>+1637%</td>
-<td>+367%</td>
-<td>+0.9%</td>
+<td>+417%</td>
+<td>+11.3%</td>
 </tr>
 <tr>
 <td>高能支</td>
@@ -673,32 +640,27 @@ html.annot-on #annot-capture { display: block; }
 <td>+343%</td>
 <td>+368%</td>
 <td>+1575%</td>
-<td>+350%</td>
-<td>−2.7%</td>
+<td>+398%</td>
+<td>+7.3%</td>
 </tr>
 </tbody>
 </table></div>
 <ul>
-<li><strong>两支之间 baseline 的误差只差约 15 个百分点</strong>，远小于它们本身的误差；skeleton 从 +0.9% 变成 −2.7%。</li>
+<li><strong>两支之间 baseline 的误差差别远小于它们本身的误差</strong>：Hertz、hydro、半空间 BEM 差 15–20 个百分点（误差本身 +340% 以上）；skeleton 从 +11.3% 变成 +7.3%。</li>
 </ul>
-<p class="kp">深压下同一粗状态有两个都是严格局部极小的静止平衡，总势能相差 3.6%；标签取候选中总势能最低的一支，这个规则跨网格一致，且不依赖从哪里起步。</p></section>
-<section id="w4"><h2>4. 材料：等效模量相同，软硬对调</h2>
+<p class="kp">中等压深下同一粗状态有两个都是严格局部极小的静止平衡，总势能相差 3.6%；标签取候选中总势能最低的一支，这个规则跨网格一致，且不依赖从哪里起步。</p></section>
+<section id="w5"><h2>5. 材料：等效模量相同，软硬对调</h2>
 <ul>
-<li><strong>问题</strong>：两个物体一个 \(E=10^6\)、一个 \(10^5\)，再把两者对调。两种分配的 \(E^*\) 相同，只认 \(E^*\) 的模型会预测两格能量相同（硬 ÷ 软 = 1）。真实的有限物体是不是这样？</li>
-</ul>
-<h3 id="w4-1">为什么只认 E* 的 baseline 分不出</h3>
-
-<ul>
-<li>两个材料不同的弹性半空间无摩擦接触时，材料只通过 \(E^*\) 出现（Popov, Heß, Willert 2019，式 2.1）；两材料的差别（Dundurs 参数）只在有摩擦、有切向力时才起作用。</li>
+<li><strong>问题</strong>：两个物体一个 \(E=10^6\)、一个 \(10^5\)，再把两者对调。两种分配的 \(E^*\) 相同，只认 \(E^*\) 的模型预测两格能量相同（硬 ÷ 软 = 1）。</li>
 <li>
-<p><strong>这条结论的前提是半空间、线弹性、小变形</strong>，对有限物体不成立。有限物体的柔度按物体分开、各乘各的 \(1/E\)（上次的式子）：</p>
+<p><strong>只认 \(E^*\) 的前提是半空间</strong>：两个材料不同的弹性半空间无摩擦接触时，材料只通过 \(E^*\) 出现（Popov, Heß, Willert 2019，式 2.1）。有限物体的柔度按物体分开、各乘各的 \(1/E\)（上次的式子）：</p>
 <p>\[\color{#c0392b}{C=\sum_{b\in\{A,B\}}\Big[\frac{1}{E&#x27;_b}\,D_bLD_b+\frac{1}{E_b}\,\tilde\Phi_b\Sigma^{(1)}_b\tilde\Phi_b^\top\Big],\qquad E&#x27;_b=\frac{E_b}{1-\nu_b^2}}\]</p>
 </li>
 <li>
-<p>第一项是半空间项（\(D_b\) 是物体 \(b\) 每格的法向余弦，\(L\) 是 \(1/r\) 积分）；第二项是物体 \(b\) 自己的整体变形 mode，按自己的 \(E_b\) 缩放。<strong>对调后软的一侧换了，mode 项换到另一个形状上，能量就变了</strong>；两物体形状越不同，差别越大。</p>
+<p>第一项是半空间项（\(D_b\) 每格法向余弦，\(L\) 是 \(1/r\) 积分）；第二项是物体 \(b\) 自己的整体变形 mode，按自己的 \(E_b\) 缩放。<strong>对调后软的一侧换了，mode 项换到另一个形状上，能量就变了</strong>。</p>
 </li>
 </ul>
-<h3 id="w4-2">浅压：兔耳、兔头压平块（上次的对调，本周跑到判停）</h3>
+<h3 id="w5-1">浅压：兔耳、兔头压平块（上次的对调，本周跑到判停）</h3>
 
 <figure style="margin:12px 0"><img src="assets/images/w7_ear_soft_deform.png" width="1555" height="843" style="width:775px;max-width:100%;height:auto" alt="兔耳软、平块硬，压深 0.012（约兔子高度的千分之一）。红色是兔子（倒置，耳尖朝下），蓝色是平块；这个压深下看不出变形。" loading="lazy"><figcaption>兔耳软、平块硬，压深 0.012（约兔子高度的千分之一）。红色是兔子（倒置，耳尖朝下），蓝色是平块；这个压深下看不出变形。</figcaption></figure>
 <figure style="margin:12px 0"><img src="assets/images/w7_ear_hard_deform.png" width="1555" height="843" style="width:775px;max-width:100%;height:auto" alt="兔耳硬、平块软，同一压深；和上一张在这个尺度上看起来相同，差别在能量里。" loading="lazy"><figcaption>兔耳硬、平块软，同一压深；和上一张在这个尺度上看起来相同，差别在能量里。</figcaption></figure>
@@ -738,8 +700,8 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p class="setting muted">设置：上次两格兔耳是固定 625 帧的读数；本周从终态续跑到判停（第 628 帧），能量变化不超过 \(6\times10^{-8}\)，硬 ÷ 软 5.022 不变。skeleton 用 19 个 mode，平块一侧只有半空间项。</p>
-<h3 id="w4-3">深压：兔子压龙 1/16</h3>
+<p class="setting muted">设置：兔耳两格上次是固定 625 帧的读数；本周从终态续跑到判停（第 628 帧），能量变化不超过 \(6\times10^{-8}\)，硬 ÷ 软 5.022 不变。skeleton 用 19 个 mode，平块一侧只有半空间项。</p>
+<h3 id="w5-2">兔子压龙 1/16（高度的 6.25%）</h3>
 
 <figure style="margin:12px 0"><img src="assets/images/w7_d1_16_base_deform.png" width="1503" height="843" style="width:749px;max-width:100%;height:auto" alt="压深 1/16，两侧同材料（\(E=10^5\)）：兔子身下的凸起压在龙背上，作为下面两格的对照。" loading="lazy"><figcaption>压深 1/16，两侧同材料（\(E=10^5\)）：兔子身下的凸起压在龙背上，作为下面两格的对照。</figcaption></figure>
 <figure style="margin:12px 0"><img src="assets/images/w7_d1_16_bunny_soft_deform.png" width="1487" height="843" style="width:741px;max-width:100%;height:auto" alt="兔软龙硬：弹性能 88% 存在兔子一侧；接触落点和同材料不同（合力方向差 51°）。" loading="lazy"><figcaption>兔软龙硬：弹性能 88% 存在兔子一侧；接触落点和同材料不同（合力方向差 51°）。</figcaption></figure>
@@ -836,19 +798,18 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p class="setting muted">设置：两侧泊松比都是 0.3；对调两格的 \(E^*\) 都是同材料的 1.818 倍。深压 IPC 用 neo-Hookean，浅压两组用 stable neo-Hookean，两批只在批内比比值。三格的 IPC 都是从无接触开始压入的结果。skeleton、半空间 BEM 在原网格 1/16 的锁定状态上、换上对调后的材料计算，那里的压深比对调标签大 0.17%，对标签的比值因此约偏大 0.5%，硬 ÷ 软不受影响。</p>
-<h3 id="w4-4">解释</h3>
+<p class="setting muted">设置：两侧泊松比都是 0.3；对调两格的 \(E^*\) 都是同材料的 1.818 倍。这一批 IPC 用 neo-Hookean，浅压两组用 stable neo-Hookean，只在批内比比值。三格的 IPC 都是从无接触开始压入的结果。这张表的 skeleton、半空间 BEM 用高度读法，在原网格 1/16 的锁定状态上、换上对调后的材料计算，那里的压深比对调标签大 0.17%，对标签的比值因此约偏大 0.5%，硬 ÷ 软不受影响。</p>
+<h3 id="w5-3">解释</h3>
 
 <ul>
-<li><strong>E* 相同、软硬分配相反，IPC 能量差 1.51 倍、合力差 1.39 倍</strong>：只认 \(E^*\) 的模型对两格给同一个数（同材料的 1.818 倍），实际一格高 16.5%、一格低 22.8%。<strong>每个物体各自的 \(E\) 必须进标签和网络输入</strong>，只给 \(E^*\) 不够。</li>
-<li><strong>软的一侧存大部分能量</strong>：兔软时兔子占 88%，兔硬时龙占 95%（同材料时龙占 71%）。两物体形状不同，「谁软」决定能量走哪一侧的柔度，所以不对称。</li>
-<li><strong>软硬对调还换了接触位置</strong>：兔软龙硬一格的合力方向和同材料差 51°，接触片中心移开 0.33，接触片大 54%；兔硬龙软一格与同材料是同一种接触构型（3.9°）。只认 \(E^*\) 的模型给不出这种变化。</li>
-<li><strong>浅压和深压方向不同</strong>：兔耳压平块硬 ÷ 软 5.02，兔头 1.11，兔压龙深压 0.663。三者的对手物体、压深、本构都不同，这里只并列，不归因于某一项。</li>
-<li><strong>baseline</strong>：Hertz、Winkler、势垒完全分不出（1.00）；半空间 BEM 按两侧接触面各自的朝向计入（两侧夹角约 16°），给 1.22，方向与 IPC 相反；hydro 每侧有自己的模量，能分出两格，但大小或方向不对：兔耳方向对、幅度只有 IPC 的四成（1.93 对 5.02），兔头偏大（1.89 对 1.11），深压方向相反（2.59 对 0.663）。</li>
-<li><strong>skeleton 方向都对</strong>：浅压兔耳 4.89 对 5.02、兔头 1.07 对 1.11；深压 0.33 对 0.663，方向对、幅度大一倍，兔软一格偏硬 70%。</li>
+<li><strong>E* 相同、软硬分配相反，IPC 能量差 1.51 倍、合力差 1.39 倍</strong>：只认 \(E^*\) 的模型对两格给同一个数（同材料的 1.818 倍），实际一格高 16.5%、一格低 22.8%。<strong>每个物体各自的 \(E\) 必须进标签和网络输入</strong>。</li>
+<li><strong>软的一侧存大部分能量，并且可能换接触位置</strong>：兔软时兔子占 88%，兔硬时龙占 95%（同材料时龙占 71%）；兔软龙硬一格合力方向变了 51°、接触片大 54%。</li>
+<li><strong>baseline</strong>：Hertz、Winkler、势垒完全分不出（1.00）；半空间 BEM 给 1.22，方向与 IPC 相反；hydro 能分出两格，但兔耳幅度只有 IPC 的四成（1.93 对 5.02）、兔头偏大（1.89 对 1.11）、兔压龙方向相反（2.59 对 0.663）。</li>
+<li><strong>skeleton 方向都对</strong>：兔耳 4.89 对 5.02、兔头 1.07 对 1.11；兔压龙 0.33 对 0.663，幅度大一倍，兔软一格偏硬 70%。</li>
+<li>兔耳、兔头、兔压龙三组的对手物体、压深、本构都不同，硬 ÷ 软方向不同（5.02、1.11、0.663）只并列，不归因于某一项。</li>
 </ul>
-<p class="kp">等效模量相同时，有限物体的能量仍随软硬分配变化（深压 1.51 倍，浅压兔耳 5 倍），并可能换接触位置；只认 E* 的 baseline 给不出这种差别，skeleton 靠每个物体自己的 mode 跟上了方向，深压下幅度仍偏大一倍。</p></section>
-<section id="w5"><h2>5. RigidFormer（ongoing）</h2>
+<p class="kp">等效模量相同时，有限物体的能量仍随软硬分配变化（兔压龙 1.51 倍，兔耳 5 倍），并可能换接触位置；只认 E* 的 baseline 给不出这种差别，skeleton 靠每个物体自己的 mode 跟上了方向，兔压龙上幅度仍偏大一倍。</p></section>
+<section id="w6"><h2>6. RigidFormer（ongoing）</h2>
 <ul>
 <li><a href="week2.html#w2-4">第 2 周讲过</a>它的方法：点云 → 每个物体一个向量 → Transformer 在物体间交换信息 → 每个物体 4 个锚点的加速度 → 投影成刚体的下一帧位姿。</li>
 <li><strong>官方代码已公开</strong>（MIT 许可，预训练权重和数据集在 Hugging Face），只能在 GPU 上跑。</li>
@@ -890,24 +851,25 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>可行的改造</strong>：保留「每个物体点云 → 一个向量 → 物体间注意力」的编码器，输入换成 \(E\)、\(\nu\) 和锁定的粗状态，输出换成接触能量和合力，记为「RigidFormer 编码器改造版」。它需要成批的多形状、多位姿标签才训得动；兔压龙目前是一对形状、一串压深。</li>
 </ul>
 <p class="kp">RigidFormer 学的是刚体动力学，没有能量输出、不接受杨氏模量和泊松比；作为 baseline 只能借它的物体级编码器改成能量回归，前提是多形状标签。</p></section>
-<section id="w6"><h2>6. 现在能说什么、下一步</h2>
+<section id="w7"><h2>7. 现在能说什么、下一步</h2>
 <ul>
 <li><strong>能说的</strong>：<ul>
-<li>已实现的五个局部 baseline 在深压下给出的能量是标准答案的 3–21 倍（势垒为无穷大），在软硬对调上要么分不出、要么大小或方向错；原因都是把物体当无限大或只看局部压入。</li>
-<li>有限物体的整体柔度随压深变大，是深压能量的主要部分（半空间 ÷ skeleton 从 1.8 涨到 4.6）。</li>
-<li>深压下同一粗状态可以有多个严格局部极小，标签取候选中总势能最低的一支。</li>
+<li>已实现的五个局部 baseline 在中等压深下给出的能量是标准答案的 3.7–21 倍（势垒为无穷大），在软硬对调上要么分不出、要么大小或方向错；原因都是把物体当无限大或只看局部压入。</li>
+<li>有限物体的整体柔度随压深变大，是压深变大后能量的主要部分（半空间 ÷ skeleton 从 1.8 涨到 4.6）。</li>
+<li>中等压深下同一粗状态可以有多个严格局部极小，标签取候选中总势能最低的一支。</li>
 <li>等效模量相同时，软硬分配仍改变能量和接触位置；每个物体的 \(E\) 要分别进输入。</li>
 </ul>
 </li>
 <li><strong>下一步</strong>：<ul>
-<li>在 1/6 的同一锁定状态上算二次单元线弹性，分清 skeleton 偏软 30% 是小变形极限还是 skeleton 近似；先把这条参照的耗时压到 1 小时以内。</li>
-<li>深压软硬对调里 skeleton 幅度偏大一倍的来源。</li>
+<li>skeleton 局部项换成有限物体的柔度，去掉半空间（无限厚）近似。</li>
+<li>在 1/6 的同一锁定状态上算二次单元线弹性，分清 skeleton 偏软 21% 是小变形极限还是 skeleton 近似；先把这条参照的耗时压到 1 小时以内。</li>
+<li>兔压龙软硬对调里 skeleton 幅度偏大一倍的来源。</li>
 <li>往兔子高度的 1/3–1/2 继续压。</li>
 <li>RigidFormer 编码器改造版，等多形状标签。</li>
 </ul>
 </li>
 </ul>
-<p class="kp">深压和材料分配下，能量由每个有限物体自己的整体柔度决定；只认 E*、只看局部的 baseline 抓不到这一点，skeleton 的结构能抓到，1/6 的偏软和深压对调的幅度是下一步要解释的两处。</p></section>
+<p class="kp">压深变大和材料分配下，能量由每个有限物体自己的整体柔度决定；只认 E*、只看局部的 baseline 抓不到这一点，skeleton 的结构能抓到，1/6 的偏软和兔压龙对调的幅度是下一步要解释的两处。</p></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
 <dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
 <script>

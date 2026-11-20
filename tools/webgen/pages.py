@@ -19,7 +19,8 @@ def week_summaries(demos, tests, gsweeps):
     n_gsweeps = sum(1 for s in gsweeps if s["name"] != "baseline")
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
-        "week7": ("已实现的五个局部 baseline 与 skeleton 并列比；兔子压龙压到兔子高度的 1/16、1/8、1/6；1/8 有两个静止平衡，"
+        "week7": ("上次组会后：skeleton 正式读法、有限球精确解、IPC 标签的两项偏差；本周：已实现的五个局部 baseline 与 skeleton 并列比；"
+                  "兔子压龙压到兔子高度的 1/16、1/8、1/6（中等压深）；1/8 有两个静止平衡，"
                   "标签取总势能最低的一支；等效模量相同时软硬对调；RigidFormer 的调研。"),   # 首页卡片摘要，与 sandbox web_week7.md 各节对应
         "week5":"我们在 18 类刻意刁难的 edge case 上测了 82 个算例：39 个基本对、37 个待定、6 个没有有效标准答案。14 类至少有一个基本对的算例；靠连接处、棱、两侧都薄、中等整体应变这 4 类尚无基本对的算例。判为明显不对的 0 个，但这一档能否判出故意做错的算例还没有验证；大压深（压入约物体高度的 1/3–1/2）和大应变尚未验证。在现有的 IPC 标签上，skeleton 比 hydroelastic 更接近。目前已查清原因的最大偏差（龙鳍，只取 24 个 mode 时偏硬 36%）出在 mode 取得不够，加够 mode 后回到 1.1 附近。",   # v8.23 汇总口径；与 sandbox 的 reviewed web_week5.md 导语同步
         "week3_4": ("要学的碰撞能量；两个软物体相碰的解析解（降维法、Hertz）；标签对解析解与独立裁判；hydro、hydro++ 与死结，"

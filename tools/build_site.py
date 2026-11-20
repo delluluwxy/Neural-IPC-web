@@ -171,6 +171,8 @@ SUBFIGS = {
     "d1_512_deform.png": 2, "d1_32_deform.png": 2, "w7_d1_8_L_deform.png": 2, "w7_d1_8_H_deform.png": 2,
     "w7_d1_6_deform.png": 2, "w7_d1_16_base_deform.png": 2, "w7_d1_16_bunny_soft_deform.png": 2,
     "w7_d1_16_bunny_hard_deform.png": 2, "w7_ear_soft_deform.png": 2, "w7_ear_hard_deform.png": 2,
+    "below_zoom_HL.png": 2,   # 1/8 两支接触区仰视放大，左 H 右 L（sandbox label_branch_1119/figs）
+    "W6c_sphere_exact.png": 1,   # 单幅（同 sandbox tools/figs/web_week6_1119/figs_web_week6.py；1 为默认值，只登记）
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 # week5（用户 11-12 21:1x「图里的字和正文一样大」）：这些图一律占满正文栏（920px），作图时字高按
