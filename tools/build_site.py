@@ -243,7 +243,12 @@ def parse_args():
                          "页顶加一句快照时间（取 saved，太平洋时间）。标注层只读、不读写本机存储、不同步")
     ap.add_argument("--pages", default="",
                     help="逗号分隔的页面名（如 week7,index）：只写这些页，只压 / 复制它们引用的视频图片；默认全部")
+    ap.add_argument("--mode", choices=["publish", "review"], default="publish",
+                    help="publish（默认）：推送版，正文和出处里不出现路径、文件名、代码名、文件:行号、commit；"
+                         "review：审阅版，把 web_<周>_evidence.md 里的依据嵌到同 key 的标记处，只配 --html-only 写到 NAS，不推送")
     args = ap.parse_args()
+    if args.mode == "review" and not args.html_only:
+        ap.error("--mode review 只能配 --html-only --out-dir（审阅版不进仓库、不推送）")
     if args.preview_notes and not args.preview:
         ap.error("--preview-notes 只能和 --preview 同用")
     if args.html_only and (args.execute or args.out_dir is None):
@@ -428,6 +433,8 @@ def execute(args, pages, vjobs, ijobs, manifest):
 def main():
     """收集 → 生成页面 → 只保留页面真正引用的视频 / 图片 → 按模式写出（回归 / 演练 / 正式）。"""
     args = parse_args()
+    from webgen import drafts as _drafts   # noqa: E402
+    _drafts.MODE = args.mode
     c = collect_all(args)
     if c["unlisted"]:
         print(f"[build_site] 注意：NAS 上这些 demo 目录不在 DEMOS / OFFICIAL_TESTS 清单里，不上页面：{c['unlisted']}")
