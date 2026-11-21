@@ -242,39 +242,235 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "7dd83db86668";</script>
+<script>window.NIPC_PAGE = "a83bfc8df1f4";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
 <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week7.html" aria-current="page">Week 7</a><a href="week5.html">Week 5–6</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
-<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 上次组会后完成的（上周 TODO）</a>
-<a class="toc-level-2" href="#w2">2. baseline：谁在比、各自假设了什么（ongoing）</a>
-<a class="toc-level-2" href="#w3">3. 大压深怎么造：两个软体自然压到一起</a>
-<a class="toc-level-3" href="#w3-1">3.1 压多深：用户的定义</a>
-<a class="toc-level-3" href="#w3-2">3.2 怎么「摆住」两个物体：跟导师一样的 rigid 锁</a>
-<a class="toc-level-3" href="#w3-3">3.3 接触：IPC，全程不穿透</a>
-<a class="toc-level-3" href="#w3-4">3.4 材料：我们 GT 的 nh_barrier</a>
-<a class="toc-level-3" href="#w3-5">3.5 标签读什么</a>
-<a class="toc-level-3" href="#w3-6">3.6 每个标签的验收线（用数测，不看参数）</a>
-<a class="toc-level-2" href="#w4">4. 刚度、泊松比互换：8 个算例和按原理的预期</a>
-<a class="toc-level-3" href="#w4-1">4.1 按原理的预期（开跑前写下，不是结果）</a>
-<a class="toc-level-2" href="#w8">5. 8 个算例的结果（重叠深度核对中）</a>
-<a class="toc-level-2" href="#w9">6. 同一个算例有两个静止状态时取哪个（方法）</a>
-<a class="toc-level-2" href="#w10">7. 读数和预处理的两项检查</a>
-<a class="toc-level-3" href="#w10-1">7.1 换接触模型时的能量读数检查：不通过</a>
-<a class="toc-level-3" href="#w10-2">7.2 逐物体的通用预处理：骨架对、但没有提速</a>
-<a class="toc-level-2" href="#w11">8. 造一个大压深标签要多久</a>
-<a class="toc-level-2" href="#w5">9. 和导师的区别</a>
-<a class="toc-level-2" href="#w6">10. RigidFormer（ongoing）</a>
-<a class="toc-level-2" href="#w7">11. 现在能说什么、下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w20">1. 导师上次的问题</a>
+<a class="toc-level-3" href="#w20-1">1.1 泊松比和刚度：两边各自怎么进公式</a>
+<a class="toc-level-3" href="#w20-2">1.2 为什么用整体 mode，不用局部的</a>
+<a class="toc-level-3" href="#w20-3">1.3 mode 是怎么算出来的</a>
+<a class="toc-level-3" href="#w20-4">1.4 能不能按 patch 局部做（导师原话「不同patch去单独加密去存然后用的时候去根据撞的地方去找」）</a>
+<a class="toc-level-3" href="#w20-5">1.5 是不是一个物体只算一次，就能用在所有情况</a>
+<a class="toc-level-3" href="#w20-6">1.6 GT 怎么做的：线性还是非线性，是不是线弹性</a>
+<a class="toc-level-3" href="#w20-7">1.7 能力对照：我们和导师的 GT、骨架各能做什么</a>
+<a class="toc-level-3" href="#w20-8">1.8 大压深能不能做</a>
+<a class="toc-level-3" href="#w20-9">1.9 软硬对调能不能做</a>
+<a class="toc-level-2" href="#w1">2. 上次组会后完成的（上周 TODO）</a>
+<a class="toc-level-2" href="#w2">3. baseline：谁在比、各自假设了什么（ongoing）</a>
+<a class="toc-level-2" href="#w3">4. 大压深怎么造：两个软体自然压到一起</a>
+<a class="toc-level-3" href="#w3-1">4.1 压多深：用户的定义</a>
+<a class="toc-level-3" href="#w3-2">4.2 怎么「摆住」两个物体：跟导师一样的 rigid 锁</a>
+<a class="toc-level-3" href="#w3-3">4.3 接触：IPC，全程不穿透</a>
+<a class="toc-level-3" href="#w3-4">4.4 材料：我们 GT 的 nh_barrier</a>
+<a class="toc-level-3" href="#w3-5">4.5 标签读什么</a>
+<a class="toc-level-3" href="#w3-6">4.6 每个标签的验收线（用数测，不看参数）</a>
+<a class="toc-level-2" href="#w4">5. 刚度、泊松比互换：8 个算例和按原理的预期</a>
+<a class="toc-level-3" href="#w4-1">5.1 按原理的预期（开跑前写下，不是结果）</a>
+<a class="toc-level-2" href="#w8">6. 8 个算例的结果（重叠深度核对中）</a>
+<a class="toc-level-2" href="#w9">7. 同一个算例有两个静止状态时取哪个（方法）</a>
+<a class="toc-level-2" href="#w10">8. 读数和预处理的两项检查</a>
+<a class="toc-level-3" href="#w10-1">8.1 换接触模型时的能量读数检查：不通过</a>
+<a class="toc-level-3" href="#w10-2">8.2 逐物体的通用预处理：骨架对、但没有提速</a>
+<a class="toc-level-2" href="#w11">9. 造一个大压深标签要多久</a>
+<a class="toc-level-2" href="#w5">10. 和导师的区别</a>
+<a class="toc-level-2" href="#w6">11. RigidFormer（ongoing）</a>
+<a class="toc-level-2" href="#w7">12. 现在能说什么、下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 7 周：大压深、刚度泊松比互换、和 baseline 放在一起比</h1></header>
 <div class="lead"><ul>
 <li>上次（<a href="week5.html">第 5–6 周页面</a>）：skeleton = 半空间解析项 + 每个物体预先算好的整体变形 mode，解一个凸二次规划得到接触能量；两侧都是软体普通网格的 27 个算例上没有判为明显不对的，但都是浅压（最深约物体高度的 1%）。</li>
 <li>skeleton 公式怎么一步步推出来、每一步要什么条件、文献里哪些公式是已知的：见第 5–6 周页面第 11 节（<a href="week5.html#w12-1">完整 pipeline</a>、<a href="week5.html#w12-3">第一项推导</a>、<a href="week5.html#w12-4">mode 项</a>、<a href="week5.html#w12-5">总体成立条件</a>、<a href="week5.html#w12-6">文献公式表</a>）。</li>
 <li>本周三条 TODO：① 考虑刚度、泊松比等不同材料；② 更多 baseline（RigidFormer）；③ 压深更大、形变更大的情况。</li>
-<li>本页顺序：第 1 节上次组会后完成的；第 2 节 baseline 和它们的假设；第 3 节大压深怎么造；第 4 节 8 个算例和按原理的预期；第 5 节 8 个算例的结果；第 6 节同一算例有两个静止状态时取哪个；第 7 节读数和预处理的两项检查；第 8 节造一个标签要多久；第 9 节和导师的区别；第 10 节 RigidFormer。</li>
+<li>本页顺序：第 1 节导师上次的问题；第 2 节上次组会后完成的；第 3 节 baseline 和它们的假设；第 4 节大压深怎么造；第 5 节 8 个算例和按原理的预期；第 6 节 8 个算例的结果；第 7 节同一算例有两个静止状态时取哪个；第 8 节读数和预处理的两项检查；第 9 节造一个标签要多久；第 10 节和导师的区别；第 11 节 RigidFormer。</li>
 </ul>
 <p class="kp">本页结论：大压深按导师的 rigid 锁加 IPC 接触造，两侧都是软体普通网格；8 个算例的结果在核对重叠深度。换接触模型的读数检查按原判据不通过，原因已查清；通用逐物体预处理下骨架读数只变 −1.33%，但还没有提速；造一个大压深标签最快的做法比从头静态解快 2.9 倍，离 10 倍还远。</p></div>
+<section id="w20"><h2>导师上次的问题</h2>
+<ul>
+<li>下面 9 问一问一答：每问先给结论，再给第 5–6 周页面里讲细的那一节；出处放在每问的折叠块里。代码行号是 sandbox commit 3c27ef6e，导师代码是 NeuralIPC 最新的 origin/main 0f605ea（11-20 fetch 过，没有更新）。</li>
+</ul>
+<h3 id="w20-1">泊松比和刚度：两边各自怎么进公式</h3>
+
+<ul>
+<li><strong>我们</strong>：GT 里每个物体用自己的 \(E\)、\(\nu\) 换成拉梅参数，进超弹性材料。骨架里两个物体各用自己的平面应变模量 \(E&#x27;=E/(1-\nu^2)\)，两边的柔度相加，不合成一个 \(E^*\)；mode 项也按每个物体自己的 \(E\)、\(\nu\) 预先算，\(E\) 变了只要整体缩放，\(\nu\) 变了要重算。</li>
+<li><strong>导师</strong>：GT 里每个物体也是拉梅参数进 Stable Neo-Hookean。模型里先合成一个 \(E^*\)（\(1/E^*=\sum_k(1-\nu_k^2)/E_k\)），Hertz 先验只认 \(E^*\)，每个物体的 \(\nu\) 和柔度份额当作网络特征进修正项 \(g\)。</li>
+<li>详见 <a href="week5.html#w2">第 5–6 周 §2 刚度和泊松比怎么进公式</a>、<a href="week5.html#w12-2">§11.2 两边材料对照</a>。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>我们的骨架：每个物体的 \(E&#x27;\) 在 <code>bunny_gapmap.py:4581</code>；每一侧的半空间项乘 \(1/E&#x27;_b\) 在 <code>:5228</code>；mode 预处理按物体自己的 \(E\)、\(\nu\) 建模在 <code>linear_ref.py:7212</code>。[代码]</li>
+<li>我们的 GT：四种材料的 \((E,\nu)\) 表在 <code>kkt_rigid_label.py:39–42</code>；能量 \(\Psi\) 在 <code>uipc_nh.py:70</code>。[代码]</li>
+<li>「\(E\) 只需缩放、压缩性变了要重算」：[ref: James &amp; Pai 2001 书章，<code>refs/jamespai2001_chapter.txt:459–462</code>]</li>
+<li>导师的模型：\(E^*\) 定义 <code>nipc/merged/patch_model.py:7</code>，柔度份额 <code>:13</code>，每个物体的 \(\nu\) 和份额进特征 <code>:59–60</code>；<code>nipc/merged/gap_patch.py:6</code>（\(U=E^*\cdot\tfrac{8}{15}\sqrt{R_{\rm fit}}\,\delta^{5/2}\cdot e^{g}\)）、<code>:108–109</code>。[代码 0f605ea]</li>
+<li>导师的 GT：拉梅换算 <code>nipc/teacher/gen3d_softsoft.py:59–60</code>，每个物体各自的 \(E\)、\(\nu\) <code>:77–81</code>；批量求解器同样换算 <code>nipc/teacher/condense_pair.py:33–34</code>、<code>:44</code>。[代码 0f605ea]</li>
+</ul></details>
+<h3 id="w20-2">为什么用整体 mode，不用局部的</h3>
+
+<ul>
+<li>mode 是「在 \(y\) 压一下，\(x\) 退多少」这张柔度表的一组基，不是某一次碰撞的形状。碰不同的位置，压强投到每个 mode 上的系数不同，拼出来的变形就不同。</li>
+<li>跟位置有关、变化很尖的那部分（接触点附近的 \(1/r\)）在半空间项里，每次接触都现算；mode 只管剩下的、整个物体尺度上光滑的那部分，所以几十个就够。</li>
+<li>详见 <a href="week5.html#a2m-7">第 5–6 周 §11.4「为什么用整体 mode 而不是局部查表」</a>。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>一次接触的 mode 位移 \(u(x)=\sum_m\sigma_m r_m(x)\big(\sum_j r_m(y_j)p_jh^2\big)\)：[直接推导]，由 \(G_R(x,y)\approx\sum_m\sigma_mr_m(x)r_m(y)\) 作用在本次接触的压强上。</li>
+<li>代码里只在本次接触的命中点上取 \(r_m\)（<code>bunny_gapmap.py:5139</code>），再作用到本次的 \(p\) 上（<code>:5299</code>）。[代码]</li>
+<li>龙压鸭从 0 个加到 19 个 mode，骨架 ÷ IPC 从 2.157 降到 0.868，之后到 80 个只在 0.868–0.857 之间变。[结果文件 见第 5–6 周 §6.4 表]</li>
+</ul></details>
+<h3 id="w20-3">mode 是怎么算出来的</h3>
+
+<ul>
+<li>输入是一个物体的四面体网格和 \(E\)、\(\nu\)；算「锁住 12 个仿射自由度后的真实表面柔度 − 半空间柔度」的前 80 个特征方向，输出 80 个柔度 \(\sigma_m\) 和每个表面点上的 mode 值 \(r_m\)。</li>
+<li>实测（逐物体网格）：龙 95.5 分钟、鸭 49.2 分钟。</li>
+<li>详见 <a href="week5.html#w14-3">第 5–6 周 §12.3 预处理：输入 / 公式与推导 / 输出</a>、<a href="week5.html#w6">§6 mode 怎么求</a>。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>主式子 \(W^{-1/2}(\hat B^\top K_{\rm lock}^{+}\hat B-H)W^{-1/2}v_m=\sigma_mv_m\) 的推导与每步出处在第 5–6 周 §12.3 的折叠块里。</li>
+<li>耗时：龙 网格 80.1 s + mode 5648.1 s，鸭 网格 38.5 s + mode 2915.0 s。[结果文件 逐物体预处理 demo 的 mode json <code>t_pre</code> 与网格 json]</li>
+</ul></details>
+<h3 id="w20-4">能不能按 patch 局部做（导师原话「不同patch去单独加密去存然后用的时候去根据撞的地方去找」）</h3>
+
+<ul>
+<li><strong>每个 patch 单独存、彼此不耦合：不合理</strong>。同一个物体被压在两处时，两处会通过整个物体互相影响；之前的多处接触实测里，把整体项按片拆开、片之间不耦合，片上的合力最多偏 23%。要覆盖任意部位、任意多处接触，存的东西就变成整个表面两两之间的柔度表。</li>
+<li><strong>每次接触现场只解碰到的那几格</strong>：每个候选格都要回代一次，龙压鸭有 3614 个候选格；每次接触的计算量随网格变大而变大，和直接跑线弹性有限元一样，没有预处理的意义；耗时未实测。</li>
+<li><strong>和整体 mode 比</strong>：整体 mode 天然把一个物体上所有接触耦合在一起，存储只有 \(80\times\) 表面点数。</li>
+<li>详见 <a href="week5.html#a2m-7">第 5–6 周 §11.4 代价对比</a>。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>多处接触按片拆开片力偏 23%、整体项必须不分片：[项目规范 AGENTS.md 第 2 级（多接触）结论一条]</li>
+<li>三种候选（现行整体 mode、patch 精确块不耦合、每物体一次分解每次回代）的判定：[设计稿 <code>universal_preprocess_theory_1120.md:121–128</code>] patch 不耦合败在多处耦合和整表面存储两条，每次回代败在「每次接触的计算量随网格增长」一条。</li>
+<li>3614 个候选格：[结果文件 龙压鸭骨架 <code>ksweep_auto.json</code> 的 <code>zones[0].n_cand</code>]</li>
+</ul></details>
+<h3 id="w20-5">是不是一个物体只算一次，就能用在所有情况</h3>
+
+<ul>
+<li><strong>已经做到的</strong>：每个物体一张只由自己几何决定、与接触位置无关的均匀网格，算一次 mode。龙压鸭换成这种逐物体预处理后，骨架 ÷ IPC 从 0.8568 变成 0.8454（−1.33%）。</li>
+<li><strong>还没做到的</strong>：<ul>
+<li>同一份 mode 换一个接触部位、换一个对手再用一次：未实测（等兔子的逐物体 mode）。</li>
+<li>龙的预处理 95.5 分钟，超过每个物体 60 分钟的线，卡在机器内存回收。</li>
+<li>mode 锁的是 12 个仿射自由度，本周 GT 只锁质心和转角 6 个，两者不一致，还没改。</li>
+</ul>
+</li>
+<li>详见 <a href="#w10-2">本页 §8.2</a>、<a href="week5.html#a2m-lim">第 5–6 周 §11.4 已知限制</a>。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>0.8454 与 0.8568、网格边长与节点数、95.5 / 49.2 分钟、内存回收证据：[结果文件 逐物体预处理 demo 的 <code>ksweep_auto.json</code> 与 mode json，见本页 §8.2]</li>
+<li>锁法不一致：mode 用 12 行锁（<code>linear_ref.py:2319</code> <code>condense_lock</code>），本周 GT 锁质心和 skew(A) 共 6 行（<code>kkt_rigid_label.py:6</code>）。[代码]</li>
+</ul></details>
+<h3 id="w20-6">GT 怎么做的：线性还是非线性，是不是线弹性</h3>
+
+<ul>
+<li><strong>我们的 GT</strong>：三维有限元，材料是带体积屏障的 neo-Hookean（超弹性，大变形），接触是 IPC 势垒，全程不穿透，无摩擦。它是非线性的，不是线弹性；线弹性只在诊断时当参照用。</li>
+<li><strong>导师的 GT</strong>：三维用 libuipc，材料是 Stable Neo-Hookean（超弹性），接触是 al-ipc，只加体力、不锁转动；批量标签用同一能量的 torch 求解器，接触是罚函数（允许穿透），12 个仿射自由度全锁；另有二维轴对称参照，可选线弹性、neo-Hookean、Gent。</li>
+<li>所以两边的 GT 都是非线性超弹性；区别在接触（IPC 对 罚函数）和边界（锁质心转角 对 只加体力 / 全锁）。</li>
+<li>详见 <a href="week5.html#w12-2">第 5–6 周 §11.2 材料对照表</a>、<a href="#w3">本页 §4 大压深怎么造</a>。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>我们：能量 <code>uipc_nh.py:70</code>；IPC 接触与连续碰撞检测在 <code>kkt_rigid_label.py:72–73</code>（CCD 设置）。[代码]</li>
+<li>导师：<code>gen3d_softsoft.py:31</code>（StableNeoHookean）、<code>:46</code>（al-ipc κ）；<code>condense_pair.py:10–13</code>（罚函数接触）；<code>axisym_hertz.py:112–132</code>（线弹性 / SNH / Gent 三种能量）。[代码 0f605ea]</li>
+</ul></details>
+<h3 id="w20-7">能力对照：我们和导师的 GT、骨架各能做什么</h3>
+
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>我们的 GT</th>
+<th>我们的骨架</th>
+<th>导师的 GT</th>
+<th>导师的模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性（小变形）</td>
+<td>能：小变形时 neo-Hookean 退化为线弹性（<code>uipc_nh.py:70</code>）</td>
+<td>能：只有线弹性（<code>linear_ref.py:510</code> P2 刚度）</td>
+<td>能：同左（SNH，<code>gen3d_softsoft.py:31</code>）</td>
+<td>能：Hertz 先验（<code>gap_patch.py:6</code>）</td>
+</tr>
+<tr>
+<td>线弹性</td>
+<td>部分：只作诊断参照（<code>linear_ref.py --element P2</code>）</td>
+<td>能（同上）</td>
+<td>部分：二维轴对称可选线弹性（<code>axisym_hertz.py:123–130</code>）</td>
+<td>部分：只有 Hertz 那一项（<code>gap_patch.py:6</code>）</td>
+</tr>
+<tr>
+<td>非线弹性（超弹性、大变形）</td>
+<td>能（<code>uipc_nh.py:70</code>）</td>
+<td>不能：纯线弹性</td>
+<td>能（<code>gen3d_softsoft.py:31</code>）</td>
+<td>部分：交给网络 \(g\)（<code>patch_model.py:77–85</code>）</td>
+</tr>
+<tr>
+<td>IPC 不穿透</td>
+<td>能（<code>kkt_rigid_label.py:72–73</code> 连续碰撞检测）</td>
+<td>不能：余能二次规划没有势垒</td>
+<td>部分：三维 al-ipc 不穿透；批量罚函数允许穿透（<code>condense_pair.py:13</code>）</td>
+<td>不能：直接给能量</td>
+</tr>
+<tr>
+<td>泊松比（两侧不同）</td>
+<td>能（<code>kkt_rigid_label.py:39–42</code>）</td>
+<td>能（<code>bunny_gapmap.py:4581</code>）</td>
+<td>能（<code>gen3d_softsoft.py:77–81</code>）</td>
+<td>能：\(\nu\) 进特征（<code>patch_model.py:59–60</code>）</td>
+</tr>
+<tr>
+<td>两侧刚度不同</td>
+<td>能（<code>kkt_rigid_label.py:39–42</code>）</td>
+<td>能（<code>bunny_gapmap.py:5228</code>）</td>
+<td>能（<code>gen3d_softsoft.py:77–81</code>）</td>
+<td>部分：先验只认 \(E^*\)，对调不变（<code>gap_patch.py:6</code> swap-averaged）</td>
+</tr>
+<tr>
+<td>任意网格形状</td>
+<td>能：兔、龙、鸭（<code>kkt_rigid_label.py:4</code>）</td>
+<td>能：同一张表面网格</td>
+<td>不能：代码里只有球（<code>gen3d_softsoft.py:78</code>）</td>
+<td>部分：椭球闭式表面（<code>gap_patch.py:38–46</code>）</td>
+</tr>
+<tr>
+<td>有限厚度（不当半空间）</td>
+<td>能：整个物体有限元</td>
+<td>部分：局部项是半空间核，mode 项补有限大小</td>
+<td>能：整个物体有限元</td>
+<td>部分：先验是半空间 Hertz</td>
+</tr>
+<tr>
+<td>大压深</td>
+<td>部分：8 格计算中</td>
+<td>未实测</td>
+<td>部分：三维到 \(\delta/R_{\rm eff}=0.10\)（<code>gen3d_softsoft.py:47</code>），轴对称更深（<code>axisym_hertz.py:34</code>）</td>
+<td>未核实：要看训练数据的压深范围（<code>gen_softsoft_dataset.py:26</code>）和模型在更深处的读数</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="w20-8">大压深能不能做</h3>
+
+<ul>
+<li><strong>什么叫大压深（用户定义）</strong>：两个物体按不变形的形状摆在当前位置时，重叠区沿 \(y\) 方向的最大高度 = \(H_A/2\) 或 \(H_A/3\)（\(H_A\) 是兔子包围盒高度）。</li>
+<li><strong>GT 怎么造</strong>：只锁两个物体的质心和转角，IPC 接触、带体积屏障的 neo-Hookean 材料；兔子质心的移动量 \(\delta^*\) 由几何二分求出，使重叠高度恰好等于目标；从上一版的静止状态接着把质心推到 \(\delta^*\)。</li>
+<li><strong>做到哪一步</strong>：8 个算例都在从上一版的静止状态（或冷启动已收敛的中间档）接着推到 \(\delta^*\)，结果计算中。\(\delta^*\)：1/3 档 3.7709（\(0.408H_A\)，重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.554H_A\)，重叠高度 \(0.49996H_A\)）；上一版的推近量 3.0772 只给出 \(0.274H_A\) 的重叠。</li>
+<li><strong>骨架能不能处理</strong>：骨架是线弹性、小变形、法向沿一个方向的余能二次规划，半空间项还假设接触区里表面坡度小；大压深下材料非线性、接触区坡度大、mode 不随变形重新线性化，这几处都会失效。大压深下骨架的实测：未实测（在等上面 8 个算例的 GT）。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>用户定义原话见本页 §4.1。</li>
+<li>\(\delta^*\)、重叠高度、各格起点（1/3 档从上一版终态、1/2 档 Bx10 和 nuA02B045 从冷启动的中间档）：[进度记录 <code>kkt_c_1120</code> 22:3x 一节；起点文件与 sha256 在 <code>kkt_ipc_1120/fallback_log_1120.txt</code>]</li>
+<li>骨架的成立条件（线弹性小应变、坡度小、mode 不随变形重新线性化）：[第 5–6 周 §11.5 总体成立条件；代码 <code>bunny_gapmap.py</code> 文档串（mode 不按变形后形状重新线性化）]；半空间叠加要求线弹性和坡度小：[ref: Popov 2019 §2.2，<code>refs/phw2019_handbook.txt:557–563</code>]</li>
+</ul></details>
+<h3 id="w20-9">软硬对调能不能做</h3>
+
+<ul>
+<li><strong>怎么进 GT</strong>：每个物体各自的 \(E\)、\(\nu\) 进材料，软硬对调只改两边的 \(E\)，泊松比对调只改两边的 \(\nu\)，网格和锁都不变。</li>
+<li><strong>怎么进骨架</strong>：每个物体各自的 \(E&#x27;\) 进半空间项，各自的 mode 进 mode 项，所以对调后两边的柔度跟着换；只认 \(E^*\) 的 Hertz、半空间 BEM 对调前后完全一样。</li>
+<li><strong>按原理的预期</strong>：两边受同一个压力，各自的压陷 \(\propto(1-\nu_k^2)/E_k\)；刚度差 10 倍时软的一边承担约 91% 的压陷，泊松比对调时两边分到 54.6% 和 45.4%。（本页 §5.1）</li>
+<li><strong>结果</strong>：8 个算例计算中。</li>
+</ul>
+<details><summary>出处</summary><ul>
+<li>材料表 <code>kkt_rigid_label.py:39–42</code>；骨架每侧 \(1/E&#x27;_b\) <code>bunny_gapmap.py:5228</code>。[代码]</li>
+<li>半空间分配：[ref: Popov, Heß &amp; Willert 2019 式 (2.1)，<code>refs/phw2019_handbook.txt:528–532</code>，前提半空间、小应变、无摩擦，只作 baseline 预期]</li>
+</ul></details>
+<p class="kp">两边的 GT 都是非线性超弹性，区别在接触和锁；我们的骨架把每个物体的 \(E\)、\(\nu\) 分开进柔度、用整体 mode 补有限大小，导师的模型先合成 \(E^*\) 再让网络学其余部分；逐物体预处理已经做通一例，大压深和软硬对调的 8 个算例计算中。</p></section>
 <section id="w1"><h2>上次组会后完成的（上周 TODO）</h2>
 <ul>
 <li><strong>skeleton 的正式读法：缝隙和柔度都在两表面的中间面上量</strong>。上次的读法在斜面处把沿压入方向量的重叠和沿表面法向的柔度混用，表面越斜偏得越多；新读法按中间面的坡度把两者换算到同一方向，平处与旧读法完全相同。</li>
@@ -289,7 +485,7 @@ html.annot-on #annot-capture { display: block; }
 <p class="kp">skeleton 改用中间面读法；兔子压龙两档浅压上 skeleton ÷ IPC 为 0.956、0.983；IPC 标签的线性单元偏硬约 9%，接触区加密不够的偏差随压深变大。</p></section>
 <section id="w2"><h2>baseline：谁在比、各自假设了什么（ongoing）</h2>
 <ul>
-<li><strong>比法</strong>：同一个粗状态下，baseline ÷ IPC 标准答案 − 1。正数 = 偏硬（能量偏大），负数 = 偏软。标准答案是精细网格上 IPC 跑到静止后的能量差（第 3 节）。</li>
+<li><strong>比法</strong>：同一个粗状态下，baseline ÷ IPC 标准答案 − 1。正数 = 偏硬（能量偏大），负数 = 偏软。标准答案是精细网格上 IPC 跑到静止后的能量差（第 4 节）。</li>
 <li><strong>baseline 是本周唯一 ongoing 的一项</strong>（大压深 8 个算例上的 baseline 读数、RigidFormer）；下面先讲每个 baseline 假设了什么，这决定了它在大压深上会怎样错。</li>
 </ul>
 <div class="tablewrap"><table>
@@ -332,10 +528,10 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li>\(\delta\)：两物体按刚体算的重叠深度；\(R\)：接触点处的等效曲率半径；\(E\)：杨氏模量；\(\nu\)：泊松比（压扁时往旁边鼓多少）；\(E^*\)：等效模量。<strong>\(\delta\) 加倍 → 能量约 5.7 倍</strong>（接触区随压深变大）；<strong>\(E^*\) 由更软的一侧主导</strong>（两侧柔度相加）。</li>
 <li><strong>成立条件</strong>：线弹性、小变形、无摩擦、接触区半径远小于 \(R\)、两物体都当成无限大弹性体。这是 Hertz 的假设，不是我们的；这里只用它说明 baseline 为什么会错。</li>
-<li><strong>对材料互换的含义</strong>：Hertz、半空间 BEM 只通过 \(E^*\) 认材料。第 4 节的每一对互换算例 \(E^*\) 相同，所以这两个 baseline 对每一对给出完全相同的能量；IPC 标准答案里两格的差别，就是它们看不到的部分。</li>
+<li><strong>对材料互换的含义</strong>：Hertz、半空间 BEM 只通过 \(E^*\) 认材料。第 5 节的每一对互换算例 \(E^*\) 相同，所以这两个 baseline 对每一对给出完全相同的能量；IPC 标准答案里两格的差别，就是它们看不到的部分。</li>
 <li><strong>半空间 BEM 与 skeleton 只差一项</strong>：两者解同一个二次规划 \(\max_{p\ge0}h^2[p^\top w-\tfrac12p^\top Cp]\)（\(w\) 每格重叠，\(p\) 每格压强，\(h\) 格边长）；半空间 BEM 的柔度 \(C\) 只有无限大弹性体的 \(1/(\pi E^* r)\) 核，skeleton 再加上每个物体自己的整体变形 mode。</li>
 <li><strong>skeleton 的局部项现在仍用半空间（无限厚）柔度，这是已知限制</strong>：我们的问题是两个有限物体的接触，局部项下一步要换成有限物体自己的柔度。skeleton 和 IPC 对上或对不上，都只说明当前近似的精度，不支持「物体可以当半空间」。</li>
-<li>本周不比的：Drake、OpenSim、MuJoCo、SOFA 要先安装引擎（前两个与已算的 Hertz、Winkler 同类）；James &amp; Pai、Jain &amp; Liu、Taxim、刚体 / 仿射体直接跑 IPC 没有现成实现；学习类方法要成批多形状标签；RigidFormer 见第 10 节。</li>
+<li>本周不比的：Drake、OpenSim、MuJoCo、SOFA 要先安装引擎（前两个与已算的 Hertz、Winkler 同类）；James &amp; Pai、Jain &amp; Liu、Taxim、刚体 / 仿射体直接跑 IPC 没有现成实现；学习类方法要成批多形状标签；RigidFormer 见第 11 节。</li>
 </ul>
 <p class="kp">已实现的五个 baseline 都把物体当成无限大或只看局部压入；Hertz 和半空间 BEM 只认 \(E^*\)，所以 \(E^*\) 相同的材料互换它们分不出来。</p></section>
 <section id="w3"><h2>大压深怎么造：两个软体自然压到一起</h2>
@@ -345,9 +541,21 @@ html.annot-on #annot-capture { display: block; }
 <li>原话：「要比如压深是物体高度的1/3 1/2这种才是大的 要压到完全变形」「你的兔子应该被龙压得压深到一半」。</li>
 <li>原话：「你要让两个物体自然的有压深然后得到能量不是这样你把兔子自己压扁」「你就是要让他们的距离很近很近质心距离很近然后自然产生极大得压深两个物体都有大压深然后自然的静止得到能量」。</li>
 <li>原话：「两个都要是软的不能有刚体刚度泊松不同」「接触的地方一定要非常明显的变形两个mesh接触的地方一定是一大片都贴在一起的」。</li>
-<li><strong>做法</strong>：兔子（A）和龙（B）都是有限元软体，普通网格。从刚好不碰的位置出发，把兔子质心朝龙推近 \(D\)，\(D\) 取兔高 \(H_A\) 的 <strong>1/2 和 1/3</strong>，分小步推，每一小步都解到静止再走下一步；最后一步的静止状态就是标签。</li>
-<li>推近之后，两个物体怎么变形、贴多大一片，全部由两体接触自己决定：没有任何改变形状的外力，不预先压扁任何一个物体。</li>
+<li>压深的定义，原话：<ul>
+<li>15:5x「我要的压深是比如1/2一个物体的高度那就是不变形下两个物体被移到了有1/2物体高度是重叠的样子」</li>
+<li>15:5x「就是比如龙和兔子一样高或者差不多高都是h 这个高度是他们的bbx的高度 他们重叠的区域的最大高度要是1/2h」</li>
+<li>16:0x「是重叠的不是靠近就行的就是要最近点碰上之后的压缩距离才是重叠的」「你不能两个物体离得很远然后离近了一点都没碰上也说压深吧」「压深定义就是重叠的吧就是碰上了」</li>
 </ul>
+</li>
+<li><strong>压深</strong>：两个物体按不变形的形状摆在当前位置时，重叠区沿 \(y\) 方向的最大高度，要等于 depth·\(H_A\)（\(H_A\) 是兔子包围盒的 \(y\) 高度），depth 取 <strong>1/3 和 1/2</strong>。</li>
+<li><strong>做法</strong>：兔子（A）和龙（B）都是有限元软体，普通网格。兔子质心要移动的量 \(\delta^*\) 用几何二分求出：让两个不变形形状的重叠最大高度恰好等于 \(H_A/3\) 和 \(H_A/2\)。然后分小步把兔子质心移过 \(\delta^*\)，每一小步都解到静止再走下一步，最后一步的静止状态就是标签。\(\delta^*\)：1/3 档 3.7709（不变形重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.49996H_A\)）；8 个算例计算中。</li>
+<li>移过去之后，两个物体怎么变形、贴多大一片，全部由两体接触自己决定：没有任何改变形状的外力，不预先压扁任何一个物体。</li>
+</ul>
+<details><summary>上一版为什么压浅了</summary><ul>
+<li>上一版把「质心从刚碰上起移动的距离」当成压深，取 \(H_A/3\)、\(H_A/2\)。</li>
+<li>按用户的定义量，不变形形状的重叠最大高度只有 \(0.274H_A\)（目标 \(H_A/3\)）和 \(0.398H_A\)（目标 \(H_A/2\)）：龙在接触处是细的，质心移过去的距离大于重叠高度。</li>
+<li>所以上一版的 8 个算例都压浅了，正在按 \(\delta^*\) 续跑重算。</li>
+</ul></details>
 <h3 id="w3-2">怎么「摆住」两个物体：跟导师一样的 rigid 锁</h3>
 
 <ul>
@@ -356,7 +564,7 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>为什么要锁转角</strong>：两个无摩擦的软体顶在一起，横向是不稳定的，会转开、滑走，压不深。导师代码里同样的情形（手指夹球）也是这样处理的，他的注释：<em>"A frictionless ball squeezed between two convex fingers is laterally unstable … constrain the rigid motion exactly: mass-weighted centre fixed (3 rows) and the skew part of the affine fit zero (3 rows)."</em></li>
 <li>
 <p><strong>锁的式子</strong>（导师 <code>grasp_task.py</code> 与 <code>condense_newton.py</code> constraint="rigid" 的定义）：\(w_i\) = 节点质量占比，\(\bar x=\sum_i w_i x_i\) 为质心，\(r_i = X_i-\bar X\) 为静止时到质心的向量，</p>
-<p>\[\bar x=\sum_i w_i x_i=\bar x^{\ast},\qquad A=\Big(\sum_i w_i\,x_i r_i^{\top}\Big)C^{-1},\ \ C=\sum_i w_i r_i r_i^{\top},\qquad \operatorname{skew}(A)=\tfrac12(A-A^{\top})=0\]</p>
+<p>\[\begin{aligned}&amp;\bar x=\sum_i w_i x_i=\bar x^{\ast},\qquad A=\Big(\sum_i w_i\,x_i r_i^{\top}\Big)C^{-1},\ \ C=\sum_i w_i r_i r_i^{\top},\\ &amp;\operatorname{skew}(A)=\tfrac12(A-A^{\top})=0\end{aligned}\]</p>
 </li>
 <li>
 <p><strong>为什么只挡转动、不挡拉伸剪切</strong>：物体做任意均匀变形 \(x_i=F X_i+t\) 时，\(\sum_i w_i x_i r_i^{\top}=F\,C\)，所以 \(A=F\)。锁的是 \(F\) 的反对称部分（转动），\(F\) 的对称部分（拉伸、剪切）不受任何约束。</p>
@@ -481,9 +689,9 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>会出现什么</strong>：同一个算例、同一个锁，从不同的起点走（直接静态求解，或先用动力学推近再静态收尾），可能停在两个不同的静止状态，两个都是局部极小（锁住质心和转角之后，能量的二阶导数矩阵最小特征值大于 0）。</li>
 <li><strong>取法</strong>：取已经找到的静止状态里总势能 Π（两物体弹性能 + 接触势垒能）最低的那个。</li>
 <li><strong>每一格的核对</strong>：两个静止状态并排列出 Π 差、接触面积、高度比和变形图；两个起点走到同一个状态的，记为同一平衡。</li>
-<li>具体的数和图跟第 5 节一起，在重叠深度核对完后放。</li>
+<li>具体的数和图跟第 6 节一起，在重叠深度核对完后放。</li>
 </ul>
-<p class="kp">有两个静止状态时取总势能 Π 最低的那个；具体结果随第 5 节一起放。</p></section>
+<p class="kp">有两个静止状态时取总势能 Π 最低的那个；具体结果随第 6 节一起放。</p></section>
 <section id="w10"><h2>读数和预处理的两项检查</h2>
 <h3 id="w10-1">换接触模型时的能量读数检查：不通过</h3>
 
@@ -669,7 +877,7 @@ html.annot-on #annot-capture { display: block; }
 <li>标签的形状：我们用真实网格（兔、龙）；导师用球和椭球。</li>
 </ul>
 </li>
-<li><strong>两边都有、不算区别的</strong>：大压深、非线性材料。本周造大压深时，转角的锁法也跟导师一样（第 3 节）。</li>
+<li><strong>两边都有、不算区别的</strong>：大压深、非线性材料。本周造大压深时，转角的锁法也跟导师一样（第 4 节）。</li>
 </ul>
 <p class="kp">和导师的区别主要在骨架：我们把线弹性能解析的都解析掉、neural 只学非线性，代价是每个物体要预处理；导师是 Hertz 乘修正、几乎不预处理。</p></section>
 <section id="w6"><h2>RigidFormer（ongoing）</h2>
