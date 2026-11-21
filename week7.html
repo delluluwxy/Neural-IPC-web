@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "3e867c3e1ac8";</script>
+<script>window.NIPC_PAGE = "8129e5841567";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -263,7 +263,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w3-1">4.1 压多深：用户的定义</a>
 <a class="toc-level-3" href="#w3-2">4.2 怎么「摆住」两个物体：跟导师一样的 rigid 锁</a>
 <a class="toc-level-3" href="#w3-3">4.3 接触：IPC，全程不穿透</a>
-<a class="toc-level-3" href="#w3-4">4.4 材料：我们 GT 的 nh_barrier</a>
+<a class="toc-level-3" href="#w3-4">4.4 材料：我们 GT 的带体积屏障 neo-Hookean</a>
 <a class="toc-level-3" href="#w3-5">4.5 标签读什么</a>
 <a class="toc-level-3" href="#w3-6">4.6 每个标签的验收线（用数测，不看参数）</a>
 <a class="toc-level-2" href="#w4">5. 刚度、泊松比互换：8 个算例和按原理的预期</a>
@@ -280,7 +280,7 @@ html.annot-on #annot-capture { display: block; }
 <header class="top"><h1>第 7 周：大压深、刚度泊松比互换、和 baseline 放在一起比</h1></header>
 <div class="lead"><ul>
 <li>
-<p>颜色：正文是黑色；<span class="note-src">出处（正文里的 [n] 编号、折叠块「出处」里的条目）是青绿色</span>；<span class="note-cond">公式成立的条件是橙色</span>。</p>
+<p>颜色：正文是黑色；<span class="note-src">出处（正文里的 （依据：n） 编号、折叠块「出处」里的条目）是青绿色</span>；<span class="note-cond">公式成立的条件是橙色</span>。</p>
 </li>
 <li>
 <p>上次（<a href="week5.html">第 5–6 周页面</a>）：skeleton = 半空间解析项 + 每个物体预先算好的整体变形 mode，解一个凸二次规划得到接触能量；两侧都是软体普通网格的 27 个算例上没有判为明显不对的，但都是浅压（最深约物体高度的 1%）。</p>
@@ -289,7 +289,7 @@ html.annot-on #annot-capture { display: block; }
 <li>本周三条 TODO：① 考虑刚度、泊松比等不同材料；② 更多 baseline（RigidFormer）；③ 压深更大、形变更大的情况。</li>
 <li>本页顺序：第 1 节导师上次的问题；第 2 节上次组会后完成的；第 3 节 baseline 和它们的假设；第 4 节大压深怎么造；第 5 节 8 个算例和按原理的预期；第 6 节 8 个算例的结果；第 7 节同一算例有两个静止状态时取哪个；第 8 节读数和预处理的两项检查；第 9 节造一个标签要多久；第 10 节和导师的区别；第 11 节 RigidFormer。</li>
 </ul>
-<p class="kp">本页结论：大压深按导师的 rigid 锁加 IPC 接触造，两侧都是软体普通网格；8 个算例的结果在核对重叠深度。换接触模型的读数检查按原判据不通过，原因已查清；通用逐物体预处理下骨架读数只变 −1.33%，但还没有提速；造一个大压深标签最快的做法比从头静态解快 2.9 倍，离 10 倍还远。</p></div>
+<p class="kp">本页结论：大压深按导师的 rigid 锁加 IPC 接触造，两侧都是软体普通网格；8 个算例都已算完，重叠深度核对通过；这 8 格的标签能量差全部为负，和只能给出非负能量的骨架在符号上不相容，加 mode 也补不了（不说明 GT 错了），骨架找接触区也失败，给不出读数。换接触模型的读数检查按原判据不通过，原因已查清；通用逐物体预处理下骨架读数只变 −1.33%，但还没有提速；造一个大压深标签最快的做法比从头静态解快 2.9 倍，离 10 倍还远。</p></div>
 <section id="w20"><h2>导师上次的问题</h2>
 <ul>
 <li>下面 9 问一问一答：每问先给结论，再给第 5–6 周页面里讲细的那一节；出处（论文、代码版本与行号）放在每问的折叠块里。</li>
@@ -306,12 +306,12 @@ html.annot-on #annot-capture { display: block; }
 <p>本节代码版本：Neural-IPC-sandbox commit 3c27ef6e；导师代码 YumengHe/NeuralIPC origin/main 0f605ea（11-20 fetch，无更新）。</p>
 </li>
 <li>
-<p>我们的骨架：每个物体的 \(E&#x27;\) 在 <code>bunny_gapmap.py:4581</code>；每一侧的半空间项乘 \(1/E&#x27;_b\) 在 <code>:5228</code>；mode 预处理按物体自己的 \(E\)、\(\nu\) 建模在 <code>linear_ref.py:7212</code>。<span class="note-src"><span class="note-src">[代码]</span></span></p>
+<p>我们的骨架：每个物体的 \(E&#x27;\) 在 <span data-ev="泊松比和刚度：两边各自怎·L31·1"></span>；每一侧的半空间项乘 \(1/E&#x27;_b\) 在 <span data-ev="泊松比和刚度：两边各自怎·L31·2"></span>；mode 预处理按物体自己的 \(E\)、\(\nu\) 建模在 <span data-ev="泊松比和刚度：两边各自怎·L31·4"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L31·3"></span></p>
 </li>
-<li>我们的 GT：四种材料的 \((E,\nu)\) 表在 <code>kkt_rigid_label.py:39–42</code>；能量 \(\Psi\) 在 <code>uipc_nh.py:70</code>。<span class="note-src"><span class="note-src">[代码]</span></span></li>
-<li>「\(E\) 只需缩放、压缩性变了要重算」：<span class="note-src"><span class="note-src">[ref: James &amp; Pai 2001 书章，<code>refs/jamespai2001_chapter.txt:459–462</code>]</span></span></li>
-<li>导师的模型：\(E^*\) 定义 <code>nipc/merged/patch_model.py:7</code>，柔度份额 <code>:13</code>，每个物体的 \(\nu\) 和份额进特征 <code>:59–60</code>；<code>nipc/merged/gap_patch.py:6</code>（\(U=E^*\cdot\tfrac{8}{15}\sqrt{R_{\rm fit}}\,\delta^{5/2}\cdot e^{g}\)）、<code>:108–109</code>。<span class="note-src"><span class="note-src">[代码 0f605ea]</span></span></li>
-<li>导师的 GT：拉梅换算 <code>nipc/teacher/gen3d_softsoft.py:59–60</code>，每个物体各自的 \(E\)、\(\nu\) <code>:77–81</code>；批量求解器同样换算 <code>nipc/teacher/condense_pair.py:33–34</code>、<code>:44</code>。<span class="note-src"><span class="note-src">[代码 0f605ea]</span></span></li>
+<li>我们的 GT：四种材料的 \((E,\nu)\) 表在 <span data-ev="泊松比和刚度：两边各自怎·L32·1"></span>；能量 \(\Psi\) 在 <span data-ev="泊松比和刚度：两边各自怎·L32·3"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L32·2"></span></li>
+<li>「\(E\) 只需缩放、压缩性变了要重算」：（依据：James &amp; Pai 2001）<span data-ev="泊松比和刚度：两边各自怎·L33·1"></span></li>
+<li>导师的模型：\(E^*\) 定义 <span data-ev="泊松比和刚度：两边各自怎·L34·1"></span>，柔度份额 <span data-ev="泊松比和刚度：两边各自怎·L34·2"></span>，每个物体的 \(\nu\) 和份额进特征 <span data-ev="泊松比和刚度：两边各自怎·L34·3"></span>；<span data-ev="泊松比和刚度：两边各自怎·L34·4"></span>（\(U=E^*\cdot\tfrac{8}{15}\sqrt{R_{\rm fit}}\,\delta^{5/2}\cdot e^{g}\)）、<span data-ev="泊松比和刚度：两边各自怎·L34·6"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L34·5"></span></li>
+<li>导师的 GT：拉梅换算 <span data-ev="泊松比和刚度：两边各自怎·L35·1"></span>，每个物体各自的 \(E\)、\(\nu\) <span data-ev="泊松比和刚度：两边各自怎·L35·3"></span>；批量求解器同样换算 <span data-ev="泊松比和刚度：两边各自怎·L35·4"></span>、<span data-ev="泊松比和刚度：两边各自怎·L35·5"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L35·2"></span></li>
 </ul></details>
 <h3 id="w20-2">为什么用整体 mode，不用局部的</h3>
 
@@ -321,9 +321,9 @@ html.annot-on #annot-capture { display: block; }
 <li>详见 <a href="week5.html#a2m-7">第 5–6 周 §11.4「为什么用整体 mode 而不是局部查表」</a>。</li>
 </ul>
 <details><summary>出处</summary><ul>
-<li>一次接触的 mode 位移 \(u(x)=\sum_m\sigma_m r_m(x)\big(\sum_j r_m(y_j)p_jh^2\big)\)：<span class="note-src"><span class="note-src">[直接推导]</span></span>，由 \(G_R(x,y)\approx\sum_m\sigma_mr_m(x)r_m(y)\) 作用在本次接触的压强上。</li>
-<li>代码里只在本次接触的命中点上取 \(r_m\)（<code>bunny_gapmap.py:5139</code>），再作用到本次的 \(p\) 上（<code>:5299</code>）。<span class="note-src"><span class="note-src">[代码]</span></span></li>
-<li>龙压鸭从 0 个加到 19 个 mode，骨架 ÷ IPC 从 2.157 降到 0.868，之后到 80 个只在 0.868–0.857 之间变。<span class="note-src"><span class="note-src">[结果文件 见第 5–6 周 §6.4 表]</span></span></li>
+<li>一次接触的 mode 位移 \(u(x)=\sum_m\sigma_m r_m(x)\big(\sum_j r_m(y_j)p_jh^2\big)\)：直接推导，由 \(G_R(x,y)\approx\sum_m\sigma_mr_m(x)r_m(y)\) 作用在本次接触的压强上。</li>
+<li>代码里只在本次接触的命中点上取 \(r_m\)<span data-ev="为什么用整体mode，·L48·1"></span>，再作用到本次的 \(p\) 上<span data-ev="为什么用整体mode，·L48·3"></span>。（依据：实现代码）<span data-ev="为什么用整体mode，·L48·2"></span></li>
+<li>龙压鸭从 0 个加到 19 个 mode，骨架 ÷ IPC 从 2.157 降到 0.868，之后到 80 个只在 0.868–0.857 之间变。（依据：结果文件 见第 5–6 周 §6.4 表）</li>
 </ul></details>
 <h3 id="w20-3">mode 是怎么算出来的</h3>
 
@@ -334,7 +334,7 @@ html.annot-on #annot-capture { display: block; }
 </ul>
 <details><summary>出处</summary><ul>
 <li>主式子 \(W^{-1/2}(\hat B^\top K_{\rm lock}^{+}\hat B-H)W^{-1/2}v_m=\sigma_mv_m\) 的推导与每步出处在第 5–6 周 §12.3 的折叠块里。</li>
-<li>耗时：龙 网格 80.1 s + mode 5648.1 s，鸭 网格 38.5 s + mode 2915.0 s。<span class="note-src"><span class="note-src">[结果文件 逐物体预处理 demo 的 mode json <code>t_pre</code> 与网格 json]</span></span></li>
+<li>耗时：龙 网格 80.1 s + mode 5648.1 s，鸭 网格 38.5 s + mode 2915.0 s。（依据：实验记录）<span data-ev="mode是怎么算出来的·L62·1"></span></li>
 </ul></details>
 <h3 id="w20-4">能不能按 patch 局部做（导师原话「不同patch去单独加密去存然后用的时候去根据撞的地方去找」）</h3>
 
@@ -346,25 +346,25 @@ html.annot-on #annot-capture { display: block; }
 </ul>
 <details><summary>出处</summary><ul>
 <li>
-<p><span class="note-src">[1] <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/web_week7_1120/backsolve_cost/or019_dragon_backsolve_cost.json 读的是 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/modes/dragon_k80q4/dragon_k80q4.json 里 18 个 50 列回代块的实测秒数，每次接触 = 每格秒数 × 3614（直接相乘）；IPC 204 s 取自 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/overnight_1111/or_019/S1/ipc/job/gpu_job_result.json ]</span></span></span></p>
+<p><span class="note-src">[1] 实验记录：每次接触 = 每格秒数 × 3614（直接相乘） <span data-ev="1"></span></span></p>
 </li>
 <li>
-<p>多处接触按片拆开片力偏 23%、整体项必须不分片：<span class="note-src"><span class="note-src">[项目规范文档 第 2 级（多接触）结论一条]</span></span></p>
+<p>多处接触按片拆开片力偏 23%、整体项必须不分片：（依据：项目规范文档 第 2 级（多接触）结论一条）</p>
 </li>
-<li>三种候选（现行整体 mode、patch 精确块不耦合、每物体一次分解每次回代）的判定：<span class="note-src"><span class="note-src">[设计稿 <code>universal_preprocess_theory_1120.md:121–128</code>]</span></span> patch 不耦合败在多处耦合和整表面存储两条，每次回代败在「每次接触的计算量随网格增长」一条。</li>
-<li>3614 个候选格：[结果文件 龙压鸭骨架 <code>ksweep_auto.json</code> 的 <code>zones[0].n_cand</code>]</li>
+<li>三种候选（现行整体 mode、patch 精确块不耦合、每物体一次分解每次回代）的判定：（依据：设计与审核记录）<span data-ev="能不能按patch局·L78·1"></span> patch 不耦合败在多处耦合和整表面存储两条，每次回代败在「每次接触的计算量随网格增长」一条。</li>
+<li>3614 个候选格：（依据：实验记录）<span data-ev="能不能按patch局·L79·1"></span></li>
 </ul></details>
 <h3 id="w20-5">是不是一个物体只算一次，就能用在所有情况</h3>
 
 <ul>
 <li><strong>已经做到的</strong>：<ul>
 <li>每个物体一张只由自己几何决定、与接触位置无关的均匀网格，算一次 mode。龙压鸭换成这种逐物体预处理后，骨架 ÷ IPC 从 0.8568 变成 0.8454（−1.33%）。</li>
-<li><strong>同一份 mode 换一个接触部位、换一个对手再用一次：本例可用。</strong> 龙压鸭那一次算的同一份龙的 mode，经刚体坐标映射搬到龙压兔（or_012，龙上另一个接触点、另一个对手）。<ul>
+<li><strong>同一份 mode 换一个接触部位、换一个对手再用一次：本例可用。</strong> 龙压鸭那一次算的同一份龙的 mode，经刚体坐标映射搬到龙压兔（第 12 号普通样本，龙上另一个接触点、另一个对手）。<ul>
 <li>只换龙的 mode（另一侧保持逐场景）时，骨架 ÷ IPC 的变化：龙压兔 0.8921 → 0.8890（−0.31 个百分点），龙压鸭 0.8568 → 0.8454（−1.14 个百分点）。</li>
 <li>复用代价 = (−0.31) − (−1.14) = +0.83 个百分点，在开跑前写定的 1 个百分点线以内<sup class="note-src">[2]</sup>；离线只有 0.17 个百分点，只是这一例。</li>
 <li>坐标映射核过：转换矩阵行列式 1.0000、正交误差 6.7e−16，映射后龙表面点到 mode 网格表面的距离中位数 1.5e−3（线 8e−3）、p99 0.020（代码门限 0.041）。</li>
 <li>两侧都换成逐物体 mode 时，龙压兔为 0.8891（对逐场景 −0.30 个百分点）。</li>
-<li>跑法：11-20 23:06 先在短作业道起跑，服务器 CPU 被占满（负载约 475，128 核），第一条在 15 分钟上限被停；11-21 01:00 改到 GPU 4、5 的长作业道，六条并行。其中两条卡在 CPU 闸门的旧版（等待时一直持锁），01:39 按 PID 停掉这两条等待进程，用修好的闸门重起，正在跑的两条没动；02:22 六条全部退出码 0。每条 618–1066 s；只跑 k = 80 的计时那条在高负载下用了 1854 s，不能当每次接触的耗时<sup class="note-src">[3]</sup>。</li>
+<li>跑法：11-20 23:06 先在短作业道起跑，服务器 CPU 被占满（负载约 475，128 核），第一条在 15 分钟上限被停；11-21 01:00 改到 GPU 4、5 的长作业道，六条并行。其中两条卡在 CPU 闸门的旧版（等待时一直持锁），01:39 按 PID 停掉这两条等待进程，用修好的闸门重起，正在跑的两条没动；02:22 六条全部退出码 0。每条 618–1066 s；只跑 \(k=80\) 的计时那条在高负载下用了 1854 s，不能当每次接触的耗时<sup class="note-src">[3]</sup>。</li>
 </ul>
 </li>
 </ul>
@@ -377,14 +377,14 @@ html.annot-on #annot-capture { display: block; }
 <li>详见 <a href="#w10-2">本页 §8.2</a>、<a href="week5.html#a2m-lim">第 5–6 周 §11.4 已知限制</a>。</li>
 </ul>
 <details><summary>出处</summary><ul>
-<li><span class="note-src">[2] <span class="note-src"><span class="note-src">[ref: docs/drafts/spec_universal_demo_or019_1120.md:52 判读写定；三轮独立审核 docs/drafts/review_spec_or012_reuse_1120.md:1 ]</span></span></span></li>
+<li><span class="note-src">[2] 文献 <span data-ev="2"></span></span></li>
 <li>
-<p><span class="note-src">[3] <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/web_week7_1120/reuse_or012/reuse_cost.json 由 tools/verify/reuse_cost_or012_1121.py 读六条的 ksweep_auto.json，r = 1 + relative_energy_error，k = 80 与 Ritz 残差 ≤ 0.01 的最大 k（都是 80）；复用代价 +0.0083，usable = true]</span></span> 六条结果目录 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/skel/ 下 or019_S1_univA、or019_S1_perscene、or012_S1_univA、or012_S1_universal、or012_S1_universal_t80、or012_S1_perscene，每条 job_long/gpu_job_result.json 记卡号与墙钟；短作业道被停的记录在 <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/skel/or019_S1_univA/job/gpu_job_result.json killed_reason = short_lane_timeout、wall_seconds = 929 ]</span></span>。龙压鸭逐场景对照在当前 main 上重跑为 0.856845，与 11-12 的旧结果 0.8568 一致。入口 docs/drafts/universal_demo_chain_1120.sh 的 skel_or012_long（SKEL_LANE=long、SKEL_ONLY）。</span></p>
+<p><span class="note-src">[3] 核对脚本：k = 80 与 Ritz 残差 ≤ 0.01 的最大 k（都是 80）；复用代价 +0.0083；龙压鸭逐场景对照在当前 main 上重跑为 0.856845；与 11-12 的旧结果 0.8568 一致 <span data-ev="3"></span></span></p>
 </li>
 <li>
-<p>0.8454 与 0.8568、网格边长与节点数、95.5 / 49.2 分钟、内存回收证据：<span class="note-src"><span class="note-src">[结果文件 逐物体预处理 demo 的 <code>ksweep_auto.json</code> 与 mode json，见本页 §8.2]</span></span></p>
+<p>0.8454 与 0.8568、网格边长与节点数、95.5 / 49.2 分钟、内存回收证据：（依据：实验记录：见本页 §8.2）<span data-ev="是不是一个物体只算一次，·L103·1"></span></p>
 </li>
-<li>锁法不一致：mode 用 12 行锁（<code>linear_ref.py:2319</code> <code>condense_lock</code>），本周 GT 锁质心和 skew(A) 共 6 行（<code>kkt_rigid_label.py:6</code>）。<span class="note-src"><span class="note-src">[代码]</span></span></li>
+<li>锁法不一致：mode 用 12 行锁<span data-ev="是不是一个物体只算一次，·L104·2"></span>，本周 GT 锁质心和 skew(A) 共 6 行<span data-ev="是不是一个物体只算一次，·L104·3"></span>。（依据：实现代码）<span data-ev="是不是一个物体只算一次，·L104·1"></span></li>
 </ul></details>
 <h3 id="w20-6">GT 怎么做的：线性还是非线性，是不是线弹性</h3>
 
@@ -395,8 +395,8 @@ html.annot-on #annot-capture { display: block; }
 <li>详见 <a href="week5.html#w12-2">第 5–6 周 §11.2 材料对照表</a>、<a href="#w3">本页 §4 大压深怎么造</a>。</li>
 </ul>
 <details><summary>出处</summary><ul>
-<li>我们：能量 <code>uipc_nh.py:70</code>；IPC 接触与连续碰撞检测在 <code>kkt_rigid_label.py:72–73</code>（CCD 设置）。<span class="note-src"><span class="note-src">[代码]</span></span></li>
-<li>导师：<code>gen3d_softsoft.py:31</code>（StableNeoHookean）、<code>:46</code>（al-ipc κ）；<code>condense_pair.py:10–13</code>（罚函数接触）；<code>axisym_hertz.py:112–132</code>（线弹性 / SNH / Gent 三种能量）。<span class="note-src"><span class="note-src">[代码 0f605ea]</span></span></li>
+<li>我们：能量 <span data-ev="GT怎么做的：线性还是·L117·2"></span>；IPC 接触与连续碰撞检测在 <span data-ev="GT怎么做的：线性还是·L117·3"></span>（CCD 设置）。（依据：实现代码）<span data-ev="GT怎么做的：线性还是·L117·1"></span></li>
+<li>导师：<span data-ev="GT怎么做的：线性还是·L118·2"></span>（StableNeoHookean）、<span data-ev="GT怎么做的：线性还是·L118·3"></span>（al-ipc κ）；<span data-ev="GT怎么做的：线性还是·L118·4"></span>（罚函数接触）；<span data-ev="GT怎么做的：线性还是·L118·5"></span>（线弹性 / SNH / Gent 三种能量）。（依据：实现代码）<span data-ev="GT怎么做的：线性还是·L118·1"></span></li>
 </ul></details>
 <h3 id="w20-7">能力对照：我们和导师的 GT、骨架各能做什么</h3>
 
@@ -469,7 +469,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 <tr>
 <td>大压深</td>
-<td>部分：8 格中 2 格跑完、6 格计算中（见下一小节）</td>
+<td>能：8 格全部跑完，重叠深度核对通过（见下一小节）</td>
 <td>部分：上一版推近 \(H/6\) 的状态读数对标签 +1.6% / +9.4%（两张网格）；推近 \(H/3\) 的状态 \(k\ge5\) 被判定规则拒掉，读不出数（见下一小节）</td>
 <td>部分：三维到 \(\delta/R_{\rm eff}=0.10\)<sup class="note-src">[27]</sup>，轴对称更深<sup class="note-src">[28]</sup></td>
 <td>不能：训练和评测的压深最大 0.04（球半径 1，\(\delta/R_{\rm eff}\le0.12\)），更深的数据没有进它的训练和评测（见下一小节）</td>
@@ -477,64 +477,66 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <details><summary>出处</summary><ul>
-<li><span class="note-src">[4] <code>uipc_nh.py:70</code></span></li>
-<li><span class="note-src">[5] <code>linear_ref.py:510</code> P2 刚度</span></li>
-<li><span class="note-src">[6] SNH，<code>gen3d_softsoft.py:31</code></span></li>
-<li><span class="note-src">[7] <code>gap_patch.py:6</code></span></li>
-<li><span class="note-src">[8] <code>linear_ref.py --element P2</code></span></li>
-<li><span class="note-src">[9] <code>axisym_hertz.py:123–130</code></span></li>
-<li><span class="note-src">[10] <code>gap_patch.py:6</code></span></li>
-<li><span class="note-src">[11] <code>uipc_nh.py:70</code></span></li>
-<li><span class="note-src">[12] <code>gen3d_softsoft.py:31</code></span></li>
-<li><span class="note-src">[13] <code>patch_model.py:77–85</code></span></li>
-<li><span class="note-src">[14] <code>kkt_rigid_label.py:72–73</code> 连续碰撞检测</span></li>
-<li><span class="note-src">[15] <code>condense_pair.py:13</code></span></li>
-<li><span class="note-src">[16] <code>kkt_rigid_label.py:39–42</code></span></li>
-<li><span class="note-src">[17] <code>bunny_gapmap.py:4581</code></span></li>
-<li><span class="note-src">[18] <code>gen3d_softsoft.py:77–81</code></span></li>
-<li><span class="note-src">[19] <code>patch_model.py:59–60</code></span></li>
-<li><span class="note-src">[20] <code>kkt_rigid_label.py:39–42</code></span></li>
-<li><span class="note-src">[21] <code>bunny_gapmap.py:5228</code></span></li>
-<li><span class="note-src">[22] <code>gen3d_softsoft.py:77–81</code></span></li>
-<li><span class="note-src">[23] <code>gap_patch.py:6</code> swap-averaged</span></li>
-<li><span class="note-src">[24] <code>kkt_rigid_label.py:4</code></span></li>
-<li><span class="note-src">[25] <code>gen3d_softsoft.py:78</code></span></li>
-<li><span class="note-src">[26] <code>gap_patch.py:38–46</code></span></li>
-<li><span class="note-src">[27] <code>gen3d_softsoft.py:47</code></span></li>
-<li><span class="note-src">[28] <code>axisym_hertz.py:34</code></span></li>
+<li><span class="note-src">[4] 材料能量实现 <span data-ev="4"></span></span></li>
+<li><span class="note-src">[5] 线弹性参照与 mode 预处理实现 <span data-ev="5"></span></span></li>
+<li><span class="note-src">[6] 导师代码 NeuralIPC <span data-ev="6"></span></span></li>
+<li><span class="note-src">[7] 导师代码 NeuralIPC <span data-ev="7"></span></span></li>
+<li><span class="note-src">[8] 线弹性参照与 mode 预处理实现 <span data-ev="8"></span></span></li>
+<li><span class="note-src">[9] 导师代码 NeuralIPC <span data-ev="9"></span></span></li>
+<li><span class="note-src">[10] 导师代码 NeuralIPC <span data-ev="10"></span></span></li>
+<li><span class="note-src">[11] 材料能量实现 <span data-ev="11"></span></span></li>
+<li><span class="note-src">[12] 导师代码 NeuralIPC <span data-ev="12"></span></span></li>
+<li><span class="note-src">[13] 导师代码 NeuralIPC <span data-ev="13"></span></span></li>
+<li><span class="note-src">[14] GT 标签实现（深压 KKT 锁） <span data-ev="14"></span></span></li>
+<li><span class="note-src">[15] 导师代码 NeuralIPC <span data-ev="15"></span></span></li>
+<li><span class="note-src">[16] GT 标签实现（深压 KKT 锁） <span data-ev="16"></span></span></li>
+<li><span class="note-src">[17] 骨架实现 <span data-ev="17"></span></span></li>
+<li><span class="note-src">[18] 导师代码 NeuralIPC <span data-ev="18"></span></span></li>
+<li><span class="note-src">[19] 导师代码 NeuralIPC <span data-ev="19"></span></span></li>
+<li><span class="note-src">[20] GT 标签实现（深压 KKT 锁） <span data-ev="20"></span></span></li>
+<li><span class="note-src">[21] 骨架实现 <span data-ev="21"></span></span></li>
+<li><span class="note-src">[22] 导师代码 NeuralIPC <span data-ev="22"></span></span></li>
+<li><span class="note-src">[23] 导师代码 NeuralIPC <span data-ev="23"></span></span></li>
+<li><span class="note-src">[24] GT 标签实现（深压 KKT 锁） <span data-ev="24"></span></span></li>
+<li><span class="note-src">[25] 导师代码 NeuralIPC <span data-ev="25"></span></span></li>
+<li><span class="note-src">[26] 导师代码 NeuralIPC <span data-ev="26"></span></span></li>
+<li><span class="note-src">[27] 导师代码 NeuralIPC <span data-ev="27"></span></span></li>
+<li><span class="note-src">[28] 导师代码 NeuralIPC <span data-ev="28"></span></span></li>
 </ul></details>
 <h3 id="w20-8">大压深能不能做</h3>
 
 <ul>
 <li><strong>什么叫大压深（用户定义）</strong>：两个物体按不变形的形状摆在当前位置时，重叠区沿 \(y\) 方向的最大高度 = \(H_A/2\) 或 \(H_A/3\)（\(H_A\) 是兔子包围盒高度）。</li>
 <li><strong>GT 怎么造</strong>：只锁两个物体的质心和转角，IPC 接触、带体积屏障的 neo-Hookean 材料；兔子质心的移动量 \(\delta^*\) 由几何二分求出，使重叠高度恰好等于目标；从上一版的静止状态接着把质心推到 \(\delta^*\)。</li>
-<li><strong>做到哪一步</strong>：8 个算例都从上一版的静止状态（或冷启动已收敛的中间档）接着推到 \(\delta^*\)。1/3 档的 nuA02B045、nuA045B02 两格已跑完（退出码 0，读数核对后放第 6 节）；其余 6 格计算中<sup class="note-src">[30]</sup>。<sup class="note-src">[29]</sup> \(\delta^*\)：1/3 档 3.7709（\(0.408H_A\)，重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.554H_A\)，重叠高度 \(0.49996H_A\)）；上一版的推近量 3.0772 只给出 \(0.274H_A\) 的重叠。</li>
+<li><strong>做到哪一步</strong>：8 个算例都从上一版的静止状态（或冷启动已收敛的中间档）接着推到 \(\delta^*\)。8 格全部跑完，重叠高度 ÷ \(H_A\) 为 0.33335（1/3 档 4 格）、0.49996（1/2 档 4 格），都在目标的 1% 以内<sup class="note-src">[30]</sup>。<sup class="note-src">[29]</sup> \(\delta^*\)：1/3 档 3.7709（\(0.408H_A\)，重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.554H_A\)，重叠高度 \(0.49996H_A\)）；上一版的推近量 3.0772 只给出 \(0.274H_A\) 的重叠。</li>
 <li><strong>骨架能不能处理</strong>：骨架是线弹性、小变形、法向沿一个方向的余能二次规划，半空间项还假设接触区里表面坡度小；大压深下材料非线性、接触区坡度大、mode 不随变形重新线性化，这几处都会失效。实测（上一版深压状态：兔子质心推近 \(H/6\)、\(H/3\)，当时 12 维全锁，现已不用于造例子；区法向用重叠体积梯度）：<ul>
 <li>推近 \(H/6\)：同一状态两张网格，\(k=80\) 骨架 ÷ IPC 标签 = +1.6%（原网格）、+9.4%（细网格），两张网格之间骨架读数差 0.8–2.2%。</li>
 <li>推近 \(H/3\)：\(k=0\) 能读出（130,173，是标签 50,249.55 的 2.6 倍）；\(k\ge5\) 全部被同层判定拒掉（固定 66 个回退格超过「主动格 × 20%」上限），读不出数。</li>
 <li>所以现行骨架在 \(H/6\) 能出数、误差到 9.4%，在 \(H/3\) 判定规则就不让它出数。<sup class="note-src">[31]</sup></li>
+<li>现行 8 个标签状态（重叠高度 \(H_A/3\)、\(H_A/2\)），第一层原因在符号上。标签取 \(U_{\mathrm{fit}}=E_{\mathrm{fine}}-E_{\mathrm{coarse,fit}}\)，\(E_{\mathrm{coarse,fit}}\) 是每个物体做质量加权仿射拟合后粗模型的弹性能；8 格的 \(U_{\mathrm{fit}}\) 全部为负，从 \(-1.0\times10^6\) 到 \(-1.8\times10^7\)。骨架由 \(p\ge0\)、互补条件 \(p_i\big((Cp)_i-g_i\big)=0\) 和 \(C\succ0\) 直接推出 \(U_{\mathrm{skel}}=\tfrac{h^2}{2}p^\top g=\tfrac{h^2}{2}p^\top Cp\ge0\)，所以相对误差 \(\dfrac{|U_{\mathrm{skel}}-U_{\mathrm{fit}}|}{|U_{\mathrm{fit}}|}=1+\dfrac{U_{\mathrm{skel}}}{|U_{\mathrm{fit}}|}\ge100\%\)。负号的来源：龙做仿射拟合后一个方向压、一个方向伸（例如泊松比对调 1/2 档，龙的拟合矩阵对角是 0.90、0.39、1.28），\(E_{\mathrm{coarse,fit}}\) 比 \(E_{\mathrm{fine}}\) 大 1~2 个量级。所以这个标签口径和正能量骨架在符号上不相容，加 mode 也补不了；这不说明 GT 错了，只说明这个口径下的能量差不是骨架能表示的量。<span data-ev="w7-deep8-sign"></span></li>
+<li>第二层原因：骨架找接触区这一步也失败，重新播种 2 轮后仍有重叠块不属于任何接触区（1/3 档 1 块，1/2 档 5 块），给不出读数。<span data-ev="w7-deep8"></span></li>
 </ul>
 </li>
 </ul>
 <details><summary>出处</summary><ul>
-<li><span class="note-src">[29] <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/kkt_ipc_1120/labels_e008_dhat1e3_kmax_ov3/nuA02B045_d3/final.npz 与 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/kkt_ipc_1120/labels_e008_dhat1e3_kmax_ov3/nuA045B02_d3/final.npz 两格终态已写出，job.exit 为 0 ]</span></span></span></li>
-<li><span class="note-src">[30] 作业 kktc_L_e008_dhat1e3_kmax_ov3_Ax10_d3、…_ov3_Bx10_d3、…_ov2u_Ax10_d2、…_ov2u_Bx10_d2、…_ov2u_nuA02B045_d2、…_ov2u_nuA045B02_d2，结果路径 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/kkt_ipc_1120/labels_e008_dhat1e3_kmax_ov3/ 与 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/kkt_ipc_1120/labels_e008_dhat1e3_kmax_ov2u/ 下同名格</span></li>
+<li><span class="note-src">[29] 实验记录 <span data-ev="29"></span></span></li>
+<li><span class="note-src">[30] 实验记录 <span data-ev="30"></span></span></li>
 <li>
-<p><span class="note-src">[31] <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/skeleton_deep_1120/flux_normal_v1/compare_deep_v1.json 逐档 status 与读数；标签值取自同一行的分工结果表 06:29 行 ]</span></span></span></p>
+<p><span class="note-src">[31] 实验记录：标签值取自同一行的分工结果表 06：29 行 <span data-ev="31"></span></span></p>
 </li>
 <li>
 <p>用户定义原话见本页 §4.1。</p>
 </li>
-<li>\(\delta^*\)、重叠高度、各格起点（1/3 档从上一版终态、1/2 档 Bx10 和 nuA02B045 从冷启动的中间档）：<span class="note-src"><span class="note-src">[进度记录 <code>kkt_c_1120</code> 22:3x 一节；起点文件与 sha256 在 <code>kkt_ipc_1120/fallback_log_1120.txt</code>]</span></span></li>
-<li>骨架的成立条件（线弹性小应变、坡度小、mode 不随变形重新线性化）：[第 5–6 周 §11.5 总体成立条件；代码 <code>bunny_gapmap.py</code> 文档串（mode 不按变形后形状重新线性化）]；半空间叠加要求线弹性和坡度小：<span class="note-src"><span class="note-src">[ref: Popov 2019 §2.2，<code>refs/phw2019_handbook.txt:557–563</code>]</span></span></li>
+<li>\(\delta^*\)、重叠高度、各格起点（1/3 档从上一版终态、1/2 档 Bx10 和 nuA02B045 从冷启动的中间档）：（依据：设计与审核记录；实现代码）<span data-ev="大压深能不能做·L183·1"></span></li>
+<li>骨架的成立条件（线弹性小应变、坡度小、mode 不随变形重新线性化）：（依据：第 5–6 周 §11.5 总体成立条件；代码  文档串（mode 不按变形后形状重新线性化））<span data-ev="大压深能不能做·L184·2"></span>；半空间叠加要求线弹性和坡度小：（依据：Popov, Heß &amp; Willert 2019，§2.2）<span data-ev="大压深能不能做·L184·1"></span></li>
 <li>导师模型的压深范围（导师仓库 YumengHe/NeuralIPC，commit 0f605ea，逐行核过）：<ul>
-<li>模型训练和评测读的三个数据集都在 <code>gap_patch.py:156</code>、<code>:178</code>、<code>:204</code>（softsoft_dataset_p2、softsoft_hertz_clean_p2、softrigid_dataset_p2）。<span class="note-src"><span class="note-src">[ref: nipc/merged/gap_patch.py:178]</span></span></li>
-<li>这三个数据集的压深都取 <code>DEPTHS = [0.005 … 0.04]</code>；软–硬数据集直接导入同一个 DEPTHS。<span class="note-src"><span class="note-src">[ref: nipc/teacher/gen_softsoft_dataset.py:26]</span></span> <span class="note-src"><span class="note-src">[ref: nipc/teacher/gen_softrigid_dataset.py:18]</span></span></li>
-<li>球半径 \(R_1=1\)、\(R_2\in[0.5,2]\)，所以 \(R_{\rm eff}=R_1R_2/(R_1+R_2)\in[1/3,2/3]\)，\(\delta/R_{\rm eff}\le0.04\times3=0.12\)。<span class="note-src"><span class="note-src">[ref: nipc/teacher/gen_softsoft_dataset.py:37]</span></span> <span class="note-src"><span class="note-src">[直接推导: \(R_{\rm eff,min}=1\cdot0.5/1.5=1/3\)，\(0.04/(1/3)=0.12\)]</span></span></li>
-<li>轴对称深压数据（到 \(0.2R_{\rm eff}\)，<code>axisym_hertz.py:34</code>）只被 <code>ra_skeleton_test.py:96</code> 读，用来测我们旧版骨架；<code>gap_patch.py</code> 与 <code>patch_model.py</code> 里没有读它的代码（全文搜 axisym 为 0 处）。<span class="note-src"><span class="note-src">[ref: nipc/merged/ra_skeleton_test.py:96]</span></span></li>
+<li>模型训练和评测读的三个数据集都在 <span data-ev="大压深能不能做·L186·2"></span>、<span data-ev="大压深能不能做·L186·3"></span>、<span data-ev="大压深能不能做·L186·4"></span>（softsoft_dataset_p2、softsoft_hertz_clean_p2、softrigid_dataset_p2）。（依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L186·1"></span></li>
+<li>这三个数据集的压深都在 \(\delta\in[0.005,\,0.04]\) 里取（球半径 \(R_1=1\)）；软–硬数据集直接沿用同一组压深。<span data-ev="w7-depths"></span>（依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L187·1"></span> （依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L187·2"></span></li>
+<li>球半径 \(R_1=1\)、\(R_2\in[0.5,2]\)，所以 \(R_{\rm eff}=R_1R_2/(R_1+R_2)\in[1/3,2/3]\)，\(\delta/R_{\rm eff}\le0.04\times3=0.12\)。（依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L188·1"></span> （依据：直接推导: \(R_{\rm eff,min}=1\cdot0.5/1.5=1/3\)，\(0.04/(1/3)=0.12\)）</li>
+<li>轴对称深压数据（到 \(0.2R_{\rm eff}\)，<span data-ev="大压深能不能做·L189·2"></span>）只被 <span data-ev="大压深能不能做·L189·3"></span> 读，用来测我们旧版骨架；<span data-ev="大压深能不能做·L189·4"></span> 与 <span data-ev="大压深能不能做·L189·5"></span> 里没有读它的代码（全文搜 axisym 为 0 处）。（依据：实现代码）<span data-ev="大压深能不能做·L189·1"></span></li>
 </ul>
 </li>
-<li>骨架深压实测的状态与判定：<span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/skeleton_deep_1120/flux_normal_v1/compare_deep_v1.json ]</span></span> 代码 <code>bunny_gapmap.py --zone_normal_mode overlap_flux</code>（328ef7b7）。</li>
+<li>骨架深压实测的状态与判定：（依据：实验记录）<span data-ev="大压深能不能做·L190·1"></span> 代码 <span data-ev="大压深能不能做·L190·2"></span>（328ef7b7）。</li>
 </ul></details>
 <h3 id="w20-9">软硬对调能不能做</h3>
 
@@ -542,13 +544,13 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>怎么进 GT</strong>：每个物体各自的 \(E\)、\(\nu\) 进材料，软硬对调只改两边的 \(E\)，泊松比对调只改两边的 \(\nu\)，网格和锁都不变。</li>
 <li><strong>怎么进骨架</strong>：每个物体各自的 \(E&#x27;\) 进半空间项，各自的 mode 进 mode 项，所以对调后两边的柔度跟着换；只认 \(E^*\) 的 Hertz、半空间 BEM 对调前后完全一样。</li>
 <li><strong>按原理的预期</strong>：两边受同一个压力，各自的压陷 \(\propto(1-\nu_k^2)/E_k\)；刚度差 10 倍时软的一边承担约 91% 的压陷，泊松比对调时两边分到 54.6% 和 45.4%。（本页 §5.1）</li>
-<li><strong>结果</strong>：8 个算例计算中。</li>
+<li><strong>结果</strong>：8 个标签都已算完（软硬对调、泊松比对调各 4 格）。这 8 格的标签 \(U_{\mathrm{fit}}\) 全部为负，而骨架能量 \(U_{\mathrm{skel}}\ge0\)，两者在符号上不相容，相对误差下界 100%，加 mode 也补不了（推导见上一小节；这不说明 GT 错了）。第二层原因是骨架在这 8 个状态上找接触区失败、给不出读数。所以对调前后骨架读数的比较做不了。</li>
 </ul>
 <details><summary>出处</summary><ul>
-<li>材料表 <code>kkt_rigid_label.py:39–42</code>；骨架每侧 \(1/E&#x27;_b\) <code>bunny_gapmap.py:5228</code>。<span class="note-src"><span class="note-src">[代码]</span></span></li>
-<li>半空间分配：<span class="note-src"><span class="note-src">[ref: Popov, Heß &amp; Willert 2019 式 (2.1)，<code>refs/phw2019_handbook.txt:528–532</code>，前提半空间、小应变、无摩擦，只作 baseline 预期]</span></span></li>
+<li>材料表 <span data-ev="软硬对调能不能做·L203·1"></span>；骨架每侧 \(1/E&#x27;_b\) <span data-ev="软硬对调能不能做·L203·3"></span>。（依据：实现代码）<span data-ev="软硬对调能不能做·L203·2"></span></li>
+<li>半空间分配：（依据：Popov, Heß &amp; Willert 2019，式 (2.1)）<span data-ev="软硬对调能不能做·L204·1"></span></li>
 </ul></details>
-<p class="kp">两边的 GT 都是非线性超弹性，区别在接触和锁；我们的骨架把每个物体的 \(E\)、\(\nu\) 分开进柔度、用整体 mode 补有限大小，导师的模型先合成 \(E^*\) 再让网络学其余部分；逐物体预处理已经做通一例，大压深和软硬对调的 8 个算例计算中。</p></section>
+<p class="kp">两边的 GT 都是非线性超弹性，区别在接触和锁；我们的骨架把每个物体的 \(E\)、\(\nu\) 分开进柔度、用整体 mode 补有限大小，导师的模型先合成 \(E^*\) 再让网络学其余部分；逐物体预处理已经做通一例；大压深和软硬对调的 8 个标签已算完，骨架在这 8 个状态上给不出读数。</p></section>
 <section id="w1"><h2>上次组会后完成的（上周 TODO）</h2>
 <ul>
 <li><strong>skeleton 的正式读法：缝隙和柔度都在两表面的中间面上量</strong>。上次的读法在斜面处把沿压入方向量的重叠和沿表面法向的柔度混用，表面越斜偏得越多；新读法按中间面的坡度把两者换算到同一方向，平处与旧读法完全相同。</li>
@@ -625,7 +627,7 @@ html.annot-on #annot-capture { display: block; }
 </ul>
 </li>
 <li><strong>压深</strong>：两个物体按不变形的形状摆在当前位置时，重叠区沿 \(y\) 方向的最大高度，要等于 depth·\(H_A\)（\(H_A\) 是兔子包围盒的 \(y\) 高度），depth 取 <strong>1/3 和 1/2</strong>。</li>
-<li><strong>做法</strong>：兔子（A）和龙（B）都是有限元软体，普通网格。兔子质心要移动的量 \(\delta^*\) 用几何二分求出：让两个不变形形状的重叠最大高度恰好等于 \(H_A/3\) 和 \(H_A/2\)。然后分小步把兔子质心移过 \(\delta^*\)，每一小步都解到静止再走下一步，最后一步的静止状态就是标签。\(\delta^*\)：1/3 档 3.7709（不变形重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.49996H_A\)）；8 个算例计算中。</li>
+<li><strong>做法</strong>：兔子（A）和龙（B）都是有限元软体，普通网格。兔子质心要移动的量 \(\delta^*\) 用几何二分求出：让两个不变形形状的重叠最大高度恰好等于 \(H_A/3\) 和 \(H_A/2\)。然后分小步把兔子质心移过 \(\delta^*\)，每一小步都解到静止再走下一步，最后一步的静止状态就是标签。\(\delta^*\)：1/3 档 3.7709（不变形重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.49996H_A\)）；8 个算例全部算完。</li>
 <li>移过去之后，两个物体怎么变形、贴多大一片，全部由两体接触自己决定：没有任何改变形状的外力，不预先压扁任何一个物体。</li>
 </ul>
 <details><summary>上一版为什么压浅了</summary><ul>
@@ -654,7 +656,7 @@ html.annot-on #annot-capture { display: block; }
 </li>
 </ul>
 <details><summary>出处</summary><ul>
-<li><span class="note-src">[32] 导师 <code>grasp_task.py</code> 与 <code>condense_newton.py</code> constraint="rigid" 的定义</span></li>
+<li><span class="note-src">[32] 导师代码 NeuralIPC <span data-ev="32"></span></span></li>
 </ul></details>
 <h3 id="w3-3">接触：IPC，全程不穿透</h3>
 
@@ -668,7 +670,7 @@ html.annot-on #annot-capture { display: block; }
 </li>
 <li>这里的「不穿透」是造标签的 GT 的性质；我们自己的粗模型允许穿透，网络学的正是有穿透的粗状态和这个不穿透的精细真解之间的能量差。</li>
 </ul>
-<h3 id="w3-4">材料：我们 GT 的 nh_barrier</h3>
+<h3 id="w3-4">材料：我们 GT 的带体积屏障 neo-Hookean</h3>
 
 <p>\[\Psi(F)=\frac{\mu}{2}\big(\operatorname{tr}F^{\top}F-3\big)-\mu\ln J+\frac{\lambda}{2}(\ln J)^2,\qquad J=\det F\]</p>
 <ul>
@@ -753,7 +755,7 @@ html.annot-on #annot-capture { display: block; }
 <li><strong>这些都是半空间的预期，我们的问题不满足它的<span class="note-cond">前提</strong>：两个物体有限大、形状完全不同（兔子圆钝、龙有尖刺），压深是高度的 1/3、1/2，远超小变形。所以如果互换的两格测出来不一样，差别不可能来自 \(E^*\)（它相同），只能来自：</span><ul>
 <li><strong>几何</strong>：被压得多的是兔子还是龙，接触区的形状、能贴多大一片就不同；</li>
 <li><strong>有限大小</strong>：被压得多的那个物体整体也会变形，不只是局部压陷；</li>
-<li><strong>大变形非线性</strong>：nh_barrier 里体积压向 0 时能量趋于无穷，压得越深越硬；\(\nu\) 大的一边体积更难压缩。</li>
+<li><strong>大变形非线性</strong>：带体积屏障的 neo-Hookean 里体积压向 0 时能量趋于无穷，压得越深越硬；\(\nu\) 大的一边体积更难压缩。</li>
 </ul>
 </li>
 <li>两格差多少、往哪个方向差，由实测给出；Hertz、BEM 给出的「一样」就是 baseline 在这件事上的读数。</li>
@@ -1006,7 +1008,7 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li><strong>能说的</strong>：<ul>
 <li>已实现的五个局部 baseline 都把物体当成无限大或只看局部压入；Hertz、半空间 BEM 只认 \(E^*\)，分不出 \(E^*\) 相同的材料互换。</li>
-<li>大压深的造法：两个软体普通网格，只锁质心和转角（导师的 rigid 锁），IPC 接触全程不穿透，nh_barrier 材料。</li>
+<li>大压深的造法：两个软体普通网格，只锁质心和转角（导师的 rigid 锁），IPC 接触全程不穿透，材料是带体积屏障的 neo-Hookean。</li>
 <li>IPC 标签自己有两项偏差，方向都是能量偏高：线性四面体单元偏硬约 9%，接触区加密范围不够的偏差随压深变大。</li>
 <li>兔子压龙 1/512、1/256 两档浅压，skeleton ÷ IPC 为 0.956、0.983。</li>
 <li>每个物体一套、与接触位置无关的 mode 已经能用：龙压鸭骨架 ÷ IPC 0.8454，只比按场景的预处理变 −1.33%。</li>
