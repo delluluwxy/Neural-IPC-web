@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "876b4e3f938a";</script>
+<script>window.NIPC_PAGE = "d20f88ff3ec0";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -1155,7 +1155,7 @@ html.annot-on #annot-capture { display: block; }
 <li>\(J\) 偏离 1 越多 → \(\Psi\) 越大，因为 \((J-1-\mu&#x27;/\lambda&#x27;)^2\) 随 \(J\) 偏离增大。[直接推导]</li>
 </ul>
 </li>
-<li>\(B(x)=\sum\kappa\,(D-\hat d^2)^2\ln^2(D/\hat d^2)\)，求和取所有距离平方 \(D&lt;\hat d^2\) 的点–面、边–边对。[代码 libuipc <code>third_party/libuipc/src/backends/cuda/contact_system/contact_models/sym/codim_ipc_contact.inl:114–140</code>]<ul>
+<li>\(B(x)=\sum\kappa\,(D-\hat d^2)^2\ln^2(D/\hat d^2)\)，求和取所有距离平方 \(D&lt;\hat d^2\) 的接触基元对，\(\kappa\) 是接触刚度（未指定时取场景自适应下界）。[代码 libuipc <code>third_party/libuipc/src/backends/cuda/contact_system/contact_models/sym/codim_ipc_contact.inl:114–140</code>、<code>global_contact_manager.cu:386–390</code>]<ul>
 <li>两面距离越接近 0 → \(\ln^2(D/\hat d^2)\) 越大 → \(B\) 越大，因为 \(\ln D\to-\infty\)。[直接推导]</li>
 </ul>
 </li>
@@ -1316,7 +1316,7 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li>比值 \(U_{\rm skel}/U_{\rm GT}\)，本例 \(k=80\) 为 0.857；骨架那次运行里的 \(U_{\rm GT}\) 是从 <code>result.json</code> 读的 <code>reference.U</code>（证据表 C2，未能证明同一文件）。[代码 <code>bunny_gapmap.py:6082</code>（commit 7380c331）；结果文件 <code>ksweep_auto.json</code> 的 <code>rows[k=80].relative_energy_error</code> = −0.1432、<code>reference.U</code>]</li>
 </ul>
-<p class="kp">GT 线在 IPC + FEM 上求带锁的静止态读能量，骨架线先按网格求 mode、再解一个凸二次规划；两线用的是同一张按场景加密的网格，骨架那次运行没有记录输入哈希，图上不能和上游连成一条链。</p></section>
+<p class="kp">GT 线在 IPC + FEM 上求带锁的静止态读能量，骨架线先按网格求 mode、再解一个凸二次规划；两线用的是同一张按场景加密的网格，骨架那次运行没有记录输入哈希，图上不能和上游连成一条链。[本节各块的出处；证据表 A1、B1、C1–C3]</p></section>
 <section id="w13"><h2>13. 下一步</h2>
 <p>先定一条只看输入就能算出来的 mode 选取规则，用它把所有算例重跑一遍。然后逐个算例把标准答案的修正测准，把待定的判出来。预处理改成每个物体一套、与接触位置无关的 mode。然后补做大压深（压入约物体高度的 1/3–1/2）和大应变。最后再设计 neural 的输入和输出。</p></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
