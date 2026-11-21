@@ -92,6 +92,16 @@ def notion_md_to_html(md):
     # （图例写成「- **【ref】**：……」的列表项也算，颜色与正文里的标注一致）
     t = re.sub(r"(?m)^([ \t]*(?:[-*] )?)((?:\*\*)?【(?:ref|无 ref|我们定的)】.*?)([ \t]*)$", r'\1<span class="note-src">\2</span>\3', t)
     t = re.sub(r"(?m)^([ \t]*(?:[-*] )?)((?:\*\*)?【条件】.*?)([ \t]*)$", r'\1<span class="note-cond">\2</span>\3', t)
+    # 同一约定的行内写法（用户 11-05 06:38「正文一个颜色 ref一个颜色 条件一个颜色」，W25）：
+    #   出处色：[ref …] 一类的方括号出处、正文里的引用编号 <sup>[n]</sup>、「出处」折叠块里的「- [n] …」条目；
+    #   条件色：「成立条件：」「条件：」「前提：」（可带 ** 粗体）起头到行尾。
+    t = re.sub(r"\[(?:ref|用户要求|代码|结果文件|实验|直接推导|设计稿|进度记录|证据表|项目规范|同上|运行命令)[^\[\]\n]*\](?!\()",
+               lambda m: f'<span class="note-src">{m.group(0)}</span>', t)
+    t = re.sub(r"<sup>\[(\d+)\]</sup>", r'<sup class="note-src">[\1]</sup>', t)
+    t = re.sub(r"(?m)^([ \t]*- )(\[\d+\] .*?)([ \t]*)$", r'\1<span class="note-src">\2</span>\3', t)
+    # 条件段到行尾、表格分隔符 | 或下一个 HTML 标签为止（不跨格、不跨标签）；每一处都上色，已在 note-cond 里的不再套
+    t = re.sub(r"(?m)(?<!note-cond\x22>)((?:<strong>|\*\*)?(?:成立条件|条件|前提)(?:</strong>|\*\*)?[：:][^|<\n]*?)([ \t]*)(?=\||<|$)",
+               r'<span class="note-cond">\1</span>\2', t)
     t = re.sub(r"(?m)^([ \t]*)\[视频\]\((assets/videos/[^)\s]+\.mp4)\)[ \t]*$", lambda m: keep_indented(
         m, f'<figure><video controls muted playsinline preload="metadata" src="{esc(m.group(2))}"></video></figure>'), t)
     t = re.sub(r"(?m)^([ \t]*)((?:!\[[^\]]*\]\(assets/images/[^)\s]+\)[ \t]*)+)$", lambda m: keep_indented(
