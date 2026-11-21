@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "87ca7e2a4775";</script>
+<script>window.NIPC_PAGE = "d2d94f703f06";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -761,7 +761,7 @@ html.annot-on #annot-capture { display: block; }
 
 <h3 id="w12-1">完整 pipeline：从原始输入到比较的两个数</h3>
 
-<ul> <li>这一小节把 <a href="#w1-2">1.2 Pipeline</a> 和 <a href="#w4">4. 标准答案怎么得到</a> 串成一条完整的链：每个箭头都写「由什么、经过哪个式子、得到什么」，并给出代码位置和一个真实数字。</li> <li>两条分支吃的是<strong>同一份原始输入</strong>：两个物体的表面网格、各自的 \(E\)、\(\nu\)、以及两个物体的摆放。上面一条造标准答案（GT，IPC+FEM），下面一条算 skeleton，最后在同一个粗状态上相除。</li> </ul>
+<ul> <li>这一小节把 <a href="#w1-2">1.2 Pipeline</a> 和 <a href="#w4">4. 标准答案怎么得到</a> 串成一条完整的链：每个箭头都写「由什么、经过哪个式子、得到什么」，并给出代码位置和一个真实数字。</li> <li>两条分支吃的是<strong>同一份原始输入</strong>：两个物体的表面网格、各自的 \(E\)、\(\nu\)、以及两个物体的摆放。一条造标准答案（GT，IPC+FEM），一条算 skeleton，最后两者的能量相除；skeleton 用的粗状态取自 GT 结果文件，这一读入的证据见 <a href="#w14">第 12 节</a>证据表 C2。</li> </ul>
 
 <p>两条线（GT；预处理 → 骨架）的总图与每根箭头的「同一条计算链」证据见 <a href="#w14">第 12 节</a>。</p>
 
