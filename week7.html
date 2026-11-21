@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "d13f4a926ca4";</script>
+<script>window.NIPC_PAGE = "3e867c3e1ac8";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -349,7 +349,7 @@ html.annot-on #annot-capture { display: block; }
 <p><span class="note-src">[1] <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/web_week7_1120/backsolve_cost/or019_dragon_backsolve_cost.json 读的是 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/modes/dragon_k80q4/dragon_k80q4.json 里 18 个 50 列回代块的实测秒数，每次接触 = 每格秒数 × 3614（直接相乘）；IPC 204 s 取自 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/overnight_1111/or_019/S1/ipc/job/gpu_job_result.json ]</span></span></span></p>
 </li>
 <li>
-<p>多处接触按片拆开片力偏 23%、整体项必须不分片：<span class="note-src"><span class="note-src">[项目规范 项目规范文档 第 2 级（多接触）结论一条]</span></span></p>
+<p>多处接触按片拆开片力偏 23%、整体项必须不分片：<span class="note-src"><span class="note-src">[项目规范文档 第 2 级（多接触）结论一条]</span></span></p>
 </li>
 <li>三种候选（现行整体 mode、patch 精确块不耦合、每物体一次分解每次回代）的判定：<span class="note-src"><span class="note-src">[设计稿 <code>universal_preprocess_theory_1120.md:121–128</code>]</span></span> patch 不耦合败在多处耦合和整表面存储两条，每次回代败在「每次接触的计算量随网格增长」一条。</li>
 <li>3614 个候选格：[结果文件 龙压鸭骨架 <code>ksweep_auto.json</code> 的 <code>zones[0].n_cand</code>]</li>
@@ -357,9 +357,19 @@ html.annot-on #annot-capture { display: block; }
 <h3 id="w20-5">是不是一个物体只算一次，就能用在所有情况</h3>
 
 <ul>
-<li><strong>已经做到的</strong>：每个物体一张只由自己几何决定、与接触位置无关的均匀网格，算一次 mode。龙压鸭换成这种逐物体预处理后，骨架 ÷ IPC 从 0.8568 变成 0.8454（−1.33%）。</li>
+<li><strong>已经做到的</strong>：<ul>
+<li>每个物体一张只由自己几何决定、与接触位置无关的均匀网格，算一次 mode。龙压鸭换成这种逐物体预处理后，骨架 ÷ IPC 从 0.8568 变成 0.8454（−1.33%）。</li>
+<li><strong>同一份 mode 换一个接触部位、换一个对手再用一次：本例可用。</strong> 龙压鸭那一次算的同一份龙的 mode，经刚体坐标映射搬到龙压兔（or_012，龙上另一个接触点、另一个对手）。<ul>
+<li>只换龙的 mode（另一侧保持逐场景）时，骨架 ÷ IPC 的变化：龙压兔 0.8921 → 0.8890（−0.31 个百分点），龙压鸭 0.8568 → 0.8454（−1.14 个百分点）。</li>
+<li>复用代价 = (−0.31) − (−1.14) = +0.83 个百分点，在开跑前写定的 1 个百分点线以内<sup class="note-src">[2]</sup>；离线只有 0.17 个百分点，只是这一例。</li>
+<li>坐标映射核过：转换矩阵行列式 1.0000、正交误差 6.7e−16，映射后龙表面点到 mode 网格表面的距离中位数 1.5e−3（线 8e−3）、p99 0.020（代码门限 0.041）。</li>
+<li>两侧都换成逐物体 mode 时，龙压兔为 0.8891（对逐场景 −0.30 个百分点）。</li>
+<li>跑法：11-20 23:06 先在短作业道起跑，服务器 CPU 被占满（负载约 475，128 核），第一条在 15 分钟上限被停；11-21 01:00 改到 GPU 4、5 的长作业道，六条并行。其中两条卡在 CPU 闸门的旧版（等待时一直持锁），01:39 按 PID 停掉这两条等待进程，用修好的闸门重起，正在跑的两条没动；02:22 六条全部退出码 0。每条 618–1066 s；只跑 k = 80 的计时那条在高负载下用了 1854 s，不能当每次接触的耗时<sup class="note-src">[3]</sup>。</li>
+</ul>
+</li>
+</ul>
+</li>
 <li><strong>还没做到的</strong>：<ul>
-<li>同一份 mode 换一个接触部位、换一个对手再用一次：测试的做法和判据已定、三轮独立审核通过；23:06 在短作业道起跑后，这台服务器 CPU 被占满（负载约 475，128 核），每条骨架作业「找接触区」这一步就超过短作业道 15 分钟的上限被停，已交主会话排到长作业道<sup class="note-src">[3]</sup>。做法：龙用龙压鸭那一次的同一份逐物体 mode，经刚体坐标映射搬到龙压兔（or_012，龙上另一个接触点、另一个对手）；判据开跑前写定：复用代价 = [龙压兔「只换龙」− 逐场景] − [龙压鸭「只换龙」− 逐场景]，绝对值 ≤ 1 个百分点算可用。<sup class="note-src">[2]</sup></li>
 <li>龙的预处理 95.5 分钟，超过每个物体 60 分钟的线，卡在机器内存回收。</li>
 <li>mode 锁的是 12 个仿射自由度，本周 GT 只锁质心和转角 6 个，两者不一致，还没改。</li>
 </ul>
@@ -369,7 +379,7 @@ html.annot-on #annot-capture { display: block; }
 <details><summary>出处</summary><ul>
 <li><span class="note-src">[2] <span class="note-src"><span class="note-src">[ref: docs/drafts/spec_universal_demo_or019_1120.md:52 判读写定；三轮独立审核 docs/drafts/review_spec_or012_reuse_1120.md:1 ]</span></span></span></li>
 <li>
-<p><span class="note-src">[3] <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/skel/or019_S1_univA/job/gpu_job_result.json 记 killed_reason = short_lane_timeout、wall_seconds = 929；同一类作业在 20:3x 负载正常时 273 s（/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/skel/or019_S1_universal/job/gpu_job_result.json ）]</span></span> 入口 docs/drafts/universal_demo_chain_1120.sh skel_or012（六条：or019_S1_univA、or019_S1_perscene、or012_S1_univA、or012_S1_universal、or012_S1_universal_t80、or012_S1_perscene）。</span></p>
+<p><span class="note-src">[3] <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/web_week7_1120/reuse_or012/reuse_cost.json 由 tools/verify/reuse_cost_or012_1121.py 读六条的 ksweep_auto.json，r = 1 + relative_energy_error，k = 80 与 Ritz 残差 ≤ 0.01 的最大 k（都是 80）；复用代价 +0.0083，usable = true]</span></span> 六条结果目录 /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/skel/ 下 or019_S1_univA、or019_S1_perscene、or012_S1_univA、or012_S1_universal、or012_S1_universal_t80、or012_S1_perscene，每条 job_long/gpu_job_result.json 记卡号与墙钟；短作业道被停的记录在 <span class="note-src"><span class="note-src">[实验: /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_universal_1120/demo_or019/skel/or019_S1_univA/job/gpu_job_result.json killed_reason = short_lane_timeout、wall_seconds = 929 ]</span></span>。龙压鸭逐场景对照在当前 main 上重跑为 0.856845，与 11-12 的旧结果 0.8568 一致。入口 docs/drafts/universal_demo_chain_1120.sh 的 skel_or012_long（SKEL_LANE=long、SKEL_ONLY）。</span></p>
 </li>
 <li>
 <p>0.8454 与 0.8568、网格边长与节点数、95.5 / 49.2 分钟、内存回收证据：<span class="note-src"><span class="note-src">[结果文件 逐物体预处理 demo 的 <code>ksweep_auto.json</code> 与 mode json，见本页 §8.2]</span></span></p>
