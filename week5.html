@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "afe5eedd1ea0";</script>
+<script>window.NIPC_PAGE = "876b4e3f938a";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -284,7 +284,12 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w12-4">11.4 第二项：mode 项是怎么得到的</a>
 <a class="toc-level-3" href="#w12-5">11.5 总体成立条件</a>
 <a class="toc-level-3" href="#w12-6">11.6 文献里哪些接触公式是已知的</a>
-<a class="toc-level-2" href="#w13">12. 12. 下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<a class="toc-level-2" href="#w14">12. 12. 两条线：GT 怎么做，骨架怎么做</a>
+<a class="toc-level-3" href="#w14-1">12.1 总图与同一链条证据</a>
+<a class="toc-level-3" href="#w14-2">12.2 线 A：GT 怎么做</a>
+<a class="toc-level-3" href="#w14-3">12.3 线 B：骨架怎么做</a>
+<a class="toc-level-3" href="#w14-4">12.4 如何比较</a>
+<a class="toc-level-2" href="#w13">13. 13. 下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 5–6 周：skeleton 在 edge case 上是否成立</h1></header>
 <div class="lead"><p>本页只放两侧都是软体普通网格（兔、龙、鸭）的算例：7 类 27 个，其中 18 个基本对、8 个待定、1 个没有有效标准答案，判为明显不对的 0 个（这一档能否判出故意做错的算例还没有验证）。尖、尺寸比、凹面鞍面、一侧薄、两侧材料差 5 类至少有一个基本对；普通单片暂时都是待定，两侧都薄的唯一一格没有有效标准答案。都是浅压（最深约物体高度的 1%）；大压深（压入约物体高度的 1/3–1/2）和大应变尚未验证。在这些算例上，skeleton 比 hydroelastic 更接近现有的 IPC 标签。</p></div>
 <section id="w1"><h2>1. 主公式：从几何和材料推到 skeleton 能量</h2>
@@ -899,7 +904,420 @@ html.annot-on #annot-capture { display: block; }
 <ul> <li><strong>数一数</strong>：本页两侧都是软体的 7 类、27 个算例，加上 week7 的大压深和软硬对调，<strong>没有一个严格满足上表任何一个闭式解的全部条件</strong>。原因都一样：两个物体都有限大、形状一般、两侧都软。</li> <li>能<strong>近似</strong>对照 Hertz 量级的有 3 类：普通单片、尺寸比、两侧材料差，都是光滑凸面、小压深。尖可以对照圆锥「力 ∝ 压深²」的趋势。</li> <li><strong>没有已知公式</strong>的有：一侧薄、两侧都薄、凹面鞍面，以及 week7 的大压深（1/2、1/3 兔高）和刚度 / 泊松比互换。这些类只能拿 IPC+FEM 当标准答案。</li> <li>上面的「能用 / 不能用」是逐条对照条件得出的判断，不是实测。</li> </ul>
 
 <p class="kp">文献给了骨架的每一块砖（点力解、合成模量、余能二次规划、有限体 = 半空间 + 修正），但闭式解都要求半空间、轴对称或刚性对手；我们的算例没有一个完全满足，所以裁判只能是 IPC+FEM。</p></section>
-<section id="w13"><h2>12. 下一步</h2>
+<section id="w14"><h2>12. 两条线：GT 怎么做，骨架怎么做</h2>
+<ul>
+<li>记号：结果文件前缀 \(R\) = <code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes</code>；代码行号不另注 commit 的，指 sandbox commit 39cb5d1e。[定义]</li>
+<li>例子是龙压鸭 or_019 状态 S1，龙在上、目标下移 0.003。[代码 <code>tools/week5/ipc_locked_labels.py:136</code>、<code>:568–571</code>；结果文件 <code>R/ipc_locked/overnight_1111/or_019/S1/ipc/result.json</code> 的 <code>rows[0].meta.delta</code>]</li>
+<li>例子里的数由证据表各行写明的那次运行的 commit 算出；那些 commit 和 39cb5d1e 之间，下文引用的函数有没有改动，未逐行核。[代码 <code>tools/verify/chain_evidence_or019_1120.py</code> 输出的 <code>evidence.json</code>]</li>
+</ul>
+<h3 id="w14-1">总图与同一链条证据</h3>
+
+<!-- chain:begin -->
+
+<figure style="margin:12px 0"><svg style="max-width:100%;height:auto" viewBox="0.00 0.00 1598.00 421.50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"> <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 417.5)"> <title>chain</title> <polygon fill="white" stroke="transparent" points="-4,4 -4,-417.5 1594,-417.5 1594,4 -4,4"/> <g id="clust1" class="cluster"> <title>cluster_0</title> <polygon fill="none" stroke="black" stroke-dasharray="5,2" points="8,-8 8,-405.5 425,-405.5 425,-8 8,-8"/> <text text-anchor="middle" x="216.5" y="-391.9" font-family="Droid Sans Fallback" font-size="12.00">线 A：GT</text> </g> <g id="clust2" class="cluster"> <title>cluster_1</title> <polygon fill="none" stroke="black" stroke-dasharray="5,2" points="434,-8 434,-303 875,-303 875,-8 434,-8"/> <text text-anchor="middle" x="654.5" y="-289.4" font-family="Droid Sans Fallback" font-size="12.00">线 B：预处理</text> </g> <g id="clust3" class="cluster"> <title>cluster_2</title> <polygon fill="none" stroke="black" stroke-dasharray="5,2" points="883,-84 883,-403 1375,-403 1375,-84 883,-84"/> <text text-anchor="middle" x="1129" y="-389.4" font-family="Droid Sans Fallback" font-size="12.00">线 B：骨架（与上游没有可证明的连线）</text> </g> <g id="clust4" class="cluster"> <title>cluster_leg</title> <polygon fill="none" stroke="black" stroke-dasharray="1,5" points="1383,-330 1383,-402 1582,-402 1582,-330 1383,-330"/> <text text-anchor="middle" x="1482.5" y="-389.2" font-family="Droid Sans Fallback" font-size="11.00">图例</text> </g> <g id="node1" class="node"> <title>D_mesh</title> <path fill="#e8f1fb" stroke="black" d="M404.5,-376.5C404.5,-376.5 55.5,-376.5 55.5,-376.5 49.5,-376.5 43.5,-370.5 43.5,-364.5 43.5,-364.5 43.5,-347.5 43.5,-347.5 43.5,-341.5 49.5,-335.5 55.5,-335.5 55.5,-335.5 404.5,-335.5 404.5,-335.5 410.5,-335.5 416.5,-341.5 416.5,-347.5 416.5,-347.5 416.5,-364.5 416.5,-364.5 416.5,-370.5 410.5,-376.5 404.5,-376.5"/> <text text-anchor="middle" x="230" y="-364.5" font-family="Droid Sans Fallback" font-size="10.00">龙、鸭四面体网格 (V, T)</text> <text text-anchor="middle" x="230" y="-353.5" font-family="Droid Sans Fallback" font-size="10.00">V∈R^(57637×3), T∈Z^(259111×4)；V∈R^(19145×3), T∈Z^(88454×4)</text> <text text-anchor="middle" x="230" y="-342.5" font-family="Droid Sans Fallback" font-size="10.00">sample/or_019/tet_m.npz，b/or_019/tet_b_m.npz</text> </g> <g id="node2" class="node"> <title>M_gt</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="349,-274 155,-274 155,-238 349,-238 349,-274"/> <text text-anchor="middle" x="252" y="-259" font-family="Droid Sans Fallback" font-size="10.00">我们的 GT 式子（建问题 + 读数 U_GT）</text> <text text-anchor="middle" x="252" y="-248" font-family="Droid Sans Fallback" font-size="10.00">ipc_locked_labels.py &#45;&#45;mode label</text> </g> <g id="edge1" class="edge"> <title>D_mesh&#45;&gt;M_gt</title> <path fill="none" stroke="black" d="M234.45,-335.17C237.75,-320.49 242.28,-300.31 245.91,-284.14"/> <polygon fill="black" stroke="black" points="249.37,-284.71 248.14,-274.18 242.54,-283.17 249.37,-284.71"/> <text text-anchor="middle" x="245.5" y="-314" font-family="Droid Sans Fallback" font-size="10.00">A1</text> </g> <g id="node7" class="node"> <title>M_pre</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="688.5,-274 495.5,-274 495.5,-238 688.5,-238 688.5,-274"/> <text text-anchor="middle" x="592" y="-259" font-family="Droid Sans Fallback" font-size="10.00">我们的 mode 构造式（S_R）</text> <text text-anchor="middle" x="592" y="-248" font-family="Droid Sans Fallback" font-size="10.00">linear_ref.py &#45;&#45;mode surface_modes</text> </g> <g id="edge7" class="edge"> <title>D_mesh&#45;&gt;M_pre</title> <path fill="none" stroke="black" d="M307.43,-335.45C344.83,-325.89 390.31,-314.07 431,-303 461.49,-294.7 495.11,-285.16 523.7,-276.92"/> <polygon fill="black" stroke="black" points="524.96,-280.2 533.6,-274.07 523.02,-273.48 524.96,-280.2"/> <text text-anchor="middle" x="404.5" y="-314" font-family="Droid Sans Fallback" font-size="10.00">B1</text> </g> <g id="node3" class="node"> <title>D_gtprob</title> <path fill="#e8f1fb" stroke="black" d="M204,-201C204,-201 28,-201 28,-201 22,-201 16,-195 16,-189 16,-189 16,-177 16,-177 16,-171 22,-165 28,-165 28,-165 204,-165 204,-165 210,-165 216,-171 216,-177 216,-177 216,-189 216,-189 216,-195 210,-201 204,-201"/> <text text-anchor="middle" x="116" y="-186" font-family="Droid Sans Fallback" font-size="10.00">要求解的问题（内存 scene, lock）</text> <text text-anchor="middle" x="116" y="-175" font-family="Droid Sans Fallback" font-size="10.00">能量 ΣV_eΨ(F_e)+B(x)，约束 Gx=c_tgt</text> </g> <g id="edge2" class="edge"> <title>M_gt&#45;&gt;D_gtprob</title> <path fill="none" stroke="black" d="M219.42,-237.99C200.97,-228.36 177.69,-216.21 157.89,-205.87"/> <polygon fill="black" stroke="black" points="159.27,-202.64 148.78,-201.11 156.03,-208.84 159.27,-202.64"/> <text text-anchor="middle" x="198.5" y="-217" font-family="Droid Sans Fallback" font-size="10.00">A2</text> </g> <g id="node6" class="node"> <title>D_gt</title> <path fill="#e8f1fb" stroke="black" d="M378.5,-201C378.5,-201 253.5,-201 253.5,-201 247.5,-201 241.5,-195 241.5,-189 241.5,-189 241.5,-177 241.5,-177 241.5,-171 247.5,-165 253.5,-165 253.5,-165 378.5,-165 378.5,-165 384.5,-165 390.5,-171 390.5,-177 390.5,-177 390.5,-189 390.5,-189 390.5,-195 384.5,-201 378.5,-201"/> <text text-anchor="middle" x="316" y="-186" font-family="Droid Sans Fallback" font-size="10.00">GT 结果 U_GT、x*</text> <text text-anchor="middle" x="316" y="-175" font-family="Droid Sans Fallback" font-size="10.00">…/or_019/S1/ipc/result.json</text> </g> <g id="edge6" class="edge"> <title>M_gt&#45;&gt;D_gt</title> <path fill="none" stroke="black" d="M267.49,-237.81C275.43,-229 285.24,-218.13 293.95,-208.46"/> <polygon fill="black" stroke="black" points="296.55,-210.8 300.65,-201.03 291.35,-206.11 296.55,-210.8"/> <text text-anchor="middle" x="293.5" y="-217" font-family="Droid Sans Fallback" font-size="10.00">A6</text> </g> <g id="node4" class="node"> <title>M_ipc</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="284.5,-128 135.5,-128 135.5,-92 284.5,-92 284.5,-128"/> <text text-anchor="middle" x="210" y="-113" font-family="Droid Sans Fallback" font-size="10.00">Newton + 线搜索（libuipc）</text> <text text-anchor="middle" x="210" y="-102" font-family="Droid Sans Fallback" font-size="10.00">advance_ipc.cu</text> </g> <g id="edge3" class="edge"> <title>D_gtprob&#45;&gt;M_ipc</title> <path fill="none" stroke="black" d="M138.75,-164.81C150.88,-155.66 165.97,-144.26 179.13,-134.32"/> <polygon fill="black" stroke="black" points="181.58,-136.85 187.45,-128.03 177.37,-131.26 181.58,-136.85"/> <text text-anchor="middle" x="174.5" y="-144" font-family="Droid Sans Fallback" font-size="10.00">A3</text> </g> <g id="node5" class="node"> <title>D_x</title> <path fill="#e8f1fb" stroke="black" d="M332.5,-52C332.5,-52 233.5,-52 233.5,-52 227.5,-52 221.5,-46 221.5,-40 221.5,-40 221.5,-28 221.5,-28 221.5,-22 227.5,-16 233.5,-16 233.5,-16 332.5,-16 332.5,-16 338.5,-16 344.5,-22 344.5,-28 344.5,-28 344.5,-40 344.5,-40 344.5,-46 338.5,-52 332.5,-52"/> <text text-anchor="middle" x="283" y="-37" font-family="Droid Sans Fallback" font-size="10.00">顶点位置 x（内存 xs）</text> <text text-anchor="middle" x="283" y="-26" font-family="Droid Sans Fallback" font-size="10.00">x∈R^((N_A+N_B)×3)</text> </g> <g id="edge4" class="edge"> <title>M_ipc&#45;&gt;D_x</title> <path fill="none" stroke="black" d="M226.93,-91.84C236.42,-82.22 248.42,-70.06 258.87,-59.46"/> <polygon fill="black" stroke="black" points="261.63,-61.65 266.16,-52.07 256.65,-56.73 261.63,-61.65"/> <text text-anchor="middle" x="259.5" y="-68" font-family="Droid Sans Fallback" font-size="10.00">A4</text> </g> <g id="edge5" class="edge"> <title>D_x&#45;&gt;M_gt</title> <path fill="none" stroke="black" d="M311.68,-52.11C358.3,-82.1 441.6,-146.2 403,-201 391.94,-216.7 375.88,-227.86 358.31,-235.79"/> <polygon fill="black" stroke="black" points="356.91,-232.58 349.01,-239.64 359.59,-239.05 356.91,-232.58"/> <text text-anchor="middle" x="415.5" y="-144" font-family="Droid Sans Fallback" font-size="10.00">A5</text> </g> <g id="node8" class="node"> <title>D_lin</title> <path fill="#e8f1fb" stroke="black" d="M584,-201C584,-201 454,-201 454,-201 448,-201 442,-195 442,-189 442,-189 442,-177 442,-177 442,-171 448,-165 454,-165 454,-165 584,-165 584,-165 590,-165 596,-171 596,-177 596,-177 596,-189 596,-189 596,-195 590,-201 584,-201"/> <text text-anchor="middle" x="519" y="-186" font-family="Droid Sans Fallback" font-size="10.00">锁定线弹性方程（内存 Kc, Ft）</text> <text text-anchor="middle" x="519" y="-175" font-family="Droid Sans Fallback" font-size="10.00">K u = f，G^T u = 0</text> </g> <g id="edge8" class="edge"> <title>M_pre&#45;&gt;D_lin</title> <path fill="none" stroke="black" d="M574.33,-237.81C565.18,-228.92 553.86,-217.91 543.85,-208.17"/> <polygon fill="black" stroke="black" points="546.12,-205.49 536.51,-201.03 541.24,-210.51 546.12,-205.49"/> <text text-anchor="middle" x="565.5" y="-217" font-family="Droid Sans Fallback" font-size="10.00">B2</text> </g> <g id="node11" class="node"> <title>D_SR</title> <path fill="#e8f1fb" stroke="black" d="M817.5,-201C817.5,-201 668.5,-201 668.5,-201 662.5,-201 656.5,-195 656.5,-189 656.5,-189 656.5,-177 656.5,-177 656.5,-171 662.5,-165 668.5,-165 668.5,-165 817.5,-165 817.5,-165 823.5,-165 829.5,-171 829.5,-177 829.5,-177 829.5,-189 829.5,-189 829.5,-195 823.5,-201 817.5,-201"/> <text text-anchor="middle" x="743" y="-186" font-family="Droid Sans Fallback" font-size="10.00">要求解的问题（内存 apply_SR）</text> <text text-anchor="middle" x="743" y="-175" font-family="Droid Sans Fallback" font-size="10.00">S_R v = σ v，S_R∈R^(n_s×n_s)</text> </g> <g id="edge12" class="edge"> <title>M_pre&#45;&gt;D_SR</title> <path fill="none" stroke="black" d="M628.17,-237.99C648.93,-228.23 675.21,-215.88 697.38,-205.45"/> <polygon fill="black" stroke="black" points="699.04,-208.54 706.6,-201.11 696.06,-202.2 699.04,-208.54"/> <text text-anchor="middle" x="682.5" y="-217" font-family="Droid Sans Fallback" font-size="10.00">B6</text> </g> <g id="node9" class="node"> <title>M_dss</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="582,-128 442,-128 442,-92 582,-92 582,-128"/> <text text-anchor="middle" x="512" y="-113" font-family="Droid Sans Fallback" font-size="10.00">稀疏直接解（cuDSS）</text> <text text-anchor="middle" x="512" y="-102" font-family="Droid Sans Fallback" font-size="10.00">linear_ref.py solve_cudss</text> </g> <g id="edge9" class="edge"> <title>D_lin&#45;&gt;M_dss</title> <path fill="none" stroke="black" d="M517.31,-164.81C516.51,-156.79 515.55,-147.05 514.67,-138.07"/> <polygon fill="black" stroke="black" points="518.14,-137.64 513.68,-128.03 511.18,-138.32 518.14,-137.64"/> <text text-anchor="middle" x="521.5" y="-144" font-family="Droid Sans Fallback" font-size="10.00">B3</text> </g> <g id="node10" class="node"> <title>D_w</title> <path fill="#e8f1fb" stroke="black" d="M604,-52C604,-52 534,-52 534,-52 528,-52 522,-46 522,-40 522,-40 522,-28 522,-28 522,-22 528,-16 534,-16 534,-16 604,-16 604,-16 610,-16 616,-22 616,-28 616,-28 616,-40 616,-40 616,-46 610,-52 604,-52"/> <text text-anchor="middle" x="569" y="-31.5" font-family="Droid Sans Fallback" font-size="10.00">位移解（内存 X）</text> </g> <g id="edge10" class="edge"> <title>M_dss&#45;&gt;D_w</title> <path fill="none" stroke="black" d="M525.22,-91.84C532.49,-82.4 541.63,-70.53 549.69,-60.07"/> <polygon fill="black" stroke="black" points="552.52,-62.13 555.85,-52.07 546.98,-57.86 552.52,-62.13"/> <text text-anchor="middle" x="551.5" y="-68" font-family="Droid Sans Fallback" font-size="10.00">B4</text> </g> <g id="edge11" class="edge"> <title>D_w&#45;&gt;M_pre</title> <path fill="none" stroke="black" d="M579.79,-52.08C585.12,-61.23 591.2,-72.88 595,-84 611.95,-133.55 616.96,-149.24 609,-201 607.6,-210.08 604.96,-219.72 602.17,-228.31"/> <polygon fill="black" stroke="black" points="598.85,-227.22 598.89,-237.81 605.46,-229.5 598.85,-227.22"/> <text text-anchor="middle" x="618.5" y="-144" font-family="Droid Sans Fallback" font-size="10.00">B5</text> </g> <g id="node12" class="node"> <title>M_eig</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="867.5,-128 634.5,-128 634.5,-92 867.5,-92 867.5,-128"/> <text text-anchor="middle" x="751" y="-113" font-family="Droid Sans Fallback" font-size="10.00">随机子空间迭代 + Rayleigh–Ritz + 块 Krylov</text> <text text-anchor="middle" x="751" y="-102" font-family="Droid Sans Fallback" font-size="10.00">linear_ref.py surface_modes / modes_krylov</text> </g> <g id="edge13" class="edge"> <title>D_SR&#45;&gt;M_eig</title> <path fill="none" stroke="black" d="M744.94,-164.81C745.84,-156.79 746.94,-147.05 747.95,-138.07"/> <polygon fill="black" stroke="black" points="751.44,-138.36 749.08,-128.03 744.48,-137.57 751.44,-138.36"/> <text text-anchor="middle" x="753.5" y="-144" font-family="Droid Sans Fallback" font-size="10.00">B7</text> </g> <g id="node13" class="node"> <title>D_modes</title> <path fill="#e8f1fb" stroke="black" d="M828.5,-52C828.5,-52 673.5,-52 673.5,-52 667.5,-52 661.5,-46 661.5,-40 661.5,-40 661.5,-28 661.5,-28 661.5,-22 667.5,-16 673.5,-16 673.5,-16 828.5,-16 828.5,-16 834.5,-16 840.5,-22 840.5,-28 840.5,-28 840.5,-40 840.5,-40 840.5,-46 834.5,-52 828.5,-52"/> <text text-anchor="middle" x="751" y="-37" font-family="Droid Sans Fallback" font-size="10.00">mode 基 σ∈R^80, r∈R^(80×n_s)</text> <text text-anchor="middle" x="751" y="-26" font-family="Droid Sans Fallback" font-size="10.00">…_k80q4kry/*_kry.npz</text> </g> <g id="edge14" class="edge"> <title>M_eig&#45;&gt;D_modes</title> <path fill="none" stroke="black" d="M751,-91.84C751,-83.06 751,-72.16 751,-62.27"/> <polygon fill="black" stroke="black" points="754.5,-62.07 751,-52.07 747.5,-62.07 754.5,-62.07"/> <text text-anchor="middle" x="757.5" y="-68" font-family="Droid Sans Fallback" font-size="10.00">B8</text> </g> <g id="node14" class="node"> <title>M_sk</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="1313,-374 1115,-374 1115,-338 1313,-338 1313,-374"/> <text text-anchor="middle" x="1214" y="-359" font-family="Droid Sans Fallback" font-size="10.00">我们的骨架式子（建 QP + 读数 U_skel）</text> <text text-anchor="middle" x="1214" y="-348" font-family="Droid Sans Fallback" font-size="10.00">bunny_gapmap.py &#45;&#45;locked_result</text> </g> <g id="node15" class="node"> <title>D_qp</title> <path fill="#e8f1fb" stroke="black" d="M1050.5,-274C1050.5,-274 903.5,-274 903.5,-274 897.5,-274 891.5,-268 891.5,-262 891.5,-262 891.5,-250 891.5,-250 891.5,-244 897.5,-238 903.5,-238 903.5,-238 1050.5,-238 1050.5,-238 1056.5,-238 1062.5,-244 1062.5,-250 1062.5,-250 1062.5,-262 1062.5,-262 1062.5,-268 1056.5,-274 1050.5,-274"/> <text text-anchor="middle" x="977" y="-259" font-family="Droid Sans Fallback" font-size="10.00">要求解的问题（内存 apply_C, W）</text> <text text-anchor="middle" x="977" y="-248" font-family="Droid Sans Fallback" font-size="10.00">max_(p≥0) h²[pᵀw − ½pᵀCp]</text> </g> <g id="edge15" class="edge"> <title>M_sk&#45;&gt;D_qp</title> <path fill="none" stroke="black" d="M1166.07,-337.94C1139.37,-328.18 1105.62,-315.44 1076,-303 1057.87,-295.38 1038.16,-286.38 1021.15,-278.37"/> <polygon fill="black" stroke="black" points="1022.53,-275.15 1012,-274.04 1019.54,-281.48 1022.53,-275.15"/> <text text-anchor="middle" x="1127.5" y="-314" font-family="Droid Sans Fallback" font-size="10.00">C4</text> </g> <g id="node18" class="node"> <title>D_skel</title> <path fill="#e8f1fb" stroke="black" d="M1328,-274C1328,-274 1100,-274 1100,-274 1094,-274 1088,-268 1088,-262 1088,-262 1088,-250 1088,-250 1088,-244 1094,-238 1100,-238 1100,-238 1328,-238 1328,-238 1334,-238 1340,-244 1340,-250 1340,-250 1340,-262 1340,-262 1340,-268 1334,-274 1328,-274"/> <text text-anchor="middle" x="1214" y="-259" font-family="Droid Sans Fallback" font-size="10.00">骨架结果 U_skel(k)</text> <text text-anchor="middle" x="1214" y="-248" font-family="Droid Sans Fallback" font-size="10.00">…/skel_modes_gap_k80q4kry/ksweep_auto.json</text> </g> <g id="edge19" class="edge"> <title>M_sk&#45;&gt;D_skel</title> <path fill="none" stroke="black" d="M1214,-337.93C1214,-323.12 1214,-301.43 1214,-284.23"/> <polygon fill="black" stroke="black" points="1217.5,-284.2 1214,-274.2 1210.5,-284.2 1217.5,-284.2"/> <text text-anchor="middle" x="1220.5" y="-314" font-family="Droid Sans Fallback" font-size="10.00">C8</text> </g> <g id="node16" class="node"> <title>M_qp</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="1222.5,-201 997.5,-201 997.5,-165 1222.5,-165 1222.5,-201"/> <text text-anchor="middle" x="1110" y="-186" font-family="Droid Sans Fallback" font-size="10.00">主动集 QP 求解</text> <text text-anchor="middle" x="1110" y="-175" font-family="Droid Sans Fallback" font-size="10.00">bem_two_punch.py active_set_cg_batched</text> </g> <g id="edge16" class="edge"> <title>D_qp&#45;&gt;M_qp</title> <path fill="none" stroke="black" d="M1008.86,-237.99C1026.9,-228.36 1049.67,-216.21 1069.03,-205.87"/> <polygon fill="black" stroke="black" points="1070.77,-208.91 1077.94,-201.11 1067.47,-202.74 1070.77,-208.91"/> <text text-anchor="middle" x="1057.5" y="-217" font-family="Droid Sans Fallback" font-size="10.00">C5</text> </g> <g id="node17" class="node"> <title>D_p</title> <path fill="#e8f1fb" stroke="black" d="M1257.5,-128C1257.5,-128 1158.5,-128 1158.5,-128 1152.5,-128 1146.5,-122 1146.5,-116 1146.5,-116 1146.5,-104 1146.5,-104 1146.5,-98 1152.5,-92 1158.5,-92 1158.5,-92 1257.5,-92 1257.5,-92 1263.5,-92 1269.5,-98 1269.5,-104 1269.5,-104 1269.5,-116 1269.5,-116 1269.5,-122 1263.5,-128 1257.5,-128"/> <text text-anchor="middle" x="1208" y="-107.5" font-family="Droid Sans Fallback" font-size="10.00">压强 p∈R^N（内存 P）</text> </g> <g id="edge17" class="edge"> <title>M_qp&#45;&gt;D_p</title> <path fill="none" stroke="black" d="M1133.72,-164.81C1146.48,-155.57 1162.39,-144.04 1176.21,-134.03"/> <polygon fill="black" stroke="black" points="1178.45,-136.73 1184.5,-128.03 1174.34,-131.06 1178.45,-136.73"/> <text text-anchor="middle" x="1170.5" y="-144" font-family="Droid Sans Fallback" font-size="10.00">C6</text> </g> <g id="edge18" class="edge"> <title>D_p&#45;&gt;M_sk</title> <path fill="none" stroke="black" d="M1240.34,-128.11C1275.57,-148.8 1329.99,-187.26 1353,-238 1364.93,-264.31 1369.46,-279.26 1353,-303 1343.76,-316.32 1330.66,-326.24 1316.16,-333.62"/> <polygon fill="black" stroke="black" points="1314.56,-330.5 1306.97,-337.89 1317.51,-336.85 1314.56,-330.5"/> <text text-anchor="middle" x="1351.5" y="-217" font-family="Droid Sans Fallback" font-size="10.00">C7</text> </g> <g id="node19" class="node"> <title>L1</title> <path fill="#e8f1fb" stroke="black" d="M1562,-374C1562,-374 1532,-374 1532,-374 1526,-374 1520,-368 1520,-362 1520,-362 1520,-350 1520,-350 1520,-344 1526,-338 1532,-338 1532,-338 1562,-338 1562,-338 1568,-338 1574,-344 1574,-350 1574,-350 1574,-362 1574,-362 1574,-368 1568,-374 1562,-374"/> <text text-anchor="middle" x="1547" y="-353.5" font-family="Droid Sans Fallback" font-size="10.00">数据</text> </g> <g id="node20" class="node"> <title>L2</title> <polygon fill="#fdf0e0" stroke="black" stroke-width="2" points="1495,-374 1391,-374 1391,-338 1495,-338 1495,-374"/> <text text-anchor="middle" x="1443" y="-353.5" font-family="Droid Sans Fallback" font-size="10.00">模型 / neural / 算法</text> </g> </g> </svg></figure>
+
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>行</th>
+<th>类型</th>
+<th>箭头</th>
+<th>代码行</th>
+<th>运行记录（原文）</th>
+<th>哈希</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>数据→算法</td>
+<td>龙、鸭四面体网格 (V, T) → 我们的 GT 式子（建问题 + 读数 U_GT）</td>
+<td><code>tools/week5/ipc_locked_labels.py:813（commit 92a0ca84）</code><br><code>tools/week5/ipc_locked_labels.py:165（commit 92a0ca84）</code></td>
+<td>参数 --mesh_a / --mesh_b；result.json meta.args.mesh_a / mesh_b 与 meta.meshes.{A,B}.sha256：A 龙：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/run_local/sample/or_019/tet_m.npz</code>；B 鸭：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/run_local/b/or_019/tet_b_m.npz</code></td>
+<td>记录 A 龙：<code>31b3f38568d749e08b9ad42a4105b5299c087612d40df88eaa45f0e7688f5ae3</code>；B 鸭：<code>9a05952edc0a820d3b733a415155261f4f42bfcd4c7abad23596ce9424790014</code>；文件现算 A 龙：<code>31b3f38568d749e08b9ad42a4105b5299c087612d40df88eaa45f0e7688f5ae3</code>；B 鸭：<code>9a05952edc0a820d3b733a415155261f4f42bfcd4c7abad23596ce9424790014</code></td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>内存</td>
+<td>我们的 GT 式子（建问题 + 读数 U_GT） → 要求解的问题（内存 scene, lock）</td>
+<td><code>tools/week5/ipc_locked_labels.py:558（commit 92a0ca84）</code><br><code>tools/week5/ipc_locked_labels.py:621（commit 92a0ca84）</code></td>
+<td>变量 scene, lock（build_scene 的返回值）；同一条命令：<code>bin/python -m pytest -q -s -p no:cacheprovider /data/xiaoyingwang/projects/Neural-IPC-sandbox/tools/verify/test_ipc_lock_probe.py::test_genesis_full_diagnostic</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>内存</td>
+<td>要求解的问题（内存 scene, lock） → Newton + 线搜索（libuipc）</td>
+<td><code>tools/week5/ipc_locked_labels.py:621（commit 92a0ca84）</code><br><code>third_party/libuipc/src/backends/cuda/engine/advance_ipc.cu:344（工作树）</code></td>
+<td>变量 scene, lock（build_scene 的返回值）；同一条命令：<code>bin/python -m pytest -q -s -p no:cacheprovider /data/xiaoyingwang/projects/Neural-IPC-sandbox/tools/verify/test_ipc_lock_probe.py::test_genesis_full_diagnostic</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>内存</td>
+<td>Newton + 线搜索（libuipc） → 顶点位置 x（内存 xs）</td>
+<td><code>third_party/libuipc/src/backends/cuda/engine/advance_ipc.cu:142（工作树）</code><br><code>tools/week5/ipc_locked_labels.py:634（commit 92a0ca84）</code></td>
+<td>变量 xs（每帧 lock.positions）；同一条命令：<code>bin/python -m pytest -q -s -p no:cacheprovider /data/xiaoyingwang/projects/Neural-IPC-sandbox/tools/verify/test_ipc_lock_probe.py::test_genesis_full_diagnostic</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>内存</td>
+<td>顶点位置 x（内存 xs） → 我们的 GT 式子（建问题 + 读数 U_GT）</td>
+<td><code>tools/week5/ipc_locked_labels.py:634（commit 92a0ca84）</code><br><code>tools/week5/ipc_locked_labels.py:682（commit 92a0ca84）</code></td>
+<td>变量 xs（每帧 lock.positions）；同一条命令：<code>bin/python -m pytest -q -s -p no:cacheprovider /data/xiaoyingwang/projects/Neural-IPC-sandbox/tools/verify/test_ipc_lock_probe.py::test_genesis_full_diagnostic</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>算法→数据</td>
+<td>我们的 GT 式子（建问题 + 读数 U_GT） → GT 结果 U_GT、x*</td>
+<td><code>tools/week5/ipc_locked_labels.py:896（commit 92a0ca84）</code><br><code>tools/week5/ipc_locked_labels.py:140（commit 92a0ca84）</code></td>
+<td>命令 <code>/data/xiaoyingwang/projects/mycodex/nas_runtime.sh run env PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 TMPDIR=/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/overnight_1111/or_019/S1/ipc/workspace CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=7 IPC_LOCK_FULL_MODE=label IPC_LOCK_FULL_RHO=10 IPC_LOCK_FULL_FEEDBACK=corrected IPC_LOCK_FULL_ADAPT=bfgs IPC_LOCK_FULL_MASS=dual IPC_LOCK_FULL_GAIN=1 IPC_LOCK_FULL_DHAT=0.000125 IPC_LOCK_FULL_STRAIN=0 IPC_LOCK_STRAIN_SCALE=1 IPC_LOCK_HOLD_MIN=150 IPC_LOCK_HOLD_MAX=600 IPC_LOCK_STATES=S1 IPC_LOCK_TRACE_ENERGIES=1 IPC_LOCK_TRACE_CONTACT_BUILD=1 IPC_LOCK_CONTACT_RESISTANCE=1149662148593404 IPC_LOCK_SUBPROCESS_TIMEOUT=86400 IPC_LOCK_MESH_A=/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/run_local/sample/or_019/tet_m.npz IPC_LOCK_MESH_B=/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/run_local/b/or_019/tet_b_m.npz IPC_LOCK_FULL_SMOKE_OUT=/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/overnight_1111/or_019/S1/ipc /usr/bin/python3 /home/xiaoyingwang/.claude/hooks/timed_launch.py --formal -- /data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/bin/python -m pytest -q -s -p no:cacheprovider /data/xiaoyingwang/projects/Neural-IPC-sandbox/tools/verify/test_ipc_lock_probe.py::test_genesis_full_diagnostic</code>；commit <code>92a0ca84f19537c5036d64d988cd33a5584d739f</code>；输出路径 <code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/overnight_1111/or_019/S1/ipc</code></td>
+<td>文件 sha256 <code>005c818cd7daf9762ce966ad25297c62ee334137a291a15f2226aa190a3b1ae7</code></td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B1</td>
+<td>数据→算法</td>
+<td>龙、鸭四面体网格 (V, T) → 我们的 mode 构造式（S_R）</td>
+<td><code>tools/week5/linear_ref.py:5698（commit d56d45c9）</code></td>
+<td>参数 --modes_mesh；modes_v4/or_019_{A,B}_<em>_k80q4/</em>.json 的 args.modes_mesh 与 tet_sha256（数组哈希）：A 龙：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/run_local/sample/or_019/tet_m.npz</code>；B 鸭：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ordinary/run_local/b/or_019/tet_b_m.npz</code></td>
+<td>记录 A 龙：<code>b5e7da82e0a03ba8d909cc9f8dc1343361f2f173698c51cb6d6a99c44fff09dd</code>；B 鸭：<code>ed9f1f5ce554600b7570b3b14cdb773392cda940bae0520c4eb610a25572fc15</code>；文件现算 A 龙：<code>b5e7da82e0a03ba8d909cc9f8dc1343361f2f173698c51cb6d6a99c44fff09dd</code>；B 鸭：<code>ed9f1f5ce554600b7570b3b14cdb773392cda940bae0520c4eb610a25572fc15</code></td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>内存</td>
+<td>我们的 mode 构造式（S_R） → 锁定线弹性方程（内存 Kc, Ft）</td>
+<td><code>tools/week5/linear_ref.py:5792（commit d56d45c9）</code><br><code>tools/week5/linear_ref.py:1366（commit d56d45c9）</code></td>
+<td>变量 锁定线弹性方程：Kc 与载荷 Ft（condense_lock 内）；同一条命令：<code>_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.npz --out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B3</td>
+<td>内存</td>
+<td>锁定线弹性方程（内存 Kc, Ft） → 稀疏直接解（cuDSS）</td>
+<td><code>tools/week5/linear_ref.py:1366（commit d56d45c9）</code><br><code>tools/week5/linear_ref.py:815（commit d56d45c9）</code></td>
+<td>变量 锁定线弹性方程：Kc 与载荷 Ft（condense_lock 内）；同一条命令：<code>_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.npz --out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>内存</td>
+<td>稀疏直接解（cuDSS） → 位移解（内存 X）</td>
+<td><code>tools/week5/linear_ref.py:815（commit d56d45c9）</code><br><code>tools/week5/linear_ref.py:1366（commit d56d45c9）</code></td>
+<td>变量 X（solve_cudss 返回的位移）；同一条命令：<code>_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.npz --out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B5</td>
+<td>内存</td>
+<td>位移解（内存 X） → 我们的 mode 构造式（S_R）</td>
+<td><code>tools/week5/linear_ref.py:1366（commit d56d45c9）</code><br><code>tools/week5/linear_ref.py:5796（commit d56d45c9）</code></td>
+<td>变量 X（solve_cudss 返回的位移）；同一条命令：<code>_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.npz --out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B6</td>
+<td>内存</td>
+<td>我们的 mode 构造式（S_R） → 要求解的问题（内存 apply_SR）</td>
+<td><code>tools/week5/linear_ref.py:5784（commit d56d45c9）</code><br><code>tools/week5/linear_ref.py:5902（commit d56d45c9）</code></td>
+<td>变量 apply_SR（S_R 的乘法函数）；同一条命令：<code>_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.npz --out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B7</td>
+<td>内存</td>
+<td>要求解的问题（内存 apply_SR） → 随机子空间迭代 + Rayleigh–Ritz + 块 Krylov</td>
+<td><code>tools/week5/linear_ref.py:5902（commit d56d45c9）</code><br><code>tools/week5/linear_ref.py:5923（commit d56d45c9）</code></td>
+<td>变量 apply_SR（S_R 的乘法函数）；同一条命令：<code>_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.npz --out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>B8</td>
+<td>算法→数据</td>
+<td>随机子空间迭代 + Rayleigh–Ritz + 块 Krylov → mode 基 σ∈R^80, r∈R^(80×n_s)</td>
+<td><code>tools/week5/linear_ref.py:5634（commit caa01f35）</code></td>
+<td>命令 A 龙：<code>linear_ref.py --mode modes_krylov --modes_krylov_from /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4_ckpt --modes_out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4kry/or_019_A_k80q4_kry.npz</code>；B 鸭：<code>linear_ref.py --mode modes_krylov --modes_krylov_from /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_B_duck_k80q4/or_019_B_k80q4_ckpt --modes_out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_B_duck_k80q4kry/or_019_B_k80q4_kry.npz</code>；commit <code>caa01f35c5931586ecfc3b611755bc269617e128</code>；输出路径 A 龙：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4kry/or_019_A_k80q4_kry.npz</code>；B 鸭：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_B_duck_k80q4kry/or_019_B_k80q4_kry.npz</code></td>
+<td>文件 sha256 A 龙：<code>cd8f5f6f843289a0df9eb254c751f6ea775118b8e7e4fcd27c1f321b1183e6de</code>；B 鸭：<code>47e35313e0d58b0622ca18d389f75961286286846b288827af91a3351d6c9dc5</code>；文件自带 A 龙：<code>{'tet_sha256': 'b5e7da82e0a03ba8d909cc9f8dc1343361f2f173698c51cb6d6a99c44fff09dd', 'commit': 'caa01f35c5931586ecfc3b611755bc269617e128', 'krylov_key_sha256': '8eaa657065a7b9d7805d97dd22698f9eabe6560d274f44a2fee414e0710ae04c'}</code>；B 鸭：<code>{'tet_sha256': 'ed9f1f5ce554600b7570b3b14cdb773392cda940bae0520c4eb610a25572fc15', 'commit': 'caa01f35c5931586ecfc3b611755bc269617e128', 'krylov_key_sha256': '08b8f2c78a61e300ac956de5b4451bc8df47a3d45b1db6f6bfc90fcbd11b6c22'}</code></td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>C1</td>
+<td>数据→算法</td>
+<td>mode 基 σ∈R^80, r∈R^(80×n_s) → 我们的骨架式子（建 QP + 读数 U_skel）</td>
+<td><code>tools/week5/bunny_gapmap.py:4469（commit 7380c331）</code></td>
+<td>参数 --locked_modes；ksweep_auto.json args.locked_modes：A：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4kry/or_019_A_k80q4_kry.npz</code>；B：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_B_duck_k80q4kry/or_019_B_k80q4_kry.npz</code></td>
+<td>记录 无记录；文件现算 A 龙：<code>cd8f5f6f843289a0df9eb254c751f6ea775118b8e7e4fcd27c1f321b1183e6de</code>；B 鸭：<code>47e35313e0d58b0622ca18d389f75961286286846b288827af91a3351d6c9dc5</code>；代码内校验 <code>tools/week5/bunny_gapmap.py:4489（commit 7380c331）：比的是 npz 里记的网格数组哈希与 GT 网格，不是 npz 文件本身；结果没写进运行记录</code></td>
+<td>不通过，不画：缺 运行记录里的输入哈希（ksweep_auto.json 全文没有这两个 npz 的 sha256）</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>数据→算法</td>
+<td>GT 结果 U_GT、x* → 我们的骨架式子（建 QP + 读数 U_skel）</td>
+<td><code>tools/week5/bunny_gapmap.py:5976（commit 7380c331）</code></td>
+<td>参数 --locked_result；ksweep_auto.json reference.source：<code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/overnight_1111/or_019/S1/ipc/result.json</code></td>
+<td>记录 无记录；文件现算 <code>005c818cd7daf9762ce966ad25297c62ee334137a291a15f2226aa190a3b1ae7</code></td>
+<td>不通过，不画：缺 运行记录里的输入哈希（只记了路径、producing_commit 与 U 的数值）</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>数据→算法</td>
+<td>龙、鸭四面体网格 (V, T) → 我们的骨架式子（建 QP + 读数 U_skel）</td>
+<td><code>tools/week5/bunny_gapmap.py:4440（commit 7380c331）</code></td>
+<td>参数 无命令行参数（路径取自 --locked_result 的 meta.meshes.*.src）；ksweep_auto.json：无记录</td>
+<td>记录 无记录；文件现算 A 龙：<code>31b3f38568d749e08b9ad42a4105b5299c087612d40df88eaa45f0e7688f5ae3</code>；B 鸭：<code>9a05952edc0a820d3b733a415155261f4f42bfcd4c7abad23596ce9424790014</code>；代码内校验 <code>tools/week5/bunny_gapmap.py:4444（commit 7380c331）：与 result.json 记的网格内容哈希比对；结果没写进运行记录</code></td>
+<td>不通过，不画：缺 运行记录里的输入路径原文和输入哈希</td>
+</tr>
+<tr>
+<td>C4</td>
+<td>内存</td>
+<td>我们的骨架式子（建 QP + 读数 U_skel） → 要求解的问题（内存 apply_C, W）</td>
+<td><code>tools/week5/bunny_gapmap.py:5294（commit 7380c331）</code><br><code>tools/week5/bunny_gapmap.py:5303（commit 7380c331）</code></td>
+<td>变量 apply_C、W（C 的乘法函数与重叠向量）；同一条命令：<code>-4 --device cuda --zone_out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>C5</td>
+<td>内存</td>
+<td>要求解的问题（内存 apply_C, W） → 主动集 QP 求解</td>
+<td><code>tools/week5/bunny_gapmap.py:5303（commit 7380c331）</code><br><code>tools/ipc_sweep/bem_two_punch.py:2859（工作树）</code></td>
+<td>变量 apply_C、W（C 的乘法函数与重叠向量）；同一条命令：<code>-4 --device cuda --zone_out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>C6</td>
+<td>内存</td>
+<td>主动集 QP 求解 → 压强 p∈R^N（内存 P）</td>
+<td><code>tools/ipc_sweep/bem_two_punch.py:2859（工作树）</code><br><code>tools/week5/bunny_gapmap.py:5303（commit 7380c331）</code></td>
+<td>变量 P（压强）；同一条命令：<code>-4 --device cuda --zone_out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>C7</td>
+<td>内存</td>
+<td>压强 p∈R^N（内存 P） → 我们的骨架式子（建 QP + 读数 U_skel）</td>
+<td><code>tools/week5/bunny_gapmap.py:5303（commit 7380c331）</code><br><code>tools/week5/bunny_gapmap.py:5313（commit 7380c331）</code></td>
+<td>变量 P（压强）；同一条命令：<code>-4 --device cuda --zone_out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code></td>
+<td>不适用（同一进程内存变量，无文件）</td>
+<td>通过，画箭头</td>
+</tr>
+<tr>
+<td>C8</td>
+<td>算法→数据</td>
+<td>我们的骨架式子（建 QP + 读数 U_skel） → 骨架结果 U_skel(k)</td>
+<td><code>tools/week5/bunny_gapmap.py:6086（commit 7380c331）</code></td>
+<td>命令 <code>/data/xiaoyingwang/projects/mycodex/nas_runtime.sh run env PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=8 TMPDIR=/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/workspace CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=6 /usr/bin/python3 /home/xiaoyingwang/.claude/hooks/timed_launch.py -- /data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/bin/python /data/xiaoyingwang/projects/Neural-IPC-sandbox/tools/week5/bunny_gapmap.py --locked_result /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/overnight_1111/or_019/S1/ipc/result.json --locked_state S1 --locked_diagnostic --locked_modes A=/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_A_dragon_r2_k80q4kry/or_019_A_k80q4_kry.npz\,B=/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/modes_v4/or_019_B_duck_k80q4kry/or_019_B_k80q4_kry.npz --modes_k 0\,1\,2\,3\,4\,5\,6\,7\,8\,9\,10\,11\,12\,13\,14\,15\,16\,17\,18\,19\,20\,21\,22\,23\,24\,25\,26\,27\,28\,29\,30\,31\,32\,33\,34\,35\,36\,37\,38\,39\,40\,41\,42\,43\,44\,45\,46\,47\,48\,49\,50\,51\,52\,53\,54\,55\,56\,57\,58\,59\,60\,61\,62\,63\,64\,65\,66\,67\,68\,69\,70\,71\,72\,73\,74\,75\,76\,77\,78\,79\,80 --gap_offset 1.25e-4 --device cuda --zone_out /nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code>；commit <code>bunny_gapmap.py blob f5b999eba55afa4a53173a218b56c3d17d2fa91a = 7380c331</code>；输出路径 <code>/nas/xiaoyingwang/Neural-IPC/outputs/general_shapes/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code></td>
+<td>文件 sha256 <code>3c1778b8b08a9eed21395af04eef05368874647a395370c6901b6adf91e6c490</code></td>
+<td>通过，画箭头</td>
+</tr>
+</tbody>
+</table></div>
+<!-- chain:end -->
+
+<ul>
+<li>图和表由同一个脚本从结果文件生成：每根箭头是表里一行，只有证据齐全的行才画箭头；文件之间的箭头要有读写代码行、运行记录里的路径和逐字一致的哈希，同一进程内传变量的箭头要有产出与使用该变量的代码行。[代码 <code>tools/verify/chain_evidence_or019_1120.py</code>；输出 <code>/nas/xiaoyingwang/Neural-IPC/outputs/web_chain_or019_1120/</code>]</li>
+<li>C1、C2、C3 不通过：骨架那次运行只记了输入路径、没记输入文件的哈希，所以骨架框和上游不能证明是同一条计算链，图上不连。[结果文件 <code>R/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code> 全文；证据表 C1–C3]</li>
+<li>A1 和 B1 读的是同一个网格文件：GT 和预处理用的是同一张场景网格。[证据表 A1、B1 的路径与哈希]</li>
+</ul>
+<h3 id="w14-2">线 A：GT 怎么做</h3>
+
+<p><strong>输入</strong></p>
+<ul>
+<li>\(\mathcal T_A=(V_A,T_A)\)：龙的四面体网格，\(V_A\in\mathbb R^{57637\times3}\)（长度，网格单位），\(T_A\in\mathbb Z^{259111\times4}\)。[结果文件 <code>result.json</code> 的 <code>meta.meshes.A</code>；读入代码 <code>ipc_locked_labels.py:2791</code>]</li>
+<li>\(\mathcal T_B=(V_B,T_B)\)：鸭的四面体网格，\(V_B\in\mathbb R^{19145\times3}\)，\(T_B\in\mathbb Z^{88454\times4}\)。[同上 <code>meta.meshes.B</code>]</li>
+<li>\(E=10^5\)、\(\nu=0.3\)：两物体的杨氏模量与泊松比。[代码 <code>ipc_locked_labels.py:111</code>]</li>
+<li>\(c_b^{\rm tgt}\in\mathbb R^{12}\)：物体 \(b\) 的目标粗状态（质心 3 个数 + 体积平均变形梯度 9 个数）；S1 里龙 \(L=I\)、\(d=(0,-0.003,0)\)，鸭 \(L=I\)、\(d=0\)。[代码 <code>ipc_locked_labels.py:568–571</code>、<code>tools/ipc_sweep/uipc_snh.py:432–437</code>]</li>
+<li>\(\hat d=1.25\times10^{-4}\)（长度）：IPC 势垒的作用距离。[结果文件 <code>result.json</code> 的 <code>meta.args.d_hat</code>]</li>
+</ul>
+<p><strong>公式与推导</strong></p>
+<p>\[\color{#c0392b}{x^*:\quad \nabla_x\Big[\sum_b\sum_{e\in b}V_e\,\Psi\big(F_e(x)\big)+B(x)\Big]+G^\top\mu=0,\qquad G\,x=c^{\rm tgt};\qquad U_{\rm GT}=\sum_b\Big[E^{\rm fine}_b(x^*)-E^{\rm coarse}_b\Big]}\]</p>
+<ul>
+<li>\(x\in\mathbb R^{(N_A+N_B)\times3}\)：两物体所有顶点的位置。[定义]</li>
+<li>\(F_e(x)\)：四面体 \(e\) 的变形梯度 \(D_sD_m^{-1}\)，\(V_e\) 是它的静止体积。[代码 <code>uipc_snh.py:82–90</code>]</li>
+<li>\(\Psi(F)=\tfrac12\big[\mu&#x27;(I_c-3)+\lambda&#x27;(J-1-\mu&#x27;/\lambda&#x27;)^2\big]-\tfrac{\mu&#x27;^2}{2\lambda&#x27;}\)，\(I_c=\|F\|_F^2\)，\(J=\det F\)，\(\mu&#x27;=\mu\)，\(\lambda&#x27;=\lambda+\mu\)。[代码 <code>uipc_snh.py:28–42</code>、<code>:88</code>；libuipc <code>third_party/libuipc/src/backends/cuda/finite_element/constitutions/detail/stable_neo_hookean_3d_snk1.inl:13–20</code>]<ul>
+<li>\(J\) 偏离 1 越多 → \(\Psi\) 越大，因为 \((J-1-\mu&#x27;/\lambda&#x27;)^2\) 随 \(J\) 偏离增大。[直接推导]</li>
+</ul>
+</li>
+<li>\(B(x)=\sum\kappa\,(D-\hat d^2)^2\ln^2(D/\hat d^2)\)，求和取所有距离平方 \(D&lt;\hat d^2\) 的点–面、边–边对。[代码 libuipc <code>third_party/libuipc/src/backends/cuda/contact_system/contact_models/sym/codim_ipc_contact.inl:114–140</code>]<ul>
+<li>两面距离越接近 0 → \(\ln^2(D/\hat d^2)\) 越大 → \(B\) 越大，因为 \(\ln D\to-\infty\)。[直接推导]</li>
+</ul>
+</li>
+<li>\(Gx=c\)：\(c_b(x)=\big[\tfrac1V\sum_iv_ix_i;\ \tfrac1V\sum_ix_i\otimes a_i\big]\)，对 \(x\) 线性；\(\mu\in\mathbb R^{24}\) 是锁的乘子。[代码 <code>uipc_snh.py:426–429</code>]</li>
+<li>\(E^{\rm fine}_b=\sum_{e\in b}V_e\Psi(F_e)\)；\(E^{\rm coarse}_b=V_b\,\Psi(\bar F_b)\)，\(\bar F_b\) 为物体 \(b\) 达到的体积平均变形梯度。[代码 <code>ipc_locked_labels.py:1731–1733</code>、<code>:264–269</code>、<code>:1777</code>]<ul>
+<li>接触处压凹越深 → \(E^{\rm fine}_b\) 比 \(E^{\rm coarse}_b\) 多得越多 → \(U_{\rm GT}\) 越大，因为 \(E^{\rm coarse}_b\) 只含仿射变形的能量。[直接推导，用下面推导第 5 步]</li>
+</ul>
+</li>
+<li>假设：无摩擦。[代码 <code>ipc_locked_labels.py:1039</code> <code>contact_friction_enable=False</code>]</li>
+<li>上面是我们的式子，图上是「我们的 GT 式子」框：它建出要求解的问题，求解后再读出 \(U_{\rm GT}\)。[代码 <code>ipc_locked_labels.py:993</code> <code>build_scene</code>、<code>:1710</code> <code>readout</code>]</li>
+</ul>
+<p><strong>通用求解器：Newton + 线搜索（libuipc）</strong></p>
+<ul>
+<li>方法：每个隐式时间步（\(dt=0.02\)）用 Newton 法，步长用回溯线搜索。[ref: Boyd &amp; Vandenberghe 2004 Alg. 9.5、Alg. 9.2，<code>refs/boyd_vandenberghe2004_convex_optimization.txt:22087–22094</code>、<code>:21224</code>；代码 libuipc <code>third_party/libuipc/src/backends/cuda/engine/advance_ipc.cu:344</code>（Newton 循环）、<code>:370</code>（线性方程求解）、<code>:388</code>（线搜索）]</li>
+<li>每步极小化的是 \(\tfrac12\|x-\tilde x\|_M^2+dt^2\big[\sum V_e\Psi+B\big]\)，其中 \(\tilde x=x_{\rm prev}+v\,dt+(g+f_{\rm ext}/m)\,dt^2\)，锁力 \(f_i\) 作为 \(f_{\rm ext}\) 进入。[代码 libuipc <code>third_party/libuipc/src/backends/cuda/finite_element/bdf/finite_element_bdf1_kinetic.cu:29–30</code>、<code>fem_bdf1_time_integrator.cu:40</code>、<code>constitutions/stable_neo_hookean_3d.cu:49</code>；锁力 <code>uipc_snh.py:439–446</code>]</li>
+</ul>
+<details><summary>推导：从约束能量极小到上面的式子，以及迭代收敛到它的证据</summary><ol>
+<li>问题：在 \(Gx=c^{\rm tgt}\) 上让 \(f(x)=\sum V_e\Psi(F_e)+B(x)\) 静止。[定义]</li>
+<li>等式约束下的最优性条件是 \(Ax^*=b,\ \nabla f(x^*)+A^\top\nu^*=0\)。[ref: Boyd &amp; Vandenberghe 2004 式 (10.1)–(10.2)，<code>refs/boyd_vandenberghe2004_convex_optimization.txt:23700–23708</code>]<ul>
+<li>原文前提是 \(f\) 凸；这里的 \(f\) 非凸，所以这一条只当驻点的必要条件用，\(x^*\) 是不是极小本行没有核。[ref 同上 :23701]</li>
+</ul>
+</li>
+<li>代入 \(A=G\)、\(b=c^{\rm tgt}\)、\(\nu=\mu\) 得到主式子的第一、二式。[直接推导]</li>
+<li>\(G^\top\mu\) 落到每个顶点上是 \(f_i=\tfrac{v_i}{V}\mu_t+\tfrac1VMa_i\)，因为 \(c\) 对 \(x\) 线性，\(\partial c/\partial x_i=[\tfrac{v_i}{V}I;\ \tfrac1V(\cdot)a_i]\)。[直接推导；代码 <code>uipc_snh.py:439–446</code>]</li>
+<li>仿射位移 \(x=AX+t\) 下每个四面体 \(F_e=A\)，所以 \(\sum_eV_e\Psi(A)=V\Psi(A)\)，这就是 \(E^{\rm coarse}\)。[直接推导；代码 <code>uipc_snh.py:170–177</code>]</li>
+<li>求解器每步收敛时，被极小化的函数梯度为零：\(M(x-\tilde x)+dt^2\nabla f(x)=0\)。[直接推导，函数见上面「通用求解器」第 2 条]</li>
+<li>物体静止时 \(x=x_{\rm prev}\)、\(v=0\)，代入 \(\tilde x\) 得 \(x-\tilde x=-(f_{\rm ext}/m)dt^2\)，于是 \(\nabla f(x)=f_{\rm ext}\)，即第 3 步的驻点式（\(f_{\rm ext}\) 就是锁力 \(-G^\top\mu\)，符号随乘子约定）。[直接推导；代码 libuipc <code>fem_bdf1_time_integrator.cu:40</code>]</li>
+<li>停止判据：保持段连续 2 帧，锁残差 \(|r|\le\varepsilon\)（记作 \(r/\varepsilon\le1\)）且每个顶点帧间位移 \(\le\tau=5\times10^{-4}\cdot dt=10^{-5}\)。[代码 <code>ipc_locked_labels.py:116</code>、<code>:120</code>、<code>:1576</code>、<code>:1582</code>]</li>
+<li>本例第 219、220 帧：\(r/\varepsilon\) = 0.9944、0.9866，最大位移 \(2.87\times10^{-6}\)、\(2.85\times10^{-6}\)，都在判据内，Newton 未触上限（<code>hit_newton_limit</code> = false）；<code>force_balance</code> 检查 pass。[结果文件 <code>result.json</code> 的 <code>rows[0].history[-2:]</code>、<code>rows[0].checks</code>]</li>
+<li>位移不为零，所以第 7 步只在 \(\tau\) 的精度内成立；由此带来的能量误差没有单独估计。[直接推导；结果文件同上]</li>
+</ol></details>
+<p><strong>输出</strong></p>
+<ul>
+<li>\(U_{\rm GT}\)（能量，J）、每个物体的 \(E^{\rm fine}_b\)、\(E^{\rm coarse}_b\)；静止位形 \(x^*\) 存在 <code>pos_S1.npz</code>。[结果文件 <code>R/ipc_locked/overnight_1111/or_019/S1/ipc/result.json</code>、<code>pos_S1.npz</code>；单位见 <code>meta.units</code>]</li>
+<li>实测：\(E^{\rm fine}\) 龙 0.0043658、鸭 0.0016835，\(E^{\rm coarse}\) 合计 \(3.4\times10^{-7}\)，\(U_{\rm GT}=0.0060489\)。[结果文件 <code>result.json</code> 的 <code>rows[0].bodies</code>、<code>rows[0].U</code>]</li>
+<li>这一行的状态是 <code>diagnostic</code>，不是正式标签。[结果文件 <code>result.json</code> 的 <code>rows[0].status</code>]</li>
+</ul>
+<h3 id="w14-3">线 B：骨架怎么做</h3>
+
+<h4>预处理：求 mode</h4>
+<p><strong>输入</strong></p>
+<ul>
+<li>\(\mathcal T=(V,T)\)：一个物体的四面体网格（龙 \(\mathcal T_A\)，鸭 \(\mathcal T_B\)，同上）。[代码 <code>tools/week5/linear_ref.py:6839</code>（参数 <code>--modes_mesh</code>）；证据表 B1]</li>
+<li>\(E\)、\(\nu\)：材料，\(E&#x27;=E/(1-\nu^2)\)。[代码 <code>linear_ref.py:6843</code>、<code>:6864</code>]</li>
+<li>\(k_{\max}=80\)，随机方向数 \(\ell=100\)，幂迭代 \(q=4\)，种子 0。[结果文件 <code>R/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code> 的 <code>args</code>]</li>
+<li>现在的 \(\mathcal T\) 是按场景建的：网格由该场景采样的接触顶点摆到原点后在它周围加密 2 层得到。[代码 <code>tools/week5/bunny_mesh.py:4470</code>、<code>:4475</code>；结果文件 <code>R/ordinary/run_local/sample/or_019/meta.json</code> 的 <code>point</code>、<code>levels.m.refine_layers</code>]</li>
+<li>这不合格：用户要求预处理每个物体只做一次、与接触位置无关。[用户要求 AGENTS.md:146]</li>
+</ul>
+<p><strong>公式与推导</strong></p>
+<p>\[\color{#c0392b}{W^{-1/2}\big(\hat B^\top K_{\rm lock}^{+}\hat B-H\big)W^{-1/2}\,v_m=\sigma_m v_m,\qquad r_m=W^{-1/2}v_m,\qquad m=1..k\ (|\sigma_m|\ \text{从大到小})}\]</p>
+<ul>
+<li>\(K\)：P2 线弹性刚度，\(\tfrac12u^\top Ku\) 是位移 \(u\) 的应变能。[代码 <code>linear_ref.py:510</code>]</li>
+<li>\(K_{\rm lock}^{+}f\)：在 12 个锁定约束 \(G^\top u=0\)（质心 3 + \(\bar F\) 9）下，载荷 \(f\) 的线弹性位移解。[代码 <code>linear_ref.py:1933</code>、<code>:2184</code>]<ul>
+<li>锁的数越多 → \(f^\top K_{\rm lock}^{+}f\) 越小，因为 \(f^\top K_{\rm lock}^{+}f=\max_{G^\top u=0}(2f^\top u-u^\top Ku)\)，在更小的集合上取最大只减不增。[直接推导：在约束集上代入第 4 步的最优性条件]</li>
+</ul>
+</li>
+<li>\(\hat B\in\mathbb R^{3N\times n_s}\)：第 \(j\) 列是表面顶点 \(j\) 的帽函数 \(\varphi_j\) 形状单位压强的节点力；\(W={\rm diag}(A_s)\)，\(A_{s,j}=\sum_{t\ni j}A_t/3\)。[代码 <code>linear_ref.py:6180</code>、<code>:6193</code>]</li>
+<li>\(H_{ij}=\dfrac{1}{\pi E&#x27;}\displaystyle\iint\frac{\varphi_i(x)\varphi_j(y)}{|x-y|}dA_xdA_y\)：同一组帽函数下的半空间柔度。[代码 <code>linear_ref.py:5941</code>]<ul>
+<li>两点越远 → \(H_{ij}\) 越小，因为核按 \(1/|x-y|\) 衰减。[直接推导]</li>
+</ul>
+</li>
+<li>\(\sigma_m\)（长度/压强）、\(r_m\)（1/长度）：\(G_R(x,y)\approx\sum_m\sigma_mr_m(x)r_m(y)\) 是「真实柔度 − 半空间柔度」的前 \(k\) 项。[代码 <code>linear_ref.py:6779–6787</code> 文档串、<code>:7111</code>]<ul>
+<li>某个方向上真实柔度比半空间柔度大得越多 → 该方向的 \(\sigma\) 越大，因为单位向量 \(v\) 上 \(\sigma=v^\top S_Rv\)。[直接推导：特征对的 Rayleigh 商]</li>
+</ul>
+</li>
+<li>上面是我们的式子，图上是「我们的 mode 构造式」框：它组装 \(K\)、\(G\)、\(\hat B\)、\(H\)，把 \(S_R\) 作为乘法函数交给通用求解器。[代码 <code>linear_ref.py:6937</code> <code>apply_SR</code>]</li>
+</ul>
+<p><strong>通用求解器 1：稀疏直接解（cuDSS）</strong></p>
+<ul>
+<li>方法：每乘一次 \(S_R\)，要解一次锁定线弹性方程，用 NVIDIA cuDSS 稀疏直接分解求解；refs/ 里没有 cuDSS 的文献。[代码 <code>linear_ref.py:1356</code> <code>solve_cudss</code>；运行命令 <code>--backend cudss</code>，见结果文件 <code>R/modes_v4/or_019_A_dragon_r2_k80q4/job/gpu_job_result.json</code>]</li>
+</ul>
+<p><strong>通用求解器 2：随机子空间迭代 + Rayleigh–Ritz + 块 Krylov</strong></p>
+<ul>
+<li>方法：随机矩阵乘 \(S_R\) 共 5 次（每次后 QR），在得到的子空间上解小特征问题；再用各轮结果拼成的块 Krylov 子空间重解一次。[ref: Halko, Martinsson &amp; Tropp 2011 Alg. 4.4、Alg. 5.3，<code>refs/halko_martinsson_tropp2011_randomized.txt:1361–1368</code>、<code>:1614–1620</code>；代码 <code>linear_ref.py:7101–7111</code>、<code>:6692</code>、<code>:6705</code>]</li>
+</ul>
+<details><summary>推导：从弹性能到上面的特征值问题，以及迭代收敛到它的证据</summary><ol>
+<li>线弹性能 \(I(u)=\int_\Omega\big(\tfrac12\nabla^su:\mathbb C\nabla^su-f\cdot u\big)dx+\int_{\Gamma_N}t_N\cdot u\)。[ref: Long Chen 讲义 式 (1)，<code>refs/chen_long_elasticity_weakform_notes.txt:40–57</code>]</li>
+<li>各向同性 \(\mathbb C\) 用 \(E\)、\(\nu\) 写成的矩阵 \(D\)，非对角元 \(E\nu/((1+\nu)(1-2\nu))=\lambda\)，剪切元 \(E/(2(1+\nu))=\mu\)。[ref: Cavaliere 2020 式 (4)，<code>refs/cavaliere2020_inertia_relief_arxiv2012.01961.txt:198–210</code>；化成 \(\lambda,\mu\) 是直接推导]</li>
+<li>P2 单元离散后 \(I=\tfrac12u^\top Ku-f^\top u\)。[代码 <code>linear_ref.py:510</code>]</li>
+<li>加 \(G^\top u=0\) 后，最优性条件是 \(Ku-f+G\mu=0,\ G^\top u=0\)，解 \(u\) 记作 \(K_{\rm lock}^{+}f\)。[ref: Boyd &amp; Vandenberghe 2004 式 (10.3)–(10.4)，<code>refs/boyd_vandenberghe2004_convex_optimization.txt:23734–23754</code>]</li>
+<li>载荷取 \(f=\hat Bp\)（帽函数压强），位移按同一组帽函数读出 \(\hat B^\top u\)，所以真实柔度在帽函数基下是 \(\hat B^\top K_{\rm lock}^{+}\hat B\)。[直接推导]</li>
+<li>半空间表面一点受法向力 \(F\)，距离 \(r\) 处法向位移 \(w=F/(\pi E^*r)\)，任意压强分布按叠加原理积分。[ref: Popov, Heß &amp; Willert 2019 式 (2.2)–(2.3)，<code>refs/phw2019_handbook.txt:539–546</code>]</li>
+<li>单个物体时式 (2.1) 里另一侧刚性，\(E^*=E/(1-\nu^2)=E&#x27;\)。[ref: 同上 式 (2.1)，<code>refs/phw2019_handbook.txt:528–532</code>；令 \(E_2\to\infty\) 是直接推导]</li>
+<li>把 \(p=\varphi_j\) 代入 (2.3)，再对 \(\varphi_i\) 积分，就是 \(H_{ij}\)。[直接推导]</li>
+<li>剩余 \(R=\hat B^\top K_{\rm lock}^{+}\hat B-H\)；广义特征问题 \(Rv=\sigma Wv\) 令 \(v=W^{-1/2}y\) 并左乘 \(W^{-1/2}\)，得到对称的 \(W^{-1/2}RW^{-1/2}y=\sigma y\)，即主式子。[直接推导]</li>
+<li>算法：对称矩阵 \(A^*=A\)，Alg. 4.4 每次乘 \(A\) 后做 QR，Alg. 5.3 在 \(Q\) 张成的子空间上取 \(Q^*AQ\) 的特征分解。[ref: Halko 2011，<code>refs/halko_martinsson_tropp2011_randomized.txt:1361–1368</code>、<code>:1614–1620</code>]</li>
+<li>收敛证据：每个 mode 的 Ritz 残差 \(\|Zv_m-\sigma_mQv_m\|/|\sigma_m|\)，龙最大 \(6.9\times10^{-5}\)、鸭最大 \(2.5\times10^{-4}\)，80 个都 \(\le10^{-2}\)。[代码 <code>linear_ref.py:6701</code>；结果文件 <code>R/modes_v4/or_019_{A_dragon_r2,B_duck}_k80q4kry/*_kry.json</code> 的 <code>ritz</code>、<code>qualified_prefix</code>]</li>
+<li>块 Krylov 那次运行先用旧子空间重算 \(\sigma\)，与旧 npz 的 \(\sigma\) 相对差要 \(\le10^{-9}\) 才继续。[代码 <code>linear_ref.py:6738–6741</code>；结果文件 <code>*_kry.json</code> 的 <code>sigma_check</code>]</li>
+</ol></details>
+<p><strong>输出</strong></p>
+<ul>
+<li>每个物体一个 npz：\(\sigma\in\mathbb R^{80}\)，\(r\in\mathbb R^{80\times n_s}\)，表面点 \(V_s\in\mathbb R^{n_s\times3}\)，自带网格数组哈希 <code>tet_sha256</code>。[代码 <code>linear_ref.py:6764–6766</code>]</li>
+<li>实测（龙，\(n_s=27930\)）：\(\sigma_1=0.01521\)，\(\sigma_{80}=-2.6\times10^{-5}\)，80 个里 5 个为负；墙钟 2198 s，其中半空间矩阵 2001 s。[结果文件 <code>R/modes_v4/or_019_A_dragon_r2_k80q4kry/or_019_A_k80q4_kry.json</code> 的 <code>sigma</code>；<code>R/modes_v4/or_019_A_dragon_r2_k80q4/or_019_A_k80q4.json</code> 的 <code>t_pre</code>]</li>
+<li>实测（鸭，\(n_s=8847\)）：80 个里 29 个为负；墙钟 10157 s。[结果文件 <code>R/modes_v4/or_019_B_duck_k80q4kry/or_019_B_k80q4_kry.json</code> 的 <code>sigma</code>；<code>R/modes_v4/or_019_B_duck_k80q4/or_019_B_k80q4.json</code> 的 <code>t_pre</code>]</li>
+</ul>
+<p><strong>改成按物体之后，式子哪里变</strong></p>
+<ul>
+<li>主式子里的 \(K\)、\(\hat B\)、\(W\)、\(H\)、\(G\) 只由 \(\mathcal T\)、\(E\)、\(\nu\) 决定，所以式子不变，变的是输入：\(\mathcal T_{\rm scene}\to\mathcal T_{\rm obj}\)（与接触位置无关的网格）。[代码 <code>linear_ref.py:6843</code>：物体只由 V、T、E、ν 建；直接推导]</li>
+<li>骨架取 mode 值的拉回 \(\bar X=A_b^{-1}(X-t_b)\) 后要多一步网格坐标映射，代码里这一步是可选参数，默认不用。[代码 <code>bunny_gapmap.py:5149–5151</code>]</li>
+<li>骨架读 mode 时的哈希校验对象要从 GT 网格换成 \(\mathcal T_{\rm obj}\)，代码里对应参数 <code>--locked_modes_tet</code>。[代码 <code>bunny_gapmap.py:6197</code>、<code>:4490–4492</code>]</li>
+<li>锁定行 \(G\)：现在是 12 行（质心 + \(\bar F\)）；week7 的 GT 用 <code>--lock_dofs rigid</code>（质心 + 转动 6 行），两者不同，\(K_{\rm lock}^{+}\) 随 \(G\) 变。[代码 <code>linear_ref.py:1933</code>；<code>ipc_locked_labels.py:3538</code>；直接推导]</li>
+<li>按物体算出的 mode 代进骨架得到的 \(U\)：未实测。[结果文件：无]</li>
+<li>重新设计在进行中，没有结论。[设计稿 <code>docs/drafts/universal_preprocess_theory_1120.md:102–158</code>]</li>
+</ul>
+<h4>骨架求解</h4>
+<p><strong>输入</strong></p>
+<ul>
+<li>两物体表面（取自 \(\mathcal T_A\)、\(\mathcal T_B\)）和粗状态 \((A_b,t_b)\)：本例都从 GT 的 <code>result.json</code> 读，粗状态取 GT 静止时实际达到的 12 个数。[代码 <code>bunny_gapmap.py:6189–6195</code>；证据表 C2、C3]</li>
+<li>\(E_b\)、\(\nu_b\)，\(E&#x27;_b=E_b/(1-\nu_b^2)\)。[代码 <code>bunny_gapmap.py:6192</code>、<code>:4581</code>]</li>
+<li>\((\sigma_{b,m},r_{b,m})\)：预处理的输出。[代码 <code>bunny_gapmap.py:4458</code>；证据表 C1]</li>
+<li>\(\hat d=1.25\times10^{-4}\)，间隙 \(o=\hat d\)，每个物体用前 \(k\) 个 mode。[代码 <code>bunny_gapmap.py:41</code>、<code>:5600</code>、<code>:5423</code>；结果文件 <code>ksweep_auto.json</code> 的 <code>args.gap_offset</code>]</li>
+</ul>
+<p><strong>公式与推导</strong></p>
+<p>\[\color{#c0392b}{U_{\rm skel}=\max_{p\ge0}\ h^2\Big[p^\top w-\tfrac12p^\top Cp\Big],\qquad C=\sum_bD_b\,\frac{L}{E&#x27;_b}\,D_b+\tilde\Phi\,{\rm diag}(\sigma)\,\tilde\Phi^\top}\]</p>
+<ul>
+<li>\(p\in\mathbb R^{N}\)：\(N\) 个方格上的压强；\(h\)：格距，\(h=\tfrac14\sqrt{\hat d/\kappa_{\max}}\)，\(\kappa_{\max}\) 是缝隙图拟合的最大相对曲率。[代码 <code>bunny_gapmap.py:4826</code>、<code>:42</code>]<ul>
+<li>\(\kappa_{\max}\) 越大 → \(h\) 越小，因为 \(h\propto\kappa_{\max}^{-1/2}\)。[直接推导]</li>
+</ul>
+</li>
+<li>\(w_i=w_{A,i}+w_{B,i}+o\)：第 \(i\) 格沿压入方向 \(n\) 两表面穿进深度之和加间隙。[代码 <code>bunny_gapmap.py:4782</code>、<code>:5600</code>；\(n\) 的取法 <code>:4652–4653</code>]<ul>
+<li>\(w\) 越大 → \(U_{\rm skel}\) 越大，因为目标函数里 \(p^\top w\) 项随 \(w\) 增大。[直接推导]</li>
+</ul>
+</li>
+<li>\(L\)：矩形格上均布单位压强在各格心产生的法向位移（乘 \(E&#x27;\) 后），按相对位置平移不变。[ref: Vollebregt CONTACT 技术报告 式 (B.14)，<code>refs/vollebregt_contact_user_guide.txt:5638–5651</code>；代码 <code>tools/ipc_sweep/bem_two_punch.py:2476</code>]</li>
+<li>\(D_b={\rm diag}(c_{b,i})\)，\(c_{b,i}\) 是物体 \(b\) 在第 \(i\) 格处表面法向与 \(n\) 夹角的余弦。[代码 <code>bunny_gapmap.py:5228</code>、<code>:5294</code>]<ul>
+<li>假设：压强沿 \(n\) 作用、位移投回 \(n\)，各乘一次余弦。[代码 <code>bunny_gapmap.py:5264–5269</code> 注释]</li>
+</ul>
+</li>
+<li>\(\tilde\Phi_{i,(b,m)}=h\,c_{b,i}\,r_{b,m}\big(A_b^{-1}(X_{b,i}-t_b)\big)\)：第 \(i\) 格命中点拉回静止形状后插值的 mode 值。[代码 <code>bunny_gapmap.py:5149</code>、<code>:5154</code>、<code>:5269</code>、<code>:5272</code>、<code>:5299</code>]<ul>
+<li>正 \(\sigma\) 的 mode 用得越多 → \(C\) 越大 → \(U_{\rm skel}\) 越小，因为 \(C_1\preceq C_2\) 时同一 \(p\) 下目标函数更小。[直接推导]</li>
+</ul>
+</li>
+<li>上面是我们的式子，图上是「我们的骨架式子」框：它建出 \(C\)（乘法函数）和 \(w\)，交给通用求解器，再由解 \(p\) 读出 \(U_{\rm skel}\)。[代码 <code>bunny_gapmap.py:5192</code> <code>zone_system</code>、<code>:5281</code> <code>make_apply_C_zones</code>、<code>:5410</code>]</li>
+</ul>
+<p><strong>通用求解器：主动集 QP 求解</strong></p>
+<ul>
+<li>方法：主动集法，主动集上的方程用共轭梯度解，再做 KKT 精化。[ref: Bemporad &amp; Paggi 2015 Algorithm 1，<code>refs/bemporad_paggi2015_ijss.txt:454–476</code>；代码 <code>tools/ipc_sweep/bem_two_punch.py:2859</code> <code>active_set_cg_batched</code>，调用在 <code>bunny_gapmap.py:5400</code>]</li>
+</ul>
+<details><summary>推导：从接触条件到上面的式子，以及迭代收敛到它的证据</summary><ol>
+<li>假设：线弹性、接触区表面坡度小，叠加原理成立。[ref: Popov 2019 §2.2，<code>refs/phw2019_handbook.txt:557–563</code>]</li>
+<li>假设：无摩擦。[ref: 同上 §2.2 标题「Frictionless」，<code>refs/phw2019_handbook.txt:521</code>]</li>
+<li>分片常数压强下，每格位移 = 影响系数 × 各格压强之和。[ref: Vollebregt 式 (B.14)，<code>refs/vollebregt_contact_user_guide.txt:5638–5646</code>]</li>
+<li>两物体各自退回，抵消重叠的是两者之和，所以 \(C\) 是两物体的柔度相加。[直接推导：\(u=u_A+u_B\)，两者都对 \(p\) 线性]</li>
+<li>每个物体再加预处理的剩余柔度：第 \(j\) 格的力 \(h^2p_j\) 在第 \(i\) 格产生 \(\sum_m\sigma_mr_m(x_i)r_m(x_j)h^2p_j\)，带两个余弦即 \(\tilde\Phi{\rm diag}(\sigma)\tilde\Phi^\top\)。[直接推导]</li>
+<li>接触条件写成线性互补问题 \(u=Cp,\ u-w\ge0,\ p\ge0,\ p^\top(u-w)=0\)。[ref: Bemporad &amp; Paggi 2015 式 (14)，<code>refs/bemporad_paggi2015_ijss.txt:331–333</code>]</li>
+<li>它等价于凸二次规划 \(\min_{p\ge0}\tfrac12p^\top Cp-w^\top p\)；乘 \(-h^2\) 即主式子。[ref: 同上 式 (16)，<code>refs/bemporad_paggi2015_ijss.txt:358–363</code>；乘常数是直接推导]</li>
+<li>\(C\) 对称正定时解唯一。[ref: 同上 式 (15) 与 Property 1，<code>refs/bemporad_paggi2015_ijss.txt:349–356</code>]</li>
+<li>最优点：由互补 \(p^{*\top}Cp^*=p^{*\top}w\)，代回得 \(h^2[p^{*\top}w-\tfrac12p^{*\top}w]=\tfrac12h^2p^{*\top}w\)，等于弹性能 \(\tfrac12\sum_i(h^2p_i)u_i\)。[直接推导；代码 <code>bunny_gapmap.py:5410</code>]</li>
+<li>收敛证据：\(k=80\) 时 KKT 相对残差 \(1.57\times10^{-14}\le\) 门槛 \(10^{-10}\)，\(C\) 正定指标 0.99999996 &gt; 0。[结果文件 <code>ksweep_auto.json</code> 的 <code>rows[k=80].kkt_rel</code>、<code>lam_min_C</code>；代码 <code>bunny_gapmap.py:46</code>、<code>:5388–5389</code>、<code>:5405</code>]</li>
+</ol></details>
+<p><strong>输出</strong></p>
+<ul>
+<li>\(U_{\rm skel}\)（能量，与 GT 同单位），\(p\in\mathbb R^N\)，每区合力 \(F=h^2\sum_ip_i\)。[代码 <code>bunny_gapmap.py:5410</code>、<code>:5414</code>]</li>
+<li>实测：\(h=0.0020442\)，候选格 3614 个；\(k=0\) 时 \(U_{\rm skel}=0.013048\)；\(k=80\) 时 \(U_{\rm skel}=0.0051830\)，其中 mode 项 0.0028651，合力 3.731，有压力的格 822 个。[结果文件 <code>R/ipc_locked/gap_cand_fix_1112/or_019_S1/skel_modes_gap_k80q4kry/ksweep_auto.json</code> 的 <code>h</code>、<code>zones[0].n_cand</code>、<code>rows[k=0,80]</code>]</li>
+</ul>
+<h3 id="w14-4">如何比较</h3>
+
+<ul>
+<li>比值 \(U_{\rm skel}/U_{\rm GT}\)，本例 \(k=80\) 为 0.857；骨架那次运行里的 \(U_{\rm GT}\) 是从 <code>result.json</code> 读的 <code>reference.U</code>（证据表 C2，未能证明同一文件）。[代码 <code>bunny_gapmap.py:6082</code>（commit 7380c331）；结果文件 <code>ksweep_auto.json</code> 的 <code>rows[k=80].relative_energy_error</code> = −0.1432、<code>reference.U</code>]</li>
+</ul>
+<p class="kp">GT 线在 IPC + FEM 上求带锁的静止态读能量，骨架线先按网格求 mode、再解一个凸二次规划；两线用的是同一张按场景加密的网格，骨架那次运行没有记录输入哈希，图上不能和上游连成一条链。</p></section>
+<section id="w13"><h2>13. 下一步</h2>
 <p>先定一条只看输入就能算出来的 mode 选取规则，用它把所有算例重跑一遍。然后逐个算例把标准答案的修正测准，把待定的判出来。预处理改成每个物体一套、与接触位置无关的 mode。然后补做大压深（压入约物体高度的 1/3–1/2）和大应变。最后再设计 neural 的输入和输出。</p></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
 <dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
