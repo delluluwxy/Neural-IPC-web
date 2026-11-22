@@ -8,6 +8,7 @@
 - 独占一行的 [[图 NAS 路径 | 图注]]、[[视频 NAS 路径 | 图注]]：带图注的图卡 / 视频卡（NAS 路径不上页面）
 - 独占一行的 [[配图 <组>/<文件>]]：week3 配图版目录里的图 / 视频，图注从图注清单取（illustrated）
 - 以「设置：」开头的一行：小号灰字（html_parts.setting），行内公式照常
+- 以【ref】/【无 ref】/【我们定的】开头的一行整行一种颜色（note-src），以【条件】开头的一行另一种颜色（note-cond）
 - 标题降两级（## → h4，### → h5），去掉讲稿自带的节号；--- 分隔线删掉
 """
 
@@ -84,7 +85,23 @@ def notion_md_to_html(md):
     t = re.sub(r"(?m)^([ \t]*)\[\[配图 ([^\]\s]+)\]\][ \t]*$", lambda m: keep_indented(m, illustrated(m.group(2))), t)
     t = re.sub(r"(?m)^([ \t]*)\[\[(图|视频) ([^|\]]+?)[ \t]*\|[ \t]*([^\]]+?)[ \t]*\]\][ \t]*$", lambda m: keep_indented(
         m, (draft_image if m.group(2) == "图" else draft_video)(m.group(3), m.group(4))), t)
+    # [[图 NAS 路径]]（不带图注）：只放图，不出图注（week5 每类样图，用户 11-12 21:1x 只留核心）
+    t = re.sub(r"(?m)^([ \t]*)\[\[图 ([^|\]]+?)[ \t]*\]\][ \t]*$", lambda m: keep_indented(m, draft_image(m.group(2), None)), t)
     t = re.sub(r"(?m)^设置：(.+)$", lambda m: keep(setting(m.group(1).strip()), True), t)
+    # 出处 / 条件标注整行上色（用户 11-05）：【ref】【无 ref】【我们定的】一种颜色，【条件】一种颜色；行尾两个空格的换行留在 span 外
+    # （图例写成「- **【ref】**：……」的列表项也算，颜色与正文里的标注一致）
+    t = re.sub(r"(?m)^([ \t]*(?:[-*] )?)((?:\*\*)?【(?:ref|无 ref|我们定的)】.*?)([ \t]*)$", r'\1<span class="note-src">\2</span>\3', t)
+    t = re.sub(r"(?m)^([ \t]*(?:[-*] )?)((?:\*\*)?【条件】.*?)([ \t]*)$", r'\1<span class="note-cond">\2</span>\3', t)
+    # 同一约定的行内写法（用户 11-05 06:38「正文一个颜色 ref一个颜色 条件一个颜色」，W25）：
+    #   出处色：[ref …] 一类的方括号出处、正文里的引用编号 <sup>[n]</sup>、「出处」折叠块里的「- [n] …」条目；
+    #   条件色：「成立条件：」「条件：」「前提：」（可带 ** 粗体）起头到行尾。
+    t = re.sub(r"\[(?:ref|用户要求|代码|结果文件|实验|直接推导|设计稿|进度记录|证据表|项目规范|同上|运行命令)[^\[\]\n]*\](?!\()",
+               lambda m: f'<span class="note-src">{m.group(0)}</span>', t)
+    t = re.sub(r"<sup>\[(\d+)\]</sup>", r'<sup class="note-src">[\1]</sup>', t)
+    t = re.sub(r"(?m)^([ \t]*- )(\[\d+\] .*?)([ \t]*)$", r'\1<span class="note-src">\2</span>\3', t)
+    # 条件段到行尾、表格分隔符 | 或下一个 HTML 标签为止（不跨格、不跨标签）；每一处都上色，已在 note-cond 里的不再套
+    t = re.sub(r"(?m)(?<!note-cond\x22>)((?:<strong>|\*\*)?(?:成立条件|条件|前提)(?:</strong>|\*\*)?[：:][^|<\n]*?)([ \t]*)(?=\||<|$)",
+               r'<span class="note-cond">\1</span>\2', t)
     t = re.sub(r"(?m)^([ \t]*)\[视频\]\((assets/videos/[^)\s]+\.mp4)\)[ \t]*$", lambda m: keep_indented(
         m, f'<figure><video controls muted playsinline preload="metadata" src="{esc(m.group(2))}"></video></figure>'), t)
     t = re.sub(r"(?m)^([ \t]*)((?:!\[[^\]]*\]\(assets/images/[^)\s]+\)[ \t]*)+)$", lambda m: keep_indented(
@@ -151,6 +168,8 @@ def draft_image(src, caption):
         raise SystemExit(f"[build_site] 讲稿里两张不同的图同名 {path.name}，assets/images/ 会互相覆盖，停止")
     if path not in NOTION_IMAGES:
         NOTION_IMAGES.append(path)
+    if caption is None:   # [[图 路径]]：不带图注
+        return f'<figure><img src="assets/images/{esc(path.name)}" alt="" loading="lazy"></figure>'
     return (f'<figure><img src="assets/images/{esc(path.name)}" alt="{esc(caption)}" loading="lazy">'
             f'<figcaption class="small">{esc(caption)}</figcaption></figure>')
 

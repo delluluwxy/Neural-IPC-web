@@ -105,7 +105,7 @@ def page_from_draft(name, placeholders):
         text = _current_sections(text)
     text = _apply_mode(name, text)
     m = re.search(r"(?ms)^## A\..*?\n(.*?)(?=^## B\.|\Z)", text)
-    parts = re.split(r"(?m)^## SECTION (w\d):\s*(.+)$", m.group(1) if m else text)
+    parts = re.split(r"(?m)^## SECTION (w\d+):\s*(.+)$", m.group(1) if m else text)
     used = []   # 本页出现过的占位符名，按出现顺序；HTML 里用 @@PH<序号>@@ 标位置
 
     def mark(k):

@@ -175,6 +175,8 @@ def parse_args():
     ap.add_argument("--html-only", action="store_true",
                     help="回归用：只把 html 写到 --out-dir，不压视频、不复制图片、不写仓库")
     ap.add_argument("--out-dir", type=Path, help="--html-only 的输出目录")
+    ap.add_argument("--mode", choices=("publish", "review"), default="publish", help="同一讲稿的推送版或审阅版")
+    ap.add_argument("--pages", help="只生成指定页面，逗号分隔（如 week5,week7）")
     args = ap.parse_args()
     if args.html_only and (args.execute or args.out_dir is None):
         ap.error("--html-only 必须配 --out-dir，且不能和 --execute 同用")
@@ -305,6 +307,8 @@ def execute(args, pages, vjobs, ijobs, manifest):
 def main():
     """收集 → 生成页面 → 只保留页面真正引用的视频 / 图片 → 按模式写出（回归 / 演练 / 正式）。"""
     args = parse_args()
+    from webgen import drafts
+    drafts.MODE = args.mode
     c = collect_all(args)
     if c["unlisted"]:
         print(f"[build_site] 注意：NAS 上这些 demo 目录不在 DEMOS / OFFICIAL_TESTS 清单里，不上页面：{c['unlisted']}")
@@ -320,6 +324,12 @@ def main():
               for name, src in TRIM_SRC.items()]
     # 讲稿 [[视频 …]] 引用的视频（draft_md.draft_video 在生成页面时登记），和其余视频走同一套压缩流程
     vjobs = merge_video_jobs(c["vjobs"], plan_videos(NOTION_VIDEOS, args.crf, args.force_videos)[0])
+    if args.pages:
+        wanted = {s.strip() for s in args.pages.split(",") if s.strip()}
+        missing = wanted - {p.stem for p in pages}
+        if missing:
+            raise SystemExit(f"[build_site] --pages 里没有这些页：{sorted(missing)}")
+        pages = {p: t for p, t in pages.items() if p.stem in wanted}
     # 只压缩 / 复制页面真正引用的文件（扫描每档的视频不一定都上页面，没用到的不进 assets）
     used = "".join(pages.values())
     vjobs = [j for j in vjobs if f"assets/videos/{j['dst'].name}" in used]
