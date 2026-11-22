@@ -2,10 +2,10 @@
 
 Neural-IPC 项目的组会网页：每周一页，内容是文献讲解、原代码说明、仿真 demo 视频、实验方案与结果。
 
-在线地址（GitHub Pages，两个仓库内容相同）：
+当前发布地址（GitHub Pages）：
 
 - https://delluluwxy.github.io/Neural-IPC-web/ （delluluwxy/Neural-IPC-web）
-- http://heyumeng.com/NeuralIPC-web/ （YumengHe/NeuralIPC-web）
+- 历史地址：http://heyumeng.com/NeuralIPC-web/ （YumengHe/NeuralIPC-web，保留只读，不再推送更新）
 
 | 页面 | 内容 |
 |---|---|
@@ -71,16 +71,16 @@ cmp /nas/xiaoyingwang/Neural-IPC/outputs/web_refactor/before/week2.html /nas/xia
 数据来源（只读）：
 
 - 讲稿：`/data/xiaoyingwang/projects/Neural-IPC-sandbox/docs/drafts/web_<周>.md`
+- week5 / week7 的当前讲稿分别为本仓库根目录的 `week5 (1).md` / `week7.md`，由同一生成器读取。`--mode review --html-only --out-dir <NAS目录>` 生成审阅版；`--mode publish` 生成推送版。
 - demo 与官方测试：`/nas/xiaoyingwang/Neural-IPC/outputs/ipc_demos/<目录>/`
 - 参数扫描：`/nas/xiaoyingwang/Neural-IPC/outputs/ipc_sweep/<结果集>/<扫描>/<档位>.json`，档位清单在 Neural-IPC-sandbox 的 `tools/ipc_sweep/configs.py`
 
 ## 如何发布
 
-生成后在本仓库 commit，然后推到两个 remote，两边的 GitHub Pages 都会自动更新：
+用户已指定只更新个人仓库 `delluluwxy/Neural-IPC-web` 的 `main`。生成并检查后提交，在干净的发布 worktree 中核对目标，再显式绑定个人仓库 URL 推送；历史 `yumeng` remote 只读。
 
 ```
-git -C /data/xiaoyingwang/projects/Neural-IPC-web push origin main   # https://github.com/delluluwxy/Neural-IPC-web
-git -C /data/xiaoyingwang/projects/Neural-IPC-web push yumeng main   # https://github.com/YumengHe/NeuralIPC-web
+git -C <发布worktree> push https://github.com/delluluwxy/Neural-IPC-web HEAD:main
 ```
 
 ## 讲稿标记
