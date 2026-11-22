@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "a83dea8cf228";</script>
+<script>window.NIPC_PAGE = "392dbdd7af03";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -361,30 +361,38 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>偏大来自第一项：只用第一项，1/3 压深四个算例就已经是标准答案的 23.1–183 倍，加上第二项只把读数改了 9%–28%（四个算例各自的完整骨架除以只用第一项，有升有降）。</strong> 第一项把每一处接触都当成表面平、只有一个压入方向；压到兔高的 1/3 时，接触面绕成和物体一样大的弯曲面，这个近似不再成立。第二项是对柔度的修正，补不回这么大的差。所以大压深这一段，骨架两项 覆盖不了，需要换一种第一项，或者交给神经网络。这里的倍数同样只说明偏大，不是偏大的准确幅度（见 1.1 节的按区域拆分）。</p>
 <h3 id="w1-3" class="numbered">1.3 逐个算例：变形图和这一行的数字</h3>
 
-<p>下面 8 个单元和上表 8 行一一对应，单元名和表里的「算例」一字不差。每张图左边是两个物体静止后的整体，右边是接触处放大，虚线框标出放大的范围；红色是兔子，蓝色是龙，橙色是接触区。能量都用同一套单位，括号里是除以 GT 的倍数。</p>
+<p>下面 8 个单元和上表 8 行一一对应，单元名和表里的「算例」一字不差。每个单元两张图。第一张左边是两个物体静止后的整体，右边是接触处放大，虚线框标出放大的范围；红色是兔子，蓝色是龙，橙色是从这个角度看得见的接触区。接触区大多夹在两个物体中间，从外面看不见，有几个算例从这个角度一点橙色都没有，所以第二张是穿过接触区的一个剖面（垂直于视线方向，在接触区沿视线方向的范围内取切到接触最多的那个平面），橙线标出被剖面切到的接触区。能量都用同一套单位，括号里是除以 GT 的倍数。</p>
 <h4>1/3 压深 · 龙比兔子硬 10 倍</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_Bx10_d3_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_Bx10_d3_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 255,626；骨架 5,001,000（19.6 倍）。</strong> Hertz 598,200，hydroelastic 1,114,000，Winkler 7,798,000。</p>
 <h4>1/3 压深 · 兔子比龙硬 10 倍</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_Ax10_d3_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_Ax10_d3_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 41,480；骨架 9,721,000（234 倍）。</strong> Hertz 598,200，hydroelastic 1,545,000，Winkler 7,798,000。软的是龙，变形几乎全在龙一侧，GT 小，骨架的倍数在 8 个算例里最大。</p>
 <h4>1/3 压深 · 兔子泊松比 0.2、龙 0.45</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA02B045_d3_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA02B045_d3_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 46,608；骨架 2,081,000（44.6 倍）。</strong> Hertz 329,000，hydroelastic 732,900，Winkler 4,289,000。</p>
 <h4>1/3 压深 · 兔子泊松比 0.45、龙 0.2</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA045B02_d3_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA045B02_d3_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 46,061；骨架 2,204,000（47.9 倍）。</strong> Hertz 329,000，hydroelastic 760,300，Winkler 4,289,000。和上一个算例只对调了泊松比，GT 只差约 1%。</p>
 <h4>1/2 压深 · 龙比兔子硬 10 倍</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_Bx10_d2_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_Bx10_d2_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 516,195；骨架 1,421,000（2.8 倍，单一小格边长）。</strong> Hertz 1,282,000，hydroelastic 3,194,000，Winkler 21,680,000。用去掉整体平移和转动以后的最大局部位移来量变形：兔子 4.79、龙 5.07，兔子的高度是 9.23（长度都用同一套网格单位），两个物体都超过兔高的一半；龙虽然更硬，但它的细长部分整体弯开了。</p>
 <h4>1/2 压深 · 兔子比龙硬 10 倍</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_Ax10_d2_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_Ax10_d2_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 99,482；骨架 4,307,000（43.3 倍，单一小格边长）。</strong> Hertz 1,282,000，hydroelastic 2,947,000，Winkler 21,680,000。变形几乎全在软的龙一侧：最大局部位移兔子只有 0.19，龙 5.54，超过兔高的一半。</p>
 <h4>1/2 压深 · 兔子泊松比 0.2、龙 0.45</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA02B045_d2_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA02B045_d2_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 88,657；骨架 879,500（9.9 倍，单一小格边长）。</strong> Hertz 705,100，hydroelastic 1,954,000，Winkler 11,920,000。</p>
 <h4>1/2 压深 · 兔子泊松比 0.45、龙 0.2</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA045B02_d2_web2.png" width="1624" height="980" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA045B02_d2_sec.png" width="1624" height="1720" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><strong>GT 87,541；骨架 934,700（10.7 倍，单一小格边长）。</strong> Hertz 705,100，hydroelastic 1,968,000，Winkler 11,920,000。</p></section>
 <section id="w2"><h2>二、软硬对调：标准答案分得开，骨架方向反了</h2>
 <p><strong>我们要检验「第一项管等效、第二项管个体」：两个物体的等效模量相同、只是谁软谁硬对调时，骨架应该能给出不同的能量，而且方向和标准答案一致。</strong> 做法是把 1.2 节的算例两两配对：「龙比兔子硬 10 倍」对「兔子比龙硬 10 倍」，「兔子泊松比 0.2、龙 0.45」对反过来。每一对只换这一样东西，两个物体的等效模量相同。各算例的变形图见 1.3 节同名的单元。</p>
@@ -522,7 +530,8 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div></details>
-<details><summary>baseline：RigidFormer 能不能用</summary><p>RigidFormer 原版输入每个物体两帧点云、质量、摩擦，输出刚体下一帧的位姿，训练数据是刚体自由运动，没有能量输出，也不用 \(E\) 、 \(\nu\) 。能借的是它的物体级编码器（点云 → 每个物体一个向量 → 物体之间做注意力）：输入换成 \(E\) 、 \(\nu\) 和粗状态，输出换成接触能量。要训练它，需要大量不同形状的标准答案。</p></details></section>
+<details><summary>baseline：RigidFormer 能不能用</summary><p><strong>导师已经有一套能直接用的 RigidFormer 流程，用法是把它当整条轨迹的预测器：原样训练、比轨迹，不改它的输出。</strong> 导师先复现了 RigidFormer 官方结果，在 MOVi-Sphere 测试集上前 100 帧的位置误差和官方公布的数前四位一致。然后搭好了一个软接触试点的整条流程：一个软球（杨氏模量 \(10^5\)）掉到固定的刚性椭球上，用全有限元隐式仿真生成 120 条轨迹，转成 RigidFormer 的数据格式，原样训练 RigidFormer（输出仍然是物体的位姿），再和全有限元的轨迹比较。目前仓库里这组数据上的对比有三种方法：导师的两种和一个 hydroelastic 对照，还没有 RigidFormer 的训练结果。</p>
+<p><strong>这和我们静态、只比能量的设定不同，要放进我们的比较有两条路。</strong> 一是用导师的流程比动态轨迹；二是借它的物体级编码器（点云 → 每个物体一个向量 → 物体之间做注意力），输入换成 \(E\) 、 \(\nu\) 和粗状态，输出换成接触能量。RigidFormer 原版输入每个物体两帧点云、质量、摩擦，输出刚体下一帧的位姿，没有能量输出，也不用 \(E\) 、 \(\nu\) 。两条路都需要我们自己的软–软普通网格数据：导师的试点用的是球和刚体，不符合我们只用软体普通网格的要求。</p></details></section>
 <section id="w5"><h2>下周 TODO</h2>
 <ol>
 <li>大压深：已做的是兔高的 1/3、1/2，再补 1/8、1/6 两档，找出骨架从哪个压深开始失效，再决定这一段是改第一项（按物体真实形状算柔度、不再假设表面平），还是交给神经网络。</li>
