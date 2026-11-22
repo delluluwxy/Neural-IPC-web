@@ -43,6 +43,10 @@ def _current_sections(text):
         if not fence and line.startswith("# "):
             section += 1
             line = f"## SECTION w{section}: {line[2:].strip()}"
+        elif not fence and line.startswith("## "):
+            line = "#" + line
+        elif not fence and line.startswith("### "):
+            line = "#" + line
         out.append(line)
     if section == 0:
         raise ValueError("current weekly manuscript has no sections")
