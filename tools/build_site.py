@@ -96,6 +96,8 @@ def trim_copies(html, prefix):
     （复制时 trim_and_pad）。在 size_media 之前调用，尺寸按留白后的副本算。"""
     def swap(m):
         name = m.group(2)
+        if name.startswith(prefix):
+            return m.group(0)  # 新稿直接引用已经统一留白的正式图片
         TRIM_SRC[prefix + name] = media_file(f"assets/images/{name}")
         return f'{m.group(1)}assets/images/{prefix}{name}"'
     return re.sub(r'(<img\b[^>]*?\bsrc=")assets/images/([^"]+)"', swap, html)

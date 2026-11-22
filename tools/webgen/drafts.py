@@ -13,7 +13,7 @@
 import re
 
 from .common import esc
-from .config import DRAFTS
+from .config import DRAFTS, WEB
 from .draft_md import notion_md_to_html
 
 
@@ -24,7 +24,69 @@ def _kp(m):
 
 def draft_path(name):
     """讲稿 web_<name>.md 的路径。"""
+    current = {"week5": "week5 (1).md", "week7": "week7.md"}
+    if name in current:
+        return WEB / current[name]
     return DRAFTS / f"web_{name}.md"
+
+
+def _current_sections(text):
+    """新版整页稿的标题与章转成既有 INTRO/SECTION；正文仍走同一渲染器。"""
+    lines = text.splitlines()
+    if not lines or not lines[0].startswith("# "):
+        raise ValueError("current weekly manuscript needs a top-level page title")
+    out = ["## INTRO", "", f"**{lines[0][2:].strip()}**", ""]
+    section, fence = 0, False
+    for line in lines[1:]:
+        if line.lstrip().startswith("```"):
+            fence = not fence
+        if not fence and line.startswith("# "):
+            section += 1
+            line = f"## SECTION w{section}: {line[2:].strip()}"
+        out.append(line)
+    if section == 0:
+        raise ValueError("current weekly manuscript has no sections")
+    return "\n".join(out)
+
+
+MODE = "publish"   # build_site.py --mode：publish（推送版，默认）/ review（审阅版，嵌入依据留档）
+
+
+def evidence_path(name):
+    """依据留档 web_<name>_evidence.md 的路径（tools/verify/web_sources_split_1121.py 生成）。"""
+    return DRAFTS / f"web_{name}_evidence.md"
+
+
+def _load_evidence(name):
+    """留档 → {key: 原文}：单行「- [key] 原文」，多行块 <!-- ev:key --> … <!-- /ev:key -->。"""
+    p = evidence_path(name)
+    if not p.is_file():
+        return None
+    t = p.read_text(encoding="utf-8")
+    ev = {m.group(1): m.group(2) for m in re.finditer(r"(?ms)^<!-- ev:(\S+) -->\n(.*?)\n<!-- /ev:\1 -->", t)}
+    for m in re.finditer(r"(?m)^- \[([^\]]+)\] (.*)$", re.sub(r"(?ms)^<!-- ev:(\S+) -->.*?<!-- /ev:\1 -->", "", t)):
+        ev.setdefault(m.group(1), m.group(2))
+    return ev
+
+
+def _apply_mode(name, text):
+    """用户 11-21 03:3x：「web我觉得可以有审阅版和推送版」「审阅的可以放一些代码啥的但是推送的不能写这些」。
+    讲稿里每处依据只留一个空标记 <span data-ev="key"></span>（推送版里不显示任何东西）；
+    review 模式把留档里同 key 的原文（路径、文件:行号、commit、命令）嵌到标记处。两版出自同一份讲稿。"""
+    ev = _load_evidence(name)
+    if "data-ev=" in text and ev is None:
+        raise SystemExit(f"[build_site] web_{name}.md 有依据标记，但没有依据留档 {evidence_path(name)}")
+    if MODE != "review":
+        return text
+
+    def rep(m):
+        raw = ev.get(m.group(1))
+        if raw is None:
+            raise SystemExit(f"[build_site] 依据留档里没有 key {m.group(1)}（web_{name}.md）")
+        if "\n" in raw:   # 多行块（如逐根箭头的证据表）：原样放回
+            return f"\n\n{raw}\n\n"
+        return f' <span class="ev" style="color:#777;font-size:0.85em">【依据】{raw}</span>'
+    return re.sub(r'<span data-ev="([^"]+)"></span>', rep, text)
 
 
 def page_from_draft(name, placeholders):
@@ -35,6 +97,9 @@ def page_from_draft(name, placeholders):
     if not path.is_file():
         return None
     text = path.read_text(encoding="utf-8")
+    if path.parent == WEB:
+        text = _current_sections(text)
+    text = _apply_mode(name, text)
     m = re.search(r"(?ms)^## A\..*?\n(.*?)(?=^## B\.|\Z)", text)
     parts = re.split(r"(?m)^## SECTION (w\d):\s*(.+)$", m.group(1) if m else text)
     used = []   # 本页出现过的占位符名，按出现顺序；HTML 里用 @@PH<序号>@@ 标位置
