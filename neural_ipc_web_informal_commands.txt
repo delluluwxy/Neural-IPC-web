@@ -1,0 +1,2 @@
+# User-authorized CodeGraph initialization, run from this repository.
+/data/xiaoyingwang/.codex/run_test_command.sh --timeout 90 -- /home/xiaoyingwang/.nvm/versions/node/v18.20.8/bin/codegraph init -i /data/xiaoyingwang/projects/Neural-IPC-web
