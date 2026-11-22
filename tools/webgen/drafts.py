@@ -13,7 +13,7 @@
 import re
 
 from .common import esc
-from .config import DRAFTS
+from .config import DRAFTS, WEB
 from .draft_md import notion_md_to_html
 
 
@@ -24,7 +24,29 @@ def _kp(m):
 
 def draft_path(name):
     """讲稿 web_<name>.md 的路径。"""
+    current = {"week5": "week5 (1).md", "week7": "week7.md"}
+    if name in current:
+        return WEB / current[name]
     return DRAFTS / f"web_{name}.md"
+
+
+def _current_sections(text):
+    """新版整页稿的标题与章转成既有 INTRO/SECTION；正文仍走同一渲染器。"""
+    lines = text.splitlines()
+    if not lines or not lines[0].startswith("# "):
+        raise ValueError("current weekly manuscript needs a top-level page title")
+    out = ["## INTRO", "", f"**{lines[0][2:].strip()}**", ""]
+    section, fence = 0, False
+    for line in lines[1:]:
+        if line.lstrip().startswith("```"):
+            fence = not fence
+        if not fence and line.startswith("# "):
+            section += 1
+            line = f"## SECTION w{section}: {line[2:].strip()}"
+        out.append(line)
+    if section == 0:
+        raise ValueError("current weekly manuscript has no sections")
+    return "\n".join(out)
 
 
 MODE = "publish"   # build_site.py --mode：publish（推送版，默认）/ review（审阅版，嵌入依据留档）
@@ -74,7 +96,10 @@ def page_from_draft(name, placeholders):
     path = draft_path(name)
     if not path.is_file():
         return None
-    text = _apply_mode(name, path.read_text(encoding="utf-8"))
+    text = path.read_text(encoding="utf-8")
+    if path.parent == WEB:
+        text = _current_sections(text)
+    text = _apply_mode(name, text)
     m = re.search(r"(?ms)^## A\..*?\n(.*?)(?=^## B\.|\Z)", text)
     parts = re.split(r"(?m)^## SECTION (w\d+):\s*(.+)$", m.group(1) if m else text)
     used = []   # 本页出现过的占位符名，按出现顺序；HTML 里用 @@PH<序号>@@ 标位置
