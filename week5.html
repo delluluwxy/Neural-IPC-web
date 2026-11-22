@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "6cb497c444ce";</script>
+<script>window.NIPC_PAGE = "2985b580c136";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -629,7 +629,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p>压平块 14 类全部用逐物体 mode（每个物体一份、网格与接触无关，平块也算自己的 mode）。其中尖、一侧薄、棱三类区间整段在 1.1 以上，骨架偏硬；只把兔子算 mode 用的均匀网格逐档加密（仍是每个物体一份、与接触无关，其余全不变），尖的比值从 1.374（边长 0.16）降到 1.243（0.12）、1.123（0.08），一侧薄从 1.359 降到 1.208、1.061，每加密一档降 0.12–0.15，单调往 0.9–1.1 走；边长 0.24 时网格连兔耳的形状都表示不出来。所以这两类偏硬的原因是兔耳这种又薄又尖的地方 mode 网格分辨率不够；到 0.08 仍在单调下降、还没有收敛，边长 0.06 那一档在算。</p>
+<p>压平块 14 类全部用逐物体 mode（每个物体一份、网格与接触无关，平块也算自己的 mode）。其中尖、一侧薄、棱三类区间整段在 1.1 以上，骨架偏硬；只把兔子算 mode 用的均匀网格逐档加密（仍是每个物体一份、与接触无关，其余全不变），尖的比值从 1.374（边长 0.16）降到 1.243（0.12）、1.123（0.08）、0.935（0.06），一侧薄从 1.359 降到 1.208、1.061、0.962，单调下降；边长 0.24 时网格连兔耳的形状都表示不出来。到 0.06 两类的原始比值都进了 0.9–1.1，修正区间为 [1.000, 1.221]、[1.026, 1.170]（跨线），不再整段出带。所以这两类偏硬的原因是兔耳这种又薄又尖的地方 mode 网格分辨率不够。0.08 到 0.06 仍降了 0.10–0.19，没有收敛；每档的降幅没有变小（尖按单位边长算是 3.3、3.0、9.4），按 \(h^p\) 外推的极限不稳定（用前三档和后三档拟合差 1.7 以上），所以不给外推值。再细一档（边长 0.045）光半空间矩阵就要约 122 GB 显存，超过单卡的 94 GB，这台机器上算不了。</p>
 <details><summary>18 类静止平衡后的接触区放大变形图（位移着色，与上表压入前构型并排对照）</summary><div class="tablewrap"><table>
 <thead>
 <tr>
