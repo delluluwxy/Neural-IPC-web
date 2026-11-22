@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "bc9ed85504df";</script>
+<script>window.NIPC_PAGE = "1186dd3c4d1b";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -278,7 +278,7 @@ html.annot-on #annot-capture { display: block; }
 <p><em>龙表面前 6 阶柔度差 mode 着色分布及对应特征值 \(\sigma\) 正负标注，红蓝两色表示法向柔度方向相反。</em></p>
 <p>第一项把物体当成无限大的弹性体，而真实物体有限大、有边界、有薄处，同样的压力下退得不一样。第二项要补的就是这个差。这个差只由物体自己的几何和材料决定，和它将来撞谁、撞在哪里都没有关系，所以每个物体只需要离线算一次。具体做法是先算出锁住 affine 以后真实物体的表面柔度 \(K_{\text{lock}}\) ，减去同样材料的半空间表面柔度 \(H\) ，再取这个差的前 80 个特征方向作为 mode：</p>
 <p>\[W^{-1/2}(K_{\text{lock}}-H)W^{-1/2}v_m=\sigma_mv_m,\qquad r_m=W^{-1/2}v_m\]</p>
-<p>得到的 \(\sigma_m\) 可正可负。这个矩阵太大，没法直接写出来（龙的有限元有 102 万个自由度），所以我们只做「乘一组向量」的运算，用随机化特征值方法（Halko, Martinsson &amp; Tropp 2011）加上块 Krylov 续算求出来，每个 mode 的相对误差不超过 1% 才用。换杨氏模量时 mode 只需要按 \(\sigma_m\propto1/E\) 缩放，换泊松比才需要重算。每个物体算 80 个 mode 的时间是：兔约 2 分钟（115 秒），鸭约 49 分钟（2934 秒）（均含特征值求解与块 Krylov 续算）；龙的预处理（网格 80 s + mode 从头冷跑 306 s + 后处理 3 s）实测约 6.5 分钟，是分钟级。此前记的约 94 分钟，是内存透明大页导致系统态内存整理占了 5637 s 的那一次。</p>
+<p>得到的 \(\sigma_m\) 可正可负。这个矩阵太大，没法直接写出来（龙的有限元有 102 万个自由度），所以我们只做「乘一组向量」的运算，用随机化特征值方法（Halko, Martinsson &amp; Tropp 2011）加上块 Krylov 续算求出来，每个 mode 的相对误差不超过 1% 才用。换杨氏模量时 mode 只需要按 \(\sigma_m\propto1/E\) 缩放，换泊松比才需要重算。每个物体算 80 个 mode 的时间是：兔约 2 分钟（115 秒，含后处理），其中系统态 8 s；鸭的 mode 更早一次（与龙更早那次同时运行）墙钟 2917 s，其中系统态 3658 s；同一张网格用另一种实现、显式关闭 numpy 透明大页重测，墙钟 83 s，用户态 53.6 s，系统态 16.9 s。龙的预处理（网格 80 s + mode 从头冷跑 306 s + 后处理 3 s）实测约 6.5 分钟，是分钟级。更早一次（11-20）同一张网格的冷跑用了 94 分钟，其中系统态（内核）时间 5637 s、用户态 308 s；当时与鸭的预处理同时在跑，用的是另一种实现，numpy 透明大页没有关闭。重跑这一次系统态 79 s、用户态 235 s。两次运行的条件不止一处不同，慢的原因没有做单变量拆分。</p>
 <h4>步骤二到四：实时输入经过两项公式得到能量</h4>
 <figure style="margin:12px 0"><img src="assets/images/w5t_F3_skeleton_parts.png" width="2404" height="802" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>左边是每一格的重叠深度 \(w\) ；中间是第一项，即单位压力在半空间上压出的位移盆；右边是第二项里对接触处影响最大的那个 mode；下面是两项合起来的柔度 \(C\) 。</em></p>
