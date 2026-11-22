@@ -20,9 +20,10 @@ def week_summaries(demos, tests, gsweeps):
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
         # 首页卡片摘要：与 week7.md、week5 (1).md 当前稿一致（主会话 11-22：只写有什么，不点名导师）
-        "week7": ("大压深 GT pipeline：兔、龙两个软体自然压到兔高 1/3、1/2，8 格静止后的总弹性能与 Hertz、Winkler、"
-                  "hydroelastic 并排；刚度、泊松比对调：标准答案对调前后差 5–6 倍，只认等效模量的方法分不出，"
-                  "支持骨架第二项必要；每个物体一套 mode 换接触部位、换对手可直接复用；RigidFormer 调研。"),
+        "week7": ("大压深：兔、龙两个软体自然压到兔高 1/3、1/2，8 格标准答案与骨架、Hertz、Winkler、hydroelastic 并排，"
+                  "骨架两项在大压深下明显偏硬；刚度、泊松比对调：标准答案对调前后差 5–6 倍，只认等效模量的方法分不出，"
+                  "需要带个体信息的一项，完整骨架在大压深下给出的对调方向与标准答案相反；"
+                  "每个物体一套 mode 换接触部位、换对手可直接复用；RigidFormer 调研。"),
         "week5": ("骨架两项（只认等效模量的半空间项 + 每个物体预先算好的 80 个 mode）与 GT 两条 pipeline 及推导；"
                   "edge case 验证：兔、龙、鸭软–软 26 例 8 例基本对、18 例跨线，压平块 14 类 6 类基本对、8 类跨线，"
                   "均无明显不对；去掉第二项 26 例里 20 例出带；同批例子上 hydroelastic 没有一例基本对；"
