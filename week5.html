@@ -197,7 +197,7 @@ html.annot-noaside main { margin: 0 auto; }
 /* ===== 笔迹图层与输入层 ===== */
 #annot-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 5; }
 #annot-layer path.hl, svg.annot-print path.hl { mix-blend-mode: multiply; }
-#annot-layer path.orphan { fill: #9aa3ad !important; stroke: #9aa3ad !important; opacity: .75; }
+#annot-layer path.orphan { display: none; }   /* 圈的内容改了 / 删了：不留标记（用户 10-25），数据仍保留 */
 #annot-capture { position: fixed; inset: 0; z-index: 45; display: none; touch-action: pan-x pan-y; cursor: crosshair;
                  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 html.annot-on #annot-capture { display: block; }
@@ -226,6 +226,9 @@ html.annot-on #annot-capture { display: block; }
 #annot-sync-panel label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
 #annot-sync-panel input { display: block; width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; margin-top: 2px;
                           border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: #fff; }
+/* 只读快照页：不能画、不能改设置，只能看和导出 */
+.annot-ui.snap #annot-toggle, .annot-ui.snap #annot-tools,
+.annot-ui.snap #annot-undo, .annot-ui.snap #annot-clear, .annot-ui.snap #annot-import, .annot-ui.snap #annot-sync { display: none; }
 #annot-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* ===== 打印 / 生成 PDF：笔迹跟着各自的块走，正文保持 920px 排版再整体缩到纸宽 ===== */
@@ -239,6 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
+<script>window.NIPC_PAGE = "ab51f49e6c5d";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -257,11 +261,11 @@ html.annot-on #annot-capture { display: block; }
 <header class="top"><h1>第 5–6 周：我们的方法，和它在 edge case 上的验证</h1></header>
 <div class="lead"><p><strong>结论。</strong> 骨架由两项组成：第一项是半空间解，只认两个物体的等效模量；第二项是每个物体预先算好的 80 个 mode，用来补这个物体自己的有限大小和形状。两项拼成柔度以后解一个凸二次规划，就得到接触能量，不需要训练。我们用 edge case 检验「两项合起来能 cover 各种难的接触」，结果是部分支持：光滑处、大面积贴合、面贴面、近不可压、斜压、尺寸差和两侧材料差都能 cover，尖处与棱处骨架偏硬；去掉第二项以后 26 例里有 20 例出带，而完整的骨架在 26 例软–软与 14 类压平块逐物体 mode 重跑上均没有一例明显不对（26 例 8 基本对 / 18 跨线，14 类 6 基本对 / 8 跨线），说明第二项是必要的。</p></div>
 <section id="w1"><h2>一、Pipeline：现在的方法</h2>
-<figure><img src="assets/images/w5t_W1_pipeline.png" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w5t_W1_pipeline.png" width="2826" height="1127" style="width:665px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>骨架（离线预处理与实时求解）与 GT（IPC 锁仿射与残差标签）两条 pipeline 流程图，圆角框表示数据、直角框表示算法。</em></p>
 <h3 id="w1-1" class="numbered">1.1 要算什么</h3>
 
-<figure><img src="assets/images/w5t_F1_energy_split.png" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F1_energy_split.png" width="2379" height="678" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>兔背压平块。粗状态下两个物体重叠约 0.0030（中左）；锁住 affine 自由度、让精细模型松弛以后，接触处各自压陷下去（中右，竖直方向放大 10 倍）。两者能量之差就是 U。</em></p>
 <p>粗模型给每个物体只留 12 个 affine 自由度，能表示整体的移动和变形，却表示不了接触处被压凹的那一小块。两条 pipeline 要算的都是这一块缺掉的能量，接触力就是它对位置的导数：</p>
 <p>\[U(z)=\min_w\ \Pi(\Phi z+\Psi w)-\Pi(\Phi z)\]</p>
@@ -270,13 +274,13 @@ html.annot-on #annot-capture { display: block; }
 
 <p>骨架的输入分两部分。一部分是每个物体自己的数据，也就是网格和材料参数 \(E,\nu\) ，这部分只在离线时用一次，预处理出这个物体的 mode。另一部分是实时的输入，也就是两个物体当前的粗状态 \(z\) 。实时阶段先在两个物体的重叠处铺上边长为 \(h\) 的小格，量出每一格两个表面互相穿进多深，记作 \(w_i\) ；再用两个物体的材料和 mode 拼出柔度 \(C\) ；最后解一个凸二次规划，输出接触能量 \(U_{\text{skel}}\) 和每一格的压力。</p>
 <h4>步骤一：每个物体预处理出 mode</h4>
-<figure><img src="assets/images/w5t_W3_dragon_modes6.png" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w5t_W3_dragon_modes6.png" width="2356" height="1304" style="width:565px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>龙表面前 6 阶柔度差 mode 着色分布及对应特征值 \(\sigma\) 正负标注，红蓝两色表示法向柔度方向相反。</em></p>
 <p>第一项把物体当成无限大的弹性体，而真实物体有限大、有边界、有薄处，同样的压力下退得不一样。第二项要补的就是这个差。这个差只由物体自己的几何和材料决定，和它将来撞谁、撞在哪里都没有关系，所以每个物体只需要离线算一次。具体做法是先算出锁住 affine 以后真实物体的表面柔度 \(K_{\text{lock}}\) ，减去同样材料的半空间表面柔度 \(H\) ，再取这个差的前 80 个特征方向作为 mode：</p>
 <p>\[W^{-1/2}(K_{\text{lock}}-H)W^{-1/2}v_m=\sigma_mv_m,\qquad r_m=W^{-1/2}v_m\]</p>
 <p>得到的 \(\sigma_m\) 可正可负。这个矩阵太大，没法直接写出来（龙的有限元有 102 万个自由度），所以我们只做「乘一组向量」的运算，用随机化特征值方法（Halko, Martinsson &amp; Tropp 2011）加上块 Krylov 续算求出来，每个 mode 的相对误差不超过 1% 才用。换杨氏模量时 mode 只需要按 \(\sigma_m\propto1/E\) 缩放，换泊松比才需要重算。每个物体算 80 个 mode 的时间是：兔约 2 分钟（115 秒），鸭约 49 分钟（2934 秒），龙约 94 分钟（5657 秒）（均含特征值求解与块 Krylov 续算）。</p>
 <h4>步骤二到四：实时输入经过两项公式得到能量</h4>
-<figure><img src="assets/images/w5t_F3_skeleton_parts.png" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F3_skeleton_parts.png" width="2404" height="802" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>左边是每一格的重叠深度 \(w\) ；中间是第一项，即单位压力在半空间上压出的位移盆；右边是第二项里对接触处影响最大的那个 mode；下面是两项合起来的柔度 \(C\) 。</em></p>
 <p>柔度 \(C_{ij}\) 的意思是在第 \(j\) 格加单位压强时，第 \(i\) 格往回退多少。两个物体各贡献两项，方括号里的分式是第一项，后面的求和是第二项：</p>
 <p>\[C_{ij}=\sum_{b=A,B}[\frac{L_{ij}}{E_b^{\prime}}+h^2\sum_{m=1}^{80}\sigma_{b,m}r_{b,m}(x_i)r_{b,m}(x_j)],\qquad L_{ij}=\frac{1}{\pi}\int\int_{\text{格}j}\frac{dA_y}{|x_i-y|}\]</p>
@@ -302,7 +306,7 @@ html.annot-on #annot-capture { display: block; }
 <p>（14）最后看两项的分工。第一项两个物体加起来是 \(L_{ij}(1/E_A^{\prime}+1/E_B^{\prime})=L_{ij}/E^{\ast}\) 。如果只有这一项， \(C=L/E^{\ast}\) ，令 \(p=E^{\ast}q\) 就得到 \(U=E^{\ast}\max_{q\ge0}h^2[q^\top w-\frac{1}{2}q^\top Lq]\) ，能量只认 \(E^{\ast}\) ，软硬对调以后不变。第二项每个物体用的是自己的形状和自己的 \(\sigma_{b,m}\propto1/E_b\) ，对调以后就变了。【<span class="note-cond">条件：两侧法向相同】</span></p></details>
 <h3 id="w1-3" class="numbered">1.3 GT pipeline</h3>
 
-<figure><img src="assets/images/w5t_W2_gt_pipeline.png" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w5t_W2_gt_pipeline.png" width="1840" height="1239" style="width:624px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>普通单片（鸭压兔）粗状态互穿（上）与 IPC 锁定仿射松弛至静止平衡后的接触压凹变形（下，位移着色）。</em></p>
 <p>GT 的输入是两个物体的粗状态 \(z\) 、精细网格和各自的 \(E,\nu\) 。我们把两个物体的 affine 自由度锁在粗状态上，其余变形全部放开，用 IPC 在精细网格上解到静止；材料是 stable neo-Hookean，接触无摩擦，全程不穿透。静止以后，用精细模型的弹性能减去粗模型自己的能量，就是标准答案：</p>
 <p>\[U_{\text{IPC}}=\sum_bE_b^{\text{fine}}-\sum_bE_b(\Phi z_b)\]</p>
@@ -312,7 +316,7 @@ html.annot-on #annot-capture { display: block; }
 <p>总的结论是部分支持。光滑处、面贴面、大面积贴合、近不可压、斜压、尺寸差和两侧材料差，骨架都能 cover；尖处与棱处骨架偏硬。去掉第二项以后就不行了，所以第二项是必要的。压平块 14 类也已全部完成逐物体 mode 重跑（6 例基本对、8 例跨线、0 例明显不对）。</p>
 <h3 id="w2-1" class="numbered">2.1 判据</h3>
 
-<figure><img src="assets/images/w5t_F5_tier_rule.png" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F5_tier_rule.png" width="2371" height="1034" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>黑点是原始比值，彩条是修正以后的区间。</em></p>
 <p>骨架除以标准答案落在 0.9 到 1.1 之间就算对。标准答案自己也有误差，所以每个算例用修正以后的区间来判断：区间整段在带内算基本对，跨过带的边界算跨线，只有整段落在带外、而且确认是骨架公式本身的问题，才算明显不对。</p>
 <h3 id="w2-2" class="numbered">2.2 第二项是必要的：支持</h3>
@@ -342,8 +346,8 @@ html.annot-on #annot-capture { display: block; }
 </table></div>
 <h3 id="w2-3" class="numbered">2.3 两项能 cover 什么：部分支持</h3>
 
-<figure><img src="assets/images/w5t_F7_ratio_intervals_perobject.png" alt="" loading="lazy"></figure>
-<p><em>26 例逐物体 mode 骨架相对 IPC 标准答案的修正区间（竖条）与 hydroelastic ÷ GT（菱形）对比，灰带为 0.9–1.1。</em></p>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F7_ratio_intervals_perobject.png" width="2365" height="1000" style="width:646px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p><em>26 例逐物体 mode 骨架相对 IPC 标准答案的修正区间（竖条）与 26 例 hydroelastic ÷ GT（菱形）对比，灰带为 0.9–1.1。</em></p>
 <p>在兔、龙、鸭互压的 26 例里，骨架有 8 例基本对、18 例跨线、没有一例明显不对；同一批例子上 hydroelastic 没有一例基本对：</p>
 <div class="tablewrap"><table>
 <thead>
@@ -369,7 +373,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p>按类别看，普通单片、鞍面、一侧薄、尺寸比的第 12 号样本和两侧材料差这几类是支持的：骨架和标准答案的比值在 0.77 到 0.98 之间，区间都在带内或跨线，没有明显不对。局部形状、物体的有限大小、薄处的整片弯曲，两项合起来都能表达。不支持的是尖处和尺寸比的第 7 号样本：比值在 1.0 到 1.06，骨架偏硬，修正区间整段或大半落在 1.1 以上，原因还待查。同样这 26 例上，hydroelastic 和标准答案的比值在 0.10 到 2.79 之间，只有 2 例的原始比值落在 0.9–1.1，修正区间没有一例整段在带内，24 例整段出带。压平块的 14 类逐物体 mode 重跑同样 0 例明显不对：基线、整体转动、面贴面、大面积贴合、近不可压、斜压 6 类基本对（0.865–0.959），其余 8 类跨线（其中尖 1.374、一侧薄 1.359 在均匀网格加密一档后分别降至 1.123、1.061；棱加密一档后为 1.228）。</p>
+<p>按类别看，普通单片、鞍面、一侧薄、尺寸比的第 12 号样本和两侧材料差这几类是支持的：骨架和标准答案的比值在 0.77 到 0.98 之间，区间都在带内或跨线，没有明显不对。局部形状、物体的有限大小、薄处的整片弯曲，两项合起来都能表达。不支持的是尖处和尺寸比的第 7 号样本：比值在 1.0 到 1.06，骨架偏硬，修正区间整段或大半落在 1.1 以上，原因还待查。同样这 26 例上，hydroelastic 和标准答案的比值在 0.10 到 2.77 之间，只有 2 例的原始比值落在 0.9–1.1，修正区间没有一例整段在带内，24 例整段出带。压平块的 14 类逐物体 mode 重跑同样 0 例明显不对：基线、整体转动、面贴面、大面积贴合、近不可压、斜压 6 类基本对（0.865–0.959），其余 8 类跨线（其中尖 1.374、一侧薄 1.359 在均匀网格加密一档后分别降至 1.123、1.061；棱加密一档后为 1.228）。</p>
 <details><summary>26 例逐个的数（原始比值 → 修正区间 · 判定）</summary><div class="tablewrap"><table>
 <thead>
 <tr>
@@ -500,131 +504,132 @@ html.annot-on #annot-capture { display: block; }
 <tr>
 <td>基线</td>
 <td>兔背轻压平块，最普通</td>
-<td><img alt="" src="assets/images/w5t_back_n_S1_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_back_n_S1_1_before.png" width="1839" height="648" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.940 → [0.991, 1.062]</td>
 <td>基本对</td>
 </tr>
 <tr>
 <td>整体转动</td>
 <td>整个场景转 45°</td>
-<td><img alt="" src="assets/images/w5t_head_n_S2_rot45_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_head_n_S2_rot45_1_before.png" width="1839" height="680" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.945 → [0.971, 1.071]</td>
 <td>基本对</td>
 </tr>
 <tr>
 <td>尖</td>
 <td>兔耳尖斜压，接触区很小</td>
-<td><img alt="" src="assets/images/w5t_ear_o_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_ear_o_S3_1_before.png" width="1840" height="665" style="width:100%;max-width:100%;height:auto" /></td>
 <td>1.374 → [1.470, 1.796]（加密后 1.123 → [1.201, 1.468]）</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>棱</td>
 <td>CAD 零件的棱，接触面不光滑</td>
-<td><img alt="" src="assets/images/w5t_E2_orh2_010_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_E2_orh2_010_S3_1_before.png" width="1840" height="644" style="width:100%;max-width:100%;height:auto" /></td>
 <td>1.228 → [1.262, 1.392]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>面贴面</td>
 <td>一整片近平的面压上去</td>
-<td><img alt="" src="assets/images/w5t_E1_orh2_007_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_E1_orh2_007_S3_1_before.png" width="1840" height="666" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.951 → [0.977, 1.078]</td>
 <td>基本对</td>
 </tr>
 <tr>
 <td>大面积贴合</td>
 <td>柱面整片贴上</td>
-<td><img alt="" src="assets/images/w5t_G5_ore4_004_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_G5_ore4_004_S3_1_before.png" width="1840" height="647" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.892 → [0.916, 1.085]</td>
 <td>基本对</td>
 </tr>
 <tr>
 <td>一侧薄</td>
 <td>兔耳薄片，整片会弯</td>
-<td><img alt="" src="assets/images/w5t_ear_n_S2_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_ear_n_S2_1_before.png" width="1840" height="683" style="width:100%;max-width:100%;height:auto" /></td>
 <td>1.359 → [1.449, 1.653]（加密后 1.061 → [1.130, 1.290]）</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>两侧都薄</td>
 <td>两个薄球冠壳互压</td>
-<td><img alt="" src="assets/images/w5t_CS_shell_S19_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_CS_shell_S19_1_before.png" width="1841" height="632" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.930 → [1.028, 1.227]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>两侧材料差</td>
 <td>平块比兔子硬 1000 倍</td>
-<td><img alt="" src="assets/images/w5t_M1_back_n_Bx1e3_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_M1_back_n_Bx1e3_S3_1_before.png" width="1839" height="648" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.930 → [0.956, 1.132]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>近不可压</td>
 <td>泊松比 0.49</td>
-<td><img alt="" src="assets/images/w5t_head_n_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_head_n_S3_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.865 → [1.016, 1.097]</td>
 <td>基本对</td>
 </tr>
 <tr>
 <td>斜压</td>
 <td>斜 30° 压入</td>
-<td><img alt="" src="assets/images/w5t_tilt_press_1112_head_nt30_loc_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_tilt_press_1112_head_nt30_loc_1_before.png" width="1840" height="683" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.959 → [0.986, 1.088]</td>
 <td>基本对</td>
 </tr>
 <tr>
 <td>已有整体变形</td>
 <td>粗模型先整体变形 1%</td>
-<td><img alt="" src="assets/images/w5t_head_n_S5_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_head_n_S5_1_before.png" width="1840" height="677" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.950 → [0.976, 1.155]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>靠连接处</td>
 <td>腿和身体相连处，几何突变</td>
-<td><img alt="" src="assets/images/w5t_G6_1o_junc_o_S1_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_G6_1o_junc_o_S1_1_before.png" width="1840" height="676" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.936 → [0.962, 1.139]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>多处接触</td>
 <td>腿和身体两处同时压</td>
-<td><img alt="" src="assets/images/w5t_G6_1_junc_n_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_G6_1_junc_n_S3_1_before.png" width="1840" height="643" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.960 → [0.986, 1.167]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>鞍面（软–软）</td>
 <td>两兔互压，接触在马鞍形处</td>
-<td><img alt="" src="assets/images/w5t_K27a_bb_saddle1_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_K27a_bb_saddle1_S3_1_before.png" width="1840" height="665" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.938 → [1.011, 1.114]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>尖（软–软）</td>
 <td>兔的尖处压龙</td>
-<td><img alt="" src="assets/images/w5t_or_013_S3_h600_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_or_013_S3_h600_1_before.png" width="1840" height="680" style="width:100%;max-width:100%;height:auto" /></td>
 <td>1.041 → [1.146, 1.147]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>尺寸比（软–软）</td>
 <td>兔体积约为龙的 3.6 倍</td>
-<td><img alt="" src="assets/images/w5t_ore4_007_S3_h600_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_ore4_007_S3_h600_1_before.png" width="1840" height="692" style="width:100%;max-width:100%;height:auto" /></td>
 <td>1.013 → [1.052, 1.149]</td>
 <td>跨线</td>
 </tr>
 <tr>
 <td>普通单片（软–软）</td>
 <td>鸭压兔</td>
-<td><img alt="" src="assets/images/w5t_or_029_S3_1_before.png" /></td>
+<td><img alt="" src="assets/images/w5t_or_029_S3_1_before.png" width="1840" height="694" style="width:100%;max-width:100%;height:auto" /></td>
 <td>0.953 → [1.011, 1.114]</td>
 <td>跨线</td>
 </tr>
 </tbody>
 </table></div>
+<p>压平块 14 类全部用逐物体 mode（每个物体一份、网格与接触无关，平块也算自己的 mode）。其中尖、一侧薄、棱三类区间整段在 1.1 以上，骨架偏硬；只把兔子算 mode 用的均匀网格逐档加密（仍是每个物体一份、与接触无关，其余全不变），尖的比值从 1.374（边长 0.16）降到 1.243（0.12）、1.123（0.08），一侧薄从 1.359 降到 1.208、1.061，每加密一档降 0.12–0.15，单调地往兔耳处加密网格上的旧结果（0.896、0.851）靠近；边长 0.24 时网格连兔耳的形状都表示不出来。所以这两类偏硬的原因是兔耳这种又薄又尖的地方 mode 网格分辨率不够；到 0.08 还没有收敛，要落进带内需要更细的兔子 mode 网格。</p>
 <details><summary>18 类静止平衡后的接触区放大变形图（位移着色，与上表压入前构型并排对照）</summary><div class="tablewrap"><table>
 <thead>
 <tr>
@@ -637,71 +642,71 @@ html.annot-on #annot-capture { display: block; }
 <tbody>
 <tr>
 <td>基线</td>
-<td><img alt="" src="assets/images/w5t_back_n_S1_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_back_n_S1_2_rest.png" width="1556" height="525" style="width:1245px;max-width:100%;height:auto" /></td>
 <td>整体转动</td>
-<td><img alt="" src="assets/images/w5t_head_n_S2_rot45_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_head_n_S2_rot45_2_rest.png" width="1556" height="525" style="width:1245px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>尖</td>
-<td><img alt="" src="assets/images/w5t_ear_o_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_ear_o_S3_2_rest.png" width="1545" height="525" style="width:1236px;max-width:100%;height:auto" /></td>
 <td>棱</td>
-<td><img alt="" src="assets/images/w5t_E2_orh2_010_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_E2_orh2_010_S3_2_rest.png" width="1546" height="525" style="width:1237px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>面贴面</td>
-<td><img alt="" src="assets/images/w5t_E1_orh2_007_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_E1_orh2_007_S3_2_rest.png" width="1557" height="525" style="width:1246px;max-width:100%;height:auto" /></td>
 <td>大面积贴合</td>
-<td><img alt="" src="assets/images/w5t_G5_ore4_004_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_G5_ore4_004_S3_2_rest.png" width="1557" height="525" style="width:1246px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>一侧薄</td>
-<td><img alt="" src="assets/images/w5t_ear_n_S2_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_ear_n_S2_2_rest.png" width="1567" height="525" style="width:1254px;max-width:100%;height:auto" /></td>
 <td>两侧都薄</td>
-<td><img alt="" src="assets/images/w5t_CS_shell_S19_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_CS_shell_S19_2_rest.png" width="1535" height="525" style="width:1228px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>两侧材料差</td>
-<td><img alt="" src="assets/images/w5t_M1_back_n_Bx1e3_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_M1_back_n_Bx1e3_S3_2_rest.png" width="1550" height="525" style="width:1240px;max-width:100%;height:auto" /></td>
 <td>近不可压</td>
-<td><img alt="" src="assets/images/w5t_head_n_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_head_n_S3_2_rest.png" width="1556" height="525" style="width:1245px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>斜压</td>
-<td><img alt="" src="assets/images/w5t_tilt_press_1112_head_nt30_loc_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_tilt_press_1112_head_nt30_loc_2_rest.png" width="1545" height="525" style="width:1236px;max-width:100%;height:auto" /></td>
 <td>已有整体变形</td>
-<td><img alt="" src="assets/images/w5t_head_n_S5_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_head_n_S5_2_rest.png" width="1556" height="525" style="width:1245px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>靠连接处</td>
-<td><img alt="" src="assets/images/w5t_G6_1o_junc_o_S1_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_G6_1o_junc_o_S1_2_rest.png" width="1545" height="525" style="width:1236px;max-width:100%;height:auto" /></td>
 <td>多处接触</td>
-<td><img alt="" src="assets/images/w5t_G6_1_junc_n_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_G6_1_junc_n_S3_2_rest.png" width="1556" height="525" style="width:1245px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>鞍面（软–软）</td>
-<td><img alt="" src="assets/images/w5t_K27a_bb_saddle1_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_K27a_bb_saddle1_S3_2_rest.png" width="1556" height="525" style="width:1245px;max-width:100%;height:auto" /></td>
 <td>尖（软–软）</td>
-<td><img alt="" src="assets/images/w5t_or_013_S3_h600_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_or_013_S3_h600_2_rest.png" width="1545" height="525" style="width:1236px;max-width:100%;height:auto" /></td>
 </tr>
 <tr>
 <td>尺寸比（软–软）</td>
-<td><img alt="" src="assets/images/w5t_ore4_007_S3_h600_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_ore4_007_S3_h600_2_rest.png" width="1534" height="525" style="width:1227px;max-width:100%;height:auto" /></td>
 <td>普通单片（软–软）</td>
-<td><img alt="" src="assets/images/w5t_or_029_S3_2_rest.png" /></td>
+<td><img alt="" src="assets/images/w5t_or_029_S3_2_rest.png" width="1556" height="525" style="width:1245px;max-width:100%;height:auto" /></td>
 </tr>
 </tbody>
 </table></div>
 <p><em>每一类静止平衡后的接触处放大变形图（位移着色），用于对照上表压入前构型的局部受压形貌。</em></p></details>
 <h3 id="w2-4" class="numbered">2.4 和 hydroelastic 比：只看本地不够</h3>
 
-<figure><img src="assets/images/w5t_F8_skel_vs_hydro_perobject.png" alt="" loading="lazy"></figure>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F8_skel_vs_hydro_perobject.png" width="2383" height="1049" style="width:633px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em>每一列是一个算例：蓝点是骨架除以 IPC，菱形是 hydroelastic 除以 IPC，灰带是 0.9 到 1.1。</em></p>
-<p>hydroelastic 在每一点上只看本地穿进去多深，在 26 例里它的结果在标准答案的 0.10 倍到 2.79 倍之间，同一批例子上骨架在 0.77 到 1.06 之间。它看不到物体整体的弯曲，也看不到几处接触之间的相互影响，所以 cover 不了这些 edge case，而这正是骨架第二项补上的部分。</p>
+<p>hydroelastic 在每一点上只看本地穿进去多深，在 26 例里它的结果在标准答案的 0.10 倍到 2.77 倍之间，同一批例子上骨架在 0.77 到 1.06 之间。它看不到物体整体的弯曲，也看不到几处接触之间的相互影响，所以 cover 不了这些 edge case，而这正是骨架第二项补上的部分。</p>
 <h3 id="w2-5" class="numbered">2.5 薄长部件要取够 mode</h3>
 
-<figure><img src="assets/images/w5t_F9_mode_count.png" alt="" loading="lazy"></figure>
-<p><em>龙背压平块（逐物体 <code>dragon_e006</code> + <code>box</code>）：mode 加到第 45、52 个时，比值出现两次明显陡降；右边画的是第 45 个 mode 在接触点附近的表面法向位移分布。</em></p>
-<p>第二项要 cover 薄长或局部弯曲的部件，必须取到足够多的整体 mode。龙背这个例子用逐物体 <code>dragon_e006</code> 80 阶模态时，只取前 24 个 mode 骨架比标准答案硬 73%（压深 0.012）和 51%（压深 0.006）；加入第 45 个、第 52 个 mode 时分别出现陡降，到 \(k=80\) 时分别降到 1.53 和 1.35（仍高于 0.9–1.1 灰带，说明逐物体 80 阶全局模态在此局部棱接触上仍偏硬，需要更高阶模态或局部补充）。</p></section>
+<figure style="margin:12px 0"><img src="assets/images/w5t_F9_mode_count.png" width="3441" height="1103" style="width:100%;max-width:100%;height:auto" alt="" loading="lazy"></figure>
+<p><em>龙鳍压平块，两侧都用逐物体 mode（龙用加密网格上算的一份，平块用长方体自己的一份）：mode 加到第 45、52 个时比值出现两次明显陡降；右边画的是龙的第 45 个 mode，红点是接触点。</em></p>
+<p>第二项要 cover 薄长的部件，必须取到描述它弯曲的那几个 mode。龙鳍这个例子两侧都用逐物体 mode（龙在加密网格上算），只取前 24 个 mode 时骨架比标准答案硬 73%（压深 0.012）和 51%（压深 0.006）；加入第 45 个、第 52 个 mode 时各陡降一次，到 \(k=80\) 时为 1.53 和 1.35，仍在 0.9–1.1 灰带以上。同一例用场景 mode（在接触处加密的网格上算）时，\(k=80\) 是 1.07 和 0.98。这一例用逐物体 mode 时骨架偏硬。</p></section>
 <section id="w3"><h2>三、Research</h2>
 <details><summary>已有的接触力学公式，以及我们能拿来对照到哪</summary><div class="tablewrap"><table>
 <thead>
@@ -843,7 +848,7 @@ html.annot-on #annot-capture { display: block; }
   viewer.addEventListener('close', () => opener && opener.focus({ preventScroll: true }));
 })();
 </script>
-<script type="application/json" id="annot-renames">{"tex": {}, "text": {}, "quote": []}</script>
+<script type="application/json" id="annot-renames">{"tex": {}, "text": {}}</script>
 <script>
 (() => {
   'use strict';
@@ -856,17 +861,16 @@ html.annot-on #annot-capture { display: block; }
     version: 1,
     colWidth: 920, asideWidth: 245, gap: 50, sidePad: 32, narrowPad: 16,   // 与 html_parts.PAGE_CSS 的桌面版式一致
     quoteLen: 30,        // TextQuote 前后各存多少字
-    seedLen: 8,          // 模糊匹配的种子：prefix 末尾 / suffix 开头各取几个字，与被锚字连成短串在全文里找候选
-    // 模糊匹配的接受阈值：prefix 与 suffix 两边相似度（1 - 编辑距离/长度）的平均。一边原文完整（1.0）、
-    // 另一边只剩一部分没改（≥ 0.1）就能认回；两边都改得面目全非（各 < 0.55）则判为「内容已变」。
-    fuzzyAccept: 0.55,
-    headingFuzzy: 0.7,   // 标题文字改了几个字仍认
-    texFuzzy: 0.8,       // 公式 TeX 小改（如改一个下标）仍认
-    blockHeadAccept: 0.6, // 块内偏移后备：块开头 40 字的相似度
+    glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
+    nearPx: 30,          // 笔没圈住任何内容（下划线、箭头、旁注）时，取离笔画这么近以内最近的那个字 / 符号
+    coverCtxAccept: 0.3, // 圈住的关键词在页面上出现好几处时，周围文字与原段落的二元组相似度至少这么高才认
+    coverNearAccept: 0.8, // ……或者紧挨着它的前 / 后 10 字与原来的相似度至少这么高（段落别处改了、这一句没改）
     penWidth: 2.4, hlWidth: 16, eraseRadius: 12, undoLimit: 60,
     colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
   };
   const PAGE_NAME = location.pathname.split('/').pop() || 'index.html';
+  // 页面版本号（build_site 嵌入；快照页是笔当初画的那一版的版本号）：笔画下时记进 drawn.page，保存时记进 savedOn
+  const PAGE_VERSION = typeof window.NIPC_PAGE === 'string' ? window.NIPC_PAGE : '';
   const STORE_KEY = 'nipc-notes:' + location.pathname;
   const UI_KEY = 'nipc-notes-ui';
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -917,7 +921,12 @@ html.annot-on #annot-capture { display: block; }
   /** 本页笔记的完整 JSON（本机保存、导出、同步共用）。tombstones = {被删笔画 id: 删除时刻 ms}，让删除能同步到别的设备。 */
   function payload() {
     return { format: 'nipc-notes', version: CFG.version, page: PAGE_NAME, path: location.pathname,
-             colWidth: CFG.colWidth, saved: new Date().toISOString(), strokes: S.strokes, tombstones: S.tombs };
+             colWidth: CFG.colWidth, saved: new Date().toISOString(), savedOn: PAGE_VERSION, strokes: S.strokes, tombstones: S.tombs };
+  }
+  /** 一笔此刻的样子作为「画的」原样（只在收笔、用户移动时调用；深拷贝，之后匹配字段怎么改都碰不到它）。 */
+  function drawnOf(s) {
+    return JSON.parse(JSON.stringify({ page: PAGE_VERSION, pts: s.pts, frame: s.frame, anchor: s.anchor, orig: s.orig,
+                                       ua: navigator.userAgent, at: new Date().toISOString() }));
   }
   function validStroke(s) {
     return !!(s && typeof s.id === 'string' && Array.isArray(s.pts) && s.pts.length && s.anchor && s.orig &&
@@ -925,7 +934,10 @@ html.annot-on #annot-capture { display: block; }
   }
   function validTombs(t) { return t && typeof t === 'object' && !Array.isArray(t) ? t : {}; }
   /** 本机存的 {strokes, tombs}。 */
+  // 只读快照页（snapshot/<n>/）：笔记就是页面里嵌的那份（某次画完时的原样），不读写本机存储、不同步笔记仓库
+  const SNAP = window.NIPC_SNAPSHOT && Array.isArray(window.NIPC_SNAPSHOT.strokes) ? window.NIPC_SNAPSHOT : null;
   function loadStored() {
+    if (SNAP) return { strokes: SNAP.strokes.filter(validStroke), tombs: validTombs(SNAP.tombstones) };
     try {
       const raw = localStorage.getItem(STORE_KEY);
       const d = raw ? JSON.parse(raw) : null;
@@ -933,11 +945,12 @@ html.annot-on #annot-capture { display: block; }
     } catch (e) { return { strokes: [], tombs: {} }; }
   }
   function saveStored() {
+    if (SNAP) return;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(payload())); }
     catch (e) { setStatus('本机保存失败（浏览器存储不可用），请及时导出笔记', true); }
   }
   function loadUi() { try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function saveUi(ui) { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
+  function saveUi(ui) { if (SNAP) return; try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
 
   /* ---------- 4. 版式固定与坐标换算 ---------- */
   function layoutLocked() { return S.on || S.strokes.length > 0; }
@@ -1060,6 +1073,16 @@ html.annot-on #annot-capture { display: block; }
     return s.split('#')[0].split('?')[0].split('/').pop();
   }
   /** 当前所有陈列公式：[{el, tex}]，TeX 取自 MathJax 的 math 列表。 */
+  /** 页面里全部公式（陈列 + 行内），{el, tex}：圈住的内容可以是行内公式里的符号。 */
+  function allMath() {
+    const out = [];
+    try {
+      for (const m of MathJax.startup.document.math) {
+        if (m.typesetRoot && article.contains(m.typesetRoot)) out.push({ el: m.typesetRoot, tex: norm(m.math) });
+      }
+    } catch (e) { /* MathJax 没加载 */ }
+    return out;
+  }
   function displayMath() {
     const out = [];
     try {
@@ -1142,6 +1165,36 @@ html.annot-on #annot-capture { display: block; }
       frame: 'px', R: localRect(r, f),
     };
   }
+  /* 陈列公式里的符号：MathJax SVG 每个字形是一个带 data-c（Unicode 编码，16 进制）的元素。公式上的笔锚到起笔处
+   * 最近的那个符号，存它前后各 glyphLen 个符号（同正文的 TextQuote），笔画坐标相对这个符号；公式别处增删、
+   * 整体变宽或拆成几行都不会把笔拉偏。没有符号锚点的老笔照旧按整块公式的比例坐标画。 */
+  function glyphList(mj) {
+    const els = [...mj.querySelectorAll('[data-c]')];
+    // NFKC：数学斜体 𝑡 → t，这样记号改名表（t → q）也能用在公式符号上
+    return { els, ch: els.map(e => { const c = parseInt(e.getAttribute('data-c'), 16);
+                                     return Number.isFinite(c) ? String.fromCodePoint(c).normalize('NFKC') : '?'; }) };
+  }
+  /** 符号序列 ch 里 seq（字符数组）出现的所有下标。 */
+  function seqIndexes(ch, seq) {
+    const out = [];
+    for (let i = 0; i + seq.length <= ch.length; i++) if (seq.every((c, k) => ch[i + k] === c)) out.push(i);
+    return out;
+  }
+  function glyphQuote(g, i) {
+    return { prefix: g.ch.slice(Math.max(0, i - CFG.glyphLen), i).join(''), exact: g.ch[i],
+             suffix: g.ch.slice(i + 1, i + 1 + CFG.glyphLen).join('') };
+  }
+  /** 公式里离 (cx, cy) 最近的可见符号的下标；没有返回 -1。 */
+  function glyphAt(g, cx, cy) {
+    let best = -1, bestD = Infinity;
+    g.els.forEach((e, i) => {
+      const r = e.getBoundingClientRect();
+      if (!r.width && !r.height) return;
+      const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
+      if (dx * dx + dy * dy < bestD) { bestD = dx * dx + dy * dy; best = i; }
+    });
+    return best;
+  }
   /** 按元素类型建锚点：媒体 / 陈列公式 / 表格单元格 / 标题 / 正文字符。返回 {anchor, frame, R} 或 null。 */
   function anchorForElement(el, cx, cy, f) {
     const media = el.closest('img, video');
@@ -1152,8 +1205,13 @@ html.annot-on #annot-capture { display: block; }
     const mj = el.closest('mjx-container');
     if (mj && mj.getAttribute('display') === 'true') {
       const m = displayMath().find(d => d.el === mj);
-      if (m) return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj) }, frame: 'norm',
-                      R: localRect(mj.getBoundingClientRect(), f) };
+      if (m) {
+        const g = glyphList(mj), i = glyphAt(g, cx, cy);
+        if (i >= 0) return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj), g: glyphQuote(g, i) }, frame: 'px',
+                             R: localRect(g.els[i].getBoundingClientRect(), f) };
+        return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj) }, frame: 'norm',
+                 R: localRect(mj.getBoundingClientRect(), f) };
+      }
     }
     if (mj) {   // 行内公式：锚到公式后面紧挨着的那个字
       const p = posFromElement(mj);
@@ -1171,6 +1229,263 @@ html.annot-on #annot-capture { display: block; }
     }
     const p = charAtPoint(cx, cy);
     return p >= 0 ? textAnchor(p, f) : null;
+  }
+  /* 一笔圈住了什么（用户 10-25：「我圈画就是圈画在内容上 内容变了没了那就不留那个标记」「这句话是axxxb我圈了ab
+   * 然后变成cxxxaxxxb那我圈的还要在ab上」）。圈住的内容 = 中心落在笔画外框里的正文字 / 公式符号；一个都没有（下划线、
+   * 箭头、旁注）就取离笔画最近、nearPx 以内的那一个。锚点存这串内容本身（cover）：还原时先在全页找它，几处一样再用
+   * 前后文挑，一处都没有就不画（findCover / findCoverGlyph）。主要圈在图上的笔照旧锚整张图。 */
+  /** 页面几何（页面坐标，不随滚动变）：陈列公式的外框与符号、正文文字节点的外框，单字矩形按需量、量过就记。
+   * 一批笔共用一份（reanchorAll），单独一笔现量；排版变了（DOM 版本或窗口宽度变）就重建。 */
+  function pageGeom() {
+    const key = `${S.domVersion}:${innerWidth}`;
+    if (S.geom && S.geom.key === key) return S.geom;
+    const page = q => ({ left: q.left + scrollX, top: q.top + scrollY, right: q.right + scrollX, bottom: q.bottom + scrollY,
+                         width: q.width, height: q.height });
+    const maths = allMath().filter(m => !inClosedDetails(m.el)).map(m => {
+      const g = glyphList(m.el);
+      return { m, g, box: page(m.el.getBoundingClientRect()), q: g.els.map(e => page(e.getBoundingClientRect())) };
+    });
+    const ix = ensureIndex(), rg = document.createRange();
+    const nodes = ix.nodes.map((n, ni) => {
+      if (!n.isConnected || inClosedDetails(n.parentElement)) return null;
+      rg.selectNodeContents(n);
+      return { ni, box: page(rg.getBoundingClientRect()) };
+    }).filter(Boolean);
+    S.geom = { key, page, maths, nodes, chars: new Map() };
+    return S.geom;
+  }
+  function strokeCover(abs, f, padPx = CFG.nearPx) {
+    const G = pageGeom();
+    const P = abs.map(p => { const c = toClient(p[0], p[1], f); return { x: c.x + scrollX, y: c.y + scrollY }; });
+    const l = Math.min(...P.map(p => p.x)), r = Math.max(...P.map(p => p.x));
+    const t = Math.min(...P.map(p => p.y)), b = Math.max(...P.map(p => p.y)), pad = padPx * f.s;
+    const near = q => q.right >= l - pad && q.left <= r + pad && q.bottom >= t - pad && q.top <= b + pad;
+    const inside = q => { const cx = (q.left + q.right) / 2, cy = (q.top + q.bottom) / 2; return cx >= l && cx <= r && cy >= t && cy <= b; };
+    const dist = q => Math.min(...P.map(p => Math.hypot(Math.max(q.left - p.x, 0, p.x - q.right), Math.max(q.top - p.y, 0, p.y - q.bottom))));
+    const items = [];
+    for (const { m, g, box, q } of G.maths) {
+      if (!near(box)) continue;
+      q.forEach((qi, i) => { if ((qi.width || qi.height) && near(qi)) items.push({ kind: 'g', m, g, i, q: qi }); });
+    }
+    const ix = S.index;
+    for (const { ni, box } of G.nodes) {
+      if (!near(box)) continue;
+      if (!G.chars.has(ni)) {
+        const cs = [];
+        for (let p = firstPos(ni, 0); p >= 0 && p < ix.text.length && ix.posNode[p] === ni; p++) {
+          const q = ix.text[p] === ' ' ? null : charRect(p);
+          if (q) cs.push([p, G.page(q)]);
+        }
+        G.chars.set(ni, cs);
+      }
+      for (const [p, q] of G.chars.get(ni)) if (near(q)) items.push({ kind: 't', pos: p, q });
+    }
+    let hit = items.filter(it => inside(it.q));
+    if (!hit.length) {   // 下划线 / 上划线：横向在笔画范围内、竖直方向离笔画最近的那一行
+      const over = items.filter(it => { const cx = (it.q.left + it.q.right) / 2; return cx >= l && cx <= r && dist(it.q) <= pad; });
+      if (over.length) {
+        const dmin = Math.min(...over.map(it => dist(it.q)));
+        hit = over.filter(it => dist(it.q) <= dmin + 0.5 * (it.q.bottom - it.q.top));
+      }
+    }
+    if (!hit.length) {   // 箭头、旁注：离笔画最近的那一个
+      const best = items.map(it => [dist(it.q), it]).filter(([d]) => d <= pad).sort((x, y) => x[0] - y[0])[0];
+      hit = best ? [best[1]] : [];
+    }
+    if (!hit.length) return null;
+    // 核对用：圈住的每个字 / 符号与笔画起点的相对位置（正文卡片 px），按页面上的先后排
+    const hitPos = hit.slice().sort((x, y) => (x.kind === 'g' && y.kind === 'g' && x.m === y.m) ? x.i - y.i : (x.q.top - y.q.top) || (x.q.left - y.q.left))
+      .map(it => [it.kind === 'g' ? it.g.ch[it.i] : ix.text[it.pos], (P[0].x - it.q.left) / f.s, (P[0].y - it.q.top) / f.s]);
+    const got = strokeCoverAnchor(hit, ix, f);
+    if (got) got.hit = hitPos;
+    return got;
+  }
+  /** strokeCover 的后半：圈住的那些字 / 符号 → 锚点（主要是公式符号就锚公式里那一串，否则锚正文那一段字）。 */
+  function strokeCoverAnchor(hit, ix, f) {
+    if (2 * hit.filter(it => it.kind === 'g').length >= hit.length) {   // 主要圈在公式上：符号最多的那个公式里第一个到最后一个
+      const by = new Map();
+      for (const it of hit) if (it.kind === 'g') by.set(it.m.el, (by.get(it.m.el) || []).concat([it]));
+      const gs = [...by.values()].sort((x, y) => y.length - x.length)[0], g = gs[0].g;
+      const i0 = Math.min(...gs.map(it => it.i)), i1 = Math.max(...gs.map(it => it.i));
+      const bp = posFromElement(gs[0].m.el), bs = bp >= 0 ? blockSpan(bp) : null;
+      return { anchor: { type: 'math', tex: gs[0].m.tex, ctx: contextBefore(gs[0].m.el), g: glyphQuote(g, i0),
+                         cover: g.ch.slice(i0, i1 + 1).join(''), gi: i0, gn: g.ch.length,
+                         block: bs ? ix.text.slice(bs.start, bs.end) : '' },
+               frame: 'px', R: localRect(g.els[i0].getBoundingClientRect(), f) };
+    }
+    const ps = hit.filter(it => it.kind === 't').map(it => it.pos), p0 = Math.min(...ps), p1 = Math.max(...ps);
+    const got = textAnchor(p0, f);
+    if (got) {
+      const { start, end } = blockSpan(p0);
+      Object.assign(got.anchor, { cover: ix.text.slice(p0, p1 + 1), block: ix.text.slice(start, end) });
+    }
+    return got;
+  }
+  /** 两段文字的字二元组 Jaccard 相似度（改写措辞、调换语序后仍然高，换成别的段落就低）。 */
+  function bigramSim(a, b) {
+    const grams = s => { const o = new Set(); for (let i = 0; i + 1 < s.length; i++) o.add(s.slice(i, i + 2)); return o; };
+    const A = grams(a), B = grams(b);
+    let n = 0;
+    for (const x of A) if (B.has(x)) n++;
+    return A.size + B.size ? n / (A.size + B.size - n) : 1;
+  }
+  /** 几个候选（文档顺序）里取离原位置 orig 最近的（参考矩形左上角的距离，正文卡片 px）；最近的几处距离平手（≤ 0.5 px）且
+   * 锚点记了 nth（收笔自检 pinIfAmbiguous 写的「落笔那一处在这串候选里排第几」）时按 nth 取——nth 只作最后的平手区分。 */
+  function closestOf(list, rectOf, a, orig, f) {
+    if (list.length === 1) return list[0];
+    const d = list.map(x => { const r = rectOf(x); if (!r) return Infinity; const R = localRect(r, f); return Math.hypot(R.x - orig.x, R.y - orig.y); });
+    const best = Math.min(...d), tied = list.filter((x, k) => d[k] <= best + 0.5);
+    if (tied.length > 1 && Number.isInteger(a.nth) && a.nth >= 0 && a.nth < list.length && tied.includes(list[a.nth])) return list[a.nth];
+    return list[d.indexOf(best)];
+  }
+  /** 正文第 p 个字是否就是锚点 a 落笔时那个字：被锚字连同落笔时存的前后各 quoteLen 字一字不差。 */
+  function quoteAt(p, a) {
+    const t = S.index.text, pre = a.prefix || '', suf = a.suffix || '';
+    return p >= pre.length && t.slice(p - pre.length, p) === pre && t[p] === a.exact && t.slice(p + 1, p + 1 + suf.length) === suf;
+  }
+  /** 正文里圈住的关键词原样出现、且落笔时的完整前后文也原样的那几处（文档顺序）。 */
+  function textSame(a) { return allIndexes(S.index.text, a.cover, 2000).filter(p => quoteAt(p, a)); }
+  /** 公式里圈住的符号串原样出现、且落笔时那一处原样的那几处（文档顺序）：同 TeX、起始符号前后各 glyphLen 个符号一字不差、
+   * 公式前文 ctx 一字不差。返回 [{m, g, i}]。 */
+  function glyphSame(a) {
+    if (!a.g) return [];
+    const seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover), out = [];
+    for (const m of allMath()) {
+      if (m.tex !== a.tex || contextBefore(m.el) !== a.ctx) continue;
+      const g = glyphList(m.el);
+      for (const i of seqIndexes(g.ch, seq)) {
+        const q = glyphQuote(g, i);
+        if (q.prefix === a.g.prefix && q.exact === a.g.exact && q.suffix === a.g.suffix) out.push({ m, g, i });
+      }
+    }
+    return out;
+  }
+  /** 收笔 / 移动后自检（用户 10-26：「写好了然后跑到边上去了」）：新锚点此刻解回的参考矩形若不是落笔时的 orig（差 > 0.5 px），
+   * 说明落笔前后文原样相同的有好几处、按距离也分不开：记 anchor.nth = 落笔那一处在这几处（文档顺序）里排第几，
+   * 供 closestOf 平手时区分（只作最后的平手区分，不压过前后文）。只管圈住内容的正文 / 公式锚点。 */
+  function pinIfAmbiguous(s, f) {
+    const a = s.anchor;
+    if (!a.cover || (a.type !== 'text' && a.type !== 'math')) return;
+    const at = r => { if (!r) return false; const R = localRect(r, f); return Math.hypot(R.x - s.orig.x, R.y - s.orig.y) <= 0.5; };
+    const t = findTarget(a, s.orig, f);
+    if (t && at(t.glyph ? elementRect(t.glyph) : t.pos !== undefined ? charRect(t.pos) : null)) return;
+    const k = a.type === 'text' ? textSame(a).findIndex(p => at(charRect(p)))
+                                : glyphSame(a).findIndex(x => at(elementRect(x.g.els[x.i])));
+    if (k >= 0) a.nth = k;
+  }
+  /** 正文里圈住的关键词（用户 10-25：内容挪了跟着走、改写了关键词没变还圈在关键词上），三步：
+   * 1. 全页找这串字；落笔时存的完整前后文（prefix / exact / suffix）原样还在的那几处优先，有就只在它们里取（closestOf）——
+   *    内容没改时一定认回落笔那一处（用户 10-26：表格里两格都是「1 / 0」，以前会跳到上一行那格）；
+   * 2. 原样前后文一处都没有（内容改写过）：照旧按关键词跟着走，不因前后文变了就隐藏——每一处比紧挨着的前后各 10 字和周围段落，
+   *    前后 10 字优先、段落其次；「段落」短到只是这几个字（如一个表格单元格）时不比段落；
+   * 3. 关键词本身找不到（再按改名表换写法也找不到）返回 null，这笔不画。 */
+  function findCover(a, orig, f) {
+    const t = S.index.text;
+    let cover = a.cover, hits = allIndexes(t, cover, 2000);
+    if (!hits.length) { const r = renamedText(cover, 0); if (r) { cover = r.s; hits = allIndexes(t, cover, 2000); } }
+    if (!hits.length) return null;
+    const out = pos => {   // 关键词或它前后的字按改名表换了写法：存的锚点一并改成新写法
+      const rn = s => { const r = renamedText(s || '', 0); return r ? r.s : (s || ''); };
+      const m = { cover, exact: cover[0], prefix: rn(a.prefix), suffix: rn(a.suffix), block: rn(a.block) };
+      return Object.keys(m).every(k => m[k] === (a[k] || '')) ? { pos } : { pos, migrated: Object.assign({}, a, m) };
+    };
+    const same = cover === a.cover ? textSame(a) : [];
+    if (same.length) return out(closestOf(same, charRect, a, orig, f));
+    if (hits.length === 1 || !a.block) return out(nearestPos(hits, orig, f));
+    // 每一处比两样：紧挨着的前后各 10 字（只改了段落别处时原样不变），和周围与原段落等长的一段（改写、换语序、拆段也认得出）。
+    // 认它的条件：前或后 10 字几乎原样（≥ coverNearAccept），或段落相似（≥ coverCtxAccept）且前后 10 字也不差（≥ coverCtxAccept）。
+    // 几处都认：先挑前后 10 字原样的，再比前后 10 字相似度，最后比段落相似度
+    const L = 10, pre = a.prefix.slice(-L), suf = a.suffix.slice(cover.length - 1, cover.length - 1 + L);
+    const half = Math.max(40, a.block.length >> 1), useBlock = a.block.length >= 2 * cover.length + 4;
+    let best = null, key = null;
+    for (const p of hits) {
+      const sp = similarity(pre, t.slice(Math.max(0, p - L), p)), ss = similarity(suf, t.slice(p + cover.length, p + cover.length + L));
+      const sb = useBlock ? bigramSim(a.block, t.slice(Math.max(0, p - half), p + cover.length + half)) : 0;
+      const near = Math.max(sp, ss) >= CFG.coverNearAccept;
+      if (!near && !(sb >= CFG.coverCtxAccept && (sp + ss) / 2 >= CFG.coverCtxAccept)) continue;
+      const k = [near ? 1 : 0, sp + ss, sb];
+      if (!key || k[0] > key[0] || (k[0] === key[0] && (k[1] > key[1] + 1e-9 || (Math.abs(k[1] - key[1]) <= 1e-9 && k[2] > key[2])))) { best = p; key = k; }
+    }
+    return key ? out(best) : null;
+  }
+  /** 公式里圈住的符号串：先在原公式（TeX 相同或按改名表换过）里找，找不到再在全页陈列公式里找；几处就挑整个公式与原公式
+   * 最像的（符号二元组 Jaccard），一处都没有返回 null。返回 {el: 公式, glyph: 起始符号元素}。 */
+  function findCoverGlyph(a, orig, f) {
+    // 圈住的末尾标点（句号、逗号）不算内容：公式里「sin θ.」改成「sin ψ,」仍是同一处
+    const all = allMath(), seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover);
+    const renamed = renamedTex(a.tex);
+    const own = all.filter(m => m.tex === a.tex || (renamed && m.tex === renamed));
+    // 找到的位置（公式 m 的第 i 个符号）；公式换了（改名、并进别的公式）就把存的锚点一并改成新公式里的这一处
+    const found = (m, g, i) => {
+      const r = { el: m.el, glyph: g.els[i] };
+      if (m.tex === a.tex) return r;
+      const n = Array.from(a.cover).length, bp = posFromElement(m.el), bs = bp >= 0 ? blockSpan(bp) : null;
+      r.migrated = Object.assign({}, a, { tex: m.tex, ctx: contextBefore(m.el), g: glyphQuote(g, i), gi: i, gn: g.ch.length,
+                                           cover: g.ch.slice(i, i + n).join(''), block: bs ? S.index.text.slice(bs.start, bs.end) : a.block });
+      return r;
+    };
+    const search = list => {
+      const out = [];
+      for (const m of list) {
+        const g = glyphList(m.el);
+        let idx = seqIndexes(g.ch, seq);
+        if (!idx.length) { const r = renamedText(a.cover, 0); if (r) idx = seqIndexes(g.ch, Array.from(r.s)); }
+        for (const i of idx) out.push({ m, g, i });
+      }
+      return out;
+    };
+    let hits = search(own);
+    // 落笔时那一处原样还在（同 TeX、起始符号前后各 glyphLen 个符号一字不差、公式前文 ctx 一字不差）：只在这些里取，离原位置最近
+    const same = glyphSame(a);
+    if (same.length) { const h = closestOf(same, x => elementRect(x.g.els[x.i]), a, orig, f); return found(h.m, h.g, h.i); }
+    if (!hits.length && own.length) {
+      // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
+      const m = own.find(o => glyphList(o.el).ch.length === a.gn);
+      if (m && a.gi !== undefined) { const g = glyphList(m.el); return found(m, g, a.gi); }
+      // 符号个数也变了（改名表把它连到改写后的公式）：圈住的符号串按改名表里的字母换名（t → q、θ → ψ，一次用一组）
+      // 换过后在这个公式里原样找；找不到就是圈的内容改了，不画
+      for (const lm of letterMaps()) {
+        const mseq = seq.map(c => lm.get(c) || c);
+        if (mseq.every((c, k) => c === seq[k])) continue;
+        const hs = own.flatMap(o => { const g = glyphList(o.el); return seqIndexes(g.ch, mseq).map(i => ({ m: o, g, i })); });
+        if (hs.length) { hits = hs; break; }
+      }
+      if (!hits.length) return null;
+    }
+    // 原公式没了（并进了更长的公式）：原公式短到符号锚点存下了它的全部符号时，全页找这整串，恰好一处就按原序号放
+    if (!hits.length && a.g && a.gi !== undefined && a.g.prefix.length === a.gi && a.gi + 1 + a.g.suffix.length === a.gn) {
+      const whole = Array.from(a.g.prefix + a.g.exact + a.g.suffix);
+      const at = all.flatMap(m => { const g = glyphList(m.el); return seqIndexes(g.ch, whole).map(i => ({ m, g, i: i + a.gi })); });
+      if (at.length === 1) return found(at[0].m, at[0].g, at[0].i);
+    }
+    // 原公式改写了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
+    if (!hits.length && seq.length >= 2) hits = search(all);
+    if (!hits.length) return null;
+    // 几处一样（短的行内公式常见）：依次比公式前面的字、公式里前后的符号、所在段落（局部前后文优先）
+    const origG = a.g.prefix + a.g.exact + a.g.suffix, t = S.index.text;
+    const score = h => {
+      const p = posFromElement(h.m.el), bs = p >= 0 ? blockSpan(p) : null, q = glyphQuote(h.g, h.i);
+      return [similarity(a.ctx || '', contextBefore(h.m.el)), bigramSim(origG, q.prefix + q.exact + q.suffix),
+              a.block && bs ? bigramSim(a.block, t.slice(bs.start, bs.end)) : 0];
+    };
+    const keyed = hits.map(h => [score(h), h]);
+    keyed.sort((x, y) => (y[0][0] - x[0][0]) || (y[0][1] - x[0][1]) || (y[0][2] - x[0][2]));
+    const h = keyed[0][1];
+    return found(h.m, h.g, h.i);
+  }
+  /** 一整笔（正文卡片坐标的点）的锚点：主要落在图 / 视频里就锚整张图；否则锚圈住的内容；没圈住也不挨着内容（页边旁注）
+   * 就逐级放宽到离它最近的那个字 / 符号（按页面几何算，不靠屏幕上点到的元素：笔在视口外时点不到它）；都不行退回起笔点规则。 */
+  function anchorForStroke(abs) {
+    if (!S.geomBatch) S.geom = null;   // 单独一笔：现量（折叠框开合会改排版）；批量迁移时共用一份
+    const f = frame(), P = abs.map(p => toClient(p[0], p[1], f));
+    for (const m of article.querySelectorAll('img, video')) {
+      const q = elementRect(m);   // 收起的折叠里的图仍有布局矩形，要跳过（否则画在折叠框后面正文上的笔会挂到它上面）
+      if (q && 2 * P.filter(p => p.x >= q.left && p.x <= q.right && p.y >= q.top && p.y <= q.bottom).length > P.length) {
+        return { anchor: { type: 'media', src: srcKey(m), ctx: contextBefore(m) }, frame: 'norm', R: localRect(q, f) };
+      }
+    }
+    for (const px of [CFG.nearPx, 120, 480, 1920]) { const got = strokeCover(abs, f, px); if (got) return got; }
+    return anchorAt(Math.min(Math.max(P[0].x, 1), innerWidth - 1), Math.min(Math.max(P[0].y, 1), innerHeight - 1));
   }
   /** 起笔处（屏幕坐标）的锚点；点不在正文内容上就取最近的可锚元素；实在没有就锚到正文卡片本身。 */
   function anchorAt(cx, cy) {
@@ -1218,10 +1533,9 @@ html.annot-on #annot-capture { display: block; }
   }
   /* ---------- 7b. 记号改名表：内容只是换了写法（如 d → δ），笔记跟着改名后的内容走 ----------
    * build_site 把 docs/drafts/notation_renames_<页>.json 嵌进页面 <script id="annot-renames">：
-   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。锚点按原样找不到时，先按改名表（可连续改名）换成新写法再精确找；
-   * 找到就把存的锚点改成新写法（之后同步）。改名表里没有的改动照旧走模糊匹配，再找不到就标灰。 */
+   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。只用于有圈住内容（cover）的笔：圈住的那串按原样找不到时，
+   * 按改名表（可连续改名）换成新写法再找（findCover / findCoverGlyph），找到就把存的锚点改成新写法；还找不到就隐藏。 */
   const collapse = s => (s || '').replace(/\s+/g, ' ');
-  const quoteKey = q => `${q.prefix}\u0001${q.exact}\u0001${q.suffix}`;
   function renameMap() {
     const el = document.getElementById('annot-renames');
     const raw = el ? el.textContent : '';
@@ -1230,13 +1544,34 @@ html.annot-on #annot-capture { display: block; }
       try { m = JSON.parse(raw || '{}') || {}; } catch (e) { m = {}; }
       const pick = (o, fn) => new Map(Object.entries(o && typeof o === 'object' ? o : {})
         .filter(([k, v]) => k && typeof v === 'string').map(([k, v]) => [fn(k), fn(v)]));
-      // quote：逐笔迁移（旧前后文整体 → 新前后文），用于句子被改写、字挪了位置、全局文字替换对不准的地方
-      const quote = new Map((Array.isArray(m.quote) ? m.quote : []).filter(e => e && e.from && e.to)
-        .map(e => [quoteKey(e.from), { prefix: e.to.prefix, exact: e.to.exact, suffix: e.to.suffix }]));
       renameMap.raw = raw;
-      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse), quote };
+      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse) };
     }
     return renameMap.val;
+  }
+  /** 改名表里「只差字母一一换名」的那些公式对，各自换了哪些字母（公式符号字符 → 新字符，如 t → q、θ → ψ）。
+   * 两边按 TeX 记号切开、记号数相同、不同处全是字母才算；每一对给一组，按出现顺序去重。 */
+  const GREEK = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ϵ', varepsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ',
+                  vartheta: 'ϑ', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ',
+                  phi: 'ϕ', varphi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω' };
+  function letterMaps() {
+    const raw = renameMap();
+    if (letterMaps.of === raw) return letterMaps.val;
+    const tok = s => s.match(/\\[A-Za-z]+|\S/g) || [];
+    const glyph = t => (/^[A-Za-z]$/.test(t) ? t : (t[0] === '\\' && GREEK[t.slice(1)]) || null);
+    const out = [], seen = new Set();
+    for (const [o, n] of raw.tex) {
+      const A = tok(o), B = tok(n);
+      if (A.length !== B.length) continue;
+      const m = new Map();
+      let ok = true;
+      A.forEach((x, k) => { if (!ok || x === B[k]) return; const gx = glyph(x), gy = glyph(B[k]);
+                            if (!gx || !gy || (m.has(gx) && m.get(gx) !== gy)) ok = false; else m.set(gx, gy); });
+      const key = [...m].join(';');
+      if (ok && m.size && !seen.has(key)) { seen.add(key); out.push(m); }
+    }
+    letterMaps.of = raw; letterMaps.val = out;
+    return out;
   }
   /** TeX 沿改名表走到底（a→b→c；有环就停）；没改名返回 null。 */
   function renamedTex(tex) {
@@ -1264,110 +1599,44 @@ html.annot-on #annot-capture { display: block; }
     }
     return changed ? { s, mark } : null;
   }
-  /** TextQuote 按改名表换成新写法后的锚点（prefix / suffix 仍各取 quoteLen 字）；没改名返回 null。 */
-  function renamedQuote(a) {
-    const r = renamedText(a.prefix + a.exact + a.suffix, a.prefix.length);
-    if (!r || r.mark >= r.s.length) return null;
-    return Object.assign({}, a, { prefix: r.s.slice(Math.max(0, r.mark - CFG.quoteLen), r.mark), exact: r.s[r.mark],
-                                  suffix: r.s.slice(r.mark + 1, r.mark + 1 + CFG.quoteLen) });
-  }
-
   function exactQuote(a, orig, f) {
     const hits = allIndexes(S.index.text, a.prefix + a.exact + a.suffix).map(i => i + a.prefix.length);
     return hits.length ? nearestPos(hits, orig, f) : -1;
   }
-  /** 正文锚点：① 原文精确匹配 → ② 按改名表换写法后精确匹配（返回 migrated = 新锚点）→ ③ 种子找候选 + 前后文相似度打分
-   * → ④ 块开头相似 + 块内偏移。返回 {pos, migrated?} 或 null。 */
-  function findQuote(a, orig, f) {
-    let p = exactQuote(a, orig, f);
-    if (p >= 0) return { pos: p };
-    const qa = renameMap().quote.get(quoteKey(a));
-    if (qa) {
-      const ma = Object.assign({}, a, qa);
-      if ((p = exactQuote(ma, orig, f)) >= 0) return { pos: p, migrated: ma };
-    }
-    const ra = renamedQuote(a);
-    if (ra && (p = exactQuote(ra, orig, f)) >= 0) return { pos: p, migrated: ra };
-    p = fuzzyQuote(ra || a, orig, f);
-    return p >= 0 ? { pos: p } : null;
-  }
-  function fuzzyQuote(a, orig, f) {
-    const t = S.index.text;
-    const cands = new Set();
-    const pSeed = a.prefix.slice(-CFG.seedLen) + a.exact, sSeed = a.exact + a.suffix.slice(0, CFG.seedLen);
-    for (const i of allIndexes(t, pSeed)) cands.add(i + pSeed.length - a.exact.length);
-    for (const i of allIndexes(t, sSeed)) cands.add(i);
-    let best = [], bestScore = -1;
-    for (const p of cands) {
-      const sc = (similarity(a.prefix, t.slice(Math.max(0, p - a.prefix.length), p)) +
-                  similarity(a.suffix, t.slice(p + 1, p + 1 + a.suffix.length))) / 2;
-      if (sc > bestScore + 1e-9) { bestScore = sc; best = [p]; } else if (Math.abs(sc - bestScore) <= 1e-9) best.push(p);
-    }
-    if (bestScore >= CFG.fuzzyAccept) return nearestPos(best, orig, f);
-    if (!a.blk) return -1;
-    let bestBlk = -1, bestSim = CFG.blockHeadAccept;
-    for (const el of article.querySelectorAll(a.blk.tag)) {
-      const start = posFromElement(el);
-      if (start < 0) continue;
-      let end = start;
-      while (end < t.length && end < start + 40 && el.contains(S.index.nodes[S.index.posNode[end]])) end++;
-      const sc = similarity(a.blk.head, t.slice(start, end));
-      if (sc >= bestSim) {
-        let blkEnd = end;
-        while (blkEnd < t.length && el.contains(S.index.nodes[S.index.posNode[blkEnd]])) blkEnd++;
-        bestSim = sc; bestBlk = Math.min(start + a.blk.off, blkEnd - 1);
-      }
-    }
-    return bestBlk;
-  }
-  /** 按锚点类型在当前页面找目标；返回 {el} 或 {pos}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
+  /** 按锚点类型在当前页面找目标：有圈住内容（cover）的跟着这串内容走，其余只按原样精确找。
+   * 返回 {el} / {pos} / {el, glyph}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
   function findTarget(a, orig, f) {
     if (a.type === 'page') return { el: main };
-    if (a.type === 'text') return findQuote(a, orig, f);
-    let cands = [], migrated = null;
-    const renamedOr = (s, fn) => { const r = fn(s); return r === null ? s : r; };
-    const rt = s => { const r = renamedText(s, -1); return r ? r.s : null; };
+    if (a.type === 'text' && a.cover) return findCover(a, orig, f);
+    if (a.type === 'math' && a.cover) return findCoverGlyph(a, orig, f);
+    return findExact(a, orig, f);
+  }
+  /** 没有圈住内容（cover）的锚点（用户 10-25 确认过的第 2 次画完的笔，画笔时还没有 cover）：只按原样精确找——正文前后文
+   * 一字不差、公式 TeX 相同且符号前后文原样出现、图 src 相同、标题 / 表格文字相同；不用改名表、不模糊匹配。
+   * 找不到返回 null（这笔隐藏）。 */
+  function findExact(a, orig, f) {
+    if (a.gone) return null;   // 迁移时判出内容在新版里没了（repair_notes_positions --apply-snapshot），不画
+    if (a.type === 'text') { const p = exactQuote(a, orig, f); return p >= 0 ? { pos: p } : null; }
+    let cands = [];
     if (a.type === 'media') {
       cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
     } else if (a.type === 'math') {
-      const all = displayMath();
-      cands = all.filter(m => m.tex === a.tex).map(m => m.el);
-      const t2 = cands.length ? null : renamedTex(a.tex);
-      if (t2) {
-        cands = all.filter(m => m.tex === t2).map(m => m.el);
-        if (cands.length) migrated = Object.assign({}, a, { tex: t2 });
-      }
-      if (!cands.length) {
-        let bestSim = CFG.texFuzzy;
-        for (const m of all) { const sc = similarity(t2 || a.tex, m.tex); if (sc >= bestSim) { bestSim = sc; cands = [m.el]; } }
+      const els = displayMath().filter(m => m.tex === a.tex).map(m => m.el);
+      if (!a.g) cands = els;
+      else {   // 符号锚点：前后各 glyphLen 个符号连同被锚符号原样出现在这个公式里，几处取第一处
+        const seq = Array.from(a.g.prefix + a.g.exact + a.g.suffix), k = Array.from(a.g.prefix).length;
+        const hits = els.map(el => { const g = glyphList(el), i = seqIndexes(g.ch, seq)[0]; return i === undefined ? null : { el, glyph: g.els[i + k] }; })
+                        .filter(Boolean);
+        const el = pickCandidate(hits.map(h => h.el), a, orig, f);
+        return el ? hits.find(h => h.el === el) : null;
       }
     } else if (a.type === 'cell') {
-      const findCells = (cell, head) => {
-        const cells = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === cell);
-        const withHead = cells.filter(c => headerText(c) === head);
-        return withHead.length ? withHead : cells;
-      };
-      cands = findCells(a.cell, a.head);
-      if (!cands.length && (rt(a.cell) !== null || rt(a.head) !== null)) {
-        const cell = renamedOr(a.cell, rt), head = renamedOr(a.head, rt);
-        cands = findCells(cell, head);
-        if (cands.length) migrated = Object.assign({}, a, { cell, head });
-      }
+      cands = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === a.cell && headerText(c) === a.head);
     } else if (a.type === 'heading') {
-      const hs = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')];
-      cands = hs.filter(h => plainText(h) === a.text);
-      const t2 = cands.length ? null : rt(a.text);
-      if (t2 !== null) {
-        cands = hs.filter(h => plainText(h) === t2);
-        if (cands.length) migrated = Object.assign({}, a, { text: t2 });
-      }
-      if (!cands.length) {
-        let bestSim = CFG.headingFuzzy;
-        for (const h of hs) { const sc = similarity(t2 || a.text, plainText(h)); if (sc >= bestSim) { bestSim = sc; cands = [h]; } }
-      }
+      cands = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(h => plainText(h) === a.text);
     }
     const el = pickCandidate(cands, a, orig, f);
-    return el ? (migrated ? { el, migrated } : { el }) : null;
+    return el ? { el } : null;
   }
   /** 一笔当前该画在哪：{state: 'ok' | 'hidden' | 'orphan', R（正文卡片内坐标的参考矩形）, el（所在元素）}。 */
   function place(s, f) {
@@ -1379,6 +1648,10 @@ html.annot-on #annot-capture { display: block; }
     }
     if (!t) return { state: 'orphan', R: s.orig, el: main };
     if (t.el === main) return { state: 'ok', R: s.orig, el: main };
+    if (t.glyph) {   // 圈住的公式符号串：画在找到的起始符号上
+      const r = elementRect(t.glyph);
+      return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
+    }
     if (t.pos !== undefined) {
       const r = charRect(t.pos), node = S.index.nodes[S.index.posNode[t.pos]];
       return r ? { state: 'ok', R: localRect(r, f), el: node.parentElement } : { state: 'hidden' };
@@ -1473,11 +1746,14 @@ html.annot-on #annot-capture { display: block; }
     renderQueued = true;
     requestAnimationFrame(() => { renderQueued = false; renderAll(); });
   }
+  // 核对页（check/<版本>/）：只显示在这一版上画的笔（NIPC_ONLY = 笔 id 列表），其余笔不画也不动
+  const ONLY = Array.isArray(window.NIPC_ONLY) ? new Set(window.NIPC_ONLY) : null;
   function renderAll() {
     ensureIndex();
     const f = frame(), alive = new Set();
     let orphans = 0, hidden = 0;
     for (const s of S.strokes) {
+      if (ONLY && !ONLY.has(s.id)) continue;
       alive.add(s.id);
       let d = S.drawn.get(s.id);
       if (!d) {
@@ -1489,21 +1765,42 @@ html.annot-on #annot-capture { display: block; }
       }
       const pl = place(s, f);
       d.state = pl.state; d.el = pl.el;
-      if (pl.state === 'hidden') { d.path.style.display = 'none'; d.abs = null; hidden++; continue; }
-      d.path.style.display = '';
-      if (pl.state === 'orphan') orphans++;
+      // 圈的内容在本页找不到（orphan）和在收起的折叠里（hidden）一样不画：任何页面都不显示灰色笔，也擦不到、拖不动、打印不出
       d.path.classList.toggle('orphan', pl.state === 'orphan');
-      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',') + pl.state;
+      if (pl.state !== 'ok') {
+        d.path.style.display = 'none'; d.abs = null; d.key = '';
+        if (pl.state === 'orphan') orphans++; else hidden++;
+        continue;
+      }
+      d.path.style.display = '';
+      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',');
       if (key !== d.key) {
         d.abs = absPoints(s, R); d.box = bbox(d.abs, 0); d.key = key;
         styleStrokePath(d.path, s, d.abs);
-        d.path.classList.toggle('orphan', pl.state === 'orphan');
       }
     }
     for (const [id, d] of S.drawn) if (!alive.has(id)) { d.path.remove(); S.drawn.delete(id); }
     S.orphans = orphans; S.hidden = hidden;
+    if (ONLY && !S.printing) {
+      // 核对页上（笔画的那一版、用户自己的设备和字体）：显示出来的笔就地算出圈住的内容，笔不动，存回笔记
+      const todo = S.strokes.filter(s => ONLY.has(s.id) && !s.coverOn && s.anchor.type !== 'media' && s.anchor.type !== 'page');
+      if (coverOnDevice(todo, window.NIPC_CHECK_VERSION || PAGE_VERSION).length) { commit(); return; }
+    }
     if (S.migrated) { S.migrated = false; saveStored(); schedulePush(); }
     updateStatus();
+  }
+
+  /** 在用户设备上（当前页面的排版、字体）把 list 里此刻显示着的笔按它们显示的位置重新算圈住的内容，只改匹配字段
+   * （anchor / frame / orig / pts）并记 coverOn = {page: 在哪一版上算的, at, ua}；drawn 不动。返回算了的笔。 */
+  function coverOnDevice(list, page) {
+    const todo = list.filter(s => { const d = S.drawn.get(s.id); return d && d.state === 'ok' && d.abs; });
+    S.geom = null; S.geomBatch = true;
+    for (const s of todo) {
+      reanchor(s, S.drawn.get(s.id).abs);
+      s.coverOn = { page, at: new Date().toISOString(), ua: navigator.userAgent };
+    }
+    S.geomBatch = false; S.geom = null;
+    return todo;
   }
 
   /* ---------- 10. 操作：书写、橡皮擦、移动、撤销、清空 ---------- */
@@ -1558,10 +1855,11 @@ html.annot-on #annot-capture { display: block; }
     const dr = S.drawing;
     S.drawing = null;
     dr.path.remove();
-    const f = frame(), c = toClient(dr.abs[0][0], dr.abs[0][1], f);
-    const got = anchorAt(c.x, c.y);
+    const got = anchorForStroke(dr.abs);
     const s = Object.assign(dr.s, { id: newId(), updatedAt: Date.now(), anchor: got.anchor, frame: got.frame,
                                     orig: roundRect(got.R), pts: framePoints(dr.abs, got.R, got.frame) });
+    pinIfAmbiguous(s, frame());
+    s.drawn = drawnOf(s);
     pushUndo(snapshot());
     S.strokes.push(s);
     commit();
@@ -1593,14 +1891,18 @@ html.annot-on #annot-capture { display: block; }
     const d = S.drawn.get(mv.s.id);
     d.path.removeAttribute('transform');
     if (Math.hypot(mv.dx, mv.dy) < 0.5 || !d.abs) return;
-    const abs = d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]);
-    const f = frame(), c = toClient(abs[0][0], abs[0][1], f);
-    const got = anchorAt(Math.min(Math.max(c.x, 1), innerWidth - 1), Math.min(Math.max(c.y, 1), innerHeight - 1));
-    Object.assign(mv.s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
-                          pts: framePoints(abs, got.R, got.frame) });
-    forget(mv.s.id);
+    reanchor(mv.s, d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]));
+    mv.s.drawn = drawnOf(mv.s);   // 用户移动 = 新的「画的」原样
     pushUndo(mv.snap);
     commit();
+  }
+  /** 一笔放到新位置 abs（正文卡片坐标）：按它在新位置圈住的内容重新建锚点，点换成新锚点坐标。 */
+  function reanchor(s, abs) {
+    const got = anchorForStroke(abs);
+    Object.assign(s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
+                       pts: framePoints(abs, got.R, got.frame) });
+    pinIfAmbiguous(s, frame());
+    forget(s.id);
   }
   function undo() {
     if (!S.undo.length) return setStatus('没有可以撤销的操作');
@@ -1700,6 +2002,7 @@ html.annot-on #annot-capture { display: block; }
   const SY = { sha: null, timer: null, busy: false, again: false, dirty: false, state: '', warn: false };
 
   function syncCfg() {
+    if (SNAP) return { token: '', repo: DEFAULT_REPO };   // 快照页从不同步
     try { const c = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; return { token: c.token || '', repo: c.repo || DEFAULT_REPO }; }
     catch (e) { return { token: '', repo: DEFAULT_REPO }; }
   }
@@ -1730,7 +2033,16 @@ html.annot-on #annot-capture { display: block; }
     if (r.status === 404) return { data: null, sha: null };
     if (!r.ok) throw new Error('读取 ' + r.status);
     const j = await r.json();
-    return { data: JSON.parse(b64DecodeUtf8(j.content)), sha: j.sha };
+    let b64 = j.content;
+    if (!b64 && j.sha) {   // 文件超过 1 MB 时 contents API 不给 content，改按 sha 取 blob（上限 100 MB）
+      const rb = await fetch(`https://api.github.com/repos/${cfg.repo}/git/blobs/${j.sha}`, {
+        cache: 'no-store',
+        headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      });
+      if (!rb.ok) throw new Error('读取 blob ' + rb.status);
+      b64 = (await rb.json()).content;
+    }
+    return { data: JSON.parse(b64DecodeUtf8(b64)), sha: j.sha };
   }
   /** 写远端文件；sha 过期（409 / 422）返回 {conflict: true}。 */
   async function ghPut(cfg, data, sha, keepalive) {
@@ -1750,7 +2062,9 @@ html.annot-on #annot-capture { display: block; }
     const remoteStrokes = remote && Array.isArray(remote.strokes) ? remote.strokes.filter(validStroke) : [];
     for (const s of local.strokes.concat(remoteStrokes)) {
       const o = byId.get(s.id);
-      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, s);
+      // drawn 只随用户画 / 移动产生：选中的那份没有 drawn（老格式）而另一份有，就带上另一份的，绝不丢
+      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, !s.drawn && o && o.drawn ? Object.assign({}, s, { drawn: o.drawn }) : s);
+      else if (!o.drawn && s.drawn) byId.set(s.id, Object.assign({}, o, { drawn: s.drawn }));
     }
     return { strokes: [...byId.values()].filter(s => !tombs[s.id]), tombs };
   }
@@ -1859,7 +2173,7 @@ html.annot-on #annot-capture { display: block; }
 
   /* ---------- 14. 工具栏 ---------- */
   const ui = document.createElement('div');
-  ui.className = 'annot-ui';
+  ui.className = SNAP ? 'annot-ui snap' : 'annot-ui';   // 快照页只读：CSS 藏掉画笔、撤销、导入、同步
   ui.id = 'annot-ui';
   ui.innerHTML = `
     <button type="button" id="annot-fab" aria-label="展开笔记工具栏">✎ 笔记</button>
@@ -1918,7 +2232,7 @@ html.annot-on #annot-capture { display: block; }
     if (S.orphans) {
       const w = document.createElement('div');
       w.className = 'warn';
-      w.textContent = `有 ${S.orphans} 笔对应的内容已变（灰色），可用「移动」拖到新位置或用橡皮擦删掉`;
+      w.textContent = `有 ${S.orphans} 笔圈的内容已改或删，已隐藏`;
       box.appendChild(w);
     }
     if (statusMsg) {
@@ -1927,7 +2241,7 @@ html.annot-on #annot-capture { display: block; }
       m.textContent = statusMsg;
       box.appendChild(m);
     }
-    $('#annot-fab').textContent = S.orphans ? `✎ 笔记 · ${S.orphans} 笔待处理` : '✎ 笔记';
+    $('#annot-fab').textContent = S.orphans ? `✎ 笔记 · ${S.orphans} 笔已隐藏` : '✎ 笔记';
   }
   function setOn(on) {
     S.on = on;
@@ -2022,11 +2336,138 @@ html.annot-on #annot-capture { display: block; }
     const onPrintMq = () => (printMq.matches ? enterPrint() : exitPrint());
     if (printMq.addEventListener) printMq.addEventListener('change', onPrintMq); else printMq.addListener(onPrintMq);
 
+    /** 核对旁注用：这笔此刻挂在正文哪个字上——那个字前后各 10 字，和笔画起点相对它的位置（px）；不是挂在正文字上返回 null。 */
+    /** 核对用：这笔此刻挂在哪——从挂靠点起、和圈住内容一样长的那串字 / 公式符号，和笔画起点相对第一个的位置（px）。 */
+    function targetOf(id, d, a) {
+      const c = S.cache.get(id), t = c && c.target, n = Array.from(a.cover || '').length;
+      if (!t || !n) return null;
+      const f = frame(), off = r => { const R = localRect(r, f); return [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2]; };
+      if (t.glyph) {
+        const g = glyphList(t.el), i = g.els.indexOf(t.glyph), r = elementRect(t.glyph);
+        return i >= 0 && r ? { ch: g.ch.slice(i, i + n).join(''), off: off(r) } : null;
+      }
+      if (t.pos === undefined) return null;
+      const r = charRect(t.pos);
+      return r ? { ch: S.index.text.slice(t.pos, t.pos + n), off: off(r) } : null;
+    }
+    function anchorCtx(id, d) {
+      const c = S.cache.get(id), t = c && c.target;
+      if (!t || t.pos === undefined) return null;
+      const r = charRect(t.pos), f = frame();
+      if (!r) return null;
+      const R = localRect(r, f), tx = S.index.text;
+      return { ctx: tx.slice(Math.max(0, t.pos - 10), t.pos + 11),
+               off: [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2] };
+    }
     // 给自动化测试读状态用（tools/test_annotate.py）；页面本身不依赖它
     window.__nipcNotes = {
+      // 正文里全部公式（陈列 + 行内），按文档先后：[{el, tex, display}]
+      mathsInOrder() {
+        let out = [];
+        try {
+          out = [...MathJax.startup.document.math].filter(m => m.typesetRoot && article.contains(m.typesetRoot))
+            .map(m => ({ el: m.typesetRoot, tex: norm(m.math), display: !!m.display }));
+        } catch (e) { /* MathJax 没加载 */ }
+        return out.sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+      },
+      contentIndex() {
+        const ix = ensureIndex();
+        const s = frame().s;   // width：公式在本机排版下的宽（正文卡片 px），只用来估一笔压住了几个记号
+        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el),
+                                                                     width: m.el.getBoundingClientRect().width / s })),
+                 media: [...article.querySelectorAll('img, video')].map(srcKey) };
+      },
+      where(ids) {
+        ensureIndex();
+        const f = frame(), M = this.mathsInOrder(), media = [...article.querySelectorAll('img, video')];
+        return Object.fromEntries(ids.map(id => {
+          const s = S.strokes.find(t => t.id === id);
+          if (!s) return [id, null];
+          if (!S.cache.get(id)) place(s, f);
+          const c = S.cache.get(id), t = c && c.target, d = S.drawn.get(id), state = d ? d.state : 'none';
+          if (!t) return [id, { state }];
+          if (t.el === main) return [id, { state, kind: 'page' }];
+          if (t.pos !== undefined) {   // w：锚字在本机排版下的宽（正文卡片 px）
+            const r = charRect(t.pos);
+            return [id, { state, kind: 'text', pos: t.pos, w: r ? r.width / f.s : 0 }];
+          }
+          const k = M.findIndex(m => m.el === t.el), glyph = t.glyph || c.glyph;
+          if (k >= 0) return [id, { state, kind: glyph ? 'glyph' : 'math', math: k, gi: glyph ? glyphList(t.el).els.indexOf(glyph) : -1 }];
+          const mi = media.indexOf(t.el);
+          if (mi >= 0) return [id, { state, kind: 'media', src: srcKey(t.el), nth: media.slice(0, mi).filter(e => srcKey(e) === srcKey(t.el)).length }];
+          return [id, { state, kind: 'other' }];
+        }));
+      },
+
       strokes: () => S.strokes, render: renderAll, frame,
       placed: id => { const d = S.drawn.get(id); return d ? { state: d.state, abs: d.abs } : null; },
       status: () => ({ orphans: S.orphans, hidden: S.hidden, on: S.on, sync: SY.state, tombs: Object.keys(S.tombs).length }),
+      // 修位置用（tools/check_notes_anchors.py --repair）：同「移动」工具，把一笔平移 (dx, dy)（正文卡片坐标）后重新建锚点；
+      // 调用前要把新起笔点滚进视口。返回新锚点类型，找不到这一笔返回 null。
+      // 核对用（只读，不改笔记）：这些笔此刻各圈住了什么——锚点类型、圈住的内容串、笔画起点相对内容起点的位置（px）
+      coverOf: ids => {
+        S.geom = null; S.geomBatch = true;
+        const out = {};
+        for (const id of ids) {
+          const d = S.drawn.get(id);
+          if (!d || !d.abs || d.state !== 'ok') { out[id] = { state: d ? d.state : 'none' }; continue; }
+          const got = anchorForStroke(d.abs), a = got.anchor;
+          out[id] = { state: 'ok', type: a.type, cover: a.cover || a.src || a.text || a.cell || '',
+                      hit: (got.hit || []).map(([c, x, y]) => [c, Math.round(x * 2) / 2, Math.round(y * 2) / 2]),
+                      exact: a.cover ? '' : (a.exact || ''), tex: a.tex || '', at: anchorCtx(id, d),
+                      target: targetOf(id, d, (S.strokes.find(s => s.id === id) || {}).anchor || {}),
+                      off: [Math.round((d.abs[0][0] - got.R.x) * 2) / 2, Math.round((d.abs[0][1] - got.R.y) * 2) / 2],
+                      rel: got.frame === 'norm' ? [Math.round((d.abs[0][0] - got.R.x) / got.R.w * 1000) / 1000,
+                                                   Math.round((d.abs[0][1] - got.R.y) / got.R.h * 1000) / 1000] : null };
+        }
+        S.geomBatch = false; S.geom = null;
+        return out;
+      },
+      texList: () => allMath().map(m => m.tex),
+      // 核对字体排版用（只读）：每笔存的锚点此刻在本机排版下的参考矩形（正文卡片 px），与笔里存的画笔设备上的 orig 比
+      anchorRects: ids => Object.fromEntries(ids.map(id => {
+        const s = S.strokes.find(t => t.id === id);
+        if (!s) return [id, null];
+        const pl = place(s, frame());
+        return [id, pl.state === 'ok' ? { x: pl.R.x, y: pl.R.y, w: pl.R.w, h: pl.R.h, type: s.anchor.type } : null];
+      })),
+      // 查原因用（只读）：一笔圈住的关键词在当前页面每一处出现的位置、所在段落相似度、是否在收起的折叠里
+      explain: id => {
+        const s = S.strokes.find(t => t.id === id);
+        if (!s || !s.anchor.cover) return null;
+        ensureIndex();
+        const a = s.anchor, t = S.index.text, half = Math.max(40, (a.block || '').length >> 1);
+        if (a.type === 'math') {
+          const seq = Array.from(a.cover);
+          return { type: 'math', tex: a.tex, cover: a.cover, renamed: renamedTex(a.tex),
+                   own: allMath().filter(m => m.tex === a.tex).length,
+                   hits: allMath().filter(m => seqIndexes(glyphList(m.el).ch, seq).length).map(m => m.tex) };
+        }
+        return { type: 'text', cover: a.cover, hits: allIndexes(t, a.cover, 2000).map(p => ({
+          pos: p, sb: Math.round(bigramSim(a.block || '', t.slice(Math.max(0, p - half), p + a.cover.length + half)) * 1000) / 1000,
+          closed: !charRect(p), around: t.slice(Math.max(0, p - 15), p + a.cover.length + 15) })) };
+      },
+      // 旧笔迁移用（repair_notes_positions.py --reanchor-origin，在它当初画的那版页面上调）：这些笔原地不动，
+      // 按它们此刻圈住的内容重新建锚点。返回实际改了的笔的 id（此刻不在页面上显示的笔不动）。
+      reanchorAll: ids => {
+        const done = [];
+        S.geom = null; S.geomBatch = true;   // 这一批笔逐个处理时排版不变，页面几何只量一次
+        const byId = new Map(S.strokes.map(s => [s.id, s]));
+        for (const id of ids) {
+          const s = byId.get(id), d = S.drawn.get(id);
+          if (s && d && d.abs && d.state === 'ok') { reanchor(s, d.abs); done.push(id); }
+        }
+        S.geomBatch = false; S.geom = null;
+        commit();
+        return done;
+      },
+      moveBy: (id, dx, dy) => {
+        const s = S.strokes.find(t => t.id === id), d = S.drawn.get(id);
+        if (!s || !d || !d.abs) return null;
+        reanchor(s, d.abs.map(p => [p[0] + dx, p[1] + dy, p[2]]));
+        commit();
+        return s.anchor.type;
+      },
       syncNow,
     };
   }
