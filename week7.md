@@ -65,11 +65,13 @@ $$\nabla^2\Pi\,\Delta x+G^\top\lambda=-\nabla\Pi,\qquad G\Delta x=c^{\ast}-Gx.$$
 
 ## 1.3 逐个算例：变形图和这一行的数字
 
-下面 8 个单元和上表 8 行一一对应，单元名和表里的「算例」一字不差。每张图左边是两个物体静止后的整体，右边是接触处放大，虚线框标出放大的范围；红色是兔子，蓝色是龙，橙色是接触区。能量都用同一套单位，括号里是除以 GT 的倍数。
+下面 8 个单元和上表 8 行一一对应，单元名和表里的「算例」一字不差。每个单元两张图。第一张左边是两个物体静止后的整体，右边是接触处放大，虚线框标出放大的范围；红色是兔子，蓝色是龙，橙色是从这个角度看得见的接触区。接触区大多夹在两个物体中间，从外面看不见，有几个算例从这个角度一点橙色都没有，所以第二张是穿过接触中心的剖面，橙线标出被剖面切到的接触区。能量都用同一套单位，括号里是除以 GT 的倍数。
 
 ### 1/3 压深 · 龙比兔子硬 10 倍
 
 ![](assets/images/w7_deep_Bx10_d3_web2.png)
+
+![](assets/images/w7_deep_Bx10_d3_sec.png)
 
 **GT 255,626；骨架 5,001,000（19.6 倍）。** Hertz 598,200，hydroelastic 1,114,000，Winkler 7,798,000。
 
@@ -77,11 +79,15 @@ $$\nabla^2\Pi\,\Delta x+G^\top\lambda=-\nabla\Pi,\qquad G\Delta x=c^{\ast}-Gx.$$
 
 ![](assets/images/w7_deep_Ax10_d3_web2.png)
 
+![](assets/images/w7_deep_Ax10_d3_sec.png)
+
 **GT 41,480；骨架 9,721,000（234 倍）。** Hertz 598,200，hydroelastic 1,545,000，Winkler 7,798,000。软的是龙，变形几乎全在龙一侧，GT 小，骨架的倍数在 8 个算例里最大。
 
 ### 1/3 压深 · 兔子泊松比 0.2、龙 0.45
 
 ![](assets/images/w7_deep_nuA02B045_d3_web2.png)
+
+![](assets/images/w7_deep_nuA02B045_d3_sec.png)
 
 **GT 46,608；骨架 2,081,000（44.6 倍）。** Hertz 329,000，hydroelastic 732,900，Winkler 4,289,000。
 
@@ -89,11 +95,15 @@ $$\nabla^2\Pi\,\Delta x+G^\top\lambda=-\nabla\Pi,\qquad G\Delta x=c^{\ast}-Gx.$$
 
 ![](assets/images/w7_deep_nuA045B02_d3_web2.png)
 
+![](assets/images/w7_deep_nuA045B02_d3_sec.png)
+
 **GT 46,061；骨架 2,204,000（47.9 倍）。** Hertz 329,000，hydroelastic 760,300，Winkler 4,289,000。和上一个算例只对调了泊松比，GT 只差约 1%。
 
 ### 1/2 压深 · 龙比兔子硬 10 倍
 
 ![](assets/images/w7_deep_Bx10_d2_web2.png)
+
+![](assets/images/w7_deep_Bx10_d2_sec.png)
 
 **GT 516,195；骨架 1,421,000（2.8 倍，单一小格边长）。** Hertz 1,282,000，hydroelastic 3,194,000，Winkler 21,680,000。用去掉整体平移和转动以后的最大局部位移来量变形：兔子 4.79、龙 5.07，兔子的高度是 9.23（长度都用同一套网格单位），两个物体都超过兔高的一半；龙虽然更硬，但它的细长部分整体弯开了。
 
@@ -101,17 +111,23 @@ $$\nabla^2\Pi\,\Delta x+G^\top\lambda=-\nabla\Pi,\qquad G\Delta x=c^{\ast}-Gx.$$
 
 ![](assets/images/w7_deep_Ax10_d2_web2.png)
 
+![](assets/images/w7_deep_Ax10_d2_sec.png)
+
 **GT 99,482；骨架 4,307,000（43.3 倍，单一小格边长）。** Hertz 1,282,000，hydroelastic 2,947,000，Winkler 21,680,000。变形几乎全在软的龙一侧：最大局部位移兔子只有 0.19，龙 5.54，超过兔高的一半。
 
 ### 1/2 压深 · 兔子泊松比 0.2、龙 0.45
 
 ![](assets/images/w7_deep_nuA02B045_d2_web2.png)
 
+![](assets/images/w7_deep_nuA02B045_d2_sec.png)
+
 **GT 88,657；骨架 879,500（9.9 倍，单一小格边长）。** Hertz 705,100，hydroelastic 1,954,000，Winkler 11,920,000。
 
 ### 1/2 压深 · 兔子泊松比 0.45、龙 0.2
 
 ![](assets/images/w7_deep_nuA045B02_d2_web2.png)
+
+![](assets/images/w7_deep_nuA045B02_d2_sec.png)
 
 **GT 87,541；骨架 934,700（10.7 倍，单一小格边长）。** Hertz 705,100，hydroelastic 1,968,000，Winkler 11,920,000。
 
