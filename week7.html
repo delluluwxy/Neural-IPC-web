@@ -197,7 +197,7 @@ html.annot-noaside main { margin: 0 auto; }
 /* ===== 笔迹图层与输入层 ===== */
 #annot-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 5; }
 #annot-layer path.hl, svg.annot-print path.hl { mix-blend-mode: multiply; }
-#annot-layer path.orphan { display: none; }   /* 圈的内容改了 / 删了：不留标记（用户 10-25），数据仍保留 */
+#annot-layer path.orphan { fill: #9aa3ad !important; stroke: #9aa3ad !important; opacity: .75; }
 #annot-capture { position: fixed; inset: 0; z-index: 45; display: none; touch-action: pan-x pan-y; cursor: crosshair;
                  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 html.annot-on #annot-capture { display: block; }
@@ -226,9 +226,6 @@ html.annot-on #annot-capture { display: block; }
 #annot-sync-panel label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
 #annot-sync-panel input { display: block; width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; margin-top: 2px;
                           border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: #fff; }
-/* 只读快照页：不能画、不能改设置，只能看和导出 */
-.annot-ui.snap #annot-toggle, .annot-ui.snap #annot-tools,
-.annot-ui.snap #annot-undo, .annot-ui.snap #annot-clear, .annot-ui.snap #annot-import, .annot-ui.snap #annot-sync { display: none; }
 #annot-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* ===== 打印 / 生成 PDF：笔迹跟着各自的块走，正文保持 920px 排版再整体缩到纸宽 ===== */
@@ -242,789 +239,344 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "8129e5841567";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
 <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week7.html" aria-current="page">Week 7</a><a href="week5.html">Week 5–6</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
-<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w20">1. 导师上次的问题</a>
-<a class="toc-level-3" href="#w20-1">1.1 泊松比和刚度：两边各自怎么进公式</a>
-<a class="toc-level-3" href="#w20-2">1.2 为什么用整体 mode，不用局部的</a>
-<a class="toc-level-3" href="#w20-3">1.3 mode 是怎么算出来的</a>
-<a class="toc-level-3" href="#w20-4">1.4 能不能按 patch 局部做（导师原话「不同patch去单独加密去存然后用的时候去根据撞的地方去找」）</a>
-<a class="toc-level-3" href="#w20-5">1.5 是不是一个物体只算一次，就能用在所有情况</a>
-<a class="toc-level-3" href="#w20-6">1.6 GT 怎么做的：线性还是非线性，是不是线弹性</a>
-<a class="toc-level-3" href="#w20-7">1.7 能力对照：我们和导师的 GT、骨架各能做什么</a>
-<a class="toc-level-3" href="#w20-8">1.8 大压深能不能做</a>
-<a class="toc-level-3" href="#w20-9">1.9 软硬对调能不能做</a>
-<a class="toc-level-2" href="#w1">2. 上次组会后完成的（上周 TODO）</a>
-<a class="toc-level-2" href="#w2">3. baseline：谁在比、各自假设了什么（ongoing）</a>
-<a class="toc-level-2" href="#w3">4. 大压深怎么造：两个软体自然压到一起</a>
-<a class="toc-level-3" href="#w3-1">4.1 压多深：用户的定义</a>
-<a class="toc-level-3" href="#w3-2">4.2 怎么「摆住」两个物体：跟导师一样的 rigid 锁</a>
-<a class="toc-level-3" href="#w3-3">4.3 接触：IPC，全程不穿透</a>
-<a class="toc-level-3" href="#w3-4">4.4 材料：我们 GT 的带体积屏障 neo-Hookean</a>
-<a class="toc-level-3" href="#w3-5">4.5 标签读什么</a>
-<a class="toc-level-3" href="#w3-6">4.6 每个标签的验收线（用数测，不看参数）</a>
-<a class="toc-level-2" href="#w4">5. 刚度、泊松比互换：8 个算例和按原理的预期</a>
-<a class="toc-level-3" href="#w4-1">5.1 按原理的预期（开跑前写下，不是结果）</a>
-<a class="toc-level-2" href="#w8">6. 8 个算例的结果（重叠深度核对中）</a>
-<a class="toc-level-2" href="#w9">7. 同一个算例有两个静止状态时取哪个（方法）</a>
-<a class="toc-level-2" href="#w10">8. 读数和预处理的两项检查</a>
-<a class="toc-level-3" href="#w10-1">8.1 换接触模型时的能量读数检查：不通过</a>
-<a class="toc-level-3" href="#w10-2">8.2 逐物体的通用预处理：骨架对、但没有提速</a>
-<a class="toc-level-2" href="#w11">9. 造一个大压深标签要多久</a>
-<a class="toc-level-2" href="#w5">10. 和导师的区别</a>
-<a class="toc-level-2" href="#w6">11. RigidFormer（ongoing）</a>
-<a class="toc-level-2" href="#w7">12. 现在能说什么、下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
-<header class="top"><h1>第 7 周：大压深、刚度泊松比互换、和 baseline 放在一起比</h1></header>
-<div class="lead"><ul>
-<li>
-<p>颜色：正文是黑色；<span class="note-src">出处（正文里的 （依据：n） 编号、折叠块「出处」里的条目）是青绿色</span>；<span class="note-cond">公式成立的条件是橙色</span>。</p>
-</li>
-<li>
-<p>上次（<a href="week5.html">第 5–6 周页面</a>）：skeleton = 半空间解析项 + 每个物体预先算好的整体变形 mode，解一个凸二次规划得到接触能量；两侧都是软体普通网格的 27 个算例上没有判为明显不对的，但都是浅压（最深约物体高度的 1%）。</p>
-</li>
-<li>skeleton 公式怎么一步步推出来、每一步要什么条件、文献里哪些公式是已知的：见第 5–6 周页面第 11 节（<a href="week5.html#w12-1">完整 pipeline</a>、<a href="week5.html#w12-3">第一项推导</a>、<a href="week5.html#w12-4">mode 项</a>、<a href="week5.html#w12-5">总体成立条件</a>、<a href="week5.html#w12-6">文献公式表</a>）。</li>
-<li>本周三条 TODO：① 考虑刚度、泊松比等不同材料；② 更多 baseline（RigidFormer）；③ 压深更大、形变更大的情况。</li>
-<li>本页顺序：第 1 节导师上次的问题；第 2 节上次组会后完成的；第 3 节 baseline 和它们的假设；第 4 节大压深怎么造；第 5 节 8 个算例和按原理的预期；第 6 节 8 个算例的结果；第 7 节同一算例有两个静止状态时取哪个；第 8 节读数和预处理的两项检查；第 9 节造一个标签要多久；第 10 节和导师的区别；第 11 节 RigidFormer。</li>
-</ul>
-<p class="kp">本页结论：大压深按导师的 rigid 锁加 IPC 接触造，两侧都是软体普通网格；8 个算例都已算完，重叠深度核对通过；这 8 格的标签能量差全部为负，和只能给出非负能量的骨架在符号上不相容，加 mode 也补不了（不说明 GT 错了），骨架找接触区也失败，给不出读数。换接触模型的读数检查按原判据不通过，原因已查清；通用逐物体预处理下骨架读数只变 −1.33%，但还没有提速；造一个大压深标签最快的做法比从头静态解快 2.9 倍，离 10 倍还远。</p></div>
-<section id="w20"><h2>导师上次的问题</h2>
-<ul>
-<li>下面 9 问一问一答：每问先给结论，再给第 5–6 周页面里讲细的那一节；出处（论文、代码版本与行号）放在每问的折叠块里。</li>
-</ul>
-<h3 id="w20-1">泊松比和刚度：两边各自怎么进公式</h3>
+<div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 一、Pipeline：本周的变化</a>
+<a class="toc-level-3" href="#w1-1">1.1 大压深 GT pipeline</a>
+<a class="toc-level-3" href="#w1-2">1.2 骨架 pipeline：mode 每个物体只算一次</a>
+<a class="toc-level-3" href="#w1-3">1.3 刚度、泊松比怎么进两条 pipeline</a>
+<a class="toc-level-2" href="#w2">2. 二、验证</a>
+<a class="toc-level-3" href="#w2-1">2.1 大压深：补第 5–6 周 edge case 的压深</a>
+<a class="toc-level-3" href="#w2-2">2.2 软硬对调：检验「第一项管等效，第二项管个体」</a>
+<a class="toc-level-3" href="#w2-3">2.3 每个物体一套 mode 能复用：支持</a>
+<a class="toc-level-2" href="#w3">3. 三、Research</a>
+<a class="toc-level-2" href="#w4">4. 下周 TODO</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<header class="top"><h1>第 7 周：大压深、软硬与泊松比对调</h1></header>
+<div class="lead"><p><strong>结论。</strong> 这周做了三件事。第一，第 5–6 周的 edge case 都只是表面浅压，这周补上了真正的大压深：兔和龙两个软体自然压到一起，不变形时的重叠达到兔子高度的 1/3 和 1/2，8 格的标准答案（静止后的总弹性能）都已算出；骨架在大压深下的接触区划分目前在摆放位失败，外层最小化与大压深修复待补。第二，我们用软硬对调检验「第一项管等效、第二项管个体」：标准答案在对调前后明显不同，刚度对调差 5 到 6 倍，而只认等效模量的 Hertz、半空间 BEM 以及去掉第二项的骨架都分不出来，所以第二项是必要的，这一点得到支持；完整的骨架能不能分开还待测。第三，每个物体算一次的 mode 换一个接触部位、换一个对手都能直接复用，这一点也得到支持。</p></div>
+<section id="w1"><h2>一、Pipeline：本周的变化</h2>
+<h3 id="w1-1" class="numbered">1.1 大压深 GT pipeline</h3>
 
-<ul>
-<li><strong>我们</strong>：GT 里每个物体用自己的 \(E\)、\(\nu\) 换成拉梅参数，进超弹性材料。骨架里两个物体各用自己的平面应变模量 \(E&#x27;=E/(1-\nu^2)\)，两边的柔度相加，不合成一个 \(E^*\)；mode 项也按每个物体自己的 \(E\)、\(\nu\) 预先算，\(E\) 变了只要整体缩放，\(\nu\) 变了要重算。</li>
-<li><strong>导师</strong>：GT 里每个物体也是拉梅参数进 Stable Neo-Hookean。模型里先合成一个 \(E^*\)（\(1/E^*=\sum_k(1-\nu_k^2)/E_k\)），Hertz 先验只认 \(E^*\)，每个物体的 \(\nu\) 和柔度份额当作网络特征进修正项 \(g\)。</li>
-<li>详见 <a href="week5.html#w2">第 5–6 周 §2 刚度和泊松比怎么进公式</a>、<a href="week5.html#w12-2">§11.2 两边材料对照</a>。</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li>
-<p>本节代码版本：Neural-IPC-sandbox commit 3c27ef6e；导师代码 YumengHe/NeuralIPC origin/main 0f605ea（11-20 fetch，无更新）。</p>
-</li>
-<li>
-<p>我们的骨架：每个物体的 \(E&#x27;\) 在 <span data-ev="泊松比和刚度：两边各自怎·L31·1"></span>；每一侧的半空间项乘 \(1/E&#x27;_b\) 在 <span data-ev="泊松比和刚度：两边各自怎·L31·2"></span>；mode 预处理按物体自己的 \(E\)、\(\nu\) 建模在 <span data-ev="泊松比和刚度：两边各自怎·L31·4"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L31·3"></span></p>
-</li>
-<li>我们的 GT：四种材料的 \((E,\nu)\) 表在 <span data-ev="泊松比和刚度：两边各自怎·L32·1"></span>；能量 \(\Psi\) 在 <span data-ev="泊松比和刚度：两边各自怎·L32·3"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L32·2"></span></li>
-<li>「\(E\) 只需缩放、压缩性变了要重算」：（依据：James &amp; Pai 2001）<span data-ev="泊松比和刚度：两边各自怎·L33·1"></span></li>
-<li>导师的模型：\(E^*\) 定义 <span data-ev="泊松比和刚度：两边各自怎·L34·1"></span>，柔度份额 <span data-ev="泊松比和刚度：两边各自怎·L34·2"></span>，每个物体的 \(\nu\) 和份额进特征 <span data-ev="泊松比和刚度：两边各自怎·L34·3"></span>；<span data-ev="泊松比和刚度：两边各自怎·L34·4"></span>（\(U=E^*\cdot\tfrac{8}{15}\sqrt{R_{\rm fit}}\,\delta^{5/2}\cdot e^{g}\)）、<span data-ev="泊松比和刚度：两边各自怎·L34·6"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L34·5"></span></li>
-<li>导师的 GT：拉梅换算 <span data-ev="泊松比和刚度：两边各自怎·L35·1"></span>，每个物体各自的 \(E\)、\(\nu\) <span data-ev="泊松比和刚度：两边各自怎·L35·3"></span>；批量求解器同样换算 <span data-ev="泊松比和刚度：两边各自怎·L35·4"></span>、<span data-ev="泊松比和刚度：两边各自怎·L35·5"></span>。（依据：实现代码）<span data-ev="泊松比和刚度：两边各自怎·L35·2"></span></li>
-</ul></details>
-<h3 id="w20-2">为什么用整体 mode，不用局部的</h3>
+<figure><img src="assets/images/w7_W1_setup_3panel.png" alt="" loading="lazy"></figure>
+<p><em>大压深 GT 造法三栏示意：按未变形轮廓摆出目标重叠高度（\(H/3\) 或 \(H/2\)）、仅锁质心与转角推近、IPC 松弛至静止平衡变形。</em></p>
+<p>大压深 GT 的输入是兔和龙的网格、各自的 \(E,\nu\) ，以及目标压深。压深用的是接触力学里的标准定义（Popov, Heß &amp; Willert 2019 §2.2）：两个物体按不变形的形状摆着时，重叠区沿压入方向的最大高度。第一步是摆放：按不变形的形状二分求出兔子的质心要往龙那边推多远，才能让重叠高度正好等于目标，1/3 档要推 3.771，1/2 档要推 5.114。龙在接触处比较细，所以质心要推得比重叠高度更多。第二步是求静止：只锁每个物体的质心和转角，拉伸和剪切全部放开，用 IPC 解到静止。这样没有任何外力把物体压扁，两个物体只靠接触自己变形；之所以还要锁转角，是因为两个无摩擦的软体顶在一起会转开、滑走，压不深。第三步用静止形状的精细能量减去粗模型的能量，得到标签 \(U\) 。</p>
+<p>第二步用到的约束、接触势垒和材料如下：</p>
+<p>\[\bar x_k=\bar x_k^{\ast},\qquad \mathrm{skew}(A_k)=0,\qquad A_k=(\sum_iw_ix_ir_i^\top)(\sum_iw_ir_ir_i^\top)^{-1}\]</p>
+<p>\[b(d)=\kappa(d^2-\hat d^2)^2[\ln\frac{d^2}{\hat d^2}]^2,\qquad \Psi(F)=\frac{\mu}{2}(\mathrm{tr}F^\top F-3)-\mu\ln J+\frac{\lambda}{2}(\ln J)^2\]</p>
+<p>其中 \(w_i\) 是节点的质量占比， \(r_i\) 是静止时节点到质心的向量。 \(b\) 是 IPC 的势垒（Li 等 2020），保证全程不穿透； \(\Psi\) 是 neo-Hookean 材料，其中的 \(\ln J\) 项保证单元不会被压翻。</p>
+<details><summary>推导</summary><p>下面从锁的定义出发，推到「只锁质心和转角，两个物体之间就只靠接触相互作用」。</p>
+<p>（1）设每个物体的节点位置是 \(x_i\) ，质量占比是 \(w_i\) ，静止时到质心的向量是 \(r_i\) ，于是 \(\sum_iw_ir_i=0\) 。记 \(S=\sum_iw_ir_ir_i^\top\) ，质量加权的仿射拟合就是 \(A=(\sum_iw_ix_ir_i^\top)S^{-1}\) 。</p>
+<p>（2）当物体做一个均匀变形 \(x_i=FX_i+t\) 时，静止位置可以写成 \(X_i=\bar X+r_i\) 。因为 \(\sum_iw_ir_i=0\) ，所以 \(\sum_iw_ix_ir_i^\top=F\sum_iw_ir_ir_i^\top=FS\) ，也就是 \(A=F\) 。【<span class="note-cond">条件：均匀变形】</span></p>
+<p>（3）所以锁住 \(\mathrm{skew}(A)=0\) ，锁的只是 \(F\) 的反对称部分，也就是转动；对称部分，也就是拉伸和剪切，完全不受约束。另外再把质心 \(\bar x=\sum_iw_ix_i\) 锁在目标位置。</p>
+<p>（4）把这两个约束合起来写成 \(Gx=c^{\ast}\) ，在约束下让总能量 \(\Pi\) （弹性能加 IPC 势垒）最小，最优条件是 \(\nabla\Pi(x)=G^\top\lambda\) 。</p>
+<p>（5）质心约束对节点 \(i\) 的梯度是 \(w_iI\) ，所以它的反力是 \(w_i\lambda_c\) 。这个力和节点质量成正比、方向处处相同，就像一个均匀的重力，不会在局部把物体压扁。</p>
+<p>（6）静止时每个物体受力平衡，这个均匀体力的合力 \(\lambda_c\) 就等于对方压过来的接触合力，所以两个物体之间只靠接触相互作用。【<span class="note-cond">条件：静止（受力平衡）】</span></p>
+<p>（7）每一步牛顿迭代解的是下面这个加边的 KKT 方程。约束是线性的，所以每一步都精确满足约束。</p>
+<p>\[H\Delta x+G^\top\lambda=-\nabla\Pi,\qquad G\Delta x=c^{\ast}-Gx.\]</p>
+<p>（8）之所以要锁转角，是因为两个无摩擦的软体顶在一起时横向不稳定，不锁就会转开、滑走，压不深。【<span class="note-cond">条件：无摩擦】</span></p></details>
+<h3 id="w1-2" class="numbered">1.2 骨架 pipeline：mode 每个物体只算一次</h3>
 
-<ul>
-<li>mode 是「在 \(y\) 压一下，\(x\) 退多少」这张柔度表的一组基，不是某一次碰撞的形状。碰不同的位置，压强投到每个 mode 上的系数不同，拼出来的变形就不同。</li>
-<li>跟位置有关、变化很尖的那部分（接触点附近的 \(1/r\)）在半空间项里，每次接触都现算；mode 只管剩下的、整个物体尺度上光滑的那部分，所以几十个就够。</li>
-<li>详见 <a href="week5.html#a2m-7">第 5–6 周 §11.4「为什么用整体 mode 而不是局部查表」</a>。</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li>一次接触的 mode 位移 \(u(x)=\sum_m\sigma_m r_m(x)\big(\sum_j r_m(y_j)p_jh^2\big)\)：直接推导，由 \(G_R(x,y)\approx\sum_m\sigma_mr_m(x)r_m(y)\) 作用在本次接触的压强上。</li>
-<li>代码里只在本次接触的命中点上取 \(r_m\)<span data-ev="为什么用整体mode，·L48·1"></span>，再作用到本次的 \(p\) 上<span data-ev="为什么用整体mode，·L48·3"></span>。（依据：实现代码）<span data-ev="为什么用整体mode，·L48·2"></span></li>
-<li>龙压鸭从 0 个加到 19 个 mode，骨架 ÷ IPC 从 2.157 降到 0.868，之后到 80 个只在 0.868–0.857 之间变。（依据：结果文件 见第 5–6 周 §6.4 表）</li>
-</ul></details>
-<h3 id="w20-3">mode 是怎么算出来的</h3>
+<figure><img src="assets/images/w7_W2_mode_reuse.png" alt="" loading="lazy"></figure>
+<p><em>同一份龙的 mode 从龙压鸭接触点（左）直接复用到龙压兔接触点（右）。</em></p>
+<p>骨架的 pipeline 和第 5–6 周 1.2 节一样：每个物体先离线预处理出 mode，实时阶段再用粗状态经过两项公式得到能量。这周的变化是把预处理定为每个物体只算一次。mode 只由物体自己的几何和材料决定，所以不管对手是谁、撞在哪里，都用这一份，复用的验证见 2.3 节。</p>
+<h3 id="w1-3" class="numbered">1.3 刚度、泊松比怎么进两条 pipeline</h3>
 
-<ul>
-<li>输入是一个物体的四面体网格和 \(E\)、\(\nu\)；算「锁住 12 个仿射自由度后的真实表面柔度 − 半空间柔度」的前 80 个特征方向，输出 80 个柔度 \(\sigma_m\) 和每个表面点上的 mode 值 \(r_m\)。</li>
-<li>实测（逐物体网格）：龙 95.5 分钟、鸭 49.2 分钟。</li>
-<li>详见 <a href="week5.html#w14-3">第 5–6 周 §12.3 预处理：输入 / 公式与推导 / 输出</a>、<a href="week5.html#w6">§6 mode 怎么求</a>。</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li>主式子 \(W^{-1/2}(\hat B^\top K_{\rm lock}^{+}\hat B-H)W^{-1/2}v_m=\sigma_mv_m\) 的推导与每步出处在第 5–6 周 §12.3 的折叠块里。</li>
-<li>耗时：龙 网格 80.1 s + mode 5648.1 s，鸭 网格 38.5 s + mode 2915.0 s。（依据：实验记录）<span data-ev="mode是怎么算出来的·L62·1"></span></li>
-</ul></details>
-<h3 id="w20-4">能不能按 patch 局部做（导师原话「不同patch去单独加密去存然后用的时候去根据撞的地方去找」）</h3>
+<p>这是上次开会讨论到的问题。在 GT 里，每个物体的 \(E,\nu\) 换成拉梅参数进 neo-Hookean 材料。在骨架里，每个物体用自己的 \(1/E_b^{\prime}=(1-\nu_b^2)/E_b\) 进第一项，用自己的 \(\sigma_{b,m}\propto1/E_b\) 进第二项； \(E\) 变了 mode 只需要缩放， \(\nu\) 变了才需要重算。这样第一项只认等效模量 \(E^{\ast}\) ，第二项带着每个物体自己的形状，这个分工在 2.2 节用软硬对调来检验。</p></section>
+<section id="w2"><h2>二、验证</h2>
+<h3 id="w2-1" class="numbered">2.1 大压深：补第 5–6 周 edge case 的压深</h3>
 
-<ul>
-<li><strong>每个 patch 单独存、彼此不耦合：不合理</strong>。同一个物体被压在两处时，两处会通过整个物体互相影响；之前的多处接触实测里，把整体项按片拆开、片之间不耦合，片上的合力最多偏 23%。要覆盖任意部位、任意多处接触，存的东西就变成整个表面两两之间的柔度表。</li>
-<li><strong>每次接触现场只解碰到的那几格</strong>（每个物体存一份分解，每次接触对每个候选格回代一次）：龙压鸭有 3614 个候选格。用龙的逐物体预处理里实测的回代耗时算：GPU 上回代本身每格 0.0052 s，3614 格共 19 s（IPC 同一接触 204 s 的 0.09 倍）；但每格的载荷要传上 GPU、位移要传回来再读出表面值，按现在代码实测每格 0.39 s（中位），3614 格共 1408 s，是 IPC 的 6.9 倍。现行整体 mode 每次接触的骨架求解只要约 0.8 s。所以这条路要比 IPC 快，必须先把传输和读出从每格 0.39 s 压到 0.05 s 以下，而且每次接触的计算量随网格自由度增长（龙 102 万自由度）。<sup class="note-src">[1]</sup></li>
-<li><strong>和整体 mode 比</strong>：整体 mode 天然把一个物体上所有接触耦合在一起，存储只有 \(80\times\) 表面点数。</li>
-<li>详见 <a href="week5.html#a2m-7">第 5–6 周 §11.4 代价对比</a>。</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li>
-<p><span class="note-src">[1] 实验记录：每次接触 = 每格秒数 × 3614（直接相乘） <span data-ev="1"></span></span></p>
-</li>
-<li>
-<p>多处接触按片拆开片力偏 23%、整体项必须不分片：（依据：项目规范文档 第 2 级（多接触）结论一条）</p>
-</li>
-<li>三种候选（现行整体 mode、patch 精确块不耦合、每物体一次分解每次回代）的判定：（依据：设计与审核记录）<span data-ev="能不能按patch局·L78·1"></span> patch 不耦合败在多处耦合和整表面存储两条，每次回代败在「每次接触的计算量随网格增长」一条。</li>
-<li>3614 个候选格：（依据：实验记录）<span data-ev="能不能按patch局·L79·1"></span></li>
-</ul></details>
-<h3 id="w20-5">是不是一个物体只算一次，就能用在所有情况</h3>
-
-<ul>
-<li><strong>已经做到的</strong>：<ul>
-<li>每个物体一张只由自己几何决定、与接触位置无关的均匀网格，算一次 mode。龙压鸭换成这种逐物体预处理后，骨架 ÷ IPC 从 0.8568 变成 0.8454（−1.33%）。</li>
-<li><strong>同一份 mode 换一个接触部位、换一个对手再用一次：本例可用。</strong> 龙压鸭那一次算的同一份龙的 mode，经刚体坐标映射搬到龙压兔（第 12 号普通样本，龙上另一个接触点、另一个对手）。<ul>
-<li>只换龙的 mode（另一侧保持逐场景）时，骨架 ÷ IPC 的变化：龙压兔 0.8921 → 0.8890（−0.31 个百分点），龙压鸭 0.8568 → 0.8454（−1.14 个百分点）。</li>
-<li>复用代价 = (−0.31) − (−1.14) = +0.83 个百分点，在开跑前写定的 1 个百分点线以内<sup class="note-src">[2]</sup>；离线只有 0.17 个百分点，只是这一例。</li>
-<li>坐标映射核过：转换矩阵行列式 1.0000、正交误差 6.7e−16，映射后龙表面点到 mode 网格表面的距离中位数 1.5e−3（线 8e−3）、p99 0.020（代码门限 0.041）。</li>
-<li>两侧都换成逐物体 mode 时，龙压兔为 0.8891（对逐场景 −0.30 个百分点）。</li>
-<li>跑法：11-20 23:06 先在短作业道起跑，服务器 CPU 被占满（负载约 475，128 核），第一条在 15 分钟上限被停；11-21 01:00 改到 GPU 4、5 的长作业道，六条并行。其中两条卡在 CPU 闸门的旧版（等待时一直持锁），01:39 按 PID 停掉这两条等待进程，用修好的闸门重起，正在跑的两条没动；02:22 六条全部退出码 0。每条 618–1066 s；只跑 \(k=80\) 的计时那条在高负载下用了 1854 s，不能当每次接触的耗时<sup class="note-src">[3]</sup>。</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><strong>还没做到的</strong>：<ul>
-<li>龙的预处理 95.5 分钟，超过每个物体 60 分钟的线，卡在机器内存回收。</li>
-<li>mode 锁的是 12 个仿射自由度，本周 GT 只锁质心和转角 6 个，两者不一致，还没改。</li>
-</ul>
-</li>
-<li>详见 <a href="#w10-2">本页 §8.2</a>、<a href="week5.html#a2m-lim">第 5–6 周 §11.4 已知限制</a>。</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li><span class="note-src">[2] 文献 <span data-ev="2"></span></span></li>
-<li>
-<p><span class="note-src">[3] 核对脚本：k = 80 与 Ritz 残差 ≤ 0.01 的最大 k（都是 80）；复用代价 +0.0083；龙压鸭逐场景对照在当前 main 上重跑为 0.856845；与 11-12 的旧结果 0.8568 一致 <span data-ev="3"></span></span></p>
-</li>
-<li>
-<p>0.8454 与 0.8568、网格边长与节点数、95.5 / 49.2 分钟、内存回收证据：（依据：实验记录：见本页 §8.2）<span data-ev="是不是一个物体只算一次，·L103·1"></span></p>
-</li>
-<li>锁法不一致：mode 用 12 行锁<span data-ev="是不是一个物体只算一次，·L104·2"></span>，本周 GT 锁质心和 skew(A) 共 6 行<span data-ev="是不是一个物体只算一次，·L104·3"></span>。（依据：实现代码）<span data-ev="是不是一个物体只算一次，·L104·1"></span></li>
-</ul></details>
-<h3 id="w20-6">GT 怎么做的：线性还是非线性，是不是线弹性</h3>
-
-<ul>
-<li><strong>我们的 GT</strong>：三维有限元，材料是带体积屏障的 neo-Hookean（超弹性，大变形），接触是 IPC 势垒，全程不穿透，无摩擦。它是非线性的，不是线弹性；线弹性只在诊断时当参照用。</li>
-<li><strong>导师的 GT</strong>：三维用 libuipc，材料是 Stable Neo-Hookean（超弹性），接触是 al-ipc，只加体力、不锁转动；批量标签用同一能量的 torch 求解器，接触是罚函数（允许穿透），12 个仿射自由度全锁；另有二维轴对称参照，可选线弹性、neo-Hookean、Gent。</li>
-<li>所以两边的 GT 都是非线性超弹性；区别在接触（IPC 对 罚函数）和边界（锁质心转角 对 只加体力 / 全锁）。</li>
-<li>详见 <a href="week5.html#w12-2">第 5–6 周 §11.2 材料对照表</a>、<a href="#w3">本页 §4 大压深怎么造</a>。</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li>我们：能量 <span data-ev="GT怎么做的：线性还是·L117·2"></span>；IPC 接触与连续碰撞检测在 <span data-ev="GT怎么做的：线性还是·L117·3"></span>（CCD 设置）。（依据：实现代码）<span data-ev="GT怎么做的：线性还是·L117·1"></span></li>
-<li>导师：<span data-ev="GT怎么做的：线性还是·L118·2"></span>（StableNeoHookean）、<span data-ev="GT怎么做的：线性还是·L118·3"></span>（al-ipc κ）；<span data-ev="GT怎么做的：线性还是·L118·4"></span>（罚函数接触）；<span data-ev="GT怎么做的：线性还是·L118·5"></span>（线弹性 / SNH / Gent 三种能量）。（依据：实现代码）<span data-ev="GT怎么做的：线性还是·L118·1"></span></li>
-</ul></details>
-<h3 id="w20-7">能力对照：我们和导师的 GT、骨架各能做什么</h3>
-
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th></th>
-<th>我们的 GT</th>
-<th>我们的骨架</th>
-<th>导师的 GT</th>
-<th>导师的模型</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>线性（小变形）</td>
-<td>能：小变形时 neo-Hookean 退化为线弹性<sup class="note-src">[4]</sup></td>
-<td>能：只有线弹性<sup class="note-src">[5]</sup></td>
-<td>能：同左<sup class="note-src">[6]</sup></td>
-<td>能：Hertz 先验<sup class="note-src">[7]</sup></td>
-</tr>
-<tr>
-<td>线弹性</td>
-<td>部分：只作诊断参照<sup class="note-src">[8]</sup></td>
-<td>能（同上）</td>
-<td>部分：二维轴对称可选线弹性<sup class="note-src">[9]</sup></td>
-<td>部分：只有 Hertz 那一项<sup class="note-src">[10]</sup></td>
-</tr>
-<tr>
-<td>非线弹性（超弹性、大变形）</td>
-<td>能<sup class="note-src">[11]</sup></td>
-<td>不能：纯线弹性</td>
-<td>能<sup class="note-src">[12]</sup></td>
-<td>部分：交给网络 \(g\)<sup class="note-src">[13]</sup></td>
-</tr>
-<tr>
-<td>IPC 不穿透</td>
-<td>能<sup class="note-src">[14]</sup></td>
-<td>不能：余能二次规划没有势垒</td>
-<td>部分：三维 al-ipc 不穿透；批量罚函数允许穿透<sup class="note-src">[15]</sup></td>
-<td>不能：直接给能量</td>
-</tr>
-<tr>
-<td>泊松比（两侧不同）</td>
-<td>能<sup class="note-src">[16]</sup></td>
-<td>能<sup class="note-src">[17]</sup></td>
-<td>能<sup class="note-src">[18]</sup></td>
-<td>能：\(\nu\) 进特征<sup class="note-src">[19]</sup></td>
-</tr>
-<tr>
-<td>两侧刚度不同</td>
-<td>能<sup class="note-src">[20]</sup></td>
-<td>能<sup class="note-src">[21]</sup></td>
-<td>能<sup class="note-src">[22]</sup></td>
-<td>部分：先验只认 \(E^*\)，对调不变<sup class="note-src">[23]</sup></td>
-</tr>
-<tr>
-<td>任意网格形状</td>
-<td>能：兔、龙、鸭<sup class="note-src">[24]</sup></td>
-<td>能：同一张表面网格</td>
-<td>不能：代码里只有球<sup class="note-src">[25]</sup></td>
-<td>部分：椭球闭式表面<sup class="note-src">[26]</sup></td>
-</tr>
-<tr>
-<td>有限厚度（不当半空间）</td>
-<td>能：整个物体有限元</td>
-<td>部分：局部项是半空间核，mode 项补有限大小</td>
-<td>能：整个物体有限元</td>
-<td>部分：先验是半空间 Hertz</td>
-</tr>
-<tr>
-<td>大压深</td>
-<td>能：8 格全部跑完，重叠深度核对通过（见下一小节）</td>
-<td>部分：上一版推近 \(H/6\) 的状态读数对标签 +1.6% / +9.4%（两张网格）；推近 \(H/3\) 的状态 \(k\ge5\) 被判定规则拒掉，读不出数（见下一小节）</td>
-<td>部分：三维到 \(\delta/R_{\rm eff}=0.10\)<sup class="note-src">[27]</sup>，轴对称更深<sup class="note-src">[28]</sup></td>
-<td>不能：训练和评测的压深最大 0.04（球半径 1，\(\delta/R_{\rm eff}\le0.12\)），更深的数据没有进它的训练和评测（见下一小节）</td>
-</tr>
-</tbody>
-</table></div>
-<details><summary>出处</summary><ul>
-<li><span class="note-src">[4] 材料能量实现 <span data-ev="4"></span></span></li>
-<li><span class="note-src">[5] 线弹性参照与 mode 预处理实现 <span data-ev="5"></span></span></li>
-<li><span class="note-src">[6] 导师代码 NeuralIPC <span data-ev="6"></span></span></li>
-<li><span class="note-src">[7] 导师代码 NeuralIPC <span data-ev="7"></span></span></li>
-<li><span class="note-src">[8] 线弹性参照与 mode 预处理实现 <span data-ev="8"></span></span></li>
-<li><span class="note-src">[9] 导师代码 NeuralIPC <span data-ev="9"></span></span></li>
-<li><span class="note-src">[10] 导师代码 NeuralIPC <span data-ev="10"></span></span></li>
-<li><span class="note-src">[11] 材料能量实现 <span data-ev="11"></span></span></li>
-<li><span class="note-src">[12] 导师代码 NeuralIPC <span data-ev="12"></span></span></li>
-<li><span class="note-src">[13] 导师代码 NeuralIPC <span data-ev="13"></span></span></li>
-<li><span class="note-src">[14] GT 标签实现（深压 KKT 锁） <span data-ev="14"></span></span></li>
-<li><span class="note-src">[15] 导师代码 NeuralIPC <span data-ev="15"></span></span></li>
-<li><span class="note-src">[16] GT 标签实现（深压 KKT 锁） <span data-ev="16"></span></span></li>
-<li><span class="note-src">[17] 骨架实现 <span data-ev="17"></span></span></li>
-<li><span class="note-src">[18] 导师代码 NeuralIPC <span data-ev="18"></span></span></li>
-<li><span class="note-src">[19] 导师代码 NeuralIPC <span data-ev="19"></span></span></li>
-<li><span class="note-src">[20] GT 标签实现（深压 KKT 锁） <span data-ev="20"></span></span></li>
-<li><span class="note-src">[21] 骨架实现 <span data-ev="21"></span></span></li>
-<li><span class="note-src">[22] 导师代码 NeuralIPC <span data-ev="22"></span></span></li>
-<li><span class="note-src">[23] 导师代码 NeuralIPC <span data-ev="23"></span></span></li>
-<li><span class="note-src">[24] GT 标签实现（深压 KKT 锁） <span data-ev="24"></span></span></li>
-<li><span class="note-src">[25] 导师代码 NeuralIPC <span data-ev="25"></span></span></li>
-<li><span class="note-src">[26] 导师代码 NeuralIPC <span data-ev="26"></span></span></li>
-<li><span class="note-src">[27] 导师代码 NeuralIPC <span data-ev="27"></span></span></li>
-<li><span class="note-src">[28] 导师代码 NeuralIPC <span data-ev="28"></span></span></li>
-</ul></details>
-<h3 id="w20-8">大压深能不能做</h3>
-
-<ul>
-<li><strong>什么叫大压深（用户定义）</strong>：两个物体按不变形的形状摆在当前位置时，重叠区沿 \(y\) 方向的最大高度 = \(H_A/2\) 或 \(H_A/3\)（\(H_A\) 是兔子包围盒高度）。</li>
-<li><strong>GT 怎么造</strong>：只锁两个物体的质心和转角，IPC 接触、带体积屏障的 neo-Hookean 材料；兔子质心的移动量 \(\delta^*\) 由几何二分求出，使重叠高度恰好等于目标；从上一版的静止状态接着把质心推到 \(\delta^*\)。</li>
-<li><strong>做到哪一步</strong>：8 个算例都从上一版的静止状态（或冷启动已收敛的中间档）接着推到 \(\delta^*\)。8 格全部跑完，重叠高度 ÷ \(H_A\) 为 0.33335（1/3 档 4 格）、0.49996（1/2 档 4 格），都在目标的 1% 以内<sup class="note-src">[30]</sup>。<sup class="note-src">[29]</sup> \(\delta^*\)：1/3 档 3.7709（\(0.408H_A\)，重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.554H_A\)，重叠高度 \(0.49996H_A\)）；上一版的推近量 3.0772 只给出 \(0.274H_A\) 的重叠。</li>
-<li><strong>骨架能不能处理</strong>：骨架是线弹性、小变形、法向沿一个方向的余能二次规划，半空间项还假设接触区里表面坡度小；大压深下材料非线性、接触区坡度大、mode 不随变形重新线性化，这几处都会失效。实测（上一版深压状态：兔子质心推近 \(H/6\)、\(H/3\)，当时 12 维全锁，现已不用于造例子；区法向用重叠体积梯度）：<ul>
-<li>推近 \(H/6\)：同一状态两张网格，\(k=80\) 骨架 ÷ IPC 标签 = +1.6%（原网格）、+9.4%（细网格），两张网格之间骨架读数差 0.8–2.2%。</li>
-<li>推近 \(H/3\)：\(k=0\) 能读出（130,173，是标签 50,249.55 的 2.6 倍）；\(k\ge5\) 全部被同层判定拒掉（固定 66 个回退格超过「主动格 × 20%」上限），读不出数。</li>
-<li>所以现行骨架在 \(H/6\) 能出数、误差到 9.4%，在 \(H/3\) 判定规则就不让它出数。<sup class="note-src">[31]</sup></li>
-<li>现行 8 个标签状态（重叠高度 \(H_A/3\)、\(H_A/2\)），第一层原因在符号上。标签取 \(U_{\mathrm{fit}}=E_{\mathrm{fine}}-E_{\mathrm{coarse,fit}}\)，\(E_{\mathrm{coarse,fit}}\) 是每个物体做质量加权仿射拟合后粗模型的弹性能；8 格的 \(U_{\mathrm{fit}}\) 全部为负，从 \(-1.0\times10^6\) 到 \(-1.8\times10^7\)。骨架由 \(p\ge0\)、互补条件 \(p_i\big((Cp)_i-g_i\big)=0\) 和 \(C\succ0\) 直接推出 \(U_{\mathrm{skel}}=\tfrac{h^2}{2}p^\top g=\tfrac{h^2}{2}p^\top Cp\ge0\)，所以相对误差 \(\dfrac{|U_{\mathrm{skel}}-U_{\mathrm{fit}}|}{|U_{\mathrm{fit}}|}=1+\dfrac{U_{\mathrm{skel}}}{|U_{\mathrm{fit}}|}\ge100\%\)。负号的来源：龙做仿射拟合后一个方向压、一个方向伸（例如泊松比对调 1/2 档，龙的拟合矩阵对角是 0.90、0.39、1.28），\(E_{\mathrm{coarse,fit}}\) 比 \(E_{\mathrm{fine}}\) 大 1~2 个量级。所以这个标签口径和正能量骨架在符号上不相容，加 mode 也补不了；这不说明 GT 错了，只说明这个口径下的能量差不是骨架能表示的量。<span data-ev="w7-deep8-sign"></span></li>
-<li>第二层原因：骨架找接触区这一步也失败，重新播种 2 轮后仍有重叠块不属于任何接触区（1/3 档 1 块，1/2 档 5 块），给不出读数。<span data-ev="w7-deep8"></span></li>
-</ul>
-</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li><span class="note-src">[29] 实验记录 <span data-ev="29"></span></span></li>
-<li><span class="note-src">[30] 实验记录 <span data-ev="30"></span></span></li>
-<li>
-<p><span class="note-src">[31] 实验记录：标签值取自同一行的分工结果表 06：29 行 <span data-ev="31"></span></span></p>
-</li>
-<li>
-<p>用户定义原话见本页 §4.1。</p>
-</li>
-<li>\(\delta^*\)、重叠高度、各格起点（1/3 档从上一版终态、1/2 档 Bx10 和 nuA02B045 从冷启动的中间档）：（依据：设计与审核记录；实现代码）<span data-ev="大压深能不能做·L183·1"></span></li>
-<li>骨架的成立条件（线弹性小应变、坡度小、mode 不随变形重新线性化）：（依据：第 5–6 周 §11.5 总体成立条件；代码  文档串（mode 不按变形后形状重新线性化））<span data-ev="大压深能不能做·L184·2"></span>；半空间叠加要求线弹性和坡度小：（依据：Popov, Heß &amp; Willert 2019，§2.2）<span data-ev="大压深能不能做·L184·1"></span></li>
-<li>导师模型的压深范围（导师仓库 YumengHe/NeuralIPC，commit 0f605ea，逐行核过）：<ul>
-<li>模型训练和评测读的三个数据集都在 <span data-ev="大压深能不能做·L186·2"></span>、<span data-ev="大压深能不能做·L186·3"></span>、<span data-ev="大压深能不能做·L186·4"></span>（softsoft_dataset_p2、softsoft_hertz_clean_p2、softrigid_dataset_p2）。（依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L186·1"></span></li>
-<li>这三个数据集的压深都在 \(\delta\in[0.005,\,0.04]\) 里取（球半径 \(R_1=1\)）；软–硬数据集直接沿用同一组压深。<span data-ev="w7-depths"></span>（依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L187·1"></span> （依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L187·2"></span></li>
-<li>球半径 \(R_1=1\)、\(R_2\in[0.5,2]\)，所以 \(R_{\rm eff}=R_1R_2/(R_1+R_2)\in[1/3,2/3]\)，\(\delta/R_{\rm eff}\le0.04\times3=0.12\)。（依据：导师代码 NeuralIPC）<span data-ev="大压深能不能做·L188·1"></span> （依据：直接推导: \(R_{\rm eff,min}=1\cdot0.5/1.5=1/3\)，\(0.04/(1/3)=0.12\)）</li>
-<li>轴对称深压数据（到 \(0.2R_{\rm eff}\)，<span data-ev="大压深能不能做·L189·2"></span>）只被 <span data-ev="大压深能不能做·L189·3"></span> 读，用来测我们旧版骨架；<span data-ev="大压深能不能做·L189·4"></span> 与 <span data-ev="大压深能不能做·L189·5"></span> 里没有读它的代码（全文搜 axisym 为 0 处）。（依据：实现代码）<span data-ev="大压深能不能做·L189·1"></span></li>
-</ul>
-</li>
-<li>骨架深压实测的状态与判定：（依据：实验记录）<span data-ev="大压深能不能做·L190·1"></span> 代码 <span data-ev="大压深能不能做·L190·2"></span>（328ef7b7）。</li>
-</ul></details>
-<h3 id="w20-9">软硬对调能不能做</h3>
-
-<ul>
-<li><strong>怎么进 GT</strong>：每个物体各自的 \(E\)、\(\nu\) 进材料，软硬对调只改两边的 \(E\)，泊松比对调只改两边的 \(\nu\)，网格和锁都不变。</li>
-<li><strong>怎么进骨架</strong>：每个物体各自的 \(E&#x27;\) 进半空间项，各自的 mode 进 mode 项，所以对调后两边的柔度跟着换；只认 \(E^*\) 的 Hertz、半空间 BEM 对调前后完全一样。</li>
-<li><strong>按原理的预期</strong>：两边受同一个压力，各自的压陷 \(\propto(1-\nu_k^2)/E_k\)；刚度差 10 倍时软的一边承担约 91% 的压陷，泊松比对调时两边分到 54.6% 和 45.4%。（本页 §5.1）</li>
-<li><strong>结果</strong>：8 个标签都已算完（软硬对调、泊松比对调各 4 格）。这 8 格的标签 \(U_{\mathrm{fit}}\) 全部为负，而骨架能量 \(U_{\mathrm{skel}}\ge0\)，两者在符号上不相容，相对误差下界 100%，加 mode 也补不了（推导见上一小节；这不说明 GT 错了）。第二层原因是骨架在这 8 个状态上找接触区失败、给不出读数。所以对调前后骨架读数的比较做不了。</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li>材料表 <span data-ev="软硬对调能不能做·L203·1"></span>；骨架每侧 \(1/E&#x27;_b\) <span data-ev="软硬对调能不能做·L203·3"></span>。（依据：实现代码）<span data-ev="软硬对调能不能做·L203·2"></span></li>
-<li>半空间分配：（依据：Popov, Heß &amp; Willert 2019，式 (2.1)）<span data-ev="软硬对调能不能做·L204·1"></span></li>
-</ul></details>
-<p class="kp">两边的 GT 都是非线性超弹性，区别在接触和锁；我们的骨架把每个物体的 \(E\)、\(\nu\) 分开进柔度、用整体 mode 补有限大小，导师的模型先合成 \(E^*\) 再让网络学其余部分；逐物体预处理已经做通一例；大压深和软硬对调的 8 个标签已算完，骨架在这 8 个状态上给不出读数。</p></section>
-<section id="w1"><h2>上次组会后完成的（上周 TODO）</h2>
-<ul>
-<li><strong>skeleton 的正式读法：缝隙和柔度都在两表面的中间面上量</strong>。上次的读法在斜面处把沿压入方向量的重叠和沿表面法向的柔度混用，表面越斜偏得越多；新读法按中间面的坡度把两者换算到同一方向，平处与旧读法完全相同。</li>
-<li><strong>普通形状上标签可信的两档（兔子压龙 1/512、1/256），skeleton ÷ IPC 为 0.956、0.983</strong>。</li>
-<li><strong>IPC 标签自己有两项偏差，方向都是能量偏高</strong>：<ul>
-<li>线性四面体单元偏硬：同网格二次 ÷ 线性单元的能量比，兔子 0.910、0.911，鸭子 0.926，即偏高约 9% 和 7.4%。</li>
-<li>接触区加密范围不够：把加密区放大到盖住整个接触面后，能量在 1/64 降 0.885%、1/32 降 2.115%（鸭子 1/256 降 0.897%、1/32 降 2.459%）；1/32 起超过 1%，原网格标签要换网格重出。</li>
-</ul>
-</li>
-<li><strong>加密区内按目标边长重划表面，标签只变 +0.178%（边长 0.03）和 +0.296%（边长 0.035）</strong>，在 0.35% 的判据内，四面体少四成到四成五。</li>
-</ul>
-<p class="kp">skeleton 改用中间面读法；兔子压龙两档浅压上 skeleton ÷ IPC 为 0.956、0.983；IPC 标签的线性单元偏硬约 9%，接触区加密不够的偏差随压深变大。</p></section>
-<section id="w2"><h2>baseline：谁在比、各自假设了什么（ongoing）</h2>
-<ul>
-<li><strong>比法</strong>：同一个粗状态下，baseline ÷ IPC 标准答案 − 1。正数 = 偏硬（能量偏大），负数 = 偏软。标准答案是精细网格上 IPC 跑到静止后的能量差（第 4 节）。</li>
-<li><strong>baseline 是本周唯一 ongoing 的一项</strong>（大压深 8 个算例上的 baseline 读数、RigidFormer）；下面先讲每个 baseline 假设了什么，这决定了它在大压深上会怎样错。</li>
-</ul>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>baseline</th>
-<th>做法</th>
-<th>假设</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Hertz 点接触</td>
-<td>只看接触点两侧的曲率，套解析公式</td>
-<td>两物体都是无限大弹性体、接触区远小于曲率半径</td>
-</tr>
-<tr>
-<td>半空间 BEM</td>
-<td>在整个重叠区上解压力分布</td>
-<td>两物体都是无限大弹性体</td>
-</tr>
-<tr>
-<td>hydroelastic（hydro）</td>
-<td>每个物体内部预设「越深越大」的压力场，在两侧压力相等处积分</td>
-<td>每点压力只看本地穿入多深</td>
-</tr>
-<tr>
-<td>Winkler 弹簧床</td>
-<td>每个表面点下一根独立弹簧</td>
-<td>点与点互不影响</td>
-</tr>
-<tr>
-<td>势垒当接触模型</td>
-<td>把 IPC 防穿透的势垒函数直接当接触能量</td>
-<td>势垒能就是弹性能</td>
-</tr>
-</tbody>
-</table></div>
-<p>\[\color{#c0392b}{U_{\text{Hertz}}=\tfrac{8}{15}\,E^*\sqrt{R}\,\delta^{5/2},\qquad \frac{1}{E^*}=\frac{1-\nu_A^2}{E_A}+\frac{1-\nu_B^2}{E_B}}\]</p>
-<ul>
-<li>\(\delta\)：两物体按刚体算的重叠深度；\(R\)：接触点处的等效曲率半径；\(E\)：杨氏模量；\(\nu\)：泊松比（压扁时往旁边鼓多少）；\(E^*\)：等效模量。<strong>\(\delta\) 加倍 → 能量约 5.7 倍</strong>（接触区随压深变大）；<strong>\(E^*\) 由更软的一侧主导</strong>（两侧柔度相加）。</li>
-<li><span class="note-cond"><strong>成立条件</strong>：线弹性、小变形、无摩擦、接触区半径远小于 \(R\)、两物体都当成无限大弹性体。这是 Hertz 的假设，不是我们的；这里只用它说明 baseline 为什么会错。</span></li>
-<li><strong>对材料互换的含义</strong>：Hertz、半空间 BEM 只通过 \(E^*\) 认材料。第 5 节的每一对互换算例 \(E^*\) 相同，所以这两个 baseline 对每一对给出完全相同的能量；IPC 标准答案里两格的差别，就是它们看不到的部分。</li>
-<li><strong>半空间 BEM 与 skeleton 只差一项</strong>：两者解同一个二次规划 \(\max_{p\ge0}h^2[p^\top w-\tfrac12p^\top Cp]\)（\(w\) 每格重叠，\(p\) 每格压强，\(h\) 格边长）；半空间 BEM 的柔度 \(C\) 只有无限大弹性体的 \(1/(\pi E^* r)\) 核，skeleton 再加上每个物体自己的整体变形 mode。</li>
-<li><strong>skeleton 的局部项现在仍用半空间（无限厚）柔度，这是已知限制</strong>：我们的问题是两个有限物体的接触，局部项下一步要换成有限物体自己的柔度。skeleton 和 IPC 对上或对不上，都只说明当前近似的精度，不支持「物体可以当半空间」。</li>
-</ul>
-<p class="kp">已实现的五个 baseline 都把物体当成无限大或只看局部压入；Hertz 和半空间 BEM 只认 \(E^*\)，所以 \(E^*\) 相同的材料互换它们分不出来。</p></section>
-<section id="w3"><h2>大压深怎么造：两个软体自然压到一起</h2>
-<h3 id="w3-1">压多深：用户的定义</h3>
-
-<ul>
-<li>原话：「要比如压深是物体高度的1/3 1/2这种才是大的 要压到完全变形」「你的兔子应该被龙压得压深到一半」。</li>
-<li>原话：「你要让两个物体自然的有压深然后得到能量不是这样你把兔子自己压扁」「你就是要让他们的距离很近很近质心距离很近然后自然产生极大得压深两个物体都有大压深然后自然的静止得到能量」。</li>
-<li>原话：「两个都要是软的不能有刚体刚度泊松不同」「接触的地方一定要非常明显的变形两个mesh接触的地方一定是一大片都贴在一起的」。</li>
-<li>压深的定义，原话：<ul>
-<li>15:5x「我要的压深是比如1/2一个物体的高度那就是不变形下两个物体被移到了有1/2物体高度是重叠的样子」</li>
-<li>15:5x「就是比如龙和兔子一样高或者差不多高都是h 这个高度是他们的bbx的高度 他们重叠的区域的最大高度要是1/2h」</li>
-<li>16:0x「是重叠的不是靠近就行的就是要最近点碰上之后的压缩距离才是重叠的」「你不能两个物体离得很远然后离近了一点都没碰上也说压深吧」「压深定义就是重叠的吧就是碰上了」</li>
-</ul>
-</li>
-<li><strong>压深</strong>：两个物体按不变形的形状摆在当前位置时，重叠区沿 \(y\) 方向的最大高度，要等于 depth·\(H_A\)（\(H_A\) 是兔子包围盒的 \(y\) 高度），depth 取 <strong>1/3 和 1/2</strong>。</li>
-<li><strong>做法</strong>：兔子（A）和龙（B）都是有限元软体，普通网格。兔子质心要移动的量 \(\delta^*\) 用几何二分求出：让两个不变形形状的重叠最大高度恰好等于 \(H_A/3\) 和 \(H_A/2\)。然后分小步把兔子质心移过 \(\delta^*\)，每一小步都解到静止再走下一步，最后一步的静止状态就是标签。\(\delta^*\)：1/3 档 3.7709（不变形重叠高度 \(0.33335H_A\)），1/2 档 5.1142（\(0.49996H_A\)）；8 个算例全部算完。</li>
-<li>移过去之后，两个物体怎么变形、贴多大一片，全部由两体接触自己决定：没有任何改变形状的外力，不预先压扁任何一个物体。</li>
-</ul>
-<details><summary>上一版为什么压浅了</summary><ul>
-<li>上一版把「质心从刚碰上起移动的距离」当成压深，取 \(H_A/3\)、\(H_A/2\)。</li>
-<li>按用户的定义量，不变形形状的重叠最大高度只有 \(0.274H_A\)（目标 \(H_A/3\)）和 \(0.398H_A\)（目标 \(H_A/2\)）：龙在接触处是细的，质心移过去的距离大于重叠高度。</li>
-<li>所以上一版的 8 个算例都压浅了，正在按 \(\delta^*\) 续跑重算。</li>
-</ul></details>
-<h3 id="w3-2">怎么「摆住」两个物体：跟导师一样的 rigid 锁</h3>
-
-<ul>
-<li>原话：「就是你要摆放一个物体你就把它得质心比如放在xyz这个位置然后什么一个旋转角度」「那就跟导师一样」「你别逼近啥的能用导师的代码就用 但是我要ipc」。</li>
-<li><strong>锁什么</strong>：每个物体只锁 6 个数：质心位置 3 个 + 转角 3 个。拉伸、剪切全部放开，物体的形状完全自由。</li>
-<li><strong>为什么要锁转角</strong>：两个无摩擦的软体顶在一起，横向是不稳定的，会转开、滑走，压不深。导师代码里同样的情形（手指夹球）也是这样处理的，他的注释：<em>"A frictionless ball squeezed between two convex fingers is laterally unstable … constrain the rigid motion exactly: mass-weighted centre fixed (3 rows) and the skew part of the affine fit zero (3 rows)."</em></li>
-<li>
-<p><strong>锁的式子</strong><sup class="note-src">[32]</sup>：\(w_i\) = 节点质量占比，\(\bar x=\sum_i w_i x_i\) 为质心，\(r_i = X_i-\bar X\) 为静止时到质心的向量，</p>
-<p>\[\begin{aligned}&amp;\bar x=\sum_i w_i x_i=\bar x^{\ast},\qquad A=\Big(\sum_i w_i\,x_i r_i^{\top}\Big)C^{-1},\ \ C=\sum_i w_i r_i r_i^{\top},\\ &amp;\operatorname{skew}(A)=\tfrac12(A-A^{\top})=0\end{aligned}\]</p>
-</li>
-<li>
-<p><strong>为什么只挡转动、不挡拉伸剪切</strong>：物体做任意均匀变形 \(x_i=F X_i+t\) 时，\(\sum_i w_i x_i r_i^{\top}=F\,C\)，所以 \(A=F\)。锁的是 \(F\) 的反对称部分（转动），\(F\) 的对称部分（拉伸、剪切）不受任何约束。</p>
-</li>
-<li><strong>锁住它要多大的力</strong>：在约束下求能量最小，等于解 \(\nabla\Pi(x)=G^{\top}\lambda\)（\(G\) 是上面 6 行约束，\(\lambda\) 是拉格朗日乘子）。质心那 3 行给每个节点的反力是 \(w_i\lambda_c\)，和节点质量成正比、方向处处相同，作用就像一个均匀的「重力」；\(\lambda_c\) 就是把两个物体压在一起的接触合力 \(P\)。</li>
-<li>
-<p><strong>每一次牛顿迭代都严格满足锁</strong>：导师的做法是加边 KKT 方程，</p>
-<p>\[\begin{bmatrix}H &amp; G^{\top}\\ G &amp; 0\end{bmatrix}\begin{bmatrix}\Delta x\\ \lambda\end{bmatrix}=\begin{bmatrix}-\nabla\Pi\\ c^{\ast}-Gx\end{bmatrix}\]</p>
-<p>约束是线性的，所以每走一步 \(Gx=c^{\ast}\) 都精确成立，不是罚函数逼近。我们照他的算法（加边 KKT 牛顿 + 回溯线搜索）在 GPU 上重写：单元组装批量在 GPU 上算，KKT 方程用 GPU 直接解法器。</p>
-</li>
-</ul>
-<details><summary>出处</summary><ul>
-<li><span class="note-src">[32] 导师代码 NeuralIPC <span data-ev="32"></span></span></li>
-</ul></details>
-<h3 id="w3-3">接触：IPC，全程不穿透</h3>
-
-<ul>
-<li>
-<p>两个物体之间、以及每个物体自己的表面之间（大压深时表面可能折叠），每一对距离 \(d\) 小于 \(\hat d\) 的点–三角形、边–边都加一项势垒能（与我们 libuipc 标签同一个式子）：</p>
-<p>\[b(d)=\kappa\,\big(d^2-\hat d^{\,2}\big)^2\Big[\ln\frac{d^2}{\hat d^{\,2}}\Big]^2,\qquad 0&lt;d&lt;\hat d;\qquad b=0,\ d\ge\hat d\]</p>
-</li>
-<li>
-<p>\(d\to0\) 时 \(b\to\infty\)，所以任何状态都不会穿透。线搜索的每一步先用<strong>连续碰撞检测</strong>算出「从当前位置到新位置整段都不相交」的最大步长，再在其中回溯，所以不只终点、整条路径都不穿透。</p>
-</li>
-<li>这里的「不穿透」是造标签的 GT 的性质；我们自己的粗模型允许穿透，网络学的正是有穿透的粗状态和这个不穿透的精细真解之间的能量差。</li>
-</ul>
-<h3 id="w3-4">材料：我们 GT 的带体积屏障 neo-Hookean</h3>
-
-<p>\[\Psi(F)=\frac{\mu}{2}\big(\operatorname{tr}F^{\top}F-3\big)-\mu\ln J+\frac{\lambda}{2}(\ln J)^2,\qquad J=\det F\]</p>
-<ul>
-<li>\(\mu\)、\(\lambda\) 由 \(E\)、\(\nu\) 直接换算（拉梅参数）。小变形时它就是线弹性；大变形时是非线性的 neo-Hookean。</li>
-<li><strong>\(\ln J\) 那一项是屏障</strong>：单元体积压到 0（\(J\to0\)）时能量 → ∞，单元不会被压翻。大压深下单元被压得很扁，这一点必须有；libuipc 默认材料没有这一项。</li>
-</ul>
-<h3 id="w3-5">标签读什么</h3>
-
-<ul>
-<li>静止后，每个物体做一次质量加权的 affine 拟合，得到它的 12 维粗状态 \(z_k\)（质心 3 + 3×3 矩阵 9）。</li>
-<li>\(E_{\rm fine}=\sum_k E_k(x_k)\)：精细网格的弹性能；\(E_{\rm coarse}=\sum_k E_k(\Phi z_k)\)：同一材料在 affine 拟合场上的能量；<strong>标签 \(U=E_{\rm fine}-E_{\rm coarse}\)</strong>，也就是粗模型表达不了、要由接触项补的那部分能量。</li>
-</ul>
-<h3 id="w3-6">每个标签的验收线（用数测，不看参数）</h3>
-
-<ol>
-<li><strong>压深</strong>：用户的定义是「不变形下两个物体被移到了有 1/2 物体高度是重叠的样子」，即不变形的形状摆在当前位置时重叠区的最大高度 = depth·H（H 为包围盒高度）；碰上之前的靠近不算；</li>
-<li><strong>接触区面积</strong>：两表面间距小于 \(\hat d\) 的三角形面积，要「一大片贴在一起」；</li>
-<li><strong>两个物体各自的高度比和最大位移</strong>，两个都要看得出变形；</li>
-<li>
-<p><strong>接触处放大的变形图</strong>。</p>
-</li>
-<li>
-<p>第 1、2 项对不上，这条标签作废，不进任何表。</p>
-</li>
-</ol>
-<p class="kp">每个物体只锁质心和转角（导师的 rigid 锁，加边 KKT 每步严格满足），形状全放开；接触用 IPC 势垒加连续碰撞检测，全程不穿透；材料是带体积屏障的 neo-Hookean；标签是精细能量减粗模型能量。</p></section>
-<section id="w4"><h2>刚度、泊松比互换：8 个算例和按原理的预期</h2>
-<ul>
-<li>原话：「上周开会几个最重要的就是超级大的压深和泊松比刚度的互换 软压硬跟硬压软要不同」。</li>
-<li><strong>8 个算例 = 2 个压深 × 4 种材料</strong>，两个物体同一个推近量 \(D\)，每一对只换一样东西：</li>
-</ul>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>材料</th>
-<th>兔子（A）</th>
-<th>龙（B）</th>
-<th>和谁成对</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Bx10</td>
-<td>\(E\)，\(\nu=0.3\)</td>
-<td>\(10E\)，\(\nu=0.3\)</td>
-<td>Ax10（只换哪边硬）</td>
-</tr>
-<tr>
-<td>Ax10</td>
-<td>\(10E\)，\(\nu=0.3\)</td>
-<td>\(E\)，\(\nu=0.3\)</td>
-<td>Bx10</td>
-</tr>
-<tr>
-<td>nuA02B045</td>
-<td>\(sE\)，\(\nu=0.2\)</td>
-<td>\(sE\)，\(\nu=0.45\)</td>
-<td>nuA045B02（只换哪边的 \(\nu\)）</td>
-</tr>
-<tr>
-<td>nuA045B02</td>
-<td>\(sE\)，\(\nu=0.45\)</td>
-<td>\(sE\)，\(\nu=0.2\)</td>
-<td>nuA02B045</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li>压深 \(D=H_A/2\) 和 \(D=H_A/3\) 各做上面 4 格。</li>
-<li>\(s=\dfrac{(1-0.2^2)+(1-0.45^2)}{2(1-0.3^2)}=0.9657\)：让泊松比这一对的 \(E^*\) 和两边都是 \(E\)、\(\nu=0.3\) 时一样。</li>
-<li><strong>每一对的 \(E^*\) 相同</strong>：刚度这一对 \(\frac{1}{E^*}=\frac{1-0.3^2}{E}\big(1+\frac{1}{10}\big)\)，两格一样；泊松比这一对按 \(s\) 的定义两格一样。</li>
-</ul>
-<h3 id="w4-1">按原理的预期（开跑前写下，不是结果）</h3>
-
-<ul>
-<li><strong>半空间层面（Hertz、BEM）两格完全一样</strong>：它们只认 \(E^*\)，而每一对 \(E^*\) 相同。</li>
-<li><strong>半空间层面，推近量按柔度分给两个物体</strong>：两边受同一个压力，各自的压陷 \(\propto (1-\nu_k^2)/E_k\)。所以：<ul>
-<li>刚度这一对：软的一边承担约 \(10/11\approx91\%\) 的压陷，硬的一边约 9%，即<strong>硬的一边变形少</strong>。Bx10 里兔子被压得多，Ax10 里龙被压得多；两边都是软体，硬的一边也有变形。</li>
-<li>泊松比这一对：兔子分到 \(\frac{1-\nu_A^2}{(1-\nu_A^2)+(1-\nu_B^2)}\)，nuA02B045 为 54.6%，nuA045B02 为 45.4%，差别比刚度这一对小得多。</li>
-</ul>
-</li>
-<li><strong>这些都是半空间的预期，我们的问题不满足它的<span class="note-cond">前提</strong>：两个物体有限大、形状完全不同（兔子圆钝、龙有尖刺），压深是高度的 1/3、1/2，远超小变形。所以如果互换的两格测出来不一样，差别不可能来自 \(E^*\)（它相同），只能来自：</span><ul>
-<li><strong>几何</strong>：被压得多的是兔子还是龙，接触区的形状、能贴多大一片就不同；</li>
-<li><strong>有限大小</strong>：被压得多的那个物体整体也会变形，不只是局部压陷；</li>
-<li><strong>大变形非线性</strong>：带体积屏障的 neo-Hookean 里体积压向 0 时能量趋于无穷，压得越深越硬；\(\nu\) 大的一边体积更难压缩。</li>
-</ul>
-</li>
-<li>两格差多少、往哪个方向差，由实测给出；Hertz、BEM 给出的「一样」就是 baseline 在这件事上的读数。</li>
-</ul>
-<p class="kp">8 个算例每一对只换一样材料、\(E^*\) 保持相同；半空间 baseline 预测每一对完全一样，所以 IPC 标准答案里的差别就是几何、有限大小、大变形非线性带来的，正是 baseline 看不到的部分。</p></section>
-<section id="w8"><h2>8 个算例的结果（重叠深度核对中）</h2>
-<ul>
-<li><strong>8 个算例的数和图先不放</strong>：用户对压深的定义是「不变形下两个物体被移到了有 1/2 物体高度是重叠的样子」。按这个量法核对，现有标签的重叠深度比目标浅，能不能用、要不要重算正在核对，核对完再放这一节。</li>
-</ul>
-<p class="kp">8 个大压深算例的结果在核对重叠深度，核对完再放。</p></section>
-<section id="w9"><h2>同一个算例有两个静止状态时取哪个（方法）</h2>
-<ul>
-<li><strong>会出现什么</strong>：同一个算例、同一个锁，从不同的起点走（直接静态求解，或先用动力学推近再静态收尾），可能停在两个不同的静止状态，两个都是局部极小（锁住质心和转角之后，能量的二阶导数矩阵最小特征值大于 0）。</li>
-<li><strong>取法</strong>：取已经找到的静止状态里总势能 Π（两物体弹性能 + 接触势垒能）最低的那个。</li>
-<li><strong>每一格的核对</strong>：两个静止状态并排列出 Π 差、接触面积、高度比和变形图；两个起点走到同一个状态的，记为同一平衡。</li>
-<li>具体的数和图跟第 6 节一起，在重叠深度核对完后放。</li>
-</ul>
-<p class="kp">有两个静止状态时取总势能 Π 最低的那个；具体结果随第 6 节一起放。</p></section>
-<section id="w10"><h2>读数和预处理的两项检查</h2>
-<h3 id="w10-1">换接触模型时的能量读数检查：不通过</h3>
-
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>对照</th>
-<th>弹性能差 ΔE</th>
-<th>一阶估计</th>
-<th>判据</th>
-<th>结果</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>IPC（\(\hat d\)） 对 罚函数 16k</td>
-<td>0.01424</td>
-<td>0.01301</td>
-<td>估计在 20% 以内</td>
-<td>过</td>
-</tr>
-<tr>
-<td>罚函数 k、4k、16k</td>
-<td>0.0537、0.0227、0.0142</td>
-<td>—</td>
-<td>\(\lvert\Delta E\rvert\) 随刚度单调变小</td>
-<td>过</td>
-</tr>
-<tr>
-<td>IPC \(\hat d\) 换成 \(\hat d/2\)</td>
-<td>0.0142 → 0.0094</td>
-<td>—</td>
-<td>差变小</td>
-<td>过</td>
-</tr>
-<tr>
-<td>两种平均间隙读法</td>
-<td>相差 19–26%</td>
-<td>—</td>
-<td>相差 10% 以内</td>
-<td><strong>不过</strong></td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>检查什么</strong>：两边都用导师的材料、同样锁住质心和转角，只把接触模型从导师的罚函数换成我们的 IPC，看两者的弹性能差能不能用「接触合力 × 平均间隙的变化」这个一阶式子解释。</li>
-<li><strong>不过的那一条</strong>：平均间隙有两种读法（按接触对平均、按顶点平均），两者相差 19–26%，超过开跑前定的 10%，所以这项检查判为不通过，判据不放宽。</li>
-<li><strong>原因已经查到</strong>：在同一个接触模型里，用答案已知的对照（IPC 的 \(\hat d\) 对 \(\hat d/2\)、罚函数的不同刚度）检验，两种读法各自都准（IPC 误差 0.07%、0.06%，罚函数 2.7–6.2%）；两种读法之差在每个模型里是一个常数（IPC 2.38×10⁻⁵，罚函数 0.9–1.15×10⁻⁵）。所以 19–26% 是两种定义之间固定的几何偏移，不是读数算错。</li>
-</ul>
-<h3 id="w10-2">逐物体的通用预处理：骨架对、但没有提速</h3>
-
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th>项</th>
-<th>实测</th>
-<th>判据</th>
-<th>结果</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>骨架 ÷ IPC（龙压鸭）</td>
-<td>0.8454（原来按场景的预处理是 0.8568）</td>
-<td>—</td>
-<td>骨架读数变 −1.33%</td>
-</tr>
-<tr>
-<td>预处理时间，龙</td>
-<td>95.5 分钟</td>
-<td>每个物体 ≤ 60 分钟</td>
-<td><strong>不过</strong></td>
-</tr>
-<tr>
-<td>预处理时间，鸭</td>
-<td>49.2 分钟</td>
-<td>每个物体 ≤ 60 分钟</td>
-<td>过</td>
-</tr>
-<tr>
-<td>一次接触，骨架整条</td>
-<td>217 秒（同一接触 IPC 204 秒）</td>
-<td>比 IPC 快 ≥ 10 倍</td>
-<td><strong>不过</strong>（0.94 倍）</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li><strong>做了什么</strong>：每个物体用一张只由自己几何决定、与接触位置无关的均匀网格求 mode（第 5–6 周页面的问题：原来的 mode 用的是按接触点加密的场景网格），然后拿同一个龙压鸭的接触去算骨架。</li>
-<li><strong>骨架读数</strong>：换成通用预处理后骨架 ÷ IPC 从 0.8568 变成 0.8454，与开跑前的预期一致（均匀网格更粗，不应好于按场景加密的网格）。</li>
-<li><strong>龙的预处理超时，卡在机器内存回收</strong>：95.5 分钟里大部分花在半空间矩阵那一步，这一步的进程几乎全在内核里等内存回收（内核态 4152 秒对用户态 61 秒），同一张网格换个时段只要 6.6 秒；鸭 49.2 分钟。</li>
-<li><strong>一次接触没有提速，卡在找接触区</strong>：217 秒里找接触区（几何计算）占 196.8 秒，骨架本身只要约 0.8 秒，相对 IPC 约 250 倍；端到端只有 0.94 倍。要提速得先把找接触区做快，这一步不属于预处理。</li>
-</ul>
-<p class="kp">换接触模型的读数检查按原判据不通过，原因是两种间隙读法之间的固定偏移，不是读数错；通用逐物体预处理下骨架读数只变 −1.33%，但龙的预处理超时、一次接触端到端没有提速，瓶颈分别是内存回收和找接触区。</p></section>
-<section id="w11"><h2>造一个大压深标签要多久</h2>
+<p>第 5–6 周 edge case 的三档压深都是表面浅压，那时说的「大压深」其实不是真正的大压深。这周要说明的是，骨架的两项在真正的大压深下也能 cover。我们让兔和龙两个软体只锁质心和转角、自然压到静止，不变形时的重叠达到兔子高度 \(H\) 的 1/3 和 1/2（造法见 1.1 节），8 格的标准答案都已经算出来了。下表说明这次确实是大压深，两个物体都有明显的变形；表里的「最大局部位移」是去掉整体仿射运动以后的最大位移，也就是接触处被压出的坑有多深。</p>
+<figure><img src="assets/images/w7_deep_Bx10_d3_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>Bx10，1/3 压深（重叠 / \(H\) = 0.333）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 4.98 / 龙 3.86。</em></p>
+<figure><img src="assets/images/w7_deep_Ax10_d3_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>Ax10，1/3 压深（重叠 / \(H\) = 0.333）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 0.087 / 龙 4.65。</em></p>
+<figure><img src="assets/images/w7_deep_nuA02B045_d3_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>nuA02B045，1/3 压深（重叠 / \(H\) = 0.333）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 1.34 / 龙 5.11。</em></p>
+<figure><img src="assets/images/w7_deep_nuA045B02_d3_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>nuA045B02，1/3 压深（重叠 / \(H\) = 0.333）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 1.21 / 龙 5.24。</em></p>
+<figure><img src="assets/images/w7_deep_Bx10_d2_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>Bx10，1/2 压深（重叠 / \(H\) = 0.500）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 4.79 / 龙 5.07。</em></p>
+<figure><img src="assets/images/w7_deep_Ax10_d2_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>Ax10，1/2 压深（重叠 / \(H\) = 0.500）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 0.19 / 龙 5.54。</em></p>
+<figure><img src="assets/images/w7_deep_nuA02B045_d2_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>nuA02B045，1/2 压深（重叠 / \(H\) = 0.500）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 1.60 / 龙 5.60。</em></p>
+<figure><img src="assets/images/w7_deep_nuA045B02_d2_deform_web.png" alt="" loading="lazy"></figure>
+<p><em>nuA045B02，1/2 压深（重叠 / \(H\) = 0.500）：兔与龙静止平衡三维视图与双剖面（叠兔子未变形轮廓），最大局部位移 兔 1.41 / 龙 5.63。</em></p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th>算例</th>
-<th>直接用静态求解器从头解</th>
-<th>先动力学推近、再静态收尾</th>
-<th>倍数</th>
+<th>重叠 / \(H\)</th>
+<th>接触面积 兔 / 龙</th>
+<th>最大局部位移 兔 / 龙</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>nuA045B02，1/2 H</td>
-<td>8,126 秒</td>
-<td>约 3,593 秒</td>
-<td>2.9 倍</td>
+<td>Bx10，1/3</td>
+<td>0.333</td>
+<td>4.51 / 5.48</td>
+<td>4.98 / 3.86</td>
 </tr>
 <tr>
-<td>Ax10，1/3 H</td>
-<td>整条墙钟没有单独记</td>
-<td>约 4,553 秒</td>
-<td>不给</td>
+<td>Ax10，1/3</td>
+<td>0.333</td>
+<td>1.74 / 2.01</td>
+<td>0.087 / 4.65</td>
 </tr>
 <tr>
-<td>nuA045B02，1/3 H</td>
-<td>1,520 秒，停在另一个静止状态</td>
-<td>约 2,242 秒</td>
-<td>两者停在不同的静止状态，比值无意义</td>
+<td>nuA02B045，1/3</td>
+<td>0.333</td>
+<td>1.92 / 2.61</td>
+<td>1.34 / 5.11</td>
 </tr>
 <tr>
-<td>nuA045B02，1/3 H，静态收尾提前接上</td>
-<td>—</td>
-<td>约 2,300 → 约 1,516 秒</td>
-<td>1.5 倍</td>
+<td>nuA045B02，1/3</td>
+<td>0.333</td>
+<td>1.98 / 2.41</td>
+<td>1.21 / 5.24</td>
+</tr>
+<tr>
+<td>Bx10，1/2</td>
+<td>0.500</td>
+<td>7.51 / 8.75</td>
+<td>4.79 / 5.07</td>
+</tr>
+<tr>
+<td>Ax10，1/2</td>
+<td>0.500</td>
+<td>2.59 / 2.92</td>
+<td>0.19 / 5.54</td>
+</tr>
+<tr>
+<td>nuA02B045，1/2</td>
+<td>0.500</td>
+<td>3.17 / 4.00</td>
+<td>1.60 / 5.60</td>
+</tr>
+<tr>
+<td>nuA045B02，1/2</td>
+<td>0.500</td>
+<td>3.16 / 3.83</td>
+<td>1.41 / 5.63</td>
 </tr>
 </tbody>
 </table></div>
-<ul>
-<li><strong>两种做法</strong>：「直接用静态求解器从头解」是照导师的算法写的 GPU 静态求解器，分小步推近、每步解到静止；「先动力学推近、再静态收尾」是先用 libuipc 的动力学仿真把两物体推到接近静止，再用同一个静态求解器收尾（只要 46–160 步牛顿迭代，约 100–390 秒）。</li>
-<li><strong>静态收尾提前接上</strong>：动力学只跑第一段就交给静态求解器，跳过后面的伪时间松弛；结果和原来是同一个静止状态（Π 相对差 7.1×10⁻⁹）。</li>
-<li><strong>没有到 10 倍，原因</strong>：<ul>
-<li>动力学推近的每一帧耗时跟牛顿步数走，每步 0.08–0.23 秒，最慢的一帧 862 步、140 秒；</li>
-<li>推近后的伪时间松弛很慢，位移大约 200 帧才降一个数量级，要 1,100–2,000 帧；</li>
-<li>静态收尾本身很快，剩下的大头是第一段推近（333–1,968 秒）加 200 帧保持（741–993 秒）。</li>
-</ul>
-</li>
-<li>试过、没用的：把松弛段切成 300 帧一段，实测只省 8–425 秒，每多一段要多约 60 秒重建场景，净收益不大于 0。</li>
-</ul>
-<p class="kp">先动力学推近再静态收尾，比从头静态解快 2.9 倍；提前接上静态收尾再快 1.5 倍；离 10 倍还远，瓶颈是动力学推近这一段本身。</p></section>
-<section id="w5"><h2>和导师的区别</h2>
-<ul>
-<li>原话：「最最主要是骨架不同然后我们neural做得少骨架做的多预处理久」「而且我们的骨架不同」。</li>
-<li><strong>最主要的区别是骨架</strong>：</li>
-</ul>
+<p>8 格的标准答案都已算出，表里 GT 一栏是静止后的总弹性能 \(\Sigma E_{\text{fine}}\)。Hertz、Winkler 与 hydroelastic 均在未变形刚体摆放下求值：其中 Hertz 和 Winkler 只认等效模量，接触半径约为曲率半径的 6 倍，远超它们的适用条件；hydroelastic 按各自材料模量积分，但缺少整体变形与跨接触耦合，预测仍高出 GT 4.4 到 37.2 倍。骨架在大压深下的读数还需要进一步排查：</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
-<th></th>
-<th>我们</th>
-<th>导师</th>
+<th>算例</th>
+<th>GT（静止后总弹性能 \(\Sigma E_{\text{fine}}\)）</th>
+<th>Hertz</th>
+<th>hydroelastic</th>
+<th>Winkler</th>
+<th>骨架</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>骨架公式</td>
-<td>在缝隙图上解线弹性接触的余能：\(U=\max_{p\ge0}h^2\big[\sum p\,\hat w-\tfrac12p^{\top}Cp\big]\)</td>
-<td>Hertz 乘一个修正：\(U=E^{*}\cdot\tfrac{8}{15}\sqrt{R_{\rm fit}}\,\delta^{5/2}\cdot e^{g}\)</td>
+<td>Bx10，1/3</td>
+<td>255,626</td>
+<td>598,200</td>
+<td>1,114,000</td>
+<td>7,798,000</td>
+<td>待补</td>
 </tr>
 <tr>
-<td>骨架解析掉多少</td>
-<td>线弹性能解析的全部解析掉</td>
-<td>只有 Hertz 那一部分，其余全交给 \(e^{g}\)</td>
+<td>Ax10，1/3</td>
+<td>41,480</td>
+<td>598,200</td>
+<td>1,545,000</td>
+<td>7,798,000</td>
+<td>待补</td>
 </tr>
 <tr>
-<td>neural 学什么</td>
-<td>只学非线性部分，学得少</td>
-<td>非 Hertz 的部分全学，学得多</td>
+<td>nuA02B045，1/3</td>
+<td>46,608</td>
+<td>329,000</td>
+<td>732,900</td>
+<td>4,289,000</td>
+<td>待补</td>
 </tr>
 <tr>
-<td>预处理</td>
-<td>每个物体预先算表面柔度 \(C\) 的整体 mode，预处理久（例：<a href="week5.html#w12-1">兔、龙各 80 个 mode</a>）</td>
-<td>几乎没有</td>
+<td>nuA045B02，1/3</td>
+<td>46,061</td>
+<td>329,000</td>
+<td>760,300</td>
+<td>4,289,000</td>
+<td>待补</td>
+</tr>
+<tr>
+<td>Bx10，1/2</td>
+<td>516,195</td>
+<td>1,282,000</td>
+<td>3,194,000</td>
+<td>21,680,000</td>
+<td>待补</td>
+</tr>
+<tr>
+<td>Ax10，1/2</td>
+<td>99,482</td>
+<td>1,282,000</td>
+<td>2,947,000</td>
+<td>21,680,000</td>
+<td>待补</td>
+</tr>
+<tr>
+<td>nuA02B045，1/2</td>
+<td>88,657</td>
+<td>705,100</td>
+<td>1,954,000</td>
+<td>11,920,000</td>
+<td>待补</td>
+</tr>
+<tr>
+<td>nuA045B02，1/2</td>
+<td>87,541</td>
+<td>705,100</td>
+<td>1,968,000</td>
+<td>11,920,000</td>
+<td>待补</td>
 </tr>
 </tbody>
 </table></div>
-<ul>
-<li><strong>次要区别</strong>：<ul>
-<li>GT：我们是三维 IPC + FEM，不穿透；导师用罚函数接触，大压深的参考是轴对称二维解。</li>
-<li>标签的形状：我们用真实网格（兔、龙）；导师用球和椭球。</li>
-</ul>
-</li>
-<li><strong>两边都有、不算区别的</strong>：大压深、非线性材料。本周造大压深时，转角的锁法也跟导师一样（第 4 节）。</li>
-</ul>
-<p class="kp">和导师的区别主要在骨架：我们把线弹性能解析的都解析掉、neural 只学非线性，代价是每个物体要预处理；导师是 Hertz 乘修正、几乎不预处理。</p></section>
-<section id="w6"><h2>RigidFormer（ongoing）</h2>
-<ul>
-<li><a href="week2.html#w2-4">第 2 周讲过</a>它的方法：点云 → 每个物体一个向量 → Transformer 在物体间交换信息 → 每个物体 4 个锚点的加速度 → 投影成刚体的下一帧位姿。</li>
-<li><strong>官方代码已公开</strong>（MIT 许可，预训练权重和数据集在 Hugging Face），只能在 GPU 上跑。</li>
-<li><strong>它的输入输出和我们的任务对不上</strong>：</li>
-</ul>
+<figure><img src="assets/images/w7_W5_deep8_bars.png" alt="" loading="lazy"></figure>
+<p><em>大压深 8 格下 GT（静止后总弹性能）、Hertz 与 Winkler 的弹性能对比（对数刻度）。</em></p>
+<h3 id="w2-2" class="numbered">2.2 软硬对调：检验「第一项管等效，第二项管个体」</h3>
+
+<p>我们 claim 骨架能分开「软压硬」和「硬压软」。理由是两项的分工不同：第一项在两个物体之间加起来是 \(L_{ij}(1/E_A^{\prime}+1/E_B^{\prime})=L_{ij}/E^{\ast}\) ，只认等效模量，对调以后不变；第二项带着每个物体自己的形状，而且 \(\sigma_{b,m}\propto1/E_b\) ，对调以后会变。</p>
+<p>为了检验这一点，我们把大压深的 8 格两两配对，每一对只换一样东西，并且让两格的 \(E^{\ast}\) 相同，这样第一项对每一对给出完全一样的值。刚度这一对是兔子 \(E\) 、龙 \(10E\) 和反过来；泊松比这一对是兔子 \(\nu=0.2\) 、龙 \(\nu=0.45\) 和反过来。</p>
+<details><summary>推导</summary><p>下面推半空间理论预期的压陷怎么分给两个物体，以及泊松比这一对的 \(E\) 怎么取。</p>
+<p>（1）两个物体受的是同一个压力 \(P\) ，在半空间理论里每个物体的压陷和它的柔度成正比，即 \(d_k\propto P(1-\nu_k^2)/E_k\) 。【<span class="note-cond">条件：两个物体都当成半空间；线弹性】</span></p>
+<p>（2）所以兔子分到的压陷比例是 \(\frac{(1-\nu_A^2)/E_A}{(1-\nu_A^2)/E_A+(1-\nu_B^2)/E_B}\) 。</p>
+<p>（3）刚度这一对里，软的一边分到 \(\frac{1}{1+1/10}=\frac{10}{11}\approx0.91\) ，也就是 91%。</p>
+<p>（4）泊松比这一对里，兔子分到 \(\frac{0.96}{0.96+0.7975}=0.546\) ，也就是 54.6%，对调以后是 45.4%。</p>
+<p>（5）为了让泊松比这一对的 \(E^{\ast}\) 和两边都是 \(\nu=0.3\) 时相同，令 \(\frac{0.96+0.7975}{sE}=\frac{2\times0.91}{E}\) ，解得 \(s=0.9657\) ，两边都用 \(sE\) 。</p></details>
+<p>第一个结果是，第二项是必要的，这一点得到支持。标准答案在对调前后明显不同：刚度对调以后总弹性能差了 5 到 6 倍，泊松比对调以后只差约 1%；兔子硬 10 倍时，变形几乎都集中在龙那边（局部位移兔子 0.19、龙 5.54）。而只认 \(E^{\ast}\) 的 Hertz 和半空间 BEM 在对调前后给出完全一样的值，去掉第二项的骨架也一样，所以它们都分不出软压硬和硬压软。</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
-<th></th>
-<th>RigidFormer</th>
-<th>我们的任务</th>
+<th>一对，对调前 / 后</th>
+<th>GT（静止后总弹性能 \(\Sigma E_{\text{fine}}\)）</th>
+<th>Hertz、半空间 BEM</th>
+<th>hydroelastic</th>
+<th>骨架</th>
+<th>消融：去掉第二项</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>输入</td>
-<td>每个物体最近两帧点云、质量、摩擦、恢复系数</td>
-<td>两物体的几何、\(E\)、\(\nu\)、粗状态</td>
+<td>刚度，1/3（Bx10 / Ax10）</td>
+<td>255,626 / 41,480</td>
+<td>相同（由等效模量公式）</td>
+<td>1,114,000 / 1,545,000</td>
+<td>待测</td>
+<td>相同（第一项只认等效模量）</td>
 </tr>
 <tr>
-<td>输出</td>
-<td>下一帧刚体位姿</td>
-<td>接触能量（和力）</td>
+<td>刚度，1/2</td>
+<td>516,195 / 99,482</td>
+<td>相同（由等效模量公式）</td>
+<td>3,194,000 / 2,947,000</td>
+<td>待测</td>
+<td>相同（第一项只认等效模量）</td>
 </tr>
 <tr>
-<td>训练数据</td>
-<td>PyBullet 刚体自由运动轨迹</td>
-<td>IPC 静止平衡的弹性能</td>
+<td>泊松比，1/3（nuA02B045 / nuA045B02）</td>
+<td>46,608 / 46,061</td>
+<td>相同（由等效模量公式）</td>
+<td>732,900 / 760,300</td>
+<td>待测</td>
+<td>相同（第一项只认等效模量）</td>
 </tr>
 <tr>
-<td>变形</td>
-<td>无（作者列为未来工作）</td>
-<td>局部压陷 + 整体柔度</td>
+<td>泊松比，1/2</td>
+<td>88,657 / 87,541</td>
+<td>相同（由等效模量公式）</td>
+<td>1,954,000 / 1,968,000</td>
+<td>待测</td>
+<td>相同（第一项只认等效模量）</td>
 </tr>
 </tbody>
 </table></div>
-<ul>
-<li><strong>不能原样当一列数</strong>：没有能量输出，也不吃 \(E\)、\(\nu\)。</li>
-<li><strong>可行的改造</strong>：保留「每个物体点云 → 一个向量 → 物体间注意力」的编码器，输入换成 \(E\)、\(\nu\) 和锁定的粗状态，输出换成接触能量和合力，记为「RigidFormer 编码器改造版」。它需要成批的多形状、多位姿标签才训得动。</li>
-</ul>
-<p class="kp">RigidFormer 学的是刚体动力学，没有能量输出、不接受杨氏模量和泊松比；作为 baseline 只能借它的物体级编码器改成能量回归，前提是多形状标签。</p></section>
-<section id="w7"><h2>现在能说什么、下一步</h2>
-<ul>
-<li><strong>能说的</strong>：<ul>
-<li>已实现的五个局部 baseline 都把物体当成无限大或只看局部压入；Hertz、半空间 BEM 只认 \(E^*\)，分不出 \(E^*\) 相同的材料互换。</li>
-<li>大压深的造法：两个软体普通网格，只锁质心和转角（导师的 rigid 锁），IPC 接触全程不穿透，材料是带体积屏障的 neo-Hookean。</li>
-<li>IPC 标签自己有两项偏差，方向都是能量偏高：线性四面体单元偏硬约 9%，接触区加密范围不够的偏差随压深变大。</li>
-<li>兔子压龙 1/512、1/256 两档浅压，skeleton ÷ IPC 为 0.956、0.983。</li>
-<li>每个物体一套、与接触位置无关的 mode 已经能用：龙压鸭骨架 ÷ IPC 0.8454，只比按场景的预处理变 −1.33%。</li>
-<li>换接触模型的能量读数检查不通过，原因是两种间隙读法之间的固定偏移。</li>
-</ul>
-</li>
-<li><strong>下一步</strong>：<ul>
-<li>8 个大压深算例按用户的重叠深度定义核对完，放结果。</li>
-<li>通用预处理：龙的预处理压到 60 分钟以内；一次接触的找接触区要提速，否则端到端不比 IPC 快。</li>
-<li>大压深标签提速：动力学推近这一段是瓶颈。</li>
-<li>skeleton 局部项换成有限物体的柔度，去掉半空间（无限厚）近似。</li>
-<li>RigidFormer 编码器改造版，等多形状标签。</li>
-</ul>
-</li>
-</ul>
-<p class="kp">baseline 的假设决定了它们在大压深和材料互换上看不到什么；大压深的标签按导师的锁加 IPC 造，两侧都是软体。</p></section>
+<figure><img src="assets/images/w7_swap_stiffness_d3.png" alt="" loading="lazy"></figure>
+<p><em>1/3 压深下刚度对调并排对比（上 Bx10、下 Ax10），直观体现软压硬与硬压软接触区与变形差异。</em></p>
+<figure><img src="assets/images/w7_swap_stiffness_d2.png" alt="" loading="lazy"></figure>
+<p><em>1/2 压深下刚度对调并排对比（上 Bx10、下 Ax10），直观体现软压硬与硬压软接触区与变形差异。</em></p>
+<figure><img src="assets/images/w7_swap_poisson_d3.png" alt="" loading="lazy"></figure>
+<p><em>1/3 压深下泊松比对调并排对比（上 nuA02B045、下 nuA045B02）。</em></p>
+<figure><img src="assets/images/w7_swap_poisson_d2.png" alt="" loading="lazy"></figure>
+<p><em>1/2 压深下泊松比对调并排对比（上 nuA02B045、下 nuA045B02）。</em></p>
+<p>第二个结果，完整的骨架能不能分开对调前后，还待测。</p>
+<h3 id="w2-3" class="numbered">2.3 每个物体一套 mode 能复用：支持</h3>
+
+<p>mode 只由物体自己决定，所以我们希望每个物体算一次以后，换部位、换对手都能直接用。为了检验这一点，我们把龙压鸭时算的龙的 mode 直接用到龙压兔上，这是龙身上另一个接触点，对手也换了。和标准答案比，骨架用复用的 mode 只多变了 0.83 个百分点，在事先定的 1 个百分点以内，所以这一点得到支持。同一个算例上 hydroelastic 和标准答案的比值是 0.101（偏低 89.9%），作为对照。龙的预处理时间实测约 94 分钟（5657 秒，含特征值与块 Krylov 续算）。</p></section>
+<section id="w3"><h2>三、Research</h2>
+<details><summary>上次开会讨论到的「按 patch 局部加密、按撞的位置去查」：三种做法比较</summary><div class="tablewrap"><table>
+<thead>
+<tr>
+<th>做法</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每个 patch 单独存、彼此不耦合</td>
+<td>不行：同一物体两处受压时会通过整个物体互相影响，按片拆开后片上合力最多偏 23%</td>
+</tr>
+<tr>
+<td>每个物体存一份分解，每次接触现算碰到的格子</td>
+<td>现在比 IPC 慢：龙压鸭 3614 格，一次接触 1408 秒，是 IPC 的 6.9 倍；计算量随网格变细增长</td>
+</tr>
+<tr>
+<td>整体 mode（现行）</td>
+<td>天然耦合所有接触；存储 80 × 表面点数；每次接触求解约 0.8 秒</td>
+</tr>
+</tbody>
+</table></div>
+<p>文献里的同类做法：Teng 等 2015（接触区全空间、其余子空间，靠每帧静力凝聚耦合，不是一次预处理）；Harmon &amp; Zorin 2013（全局子空间 + 接触附近局部半空间基，变形区和物体同尺寸时效果差）。</p></details>
+<details><summary>大压深相关的已有公式</summary><div class="tablewrap"><table>
+<thead>
+<tr>
+<th>公式</th>
+<th>原文条件</th>
+<th>和我们的关系</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>压深 = 未变形轮廓的最大重叠（Popov, Heß &amp; Willert 2019 §2.2）</td>
+<td>两弹性体正接触</td>
+<td>我们压深的定义</td>
+</tr>
+<tr>
+<td>neo-Hookean 刚球深压入（Zhang 等 2014）</td>
+<td>刚球、轴对称、不可压、半无限基体，到 \(h/R=1\)</td>
+<td>只能对照「越深越偏离 Hertz」的趋势</td>
+</tr>
+<tr>
+<td>深压入 Struve 函数解（Mu 等 2025）</td>
+<td>刚球压不可压 neo-Hookean 半空间</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>线弹性 + 大变形刚球压入（Wu, Lin &amp; Juang 2016）</td>
+<td>刚球、半空间</td>
+<td>提醒：大压深下和 Hertz 恰好对上可能是两项误差抵消</td>
+</tr>
+</tbody>
+</table></div></details>
+<details><summary>RigidFormer 能不能当 baseline</summary><p>原版输入每个物体两帧点云、质量、摩擦，输出刚体下一帧位姿，训练数据是刚体自由运动，没有能量输出，也不吃 \(E\) 、 \(\nu\) 。能借的是它的物体级编码器（点云 → 每个物体一个向量 → 物体间注意力）：输入换成 \(E\) 、 \(\nu\) 和粗状态，输出换成接触能量。需要成批的多形状标签才训得动（ongoing）。</p></details></section>
+<section id="w4"><h2>下周 TODO</h2>
+<ol>
+<li>大压深 8 格的 GT 标签（静止后总弹性能）与 Hertz、Winkler、hydroelastic 基线已全部算出，待补齐大压深骨架读数。</li>
+<li>软硬、泊松比对调：看完整的骨架能不能分开对调前后（2.2 节第二个结果）。</li>
+<li>尖处和龙压兔第 7 号样本骨架偏硬，用网格加密序列查原因。</li>
+<li>速度：龙的预处理实测约 94 分钟，大压深标签主线冷跑实测 19.0 小时（68434 秒，瓶颈在大量受 CCD 限制的小步），均远超 1 小时目标，后续需优化预处理、找接触区与步长速度。</li>
+<li>baseline：RigidFormer 编码器的改造版（进行中）。</li>
+</ol></section>
 </article><footer class="pagefoot"><span>Neural-IPC 周汇报</span><a href="#content">返回顶部 ↑</a></footer></main></div>
 <dialog id="image-viewer" aria-label="放大查看图片"><button type="button" id="close-viewer" aria-label="关闭大图">关闭 ×</button><img alt=""><p>点击图片外区域或按 Esc 关闭</p></dialog>
 <script>
@@ -1074,7 +626,7 @@ html.annot-on #annot-capture { display: block; }
   viewer.addEventListener('close', () => opener && opener.focus({ preventScroll: true }));
 })();
 </script>
-<script type="application/json" id="annot-renames">{"tex": {}, "text": {}}</script>
+<script type="application/json" id="annot-renames">{"tex": {}, "text": {}, "quote": []}</script>
 <script>
 (() => {
   'use strict';
@@ -1087,16 +639,17 @@ html.annot-on #annot-capture { display: block; }
     version: 1,
     colWidth: 920, asideWidth: 245, gap: 50, sidePad: 32, narrowPad: 16,   // 与 html_parts.PAGE_CSS 的桌面版式一致
     quoteLen: 30,        // TextQuote 前后各存多少字
-    glyphLen: 8,         // 公式锚点：被锚符号前后各存几个符号
-    nearPx: 30,          // 笔没圈住任何内容（下划线、箭头、旁注）时，取离笔画这么近以内最近的那个字 / 符号
-    coverCtxAccept: 0.3, // 圈住的关键词在页面上出现好几处时，周围文字与原段落的二元组相似度至少这么高才认
-    coverNearAccept: 0.8, // ……或者紧挨着它的前 / 后 10 字与原来的相似度至少这么高（段落别处改了、这一句没改）
+    seedLen: 8,          // 模糊匹配的种子：prefix 末尾 / suffix 开头各取几个字，与被锚字连成短串在全文里找候选
+    // 模糊匹配的接受阈值：prefix 与 suffix 两边相似度（1 - 编辑距离/长度）的平均。一边原文完整（1.0）、
+    // 另一边只剩一部分没改（≥ 0.1）就能认回；两边都改得面目全非（各 < 0.55）则判为「内容已变」。
+    fuzzyAccept: 0.55,
+    headingFuzzy: 0.7,   // 标题文字改了几个字仍认
+    texFuzzy: 0.8,       // 公式 TeX 小改（如改一个下标）仍认
+    blockHeadAccept: 0.6, // 块内偏移后备：块开头 40 字的相似度
     penWidth: 2.4, hlWidth: 16, eraseRadius: 12, undoLimit: 60,
     colors: { red: '#d62828', blue: '#1f5fbf', black: '#1d232b', yellow: '#ffd400' },
   };
   const PAGE_NAME = location.pathname.split('/').pop() || 'index.html';
-  // 页面版本号（build_site 嵌入；快照页是笔当初画的那一版的版本号）：笔画下时记进 drawn.page，保存时记进 savedOn
-  const PAGE_VERSION = typeof window.NIPC_PAGE === 'string' ? window.NIPC_PAGE : '';
   const STORE_KEY = 'nipc-notes:' + location.pathname;
   const UI_KEY = 'nipc-notes-ui';
   const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1147,12 +700,7 @@ html.annot-on #annot-capture { display: block; }
   /** 本页笔记的完整 JSON（本机保存、导出、同步共用）。tombstones = {被删笔画 id: 删除时刻 ms}，让删除能同步到别的设备。 */
   function payload() {
     return { format: 'nipc-notes', version: CFG.version, page: PAGE_NAME, path: location.pathname,
-             colWidth: CFG.colWidth, saved: new Date().toISOString(), savedOn: PAGE_VERSION, strokes: S.strokes, tombstones: S.tombs };
-  }
-  /** 一笔此刻的样子作为「画的」原样（只在收笔、用户移动时调用；深拷贝，之后匹配字段怎么改都碰不到它）。 */
-  function drawnOf(s) {
-    return JSON.parse(JSON.stringify({ page: PAGE_VERSION, pts: s.pts, frame: s.frame, anchor: s.anchor, orig: s.orig,
-                                       ua: navigator.userAgent, at: new Date().toISOString() }));
+             colWidth: CFG.colWidth, saved: new Date().toISOString(), strokes: S.strokes, tombstones: S.tombs };
   }
   function validStroke(s) {
     return !!(s && typeof s.id === 'string' && Array.isArray(s.pts) && s.pts.length && s.anchor && s.orig &&
@@ -1160,10 +708,7 @@ html.annot-on #annot-capture { display: block; }
   }
   function validTombs(t) { return t && typeof t === 'object' && !Array.isArray(t) ? t : {}; }
   /** 本机存的 {strokes, tombs}。 */
-  // 只读快照页（snapshot/<n>/）：笔记就是页面里嵌的那份（某次画完时的原样），不读写本机存储、不同步笔记仓库
-  const SNAP = window.NIPC_SNAPSHOT && Array.isArray(window.NIPC_SNAPSHOT.strokes) ? window.NIPC_SNAPSHOT : null;
   function loadStored() {
-    if (SNAP) return { strokes: SNAP.strokes.filter(validStroke), tombs: validTombs(SNAP.tombstones) };
     try {
       const raw = localStorage.getItem(STORE_KEY);
       const d = raw ? JSON.parse(raw) : null;
@@ -1171,12 +716,11 @@ html.annot-on #annot-capture { display: block; }
     } catch (e) { return { strokes: [], tombs: {} }; }
   }
   function saveStored() {
-    if (SNAP) return;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(payload())); }
     catch (e) { setStatus('本机保存失败（浏览器存储不可用），请及时导出笔记', true); }
   }
   function loadUi() { try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function saveUi(ui) { if (SNAP) return; try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
+  function saveUi(ui) { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* 只是界面偏好，丢了无妨 */ } }
 
   /* ---------- 4. 版式固定与坐标换算 ---------- */
   function layoutLocked() { return S.on || S.strokes.length > 0; }
@@ -1299,16 +843,6 @@ html.annot-on #annot-capture { display: block; }
     return s.split('#')[0].split('?')[0].split('/').pop();
   }
   /** 当前所有陈列公式：[{el, tex}]，TeX 取自 MathJax 的 math 列表。 */
-  /** 页面里全部公式（陈列 + 行内），{el, tex}：圈住的内容可以是行内公式里的符号。 */
-  function allMath() {
-    const out = [];
-    try {
-      for (const m of MathJax.startup.document.math) {
-        if (m.typesetRoot && article.contains(m.typesetRoot)) out.push({ el: m.typesetRoot, tex: norm(m.math) });
-      }
-    } catch (e) { /* MathJax 没加载 */ }
-    return out;
-  }
   function displayMath() {
     const out = [];
     try {
@@ -1391,36 +925,6 @@ html.annot-on #annot-capture { display: block; }
       frame: 'px', R: localRect(r, f),
     };
   }
-  /* 陈列公式里的符号：MathJax SVG 每个字形是一个带 data-c（Unicode 编码，16 进制）的元素。公式上的笔锚到起笔处
-   * 最近的那个符号，存它前后各 glyphLen 个符号（同正文的 TextQuote），笔画坐标相对这个符号；公式别处增删、
-   * 整体变宽或拆成几行都不会把笔拉偏。没有符号锚点的老笔照旧按整块公式的比例坐标画。 */
-  function glyphList(mj) {
-    const els = [...mj.querySelectorAll('[data-c]')];
-    // NFKC：数学斜体 𝑡 → t，这样记号改名表（t → q）也能用在公式符号上
-    return { els, ch: els.map(e => { const c = parseInt(e.getAttribute('data-c'), 16);
-                                     return Number.isFinite(c) ? String.fromCodePoint(c).normalize('NFKC') : '?'; }) };
-  }
-  /** 符号序列 ch 里 seq（字符数组）出现的所有下标。 */
-  function seqIndexes(ch, seq) {
-    const out = [];
-    for (let i = 0; i + seq.length <= ch.length; i++) if (seq.every((c, k) => ch[i + k] === c)) out.push(i);
-    return out;
-  }
-  function glyphQuote(g, i) {
-    return { prefix: g.ch.slice(Math.max(0, i - CFG.glyphLen), i).join(''), exact: g.ch[i],
-             suffix: g.ch.slice(i + 1, i + 1 + CFG.glyphLen).join('') };
-  }
-  /** 公式里离 (cx, cy) 最近的可见符号的下标；没有返回 -1。 */
-  function glyphAt(g, cx, cy) {
-    let best = -1, bestD = Infinity;
-    g.els.forEach((e, i) => {
-      const r = e.getBoundingClientRect();
-      if (!r.width && !r.height) return;
-      const dx = Math.max(r.left - cx, 0, cx - r.right), dy = Math.max(r.top - cy, 0, cy - r.bottom);
-      if (dx * dx + dy * dy < bestD) { bestD = dx * dx + dy * dy; best = i; }
-    });
-    return best;
-  }
   /** 按元素类型建锚点：媒体 / 陈列公式 / 表格单元格 / 标题 / 正文字符。返回 {anchor, frame, R} 或 null。 */
   function anchorForElement(el, cx, cy, f) {
     const media = el.closest('img, video');
@@ -1431,13 +935,8 @@ html.annot-on #annot-capture { display: block; }
     const mj = el.closest('mjx-container');
     if (mj && mj.getAttribute('display') === 'true') {
       const m = displayMath().find(d => d.el === mj);
-      if (m) {
-        const g = glyphList(mj), i = glyphAt(g, cx, cy);
-        if (i >= 0) return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj), g: glyphQuote(g, i) }, frame: 'px',
-                             R: localRect(g.els[i].getBoundingClientRect(), f) };
-        return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj) }, frame: 'norm',
-                 R: localRect(mj.getBoundingClientRect(), f) };
-      }
+      if (m) return { anchor: { type: 'math', tex: m.tex, ctx: contextBefore(mj) }, frame: 'norm',
+                      R: localRect(mj.getBoundingClientRect(), f) };
     }
     if (mj) {   // 行内公式：锚到公式后面紧挨着的那个字
       const p = posFromElement(mj);
@@ -1455,263 +954,6 @@ html.annot-on #annot-capture { display: block; }
     }
     const p = charAtPoint(cx, cy);
     return p >= 0 ? textAnchor(p, f) : null;
-  }
-  /* 一笔圈住了什么（用户 10-25：「我圈画就是圈画在内容上 内容变了没了那就不留那个标记」「这句话是axxxb我圈了ab
-   * 然后变成cxxxaxxxb那我圈的还要在ab上」）。圈住的内容 = 中心落在笔画外框里的正文字 / 公式符号；一个都没有（下划线、
-   * 箭头、旁注）就取离笔画最近、nearPx 以内的那一个。锚点存这串内容本身（cover）：还原时先在全页找它，几处一样再用
-   * 前后文挑，一处都没有就不画（findCover / findCoverGlyph）。主要圈在图上的笔照旧锚整张图。 */
-  /** 页面几何（页面坐标，不随滚动变）：陈列公式的外框与符号、正文文字节点的外框，单字矩形按需量、量过就记。
-   * 一批笔共用一份（reanchorAll），单独一笔现量；排版变了（DOM 版本或窗口宽度变）就重建。 */
-  function pageGeom() {
-    const key = `${S.domVersion}:${innerWidth}`;
-    if (S.geom && S.geom.key === key) return S.geom;
-    const page = q => ({ left: q.left + scrollX, top: q.top + scrollY, right: q.right + scrollX, bottom: q.bottom + scrollY,
-                         width: q.width, height: q.height });
-    const maths = allMath().filter(m => !inClosedDetails(m.el)).map(m => {
-      const g = glyphList(m.el);
-      return { m, g, box: page(m.el.getBoundingClientRect()), q: g.els.map(e => page(e.getBoundingClientRect())) };
-    });
-    const ix = ensureIndex(), rg = document.createRange();
-    const nodes = ix.nodes.map((n, ni) => {
-      if (!n.isConnected || inClosedDetails(n.parentElement)) return null;
-      rg.selectNodeContents(n);
-      return { ni, box: page(rg.getBoundingClientRect()) };
-    }).filter(Boolean);
-    S.geom = { key, page, maths, nodes, chars: new Map() };
-    return S.geom;
-  }
-  function strokeCover(abs, f, padPx = CFG.nearPx) {
-    const G = pageGeom();
-    const P = abs.map(p => { const c = toClient(p[0], p[1], f); return { x: c.x + scrollX, y: c.y + scrollY }; });
-    const l = Math.min(...P.map(p => p.x)), r = Math.max(...P.map(p => p.x));
-    const t = Math.min(...P.map(p => p.y)), b = Math.max(...P.map(p => p.y)), pad = padPx * f.s;
-    const near = q => q.right >= l - pad && q.left <= r + pad && q.bottom >= t - pad && q.top <= b + pad;
-    const inside = q => { const cx = (q.left + q.right) / 2, cy = (q.top + q.bottom) / 2; return cx >= l && cx <= r && cy >= t && cy <= b; };
-    const dist = q => Math.min(...P.map(p => Math.hypot(Math.max(q.left - p.x, 0, p.x - q.right), Math.max(q.top - p.y, 0, p.y - q.bottom))));
-    const items = [];
-    for (const { m, g, box, q } of G.maths) {
-      if (!near(box)) continue;
-      q.forEach((qi, i) => { if ((qi.width || qi.height) && near(qi)) items.push({ kind: 'g', m, g, i, q: qi }); });
-    }
-    const ix = S.index;
-    for (const { ni, box } of G.nodes) {
-      if (!near(box)) continue;
-      if (!G.chars.has(ni)) {
-        const cs = [];
-        for (let p = firstPos(ni, 0); p >= 0 && p < ix.text.length && ix.posNode[p] === ni; p++) {
-          const q = ix.text[p] === ' ' ? null : charRect(p);
-          if (q) cs.push([p, G.page(q)]);
-        }
-        G.chars.set(ni, cs);
-      }
-      for (const [p, q] of G.chars.get(ni)) if (near(q)) items.push({ kind: 't', pos: p, q });
-    }
-    let hit = items.filter(it => inside(it.q));
-    if (!hit.length) {   // 下划线 / 上划线：横向在笔画范围内、竖直方向离笔画最近的那一行
-      const over = items.filter(it => { const cx = (it.q.left + it.q.right) / 2; return cx >= l && cx <= r && dist(it.q) <= pad; });
-      if (over.length) {
-        const dmin = Math.min(...over.map(it => dist(it.q)));
-        hit = over.filter(it => dist(it.q) <= dmin + 0.5 * (it.q.bottom - it.q.top));
-      }
-    }
-    if (!hit.length) {   // 箭头、旁注：离笔画最近的那一个
-      const best = items.map(it => [dist(it.q), it]).filter(([d]) => d <= pad).sort((x, y) => x[0] - y[0])[0];
-      hit = best ? [best[1]] : [];
-    }
-    if (!hit.length) return null;
-    // 核对用：圈住的每个字 / 符号与笔画起点的相对位置（正文卡片 px），按页面上的先后排
-    const hitPos = hit.slice().sort((x, y) => (x.kind === 'g' && y.kind === 'g' && x.m === y.m) ? x.i - y.i : (x.q.top - y.q.top) || (x.q.left - y.q.left))
-      .map(it => [it.kind === 'g' ? it.g.ch[it.i] : ix.text[it.pos], (P[0].x - it.q.left) / f.s, (P[0].y - it.q.top) / f.s]);
-    const got = strokeCoverAnchor(hit, ix, f);
-    if (got) got.hit = hitPos;
-    return got;
-  }
-  /** strokeCover 的后半：圈住的那些字 / 符号 → 锚点（主要是公式符号就锚公式里那一串，否则锚正文那一段字）。 */
-  function strokeCoverAnchor(hit, ix, f) {
-    if (2 * hit.filter(it => it.kind === 'g').length >= hit.length) {   // 主要圈在公式上：符号最多的那个公式里第一个到最后一个
-      const by = new Map();
-      for (const it of hit) if (it.kind === 'g') by.set(it.m.el, (by.get(it.m.el) || []).concat([it]));
-      const gs = [...by.values()].sort((x, y) => y.length - x.length)[0], g = gs[0].g;
-      const i0 = Math.min(...gs.map(it => it.i)), i1 = Math.max(...gs.map(it => it.i));
-      const bp = posFromElement(gs[0].m.el), bs = bp >= 0 ? blockSpan(bp) : null;
-      return { anchor: { type: 'math', tex: gs[0].m.tex, ctx: contextBefore(gs[0].m.el), g: glyphQuote(g, i0),
-                         cover: g.ch.slice(i0, i1 + 1).join(''), gi: i0, gn: g.ch.length,
-                         block: bs ? ix.text.slice(bs.start, bs.end) : '' },
-               frame: 'px', R: localRect(g.els[i0].getBoundingClientRect(), f) };
-    }
-    const ps = hit.filter(it => it.kind === 't').map(it => it.pos), p0 = Math.min(...ps), p1 = Math.max(...ps);
-    const got = textAnchor(p0, f);
-    if (got) {
-      const { start, end } = blockSpan(p0);
-      Object.assign(got.anchor, { cover: ix.text.slice(p0, p1 + 1), block: ix.text.slice(start, end) });
-    }
-    return got;
-  }
-  /** 两段文字的字二元组 Jaccard 相似度（改写措辞、调换语序后仍然高，换成别的段落就低）。 */
-  function bigramSim(a, b) {
-    const grams = s => { const o = new Set(); for (let i = 0; i + 1 < s.length; i++) o.add(s.slice(i, i + 2)); return o; };
-    const A = grams(a), B = grams(b);
-    let n = 0;
-    for (const x of A) if (B.has(x)) n++;
-    return A.size + B.size ? n / (A.size + B.size - n) : 1;
-  }
-  /** 几个候选（文档顺序）里取离原位置 orig 最近的（参考矩形左上角的距离，正文卡片 px）；最近的几处距离平手（≤ 0.5 px）且
-   * 锚点记了 nth（收笔自检 pinIfAmbiguous 写的「落笔那一处在这串候选里排第几」）时按 nth 取——nth 只作最后的平手区分。 */
-  function closestOf(list, rectOf, a, orig, f) {
-    if (list.length === 1) return list[0];
-    const d = list.map(x => { const r = rectOf(x); if (!r) return Infinity; const R = localRect(r, f); return Math.hypot(R.x - orig.x, R.y - orig.y); });
-    const best = Math.min(...d), tied = list.filter((x, k) => d[k] <= best + 0.5);
-    if (tied.length > 1 && Number.isInteger(a.nth) && a.nth >= 0 && a.nth < list.length && tied.includes(list[a.nth])) return list[a.nth];
-    return list[d.indexOf(best)];
-  }
-  /** 正文第 p 个字是否就是锚点 a 落笔时那个字：被锚字连同落笔时存的前后各 quoteLen 字一字不差。 */
-  function quoteAt(p, a) {
-    const t = S.index.text, pre = a.prefix || '', suf = a.suffix || '';
-    return p >= pre.length && t.slice(p - pre.length, p) === pre && t[p] === a.exact && t.slice(p + 1, p + 1 + suf.length) === suf;
-  }
-  /** 正文里圈住的关键词原样出现、且落笔时的完整前后文也原样的那几处（文档顺序）。 */
-  function textSame(a) { return allIndexes(S.index.text, a.cover, 2000).filter(p => quoteAt(p, a)); }
-  /** 公式里圈住的符号串原样出现、且落笔时那一处原样的那几处（文档顺序）：同 TeX、起始符号前后各 glyphLen 个符号一字不差、
-   * 公式前文 ctx 一字不差。返回 [{m, g, i}]。 */
-  function glyphSame(a) {
-    if (!a.g) return [];
-    const seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover), out = [];
-    for (const m of allMath()) {
-      if (m.tex !== a.tex || contextBefore(m.el) !== a.ctx) continue;
-      const g = glyphList(m.el);
-      for (const i of seqIndexes(g.ch, seq)) {
-        const q = glyphQuote(g, i);
-        if (q.prefix === a.g.prefix && q.exact === a.g.exact && q.suffix === a.g.suffix) out.push({ m, g, i });
-      }
-    }
-    return out;
-  }
-  /** 收笔 / 移动后自检（用户 10-26：「写好了然后跑到边上去了」）：新锚点此刻解回的参考矩形若不是落笔时的 orig（差 > 0.5 px），
-   * 说明落笔前后文原样相同的有好几处、按距离也分不开：记 anchor.nth = 落笔那一处在这几处（文档顺序）里排第几，
-   * 供 closestOf 平手时区分（只作最后的平手区分，不压过前后文）。只管圈住内容的正文 / 公式锚点。 */
-  function pinIfAmbiguous(s, f) {
-    const a = s.anchor;
-    if (!a.cover || (a.type !== 'text' && a.type !== 'math')) return;
-    const at = r => { if (!r) return false; const R = localRect(r, f); return Math.hypot(R.x - s.orig.x, R.y - s.orig.y) <= 0.5; };
-    const t = findTarget(a, s.orig, f);
-    if (t && at(t.glyph ? elementRect(t.glyph) : t.pos !== undefined ? charRect(t.pos) : null)) return;
-    const k = a.type === 'text' ? textSame(a).findIndex(p => at(charRect(p)))
-                                : glyphSame(a).findIndex(x => at(elementRect(x.g.els[x.i])));
-    if (k >= 0) a.nth = k;
-  }
-  /** 正文里圈住的关键词（用户 10-25：内容挪了跟着走、改写了关键词没变还圈在关键词上），三步：
-   * 1. 全页找这串字；落笔时存的完整前后文（prefix / exact / suffix）原样还在的那几处优先，有就只在它们里取（closestOf）——
-   *    内容没改时一定认回落笔那一处（用户 10-26：表格里两格都是「1 / 0」，以前会跳到上一行那格）；
-   * 2. 原样前后文一处都没有（内容改写过）：照旧按关键词跟着走，不因前后文变了就隐藏——每一处比紧挨着的前后各 10 字和周围段落，
-   *    前后 10 字优先、段落其次；「段落」短到只是这几个字（如一个表格单元格）时不比段落；
-   * 3. 关键词本身找不到（再按改名表换写法也找不到）返回 null，这笔不画。 */
-  function findCover(a, orig, f) {
-    const t = S.index.text;
-    let cover = a.cover, hits = allIndexes(t, cover, 2000);
-    if (!hits.length) { const r = renamedText(cover, 0); if (r) { cover = r.s; hits = allIndexes(t, cover, 2000); } }
-    if (!hits.length) return null;
-    const out = pos => {   // 关键词或它前后的字按改名表换了写法：存的锚点一并改成新写法
-      const rn = s => { const r = renamedText(s || '', 0); return r ? r.s : (s || ''); };
-      const m = { cover, exact: cover[0], prefix: rn(a.prefix), suffix: rn(a.suffix), block: rn(a.block) };
-      return Object.keys(m).every(k => m[k] === (a[k] || '')) ? { pos } : { pos, migrated: Object.assign({}, a, m) };
-    };
-    const same = cover === a.cover ? textSame(a) : [];
-    if (same.length) return out(closestOf(same, charRect, a, orig, f));
-    if (hits.length === 1 || !a.block) return out(nearestPos(hits, orig, f));
-    // 每一处比两样：紧挨着的前后各 10 字（只改了段落别处时原样不变），和周围与原段落等长的一段（改写、换语序、拆段也认得出）。
-    // 认它的条件：前或后 10 字几乎原样（≥ coverNearAccept），或段落相似（≥ coverCtxAccept）且前后 10 字也不差（≥ coverCtxAccept）。
-    // 几处都认：先挑前后 10 字原样的，再比前后 10 字相似度，最后比段落相似度
-    const L = 10, pre = a.prefix.slice(-L), suf = a.suffix.slice(cover.length - 1, cover.length - 1 + L);
-    const half = Math.max(40, a.block.length >> 1), useBlock = a.block.length >= 2 * cover.length + 4;
-    let best = null, key = null;
-    for (const p of hits) {
-      const sp = similarity(pre, t.slice(Math.max(0, p - L), p)), ss = similarity(suf, t.slice(p + cover.length, p + cover.length + L));
-      const sb = useBlock ? bigramSim(a.block, t.slice(Math.max(0, p - half), p + cover.length + half)) : 0;
-      const near = Math.max(sp, ss) >= CFG.coverNearAccept;
-      if (!near && !(sb >= CFG.coverCtxAccept && (sp + ss) / 2 >= CFG.coverCtxAccept)) continue;
-      const k = [near ? 1 : 0, sp + ss, sb];
-      if (!key || k[0] > key[0] || (k[0] === key[0] && (k[1] > key[1] + 1e-9 || (Math.abs(k[1] - key[1]) <= 1e-9 && k[2] > key[2])))) { best = p; key = k; }
-    }
-    return key ? out(best) : null;
-  }
-  /** 公式里圈住的符号串：先在原公式（TeX 相同或按改名表换过）里找，找不到再在全页陈列公式里找；几处就挑整个公式与原公式
-   * 最像的（符号二元组 Jaccard），一处都没有返回 null。返回 {el: 公式, glyph: 起始符号元素}。 */
-  function findCoverGlyph(a, orig, f) {
-    // 圈住的末尾标点（句号、逗号）不算内容：公式里「sin θ.」改成「sin ψ,」仍是同一处
-    const all = allMath(), seq = Array.from(a.cover.length > 1 ? a.cover.replace(/[.,;:]+$/, '') : a.cover);
-    const renamed = renamedTex(a.tex);
-    const own = all.filter(m => m.tex === a.tex || (renamed && m.tex === renamed));
-    // 找到的位置（公式 m 的第 i 个符号）；公式换了（改名、并进别的公式）就把存的锚点一并改成新公式里的这一处
-    const found = (m, g, i) => {
-      const r = { el: m.el, glyph: g.els[i] };
-      if (m.tex === a.tex) return r;
-      const n = Array.from(a.cover).length, bp = posFromElement(m.el), bs = bp >= 0 ? blockSpan(bp) : null;
-      r.migrated = Object.assign({}, a, { tex: m.tex, ctx: contextBefore(m.el), g: glyphQuote(g, i), gi: i, gn: g.ch.length,
-                                           cover: g.ch.slice(i, i + n).join(''), block: bs ? S.index.text.slice(bs.start, bs.end) : a.block });
-      return r;
-    };
-    const search = list => {
-      const out = [];
-      for (const m of list) {
-        const g = glyphList(m.el);
-        let idx = seqIndexes(g.ch, seq);
-        if (!idx.length) { const r = renamedText(a.cover, 0); if (r) idx = seqIndexes(g.ch, Array.from(r.s)); }
-        for (const i of idx) out.push({ m, g, i });
-      }
-      return out;
-    };
-    let hits = search(own);
-    // 落笔时那一处原样还在（同 TeX、起始符号前后各 glyphLen 个符号一字不差、公式前文 ctx 一字不差）：只在这些里取，离原位置最近
-    const same = glyphSame(a);
-    if (same.length) { const h = closestOf(same, x => elementRect(x.g.els[x.i]), a, orig, f); return found(h.m, h.g, h.i); }
-    if (!hits.length && own.length) {
-      // 原公式还在（TeX 相同或按改名表认出），只是字母改了（t → q）：符号个数没变就按原序号，否则这笔不画；不去别的公式里乱找
-      const m = own.find(o => glyphList(o.el).ch.length === a.gn);
-      if (m && a.gi !== undefined) { const g = glyphList(m.el); return found(m, g, a.gi); }
-      // 符号个数也变了（改名表把它连到改写后的公式）：圈住的符号串按改名表里的字母换名（t → q、θ → ψ，一次用一组）
-      // 换过后在这个公式里原样找；找不到就是圈的内容改了，不画
-      for (const lm of letterMaps()) {
-        const mseq = seq.map(c => lm.get(c) || c);
-        if (mseq.every((c, k) => c === seq[k])) continue;
-        const hs = own.flatMap(o => { const g = glyphList(o.el); return seqIndexes(g.ch, mseq).map(i => ({ m: o, g, i })); });
-        if (hs.length) { hits = hs; break; }
-      }
-      if (!hits.length) return null;
-    }
-    // 原公式没了（并进了更长的公式）：原公式短到符号锚点存下了它的全部符号时，全页找这整串，恰好一处就按原序号放
-    if (!hits.length && a.g && a.gi !== undefined && a.g.prefix.length === a.gi && a.gi + 1 + a.g.suffix.length === a.gn) {
-      const whole = Array.from(a.g.prefix + a.g.exact + a.g.suffix);
-      const at = all.flatMap(m => { const g = glyphList(m.el); return seqIndexes(g.ch, whole).map(i => ({ m, g, i: i + a.gi })); });
-      if (at.length === 1) return found(at[0].m, at[0].g, at[0].i);
-    }
-    // 原公式改写了（拆行、加步骤）：全页找这串符号；只圈一个符号的不找（别的公式里同样的单个符号到处都是，认不出是哪个）
-    if (!hits.length && seq.length >= 2) hits = search(all);
-    if (!hits.length) return null;
-    // 几处一样（短的行内公式常见）：依次比公式前面的字、公式里前后的符号、所在段落（局部前后文优先）
-    const origG = a.g.prefix + a.g.exact + a.g.suffix, t = S.index.text;
-    const score = h => {
-      const p = posFromElement(h.m.el), bs = p >= 0 ? blockSpan(p) : null, q = glyphQuote(h.g, h.i);
-      return [similarity(a.ctx || '', contextBefore(h.m.el)), bigramSim(origG, q.prefix + q.exact + q.suffix),
-              a.block && bs ? bigramSim(a.block, t.slice(bs.start, bs.end)) : 0];
-    };
-    const keyed = hits.map(h => [score(h), h]);
-    keyed.sort((x, y) => (y[0][0] - x[0][0]) || (y[0][1] - x[0][1]) || (y[0][2] - x[0][2]));
-    const h = keyed[0][1];
-    return found(h.m, h.g, h.i);
-  }
-  /** 一整笔（正文卡片坐标的点）的锚点：主要落在图 / 视频里就锚整张图；否则锚圈住的内容；没圈住也不挨着内容（页边旁注）
-   * 就逐级放宽到离它最近的那个字 / 符号（按页面几何算，不靠屏幕上点到的元素：笔在视口外时点不到它）；都不行退回起笔点规则。 */
-  function anchorForStroke(abs) {
-    if (!S.geomBatch) S.geom = null;   // 单独一笔：现量（折叠框开合会改排版）；批量迁移时共用一份
-    const f = frame(), P = abs.map(p => toClient(p[0], p[1], f));
-    for (const m of article.querySelectorAll('img, video')) {
-      const q = elementRect(m);   // 收起的折叠里的图仍有布局矩形，要跳过（否则画在折叠框后面正文上的笔会挂到它上面）
-      if (q && 2 * P.filter(p => p.x >= q.left && p.x <= q.right && p.y >= q.top && p.y <= q.bottom).length > P.length) {
-        return { anchor: { type: 'media', src: srcKey(m), ctx: contextBefore(m) }, frame: 'norm', R: localRect(q, f) };
-      }
-    }
-    for (const px of [CFG.nearPx, 120, 480, 1920]) { const got = strokeCover(abs, f, px); if (got) return got; }
-    return anchorAt(Math.min(Math.max(P[0].x, 1), innerWidth - 1), Math.min(Math.max(P[0].y, 1), innerHeight - 1));
   }
   /** 起笔处（屏幕坐标）的锚点；点不在正文内容上就取最近的可锚元素；实在没有就锚到正文卡片本身。 */
   function anchorAt(cx, cy) {
@@ -1759,9 +1001,10 @@ html.annot-on #annot-capture { display: block; }
   }
   /* ---------- 7b. 记号改名表：内容只是换了写法（如 d → δ），笔记跟着改名后的内容走 ----------
    * build_site 把 docs/drafts/notation_renames_<页>.json 嵌进页面 <script id="annot-renames">：
-   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。只用于有圈住内容（cover）的笔：圈住的那串按原样找不到时，
-   * 按改名表（可连续改名）换成新写法再找（findCover / findCoverGlyph），找到就把存的锚点改成新写法；还找不到就隐藏。 */
+   * {"tex": {旧 TeX: 新 TeX}, "text": {旧文字: 新文字}}。锚点按原样找不到时，先按改名表（可连续改名）换成新写法再精确找；
+   * 找到就把存的锚点改成新写法（之后同步）。改名表里没有的改动照旧走模糊匹配，再找不到就标灰。 */
   const collapse = s => (s || '').replace(/\s+/g, ' ');
+  const quoteKey = q => `${q.prefix}\u0001${q.exact}\u0001${q.suffix}`;
   function renameMap() {
     const el = document.getElementById('annot-renames');
     const raw = el ? el.textContent : '';
@@ -1770,34 +1013,13 @@ html.annot-on #annot-capture { display: block; }
       try { m = JSON.parse(raw || '{}') || {}; } catch (e) { m = {}; }
       const pick = (o, fn) => new Map(Object.entries(o && typeof o === 'object' ? o : {})
         .filter(([k, v]) => k && typeof v === 'string').map(([k, v]) => [fn(k), fn(v)]));
+      // quote：逐笔迁移（旧前后文整体 → 新前后文），用于句子被改写、字挪了位置、全局文字替换对不准的地方
+      const quote = new Map((Array.isArray(m.quote) ? m.quote : []).filter(e => e && e.from && e.to)
+        .map(e => [quoteKey(e.from), { prefix: e.to.prefix, exact: e.to.exact, suffix: e.to.suffix }]));
       renameMap.raw = raw;
-      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse) };
+      renameMap.val = { tex: pick(m.tex, norm), text: pick(m.text, collapse), quote };
     }
     return renameMap.val;
-  }
-  /** 改名表里「只差字母一一换名」的那些公式对，各自换了哪些字母（公式符号字符 → 新字符，如 t → q、θ → ψ）。
-   * 两边按 TeX 记号切开、记号数相同、不同处全是字母才算；每一对给一组，按出现顺序去重。 */
-  const GREEK = { alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ϵ', varepsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ',
-                  vartheta: 'ϑ', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ',
-                  phi: 'ϕ', varphi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω' };
-  function letterMaps() {
-    const raw = renameMap();
-    if (letterMaps.of === raw) return letterMaps.val;
-    const tok = s => s.match(/\\[A-Za-z]+|\S/g) || [];
-    const glyph = t => (/^[A-Za-z]$/.test(t) ? t : (t[0] === '\\' && GREEK[t.slice(1)]) || null);
-    const out = [], seen = new Set();
-    for (const [o, n] of raw.tex) {
-      const A = tok(o), B = tok(n);
-      if (A.length !== B.length) continue;
-      const m = new Map();
-      let ok = true;
-      A.forEach((x, k) => { if (!ok || x === B[k]) return; const gx = glyph(x), gy = glyph(B[k]);
-                            if (!gx || !gy || (m.has(gx) && m.get(gx) !== gy)) ok = false; else m.set(gx, gy); });
-      const key = [...m].join(';');
-      if (ok && m.size && !seen.has(key)) { seen.add(key); out.push(m); }
-    }
-    letterMaps.of = raw; letterMaps.val = out;
-    return out;
   }
   /** TeX 沿改名表走到底（a→b→c；有环就停）；没改名返回 null。 */
   function renamedTex(tex) {
@@ -1825,44 +1047,110 @@ html.annot-on #annot-capture { display: block; }
     }
     return changed ? { s, mark } : null;
   }
+  /** TextQuote 按改名表换成新写法后的锚点（prefix / suffix 仍各取 quoteLen 字）；没改名返回 null。 */
+  function renamedQuote(a) {
+    const r = renamedText(a.prefix + a.exact + a.suffix, a.prefix.length);
+    if (!r || r.mark >= r.s.length) return null;
+    return Object.assign({}, a, { prefix: r.s.slice(Math.max(0, r.mark - CFG.quoteLen), r.mark), exact: r.s[r.mark],
+                                  suffix: r.s.slice(r.mark + 1, r.mark + 1 + CFG.quoteLen) });
+  }
+
   function exactQuote(a, orig, f) {
     const hits = allIndexes(S.index.text, a.prefix + a.exact + a.suffix).map(i => i + a.prefix.length);
     return hits.length ? nearestPos(hits, orig, f) : -1;
   }
-  /** 按锚点类型在当前页面找目标：有圈住内容（cover）的跟着这串内容走，其余只按原样精确找。
-   * 返回 {el} / {pos} / {el, glyph}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
+  /** 正文锚点：① 原文精确匹配 → ② 按改名表换写法后精确匹配（返回 migrated = 新锚点）→ ③ 种子找候选 + 前后文相似度打分
+   * → ④ 块开头相似 + 块内偏移。返回 {pos, migrated?} 或 null。 */
+  function findQuote(a, orig, f) {
+    let p = exactQuote(a, orig, f);
+    if (p >= 0) return { pos: p };
+    const qa = renameMap().quote.get(quoteKey(a));
+    if (qa) {
+      const ma = Object.assign({}, a, qa);
+      if ((p = exactQuote(ma, orig, f)) >= 0) return { pos: p, migrated: ma };
+    }
+    const ra = renamedQuote(a);
+    if (ra && (p = exactQuote(ra, orig, f)) >= 0) return { pos: p, migrated: ra };
+    p = fuzzyQuote(ra || a, orig, f);
+    return p >= 0 ? { pos: p } : null;
+  }
+  function fuzzyQuote(a, orig, f) {
+    const t = S.index.text;
+    const cands = new Set();
+    const pSeed = a.prefix.slice(-CFG.seedLen) + a.exact, sSeed = a.exact + a.suffix.slice(0, CFG.seedLen);
+    for (const i of allIndexes(t, pSeed)) cands.add(i + pSeed.length - a.exact.length);
+    for (const i of allIndexes(t, sSeed)) cands.add(i);
+    let best = [], bestScore = -1;
+    for (const p of cands) {
+      const sc = (similarity(a.prefix, t.slice(Math.max(0, p - a.prefix.length), p)) +
+                  similarity(a.suffix, t.slice(p + 1, p + 1 + a.suffix.length))) / 2;
+      if (sc > bestScore + 1e-9) { bestScore = sc; best = [p]; } else if (Math.abs(sc - bestScore) <= 1e-9) best.push(p);
+    }
+    if (bestScore >= CFG.fuzzyAccept) return nearestPos(best, orig, f);
+    if (!a.blk) return -1;
+    let bestBlk = -1, bestSim = CFG.blockHeadAccept;
+    for (const el of article.querySelectorAll(a.blk.tag)) {
+      const start = posFromElement(el);
+      if (start < 0) continue;
+      let end = start;
+      while (end < t.length && end < start + 40 && el.contains(S.index.nodes[S.index.posNode[end]])) end++;
+      const sc = similarity(a.blk.head, t.slice(start, end));
+      if (sc >= bestSim) {
+        let blkEnd = end;
+        while (blkEnd < t.length && el.contains(S.index.nodes[S.index.posNode[blkEnd]])) blkEnd++;
+        bestSim = sc; bestBlk = Math.min(start + a.blk.off, blkEnd - 1);
+      }
+    }
+    return bestBlk;
+  }
+  /** 按锚点类型在当前页面找目标；返回 {el} 或 {pos}（按改名表迁移了的另带 migrated = 新锚点），找不到返回 null。 */
   function findTarget(a, orig, f) {
     if (a.type === 'page') return { el: main };
-    if (a.type === 'text' && a.cover) return findCover(a, orig, f);
-    if (a.type === 'math' && a.cover) return findCoverGlyph(a, orig, f);
-    return findExact(a, orig, f);
-  }
-  /** 没有圈住内容（cover）的锚点（用户 10-25 确认过的第 2 次画完的笔，画笔时还没有 cover）：只按原样精确找——正文前后文
-   * 一字不差、公式 TeX 相同且符号前后文原样出现、图 src 相同、标题 / 表格文字相同；不用改名表、不模糊匹配。
-   * 找不到返回 null（这笔隐藏）。 */
-  function findExact(a, orig, f) {
-    if (a.gone) return null;   // 迁移时判出内容在新版里没了（repair_notes_positions --apply-snapshot），不画
-    if (a.type === 'text') { const p = exactQuote(a, orig, f); return p >= 0 ? { pos: p } : null; }
-    let cands = [];
+    if (a.type === 'text') return findQuote(a, orig, f);
+    let cands = [], migrated = null;
+    const renamedOr = (s, fn) => { const r = fn(s); return r === null ? s : r; };
+    const rt = s => { const r = renamedText(s, -1); return r ? r.s : null; };
     if (a.type === 'media') {
       cands = [...article.querySelectorAll('img, video')].filter(e => srcKey(e) === a.src);
     } else if (a.type === 'math') {
-      const els = displayMath().filter(m => m.tex === a.tex).map(m => m.el);
-      if (!a.g) cands = els;
-      else {   // 符号锚点：前后各 glyphLen 个符号连同被锚符号原样出现在这个公式里，几处取第一处
-        const seq = Array.from(a.g.prefix + a.g.exact + a.g.suffix), k = Array.from(a.g.prefix).length;
-        const hits = els.map(el => { const g = glyphList(el), i = seqIndexes(g.ch, seq)[0]; return i === undefined ? null : { el, glyph: g.els[i + k] }; })
-                        .filter(Boolean);
-        const el = pickCandidate(hits.map(h => h.el), a, orig, f);
-        return el ? hits.find(h => h.el === el) : null;
+      const all = displayMath();
+      cands = all.filter(m => m.tex === a.tex).map(m => m.el);
+      const t2 = cands.length ? null : renamedTex(a.tex);
+      if (t2) {
+        cands = all.filter(m => m.tex === t2).map(m => m.el);
+        if (cands.length) migrated = Object.assign({}, a, { tex: t2 });
+      }
+      if (!cands.length) {
+        let bestSim = CFG.texFuzzy;
+        for (const m of all) { const sc = similarity(t2 || a.tex, m.tex); if (sc >= bestSim) { bestSim = sc; cands = [m.el]; } }
       }
     } else if (a.type === 'cell') {
-      cands = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === a.cell && headerText(c) === a.head);
+      const findCells = (cell, head) => {
+        const cells = [...article.querySelectorAll('td, th')].filter(c => plainText(c) === cell);
+        const withHead = cells.filter(c => headerText(c) === head);
+        return withHead.length ? withHead : cells;
+      };
+      cands = findCells(a.cell, a.head);
+      if (!cands.length && (rt(a.cell) !== null || rt(a.head) !== null)) {
+        const cell = renamedOr(a.cell, rt), head = renamedOr(a.head, rt);
+        cands = findCells(cell, head);
+        if (cands.length) migrated = Object.assign({}, a, { cell, head });
+      }
     } else if (a.type === 'heading') {
-      cands = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(h => plainText(h) === a.text);
+      const hs = [...article.querySelectorAll('h1, h2, h3, h4, h5, h6')];
+      cands = hs.filter(h => plainText(h) === a.text);
+      const t2 = cands.length ? null : rt(a.text);
+      if (t2 !== null) {
+        cands = hs.filter(h => plainText(h) === t2);
+        if (cands.length) migrated = Object.assign({}, a, { text: t2 });
+      }
+      if (!cands.length) {
+        let bestSim = CFG.headingFuzzy;
+        for (const h of hs) { const sc = similarity(t2 || a.text, plainText(h)); if (sc >= bestSim) { bestSim = sc; cands = [h]; } }
+      }
     }
     const el = pickCandidate(cands, a, orig, f);
-    return el ? { el } : null;
+    return el ? (migrated ? { el, migrated } : { el }) : null;
   }
   /** 一笔当前该画在哪：{state: 'ok' | 'hidden' | 'orphan', R（正文卡片内坐标的参考矩形）, el（所在元素）}。 */
   function place(s, f) {
@@ -1874,10 +1162,6 @@ html.annot-on #annot-capture { display: block; }
     }
     if (!t) return { state: 'orphan', R: s.orig, el: main };
     if (t.el === main) return { state: 'ok', R: s.orig, el: main };
-    if (t.glyph) {   // 圈住的公式符号串：画在找到的起始符号上
-      const r = elementRect(t.glyph);
-      return r ? { state: 'ok', R: localRect(r, f), el: t.el } : { state: 'hidden' };
-    }
     if (t.pos !== undefined) {
       const r = charRect(t.pos), node = S.index.nodes[S.index.posNode[t.pos]];
       return r ? { state: 'ok', R: localRect(r, f), el: node.parentElement } : { state: 'hidden' };
@@ -1972,14 +1256,11 @@ html.annot-on #annot-capture { display: block; }
     renderQueued = true;
     requestAnimationFrame(() => { renderQueued = false; renderAll(); });
   }
-  // 核对页（check/<版本>/）：只显示在这一版上画的笔（NIPC_ONLY = 笔 id 列表），其余笔不画也不动
-  const ONLY = Array.isArray(window.NIPC_ONLY) ? new Set(window.NIPC_ONLY) : null;
   function renderAll() {
     ensureIndex();
     const f = frame(), alive = new Set();
     let orphans = 0, hidden = 0;
     for (const s of S.strokes) {
-      if (ONLY && !ONLY.has(s.id)) continue;
       alive.add(s.id);
       let d = S.drawn.get(s.id);
       if (!d) {
@@ -1991,42 +1272,21 @@ html.annot-on #annot-capture { display: block; }
       }
       const pl = place(s, f);
       d.state = pl.state; d.el = pl.el;
-      // 圈的内容在本页找不到（orphan）和在收起的折叠里（hidden）一样不画：任何页面都不显示灰色笔，也擦不到、拖不动、打印不出
-      d.path.classList.toggle('orphan', pl.state === 'orphan');
-      if (pl.state !== 'ok') {
-        d.path.style.display = 'none'; d.abs = null; d.key = '';
-        if (pl.state === 'orphan') orphans++; else hidden++;
-        continue;
-      }
+      if (pl.state === 'hidden') { d.path.style.display = 'none'; d.abs = null; hidden++; continue; }
       d.path.style.display = '';
-      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',');
+      if (pl.state === 'orphan') orphans++;
+      d.path.classList.toggle('orphan', pl.state === 'orphan');
+      const R = pl.R, key = [R.x, R.y, R.w, R.h].map(v => v.toFixed(2)).join(',') + pl.state;
       if (key !== d.key) {
         d.abs = absPoints(s, R); d.box = bbox(d.abs, 0); d.key = key;
         styleStrokePath(d.path, s, d.abs);
+        d.path.classList.toggle('orphan', pl.state === 'orphan');
       }
     }
     for (const [id, d] of S.drawn) if (!alive.has(id)) { d.path.remove(); S.drawn.delete(id); }
     S.orphans = orphans; S.hidden = hidden;
-    if (ONLY && !S.printing) {
-      // 核对页上（笔画的那一版、用户自己的设备和字体）：显示出来的笔就地算出圈住的内容，笔不动，存回笔记
-      const todo = S.strokes.filter(s => ONLY.has(s.id) && !s.coverOn && s.anchor.type !== 'media' && s.anchor.type !== 'page');
-      if (coverOnDevice(todo, window.NIPC_CHECK_VERSION || PAGE_VERSION).length) { commit(); return; }
-    }
     if (S.migrated) { S.migrated = false; saveStored(); schedulePush(); }
     updateStatus();
-  }
-
-  /** 在用户设备上（当前页面的排版、字体）把 list 里此刻显示着的笔按它们显示的位置重新算圈住的内容，只改匹配字段
-   * （anchor / frame / orig / pts）并记 coverOn = {page: 在哪一版上算的, at, ua}；drawn 不动。返回算了的笔。 */
-  function coverOnDevice(list, page) {
-    const todo = list.filter(s => { const d = S.drawn.get(s.id); return d && d.state === 'ok' && d.abs; });
-    S.geom = null; S.geomBatch = true;
-    for (const s of todo) {
-      reanchor(s, S.drawn.get(s.id).abs);
-      s.coverOn = { page, at: new Date().toISOString(), ua: navigator.userAgent };
-    }
-    S.geomBatch = false; S.geom = null;
-    return todo;
   }
 
   /* ---------- 10. 操作：书写、橡皮擦、移动、撤销、清空 ---------- */
@@ -2081,11 +1341,10 @@ html.annot-on #annot-capture { display: block; }
     const dr = S.drawing;
     S.drawing = null;
     dr.path.remove();
-    const got = anchorForStroke(dr.abs);
+    const f = frame(), c = toClient(dr.abs[0][0], dr.abs[0][1], f);
+    const got = anchorAt(c.x, c.y);
     const s = Object.assign(dr.s, { id: newId(), updatedAt: Date.now(), anchor: got.anchor, frame: got.frame,
                                     orig: roundRect(got.R), pts: framePoints(dr.abs, got.R, got.frame) });
-    pinIfAmbiguous(s, frame());
-    s.drawn = drawnOf(s);
     pushUndo(snapshot());
     S.strokes.push(s);
     commit();
@@ -2117,18 +1376,14 @@ html.annot-on #annot-capture { display: block; }
     const d = S.drawn.get(mv.s.id);
     d.path.removeAttribute('transform');
     if (Math.hypot(mv.dx, mv.dy) < 0.5 || !d.abs) return;
-    reanchor(mv.s, d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]));
-    mv.s.drawn = drawnOf(mv.s);   // 用户移动 = 新的「画的」原样
+    const abs = d.abs.map(p => [p[0] + mv.dx, p[1] + mv.dy, p[2]]);
+    const f = frame(), c = toClient(abs[0][0], abs[0][1], f);
+    const got = anchorAt(Math.min(Math.max(c.x, 1), innerWidth - 1), Math.min(Math.max(c.y, 1), innerHeight - 1));
+    Object.assign(mv.s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
+                          pts: framePoints(abs, got.R, got.frame) });
+    forget(mv.s.id);
     pushUndo(mv.snap);
     commit();
-  }
-  /** 一笔放到新位置 abs（正文卡片坐标）：按它在新位置圈住的内容重新建锚点，点换成新锚点坐标。 */
-  function reanchor(s, abs) {
-    const got = anchorForStroke(abs);
-    Object.assign(s, { updatedAt: Date.now(), anchor: got.anchor, frame: got.frame, orig: roundRect(got.R),
-                       pts: framePoints(abs, got.R, got.frame) });
-    pinIfAmbiguous(s, frame());
-    forget(s.id);
   }
   function undo() {
     if (!S.undo.length) return setStatus('没有可以撤销的操作');
@@ -2228,7 +1483,6 @@ html.annot-on #annot-capture { display: block; }
   const SY = { sha: null, timer: null, busy: false, again: false, dirty: false, state: '', warn: false };
 
   function syncCfg() {
-    if (SNAP) return { token: '', repo: DEFAULT_REPO };   // 快照页从不同步
     try { const c = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}') || {}; return { token: c.token || '', repo: c.repo || DEFAULT_REPO }; }
     catch (e) { return { token: '', repo: DEFAULT_REPO }; }
   }
@@ -2259,16 +1513,7 @@ html.annot-on #annot-capture { display: block; }
     if (r.status === 404) return { data: null, sha: null };
     if (!r.ok) throw new Error('读取 ' + r.status);
     const j = await r.json();
-    let b64 = j.content;
-    if (!b64 && j.sha) {   // 文件超过 1 MB 时 contents API 不给 content，改按 sha 取 blob（上限 100 MB）
-      const rb = await fetch(`https://api.github.com/repos/${cfg.repo}/git/blobs/${j.sha}`, {
-        cache: 'no-store',
-        headers: { Authorization: 'Bearer ' + cfg.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
-      });
-      if (!rb.ok) throw new Error('读取 blob ' + rb.status);
-      b64 = (await rb.json()).content;
-    }
-    return { data: JSON.parse(b64DecodeUtf8(b64)), sha: j.sha };
+    return { data: JSON.parse(b64DecodeUtf8(j.content)), sha: j.sha };
   }
   /** 写远端文件；sha 过期（409 / 422）返回 {conflict: true}。 */
   async function ghPut(cfg, data, sha, keepalive) {
@@ -2288,9 +1533,7 @@ html.annot-on #annot-capture { display: block; }
     const remoteStrokes = remote && Array.isArray(remote.strokes) ? remote.strokes.filter(validStroke) : [];
     for (const s of local.strokes.concat(remoteStrokes)) {
       const o = byId.get(s.id);
-      // drawn 只随用户画 / 移动产生：选中的那份没有 drawn（老格式）而另一份有，就带上另一份的，绝不丢
-      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, !s.drawn && o && o.drawn ? Object.assign({}, s, { drawn: o.drawn }) : s);
-      else if (!o.drawn && s.drawn) byId.set(s.id, Object.assign({}, o, { drawn: s.drawn }));
+      if (!o || (s.updatedAt || 0) > (o.updatedAt || 0)) byId.set(s.id, s);
     }
     return { strokes: [...byId.values()].filter(s => !tombs[s.id]), tombs };
   }
@@ -2399,7 +1642,7 @@ html.annot-on #annot-capture { display: block; }
 
   /* ---------- 14. 工具栏 ---------- */
   const ui = document.createElement('div');
-  ui.className = SNAP ? 'annot-ui snap' : 'annot-ui';   // 快照页只读：CSS 藏掉画笔、撤销、导入、同步
+  ui.className = 'annot-ui';
   ui.id = 'annot-ui';
   ui.innerHTML = `
     <button type="button" id="annot-fab" aria-label="展开笔记工具栏">✎ 笔记</button>
@@ -2458,7 +1701,7 @@ html.annot-on #annot-capture { display: block; }
     if (S.orphans) {
       const w = document.createElement('div');
       w.className = 'warn';
-      w.textContent = `有 ${S.orphans} 笔圈的内容已改或删，已隐藏`;
+      w.textContent = `有 ${S.orphans} 笔对应的内容已变（灰色），可用「移动」拖到新位置或用橡皮擦删掉`;
       box.appendChild(w);
     }
     if (statusMsg) {
@@ -2467,7 +1710,7 @@ html.annot-on #annot-capture { display: block; }
       m.textContent = statusMsg;
       box.appendChild(m);
     }
-    $('#annot-fab').textContent = S.orphans ? `✎ 笔记 · ${S.orphans} 笔已隐藏` : '✎ 笔记';
+    $('#annot-fab').textContent = S.orphans ? `✎ 笔记 · ${S.orphans} 笔待处理` : '✎ 笔记';
   }
   function setOn(on) {
     S.on = on;
@@ -2562,138 +1805,11 @@ html.annot-on #annot-capture { display: block; }
     const onPrintMq = () => (printMq.matches ? enterPrint() : exitPrint());
     if (printMq.addEventListener) printMq.addEventListener('change', onPrintMq); else printMq.addListener(onPrintMq);
 
-    /** 核对旁注用：这笔此刻挂在正文哪个字上——那个字前后各 10 字，和笔画起点相对它的位置（px）；不是挂在正文字上返回 null。 */
-    /** 核对用：这笔此刻挂在哪——从挂靠点起、和圈住内容一样长的那串字 / 公式符号，和笔画起点相对第一个的位置（px）。 */
-    function targetOf(id, d, a) {
-      const c = S.cache.get(id), t = c && c.target, n = Array.from(a.cover || '').length;
-      if (!t || !n) return null;
-      const f = frame(), off = r => { const R = localRect(r, f); return [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2]; };
-      if (t.glyph) {
-        const g = glyphList(t.el), i = g.els.indexOf(t.glyph), r = elementRect(t.glyph);
-        return i >= 0 && r ? { ch: g.ch.slice(i, i + n).join(''), off: off(r) } : null;
-      }
-      if (t.pos === undefined) return null;
-      const r = charRect(t.pos);
-      return r ? { ch: S.index.text.slice(t.pos, t.pos + n), off: off(r) } : null;
-    }
-    function anchorCtx(id, d) {
-      const c = S.cache.get(id), t = c && c.target;
-      if (!t || t.pos === undefined) return null;
-      const r = charRect(t.pos), f = frame();
-      if (!r) return null;
-      const R = localRect(r, f), tx = S.index.text;
-      return { ctx: tx.slice(Math.max(0, t.pos - 10), t.pos + 11),
-               off: [Math.round((d.abs[0][0] - R.x) * 2) / 2, Math.round((d.abs[0][1] - R.y) * 2) / 2] };
-    }
     // 给自动化测试读状态用（tools/test_annotate.py）；页面本身不依赖它
     window.__nipcNotes = {
-      // 正文里全部公式（陈列 + 行内），按文档先后：[{el, tex, display}]
-      mathsInOrder() {
-        let out = [];
-        try {
-          out = [...MathJax.startup.document.math].filter(m => m.typesetRoot && article.contains(m.typesetRoot))
-            .map(m => ({ el: m.typesetRoot, tex: norm(m.math), display: !!m.display }));
-        } catch (e) { /* MathJax 没加载 */ }
-        return out.sort((a, b) => (a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
-      },
-      contentIndex() {
-        const ix = ensureIndex();
-        const s = frame().s;   // width：公式在本机排版下的宽（正文卡片 px），只用来估一笔压住了几个记号
-        return { text: ix.text, maths: this.mathsInOrder().map(m => ({ tex: m.tex, display: !!m.display, ch: glyphList(m.el).ch, pos: posFromElement(m.el),
-                                                                     width: m.el.getBoundingClientRect().width / s })),
-                 media: [...article.querySelectorAll('img, video')].map(srcKey) };
-      },
-      where(ids) {
-        ensureIndex();
-        const f = frame(), M = this.mathsInOrder(), media = [...article.querySelectorAll('img, video')];
-        return Object.fromEntries(ids.map(id => {
-          const s = S.strokes.find(t => t.id === id);
-          if (!s) return [id, null];
-          if (!S.cache.get(id)) place(s, f);
-          const c = S.cache.get(id), t = c && c.target, d = S.drawn.get(id), state = d ? d.state : 'none';
-          if (!t) return [id, { state }];
-          if (t.el === main) return [id, { state, kind: 'page' }];
-          if (t.pos !== undefined) {   // w：锚字在本机排版下的宽（正文卡片 px）
-            const r = charRect(t.pos);
-            return [id, { state, kind: 'text', pos: t.pos, w: r ? r.width / f.s : 0 }];
-          }
-          const k = M.findIndex(m => m.el === t.el), glyph = t.glyph || c.glyph;
-          if (k >= 0) return [id, { state, kind: glyph ? 'glyph' : 'math', math: k, gi: glyph ? glyphList(t.el).els.indexOf(glyph) : -1 }];
-          const mi = media.indexOf(t.el);
-          if (mi >= 0) return [id, { state, kind: 'media', src: srcKey(t.el), nth: media.slice(0, mi).filter(e => srcKey(e) === srcKey(t.el)).length }];
-          return [id, { state, kind: 'other' }];
-        }));
-      },
-
       strokes: () => S.strokes, render: renderAll, frame,
       placed: id => { const d = S.drawn.get(id); return d ? { state: d.state, abs: d.abs } : null; },
       status: () => ({ orphans: S.orphans, hidden: S.hidden, on: S.on, sync: SY.state, tombs: Object.keys(S.tombs).length }),
-      // 修位置用（tools/check_notes_anchors.py --repair）：同「移动」工具，把一笔平移 (dx, dy)（正文卡片坐标）后重新建锚点；
-      // 调用前要把新起笔点滚进视口。返回新锚点类型，找不到这一笔返回 null。
-      // 核对用（只读，不改笔记）：这些笔此刻各圈住了什么——锚点类型、圈住的内容串、笔画起点相对内容起点的位置（px）
-      coverOf: ids => {
-        S.geom = null; S.geomBatch = true;
-        const out = {};
-        for (const id of ids) {
-          const d = S.drawn.get(id);
-          if (!d || !d.abs || d.state !== 'ok') { out[id] = { state: d ? d.state : 'none' }; continue; }
-          const got = anchorForStroke(d.abs), a = got.anchor;
-          out[id] = { state: 'ok', type: a.type, cover: a.cover || a.src || a.text || a.cell || '',
-                      hit: (got.hit || []).map(([c, x, y]) => [c, Math.round(x * 2) / 2, Math.round(y * 2) / 2]),
-                      exact: a.cover ? '' : (a.exact || ''), tex: a.tex || '', at: anchorCtx(id, d),
-                      target: targetOf(id, d, (S.strokes.find(s => s.id === id) || {}).anchor || {}),
-                      off: [Math.round((d.abs[0][0] - got.R.x) * 2) / 2, Math.round((d.abs[0][1] - got.R.y) * 2) / 2],
-                      rel: got.frame === 'norm' ? [Math.round((d.abs[0][0] - got.R.x) / got.R.w * 1000) / 1000,
-                                                   Math.round((d.abs[0][1] - got.R.y) / got.R.h * 1000) / 1000] : null };
-        }
-        S.geomBatch = false; S.geom = null;
-        return out;
-      },
-      texList: () => allMath().map(m => m.tex),
-      // 核对字体排版用（只读）：每笔存的锚点此刻在本机排版下的参考矩形（正文卡片 px），与笔里存的画笔设备上的 orig 比
-      anchorRects: ids => Object.fromEntries(ids.map(id => {
-        const s = S.strokes.find(t => t.id === id);
-        if (!s) return [id, null];
-        const pl = place(s, frame());
-        return [id, pl.state === 'ok' ? { x: pl.R.x, y: pl.R.y, w: pl.R.w, h: pl.R.h, type: s.anchor.type } : null];
-      })),
-      // 查原因用（只读）：一笔圈住的关键词在当前页面每一处出现的位置、所在段落相似度、是否在收起的折叠里
-      explain: id => {
-        const s = S.strokes.find(t => t.id === id);
-        if (!s || !s.anchor.cover) return null;
-        ensureIndex();
-        const a = s.anchor, t = S.index.text, half = Math.max(40, (a.block || '').length >> 1);
-        if (a.type === 'math') {
-          const seq = Array.from(a.cover);
-          return { type: 'math', tex: a.tex, cover: a.cover, renamed: renamedTex(a.tex),
-                   own: allMath().filter(m => m.tex === a.tex).length,
-                   hits: allMath().filter(m => seqIndexes(glyphList(m.el).ch, seq).length).map(m => m.tex) };
-        }
-        return { type: 'text', cover: a.cover, hits: allIndexes(t, a.cover, 2000).map(p => ({
-          pos: p, sb: Math.round(bigramSim(a.block || '', t.slice(Math.max(0, p - half), p + a.cover.length + half)) * 1000) / 1000,
-          closed: !charRect(p), around: t.slice(Math.max(0, p - 15), p + a.cover.length + 15) })) };
-      },
-      // 旧笔迁移用（repair_notes_positions.py --reanchor-origin，在它当初画的那版页面上调）：这些笔原地不动，
-      // 按它们此刻圈住的内容重新建锚点。返回实际改了的笔的 id（此刻不在页面上显示的笔不动）。
-      reanchorAll: ids => {
-        const done = [];
-        S.geom = null; S.geomBatch = true;   // 这一批笔逐个处理时排版不变，页面几何只量一次
-        const byId = new Map(S.strokes.map(s => [s.id, s]));
-        for (const id of ids) {
-          const s = byId.get(id), d = S.drawn.get(id);
-          if (s && d && d.abs && d.state === 'ok') { reanchor(s, d.abs); done.push(id); }
-        }
-        S.geomBatch = false; S.geom = null;
-        commit();
-        return done;
-      },
-      moveBy: (id, dx, dy) => {
-        const s = S.strokes.find(t => t.id === id), d = S.drawn.get(id);
-        if (!s || !d || !d.abs) return null;
-        reanchor(s, d.abs.map(p => [p[0] + dx, p[1] + dy, p[2]]));
-        commit();
-        return s.anchor.type;
-      },
       syncNow,
     };
   }
