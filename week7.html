@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "138c8b7deb33";</script>
+<script>window.NIPC_PAGE = "2c0747d1c9a5";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -507,8 +507,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div></details>
-<details><summary>baseline：RigidFormer 能不能用</summary><p><strong>导师已经有一套能直接用的 RigidFormer 流程，用法是把它当整条轨迹的预测器：原样训练、比轨迹，不改它的输出。</strong> 导师先复现了 RigidFormer 官方结果，在 MOVi-Sphere 测试集上前 100 帧的位置误差和官方公布的数前四位一致。然后搭好了一个软接触试点的整条流程：一个软球（杨氏模量 \(10^5\)）掉到固定的刚性椭球上，用全有限元隐式仿真生成 120 条轨迹，转成 RigidFormer 的数据格式，原样训练 RigidFormer（输出仍然是物体的位姿），再和全有限元的轨迹比较。目前仓库里这组数据上的对比有三种方法：导师的两种和一个 hydroelastic 对照，还没有 RigidFormer 的训练结果。</p>
-<p><strong>这和我们静态、只比能量的设定不同，要放进我们的比较有两条路。</strong> 一是用导师的流程比动态轨迹；二是借它的物体级编码器（点云 → 每个物体一个向量 → 物体之间做注意力），输入换成 \(E\) 、 \(\nu\) 和粗状态，输出换成接触能量。RigidFormer 原版输入每个物体两帧点云、质量、摩擦，输出刚体下一帧的位姿，没有能量输出，也不用 \(E\) 、 \(\nu\) 。两条路都需要我们自己的软–软普通网格数据：导师的试点用的是球和刚体，不符合我们只用软体普通网格的要求。</p></details></section>
+<details><summary>baseline：RigidFormer（进行中）</summary><p>RigidFormer 这个 baseline 还在进行中。</p></details></section>
 <section id="w5"><h2>下周 TODO</h2>
 <ol>
 <li>大压深：已做的是兔高的 1/3、1/2，再补 1/8、1/6 两档，看骨架偏大的倍数怎样随压深变，再决定剩下的偏大是继续改第一项（按物体真实形状算柔度、不再假设表面平），还是交给神经网络。</li>
