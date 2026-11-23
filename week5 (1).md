@@ -186,205 +186,103 @@ GT 这一侧的换算对任何方法都一样；骨架的区间还多算了骨�
 
 ### 1 · 普通单片 · 鸭压兔 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_or_029_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_029_S3_2_rest.png)
+![压入前](assets/images/w5t_or_029_S3_1_before.png) ![静止后](assets/images/w5t_or_029_S3_2_rest.png)
 
 **骨架 0.948 → [1.005, 1.108]，跨线；hydroelastic 0.375 → [0.403, 0.433]，整段偏离。** 最普通的两物体单片接触，骨架的区间只在上端越过 1.1 一点。
 
 ### 2 · 尖 · 兔压龙 · 压得最浅
 
-**压入前**
-
-![](assets/images/w5t_or_013_S1_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_013_S1_h600_2_rest.png)
+![压入前](assets/images/w5t_or_013_S1_h600_1_before.png) ![静止后](assets/images/w5t_or_013_S1_h600_2_rest.png)
 
 **骨架 0.937 → [0.974, 1.062]，基本对；hydroelastic 0.103 → [0.109, 0.115]，整段偏离。** 接触在尖处，hydroelastic 只有 GT 的十分之一左右。
 
 ### 3 · 尖 · 龙压龙 · 压得最浅
 
-**压入前**
-
-![](assets/images/w5t_or_023_S1_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_023_S1_h600_2_rest.png)
+![压入前](assets/images/w5t_or_023_S1_h600_1_before.png) ![静止后](assets/images/w5t_or_023_S1_h600_2_rest.png)
 
 **骨架 0.984 → [1.023, 1.116]，跨线；hydroelastic 0.286 → [0.301, 0.320]，整段偏离。** 骨架的区间上端越过 1.1。
 
 ### 4 · 尖 · 龙压龙 · 压得居中
 
-**压入前**
-
-![](assets/images/w5t_E10_or_023_S2_rI_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_E10_or_023_S2_rI_h600_2_rest.png)
+![压入前](assets/images/w5t_E10_or_023_S2_rI_h600_1_before.png) ![静止后](assets/images/w5t_E10_or_023_S2_rI_h600_2_rest.png)
 
 **骨架 1.020 → [1.060, 1.156]，跨线；hydroelastic 0.568 → [0.598, 0.635]，整段偏离。** 和第 3 行同一构型，压得更深，骨架的区间上端更高。
 
 ### 5 · 尺寸比 · 龙压兔样本 12 · 压得最浅
 
-**压入前**
-
-![](assets/images/w5t_or_012_S1_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_012_S1_h600_2_rest.png)
+![压入前](assets/images/w5t_or_012_S1_h600_1_before.png) ![静止后](assets/images/w5t_or_012_S1_h600_2_rest.png)
 
 **骨架 0.892 → [0.927, 1.011]，基本对；hydroelastic 0.100 → [0.106, 0.112]，整段偏离。** 两个物体大小差很多，hydroelastic 在 17 行里偏小得最多。
 
 ### 6 · 尺寸比 · 龙压兔样本 12 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_or_012_S3_h1000_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_012_S3_h1000_2_rest.png)
+![压入前](assets/images/w5t_or_012_S3_h1000_1_before.png) ![静止后](assets/images/w5t_or_012_S3_h1000_2_rest.png)
 
 **骨架 0.938 → [1.012, 1.039]，基本对；hydroelastic 0.281 → [0.307, 0.307]，整段偏离。** 和第 5 行同一构型，压得更深，骨架仍基本对。
 
 ### 7 · 尺寸比 · 龙压兔样本 7 · 压得最浅
 
-**压入前**
-
-![](assets/images/w5t_ore4_007_S1_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_ore4_007_S1_h600_2_rest.png)
+![压入前](assets/images/w5t_ore4_007_S1_h600_1_before.png) ![静止后](assets/images/w5t_ore4_007_S1_h600_2_rest.png)
 
 **骨架 0.948 → [0.985, 1.075]，基本对；hydroelastic 0.252 → [0.265, 0.282]，整段偏离。** 兔体积约为龙的 3.6 倍。
 
 ### 8 · 尺寸比 · 龙压兔样本 7 · 压得居中
 
-**压入前**
-
-![](assets/images/w5t_ore4_007_S2_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_ore4_007_S2_h600_2_rest.png)
+![压入前](assets/images/w5t_ore4_007_S2_h600_1_before.png) ![静止后](assets/images/w5t_ore4_007_S2_h600_2_rest.png)
 
 **骨架 0.982 → [1.020, 1.113]，跨线；hydroelastic 0.513 → [0.540, 0.573]，整段偏离。** 和第 7 行同一构型，压得更深。
 
 ### 9 · 尺寸比 · 龙压兔样本 7 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_ore4_007_S3_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_ore4_007_S3_h600_2_rest.png)
+![压入前](assets/images/w5t_ore4_007_S3_h600_1_before.png) ![静止后](assets/images/w5t_ore4_007_S3_h600_2_rest.png)
 
 **骨架 0.999 → [1.037, 1.132]，跨线；hydroelastic 1.001 → [1.054, 1.120]，跨线。** 这一行两种方法都跨线。
 
 ### 10 · 尺寸比 · 龙压兔样本 7（标准答案用细网格） · 压得最浅
 
-**压入前**
-
-![](assets/images/w5t_ore4_007_f_S1_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_ore4_007_f_S1_h600_2_rest.png)
+![压入前](assets/images/w5t_ore4_007_f_S1_h600_1_before.png) ![静止后](assets/images/w5t_ore4_007_f_S1_h600_2_rest.png)
 
 **骨架 0.980 → [1.017, 1.111]，跨线；hydroelastic 0.261 → [0.274, 0.292]，整段偏离。** 和第 7 行同一构型，只把 GT 换成更细的网格。
 
 ### 11 · 尺寸比 · 龙压兔样本 7（标准答案用细网格） · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_ore4_007_f_S3_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_ore4_007_f_S3_h600_2_rest.png)
+![压入前](assets/images/w5t_ore4_007_f_S3_h600_1_before.png) ![静止后](assets/images/w5t_ore4_007_f_S3_h600_2_rest.png)
 
 **骨架 1.008 → [1.047, 1.143]，跨线；hydroelastic 1.013 → [1.066, 1.133]，跨线。** 和第 9 行同一构型，只把 GT 换成更细的网格。
 
 ### 12 · 鞍面 · 兔压兔样本 1 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_K27a_bb_saddle1_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_K27a_bb_saddle1_S3_2_rest.png)
+![压入前](assets/images/w5t_K27a_bb_saddle1_S3_1_before.png) ![静止后](assets/images/w5t_K27a_bb_saddle1_S3_2_rest.png)
 
 **骨架 0.931 → [1.004, 1.106]，跨线；hydroelastic 0.340 → [0.371, 0.398]，整段偏离。** 接触在马鞍形的面上。
 
 ### 13 · 鞍面 · 兔压兔样本 3 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_E4_bb_saddle3_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_E4_bb_saddle3_S3_2_rest.png)
+![压入前](assets/images/w5t_E4_bb_saddle3_S3_1_before.png) ![静止后](assets/images/w5t_E4_bb_saddle3_S3_2_rest.png)
 
 **骨架 0.925 → [0.998, 1.025]，基本对；hydroelastic 0.355 → [0.388, 0.388]，整段偏离。** 另一处马鞍形接触，骨架基本对。
 
 ### 14 · 鞍面 · 兔压兔样本 16 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_E16_bbS_c16_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_E16_bbS_c16_S3_2_rest.png)
+![压入前](assets/images/w5t_E16_bbS_c16_S3_1_before.png) ![静止后](assets/images/w5t_E16_bbS_c16_S3_2_rest.png)
 
 **骨架 0.970 → [1.043, 1.070]，基本对；hydroelastic 0.271 → [0.295, 0.295]，整段偏离。** 骨架基本对。
 
 ### 15 · 鞍面 · 兔压龙样本 3 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_E3_bd_saddle3_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_E3_bd_saddle3_S3_2_rest.png)
+![压入前](assets/images/w5t_E3_bd_saddle3_S3_1_before.png) ![静止后](assets/images/w5t_E3_bd_saddle3_S3_2_rest.png)
 
 **骨架 0.918 → [0.953, 1.116]，跨线；hydroelastic 1.518 → [1.598, 1.823]，整段偏离。** 这一行 hydroelastic 偏大。
 
 ### 16 · 一侧薄 · 兔压龙 · 压得最浅
 
-**压入前**
-
-![](assets/images/w5t_B1_bd2_thin1_S1_f_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_B1_bd2_thin1_S1_f_h600_2_rest.png)
+![压入前](assets/images/w5t_B1_bd2_thin1_S1_f_h600_1_before.png) ![静止后](assets/images/w5t_B1_bd2_thin1_S1_f_h600_2_rest.png)
 
 **骨架 0.767 → [0.984, 1.010]，基本对；hydroelastic 1.482 → [1.927, 1.927]，整段偏离。** 一侧是薄片，线性单元在薄处偏硬得最厉害，所以直接比值偏低、换算后落在带内。
 
 ### 17 · 一侧薄 · 龙压鸭 · 压得最深
 
-**压入前**
-
-![](assets/images/w5t_or_019_S3_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_019_S3_h600_2_rest.png)
+![压入前](assets/images/w5t_or_019_S3_h600_1_before.png) ![静止后](assets/images/w5t_or_019_S3_h600_2_rest.png)
 
 **骨架 0.884 → [0.978, 1.164]，跨线；hydroelastic 2.770 → [3.105, 3.602]，整段偏离。** hydroelastic 在 17 行里偏大得最多。
 
@@ -415,181 +313,91 @@ GT 这一侧的换算对任何方法都一样；骨架的区间还多算了骨�
 
 ### 基线
 
-**压入前**
-
-![](assets/images/w5t_back_n_S1_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_back_n_S1_2_rest.png)
+![压入前](assets/images/w5t_back_n_S1_1_before.png) ![静止后](assets/images/w5t_back_n_S1_2_rest.png)
 
 **骨架 0.939 → [0.990, 1.061]，基本对。** 兔背轻压平块，表面光滑、只有一处接触，是最普通的情况。
 
 ### 整体转动
 
-**压入前**
-
-![](assets/images/w5t_head_n_S2_rot45_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_head_n_S2_rot45_2_rest.png)
+![压入前](assets/images/w5t_head_n_S2_rot45_1_before.png) ![静止后](assets/images/w5t_head_n_S2_rot45_2_rest.png)
 
 **骨架 0.940 → [0.966, 1.066]，基本对。** 整个场景（两个物体和压入方向）一起转 45° 以后结果不变，骨架不依赖坐标朝向。
 
 ### 面贴面
 
-**压入前**
-
-![](assets/images/w5t_E1_orh2_007_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_E1_orh2_007_S3_2_rest.png)
+![压入前](assets/images/w5t_E1_orh2_007_S3_1_before.png) ![静止后](assets/images/w5t_E1_orh2_007_S3_2_rest.png)
 
 **骨架 0.950 → [0.976, 1.076]，基本对。** 圆鼓零件的凸面压平块，接触区是一整块椭圆。
 
 ### 大面积贴合
 
-**压入前**
-
-![](assets/images/w5t_G5_ore4_004_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_G5_ore4_004_S3_2_rest.png)
+![压入前](assets/images/w5t_G5_ore4_004_S3_1_before.png) ![静止后](assets/images/w5t_G5_ore4_004_S3_2_rest.png)
 
 **骨架 0.891 → [0.915, 1.084]，基本对。** 圆柱侧面躺着压平块，接触区是沿柱长的一条长带。
 
 ### 近不可压
 
-**压入前**
-
-![](assets/images/w5t_head_n_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_head_n_S3_2_rest.png)
+![压入前](assets/images/w5t_head_n_S3_1_before.png) ![静止后](assets/images/w5t_head_n_S3_2_rest.png)
 
 **骨架 0.857 → [1.007, 1.088]，基本对。** 构型是兔头压平块，只把兔子的泊松比改成 0.49；直接比值偏低是因为线性单元在近不可压时偏硬、GT 偏大，换算后落在带内。
 
 ### 斜压
 
-**压入前**
-
-![](assets/images/w5t_tilt_press_1112_head_nt30_loc_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_tilt_press_1112_head_nt30_loc_2_rest.png)
+![压入前](assets/images/w5t_tilt_press_1112_head_nt30_loc_1_before.png) ![静止后](assets/images/w5t_tilt_press_1112_head_nt30_loc_2_rest.png)
 
 **骨架 0.956 → [0.982, 1.084]，基本对。** 兔子整体斜 30° 摆放后竖直压下，接触换到头的前下方，压入方向和表面法向不一致。
 
 ### 两侧都薄
 
-**压入前**
-
-![](assets/images/w5t_CS_shell_S19_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_CS_shell_S19_2_rest.png)
+![压入前](assets/images/w5t_CS_shell_S19_1_before.png) ![静止后](assets/images/w5t_CS_shell_S19_2_rest.png)
 
 **骨架 0.921 → [1.017, 1.214]，跨线。** 两个薄球冠壳互压，两侧都会整片弯曲，区间上端越过 1.1。
 
 ### 两侧材料差
 
-**压入前**
-
-![](assets/images/w5t_M1_back_n_Bx1e3_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_M1_back_n_Bx1e3_S3_2_rest.png)
+![压入前](assets/images/w5t_M1_back_n_Bx1e3_S3_1_before.png) ![静止后](assets/images/w5t_M1_back_n_Bx1e3_S3_2_rest.png)
 
 **骨架 0.925 → [0.950, 1.125]，跨线。** 和基线一样是兔背压平块，平块换成比兔子硬 1000 倍的材料，压深也比基线深（0.012 对 0.003）；静止后图里平块的色标最大只有兔子色标的千分之一左右，变形几乎全在兔子一侧，比较时看两条色标上的数字。
 
 ### 已有整体变形
 
-**压入前**
-
-![](assets/images/w5t_head_n_S5_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_head_n_S5_2_rest.png)
+![压入前](assets/images/w5t_head_n_S5_1_before.png) ![静止后](assets/images/w5t_head_n_S5_2_rest.png)
 
 **骨架 0.945 → [0.971, 1.150]，跨线。** 压的部位和近不可压一样是兔头，区别在粗模型先带了 1% 的整体变形。
 
 ### 靠连接处
 
-**压入前**
-
-![](assets/images/w5t_G6_1o_junc_o_S1_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_G6_1o_junc_o_S1_2_rest.png)
+![压入前](assets/images/w5t_G6_1o_junc_o_S1_1_before.png) ![静止后](assets/images/w5t_G6_1o_junc_o_S1_2_rest.png)
 
 **骨架 0.935 → [0.961, 1.138]，跨线。** 接触在腿和身体相连处、大腿一侧，只有一片接触，附近几何突变。
 
 ### 多处接触
 
-**压入前**
-
-![](assets/images/w5t_G6_1_junc_n_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_G6_1_junc_n_S3_2_rest.png)
+![压入前](assets/images/w5t_G6_1_junc_n_S3_1_before.png) ![静止后](assets/images/w5t_G6_1_junc_n_S3_2_rest.png)
 
 **骨架 0.955 → [0.981, 1.161]，跨线。** 腿和身体两处同时压，两处通过物体互相影响。
 
 ### 棱
 
-**压入前**
-
-![](assets/images/w5t_E2_orh2_010_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_E2_orh2_010_S3_2_rest.png)
+![压入前](assets/images/w5t_E2_orh2_010_S3_1_before.png) ![静止后](assets/images/w5t_E2_orh2_010_S3_2_rest.png)
 
 **骨架 1.191 → [1.224, 1.350]，整段偏离，偏大。** 第一项把接触处当成表面平，而棱处表面突然转折，第二项补不了这一条。
 
 ### 尖（兔耳尖）
 
-**压入前**
-
-![](assets/images/w5t_ear_o_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_ear_o_S3_2_rest.png)
+![压入前](assets/images/w5t_ear_o_S3_1_before.png) ![静止后](assets/images/w5t_ear_o_S3_2_rest.png)
 
 **接触区小，接触半径内铺不下 2 个小格；骨架 1.341 → [1.435, 1.752]。**
 
 ### 一侧薄（兔耳薄片）
 
-**压入前**
-
-![](assets/images/w5t_ear_n_S2_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_ear_n_S2_2_rest.png)
+![压入前](assets/images/w5t_ear_n_S2_1_before.png) ![静止后](assets/images/w5t_ear_n_S2_2_rest.png)
 
 **接触区小，接触半径内铺不下 2 个小格；骨架 1.333 → [1.421, 1.620]。**
 
 ### 龙鳍压平块（不在上面 14 类里）
 
-**压得居中，静止后**
-
-![](assets/images/w5t_or_001_S2_h600_2_rest.png)
-
-**压得最深，静止后**
-
-![](assets/images/w5t_or_001_S3_h600_2_rest.png)
+![压得居中，静止后](assets/images/w5t_or_001_S2_h600_2_rest.png) ![压得最深，静止后](assets/images/w5t_or_001_S3_h600_2_rest.png)
 
 **龙鳍这种薄长部件，取 80 个 mode 时骨架仍是 GT 的 1.30 倍（压得居中）和 1.43 倍（压得最深），覆盖不了。** 薄长部件会整片弯曲，描述这种弯曲要用到很多个 mode，80 个还不够。
 

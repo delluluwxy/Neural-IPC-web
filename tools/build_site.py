@@ -179,15 +179,25 @@ SUBFIGS = {
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
 
 
-def is_full_width(name):
-    """week5、week7 的图一律占满正文栏（用户 11-23「字还是不够大 你要自己去看web里渲染出来的字跟正文的字的对比」：
-    按最短边定尺寸时 1024 视口下图内最小字只有 7–11 px，满宽后与正文同大）。其他周的图照旧按最短边定。"""
-    return name.startswith(("w5t_", "w7_"))
+# week5、week7 带字的图各自的显示宽度（px，920 px 正文栏里）：由出图 agent 按「图内最小字 15–18 px、显示高 ≤ 500 px」
+# 逐张实测给出（用户 11-23「我要的是里面的字跟正文的字差不多大」「不是让你图也等比例放大的」；表见 sandbox
+# docs/drafts/web_fig_font_audit_1122.md）。没登记的图按最短边规则 display_width。
+DISPLAY_W = {}
+PAIR_IMG = re.compile(r"^w5t_.+_(?:1_before|2_rest)\.png$")   # week5 每例的压入前 / 静止后：并排各占半栏，不放大到超过原图宽
+
+
+def media_style_width(name, w, h):
+    """行内 style 的宽度部分：并排图 = 占满所在半栏但不超过原图像素宽；登记了的图 = 登记宽；其余 = display_width。"""
+    if PAIR_IMG.match(name):
+        return f"width:100%;max-width:min(100%,{w}px)"
+    if name in DISPLAY_W:
+        return f"width:{DISPLAY_W[name]}px;max-width:100%"
+    return f"width:{display_width(name, w, h)}px;max-width:100%"
 
 
 def display_width(name, w, h):
     """显示宽度（px）：子图数 n（SUBFIGS），目标面积 = n × SHORT_SIDE²。先按最短边 = SHORT_SIDE 算，面积与目标之比在
-    AREA_BAND 内就用它；超出（长宽比特殊）就按目标面积等比缩放。全宽图（is_full_width）不走这里。"""
+    AREA_BAND 内就用它；超出（长宽比特殊）就按目标面积等比缩放。登记了宽度（DISPLAY_W）和并排（PAIR_IMG）的图不走这里。"""
     n = SUBFIGS.get(re.sub(r"^w(?:34|3i|5t)_", "", name), 1)
     s = SHORT_SIDE / min(w, h)
     target = n * SHORT_SIDE ** 2
@@ -211,8 +221,7 @@ def size_media(html):
             w, h = video_size(p) if p.suffix.lower() == ".mp4" else image_size(p)
         # 图片另写原图像素 width/height：浏览器据此在加载前按比例留出高度，懒加载的图加载完不会把下面的内容推走
         dims = f' width="{w}" height="{h}"' if m.group(1).startswith("<img") else ""
-        width = "100%" if is_full_width(name) else f"{display_width(name, w, h)}px"
-        return m.group(1) + dims + f' style="width:{width};max-width:100%;height:auto"'
+        return m.group(1) + dims + f' style="{media_style_width(name, w, h)};height:auto"'
     html = re.sub(r'(<(?:img|video)\b[^>]*?\bsrc="(assets/(?:images|videos)/[^"]+)")', add_style, html)
     html = html.replace('<div class="grid"><figure>', '<div style="display:flex;flex-wrap:wrap;gap:0 18px"><figure>')
     return html.replace("<figure>", '<figure style="margin:12px 0">')   # 去掉浏览器默认的左右 40px，宽图少被压缩

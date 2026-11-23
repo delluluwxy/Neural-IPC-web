@@ -105,8 +105,11 @@ def notion_md_to_html(md):
     t = re.sub(r"(?m)^([ \t]*)\[视频\]\((assets/videos/[^)\s]+\.mp4)\)[ \t]*$", lambda m: keep_indented(
         m, f'<figure><video controls muted playsinline preload="metadata" src="{esc(m.group(2))}"></video></figure>'), t)
     t = re.sub(r"(?m)^([ \t]*)((?:!\[[^\]]*\]\(assets/images/[^)\s]+\)[ \t]*)+)$", lambda m: keep_indented(
-        m, (lambda imgs: imgs[0] if len(imgs) == 1 else '<div class="grid">' + "".join(imgs) + "</div>")(
-            [f'<figure><img src="{esc(src)}" alt="{esc(alt)}" loading="lazy"></figure>'
+        m, (lambda pics: pics[0][1] if len(pics) == 1 else '<div class="grid pair">' + "".join(
+            # 同一行并排的图：alt 非空就作图上方的小标题（week5 每例「压入前」「静止后」，用户 11-23 要左右并排、窄屏上下排）
+            f.replace("<figure>", f'<figure><figcaption class="pair-label">{esc(alt)}</figcaption>', 1) if alt else f
+            for alt, f in pics) + "</div>")(
+            [(alt, f'<figure><img src="{esc(src)}" alt="{esc(alt)}" loading="lazy"></figure>')
              for alt, src in re.findall(r"!\[([^\]]*)\]\(([^)\s]+)\)", m.group(2))])), t)
     t = re.sub(r'<image src="([^"]+)"></image>(（[^）]*）)?', lambda m: keep(notion_image(m.group(1)), True), t)
     t = re.sub(r'<mention-page url="([^"]+)"\s*/>', r'[Notion 页面](\1)', t)

@@ -109,6 +109,8 @@ article figcaption { font-size: 13px; line-height: 1.85; margin: 12px 0 0; paddi
                      background: #f7f9fc; color: #5a6879; border-radius: 0 5px 5px 0; }
 img.initframe { max-width: 640px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px 18px; }
+.grid.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }   /* week5 每例压入前 / 静止后左右并排，各占半栏（用户 11-23「你的图太大了」） */
+.grid.pair figure { margin: 0 0 18px !important; } .pair-label { font-weight: 600; margin: 0 0 6px; }
 .demo { min-width: 0; }
 .demo h3 { margin: 0 0 6px; font-size: 15px; }
 .demo h3 .key { color: var(--muted); font-weight: 400; font-size: 13px; }
@@ -159,6 +161,7 @@ dialog p { font-size: 12px; text-align: center; color: var(--muted); margin: 10p
   main { padding: 32px 28px; } h1 { font-size: 27px; }
 }
 @media (max-width: 720px) {
+  .grid.pair { grid-template-columns: minmax(0, 1fr); }
   body { font-size: 15px; }
   .topbar { height: 62px; padding: 0 18px; }
   .brand { font-size: 15px; gap: 8px; } .brand-note, .brand-separator { display: none; }
