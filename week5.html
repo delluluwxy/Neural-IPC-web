@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "79a0f4db57eb";</script>
+<script>window.NIPC_PAGE = "ae6d5d9bcee8";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -273,7 +273,7 @@ html.annot-on #annot-capture { display: block; }
 <p>这个式子是定义：精细模型的全部自由度拆成「粗模型的 affine 部分」和「其余部分」两块，任何位移都能唯一地写成 \(\Phi z+\Psi\xi\) ，因为 \(\Psi\) 张成的正是锁住 affine 以后剩下的空间（直接推导）；在 affine 部分固定为 \(z\) 时对其余部分求最低能量，再减去粗模型自己的能量。 \(U\ge0\) 是因为不加接触限制时取 \(\xi=0\) 可行，而只按粗状态变形就已经是无接触时能量最低的状态，加上不穿透的限制只会让最低值变高（直接推导）。这要求两物体之间无摩擦，并且精细模型的弹性能对 \(\xi\) 在 \(\xi=0\) 处取最小，即没有接触时粗状态本身就是静止状态。粗状态没有整体拉伸、剪切时 \(\Pi(\Phi z)=0\) ，而 \(\Pi\ge0\) ，这一条自动成立；粗状态带着很大的整体变形、精细模型在无接触时自己还会再动（比如屈曲）时，这一条不成立， \(U\) 可能为负。</p></section>
 <section id="w2"><h2>骨架与标准答案怎么算</h2>
 <figure style="margin:12px 0"><img src="assets/images/w5t_W1a_precompute.png" width="1166" height="990" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
-<p><em><strong>骨架的预处理：每个物体只做一次。</strong> 由物体的网格和材料算出柔度差 \(\Delta K\) ，取前 80 个特征方向，得到这个物体的 mode 和材料常数 \(E_b^{\prime}\) ，以后每次接触直接用。圆角框是数据，直角框是算法，下面两张图相同。</em></p>
+<p><em><strong>骨架的预处理：每个物体只做一次。</strong> 由物体的网格和材料算出柔度差 \(\Delta K\) ，取前 80 个特征方向，得到这个物体的 mode 和材料常数 \(E_b^{\prime}\) ，以后每次接触直接用。</em></p>
 <figure style="margin:12px 0"><img src="assets/images/w5t_W1b_skeleton.png" width="1166" height="1222" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em><strong>骨架的每次接触：先量重叠，再拼柔度、解二次规划。</strong> 当前粗状态和两个物体的表面几何一起进「量重叠」，得到每一小格的 \(w_i\) 、 \(c_{b,i}\) 、 \(L_{ij}\) ；再和预处理得到的 mode、 \(E_b^{\prime}\) 一起拼出 \(C\) ，解出 \(U_{\text{skel}}\) 。</em></p>
 <figure style="margin:12px 0"><img src="assets/images/w5t_W1c_gt.png" width="1166" height="990" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
