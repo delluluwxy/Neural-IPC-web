@@ -217,25 +217,13 @@ $$p_b=E_{h,b}\,\varepsilon_b,\qquad U_{\text{hydro}}=\int_{V_A\cap V_B}\min(p_A,
 
 ### 尖 · 兔压龙（接触区小：接触半径内铺不下 2 个小格）
 
-**压入前**
-
-![](assets/images/w5t_or_013_S3_h600_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_013_S3_h600_2_rest.png)
+![压入前](assets/images/w5t_or_013_S3_h600_1_before.png) ![静止后](assets/images/w5t_or_013_S3_h600_2_rest.png)
 
 **骨架 1.022 → [1.089, 1.163]，跨线；mode 网格加密一档后 0.987 → [1.051, 1.124]，跨线。**
 
 ### 尖 · 龙压龙（接触区小：接触半径内铺不下 2 个小格）
 
-**压入前**
-
-![](assets/images/w5t_or_023_S3_1_before.png)
-
-**静止后**
-
-![](assets/images/w5t_or_023_S3_2_rest.png)
+![压入前](assets/images/w5t_or_023_S3_1_before.png) ![静止后](assets/images/w5t_or_023_S3_2_rest.png)
 
 **骨架 1.044 → [1.129, 1.206]，整段在带外；mode 网格加密一档后 0.981 → [1.062, 1.134]，跨线。**
 
