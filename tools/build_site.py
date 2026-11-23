@@ -182,7 +182,12 @@ AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个�
 # week5、week7 带字的图各自的显示宽度（px，920 px 正文栏里）：由出图 agent 按「图内最小字 15–18 px、显示高 ≤ 500 px」
 # 逐张实测给出（用户 11-23「我要的是里面的字跟正文的字差不多大」「不是让你图也等比例放大的」；表见 sandbox
 # docs/drafts/web_fig_font_audit_1122.md）。没登记的图按最短边规则 display_width。
-DISPLAY_W = {}
+DISPLAY_W = {   # 宽度取自出图 agent 表（sandbox c155bbb5「11-23 05:xx『图太大』重画后的显示尺寸表」，视口 1440 正文栏 810 px）
+    "w5t_W1a_precompute.png": 420, "w5t_W1b_skeleton.png": 420, "w5t_W1c_gt.png": 420,
+    "w5t_F1_energy_split.png": 810, "w5t_W4_17cases.png": 568,
+    "w7_W1_setup_3panel.png": 577, "w7_W5_deep8_bars.png": 420,
+}
+DISPLAY_W_PAT = [(re.compile(r"^w7_deep_.+_web2\.png$"), 541), (re.compile(r"^w7_deep_.+_sec\.png$"), 420)]
 PAIR_IMG = re.compile(r"^w5t_.+_(?:1_before|2_rest)\.png$")   # week5 每例的压入前 / 静止后：并排各占半栏，不放大到超过原图宽
 
 
@@ -190,8 +195,9 @@ def media_style_width(name, w, h):
     """行内 style 的宽度部分：并排图 = 占满所在半栏但不超过原图像素宽；登记了的图 = 登记宽；其余 = display_width。"""
     if PAIR_IMG.match(name):
         return f"width:100%;max-width:min(100%,{w}px)"
-    if name in DISPLAY_W:
-        return f"width:{DISPLAY_W[name]}px;max-width:100%"
+    dw = DISPLAY_W.get(name) or next((v for pat, v in DISPLAY_W_PAT if pat.match(name)), None)
+    if dw:
+        return f"width:{dw}px;max-width:100%"
     return f"width:{display_width(name, w, h)}px;max-width:100%"
 
 
