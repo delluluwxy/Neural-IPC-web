@@ -110,7 +110,7 @@ article figcaption { font-size: 13px; line-height: 1.85; margin: 12px 0 0; paddi
 img.initframe { max-width: 640px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px 18px; }
 .grid.pair { grid-template-columns: repeat(auto-fill, minmax(min(100%, 373px), 1fr)); align-items: start; }   /* 每例压入前 / 静止后：每张分得到 ≥ 373 px 就左右并排，否则上下排（用户 11-23「你的图太大了」；图内字 15–18 px 只容许 373–448 px，出图 agent width_range） */
-.grid.pair figure { margin: 0 0 18px !important; } .pair-label { font-weight: 600; margin: 0 0 6px; }
+.grid.pair figure { margin: 0 0 18px !important; } article figcaption.pair-label { font-size: inherit; font-weight: 600; color: inherit; margin: 0 0 6px; padding: 0; border: 0; background: none; }
 .demo { min-width: 0; }
 .demo h3 { margin: 0 0 6px; font-size: 15px; }
 .demo h3 .key { color: var(--muted); font-weight: 400; font-size: 13px; }

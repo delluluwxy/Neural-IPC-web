@@ -105,7 +105,8 @@ def notion_md_to_html(md):
     t = re.sub(r"(?m)^([ \t]*)\[视频\]\((assets/videos/[^)\s]+\.mp4)\)[ \t]*$", lambda m: keep_indented(
         m, f'<figure><video controls muted playsinline preload="metadata" src="{esc(m.group(2))}"></video></figure>'), t)
     t = re.sub(r"(?m)^([ \t]*)((?:!\[[^\]]*\]\(assets/images/[^)\s]+\)[ \t]*)+)$", lambda m: keep_indented(
-        m, (lambda pics: pics[0][1] if len(pics) == 1 else '<div class="grid pair">' + "".join(
+        m, (lambda pics: pics[0][1] if len(pics) == 1 else
+            ('<div class="grid pair">' if any(a for a, _ in pics) else '<div class="grid">') + "".join(
             # 同一行并排的图：alt 非空就作图上方的小标题（week5 每例「压入前」「静止后」，用户 11-23 要左右并排、窄屏上下排）
             f.replace("<figure>", f'<figure><figcaption class="pair-label">{esc(alt)}</figcaption>', 1) if alt else f
             for alt, f in pics) + "</div>")(
