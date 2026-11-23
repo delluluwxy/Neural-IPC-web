@@ -36,7 +36,8 @@ def week_summaries(demos, tests, gsweeps):
                   f"（官方测试 {n_ran} 个跑完，其中官方断言通过 {n_pass} 个）。"
                   f"然后做了「一堆物体扔进盒子」（官方 ipc_objects_falling 场景加一个盒子），对 {n_gsweeps} 个 IPC 参数"
                   f"做了单变量扫描，共 {n_grows} 个配置。主要发现：初始穿插会被拒绝开跑；表面全程没有穿透；"
-                  "d̂ 越小越难解，且不能大于软体表面网格的边长；Genesis 默认 κ 1e9 会被 libuipc 夹到区间上界；"
+                  "d̂（IPC 开始施加排斥力的距离）越小越难解，且不能大于软体表面网格的边长；"
+                  "Genesis 默认的 κ（排斥势垒的强度）1e9 会被 libuipc 夹到区间上界；"
                   "官方软球 E = 1 kPa 太软，会被压塌，所以主结果用 E = 1e5。")}
 
 
