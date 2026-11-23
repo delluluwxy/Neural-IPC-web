@@ -177,17 +177,12 @@ SUBFIGS = {
     "W6c_sphere_exact.png": 1,   # 单幅（同 sandbox tools/figs/web_week6_1119/figs_web_week6.py；1 为默认值，只登记）
 }
 AREA_BAND = (0.67, 1.5)   # 按最短边定出的面积在目标面积的这个倍数范围内，就仍按最短边
-# week5（用户 11-12 21:1x「图里的字和正文一样大」）：这些图一律占满正文栏（920px），作图时字高按
-# 16px × 图宽像素 / 920 定，显示后与正文同大；每类样图（*_1_before.png）同此
-FULL_WIDTH = {"F1_energy_split.png", "F2_pipeline.png", "F3_skeleton_parts.png", "F5_tier_rule.png", "F7_ratio_intervals.png", "F8_skel_vs_hydro.png", "F9_mode_count.png"}
 
 
 def is_full_width(name):
-    """week5 讲稿里按正文栏全宽显示的图（FULL_WIDTH 或每类样图 *_1_before.png）。"""
-    if not name.startswith("w5t_"):
-        return False
-    base = name[len("w5t_"):]
-    return base in FULL_WIDTH or base.endswith("_1_before.png")
+    """week5、week7 的图一律占满正文栏（用户 11-23「字还是不够大 你要自己去看web里渲染出来的字跟正文的字的对比」：
+    按最短边定尺寸时 1024 视口下图内最小字只有 7–11 px，满宽后与正文同大）。其他周的图照旧按最短边定。"""
+    return name.startswith(("w5t_", "w7_"))
 
 
 def display_width(name, w, h):
