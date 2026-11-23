@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "3428bda946d1";</script>
+<script>window.NIPC_PAGE = "b1fd43a5d2a3";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -257,7 +257,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w3-2">3.2 主结果：接触区够大的 17 个算例里，骨架没有一例整段偏离</a>
 <a class="toc-level-3" href="#w3-3">3.3 第二项是必要的</a>
 <a class="toc-level-3" href="#w3-4">3.4 按类别看：能覆盖什么，不能覆盖什么</a>
-<a class="toc-level-2" href="#w4">4. 四、上次组会上的问题：为什么用整体的 mode</a>
+<a class="toc-level-2" href="#w4">4. 四、为什么用整体的 mode</a>
 <a class="toc-level-2" href="#w5">5. 五、Research</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 5–6 周：骨架方法，以及它在浅压 edge case 上的验证</h1></header>
 <div class="lead"><p><strong>结论：在表面浅压下，不用训练的「骨架」公式已经能把接触能量算到标准答案附近；算不准的是零件的棱和龙鳍这种薄长部件，骨架都偏大（偏硬）。</strong> 我们用一个只有 12 个自由度的粗模型描述每个物体，再加一项「接触能量」，让粗模型也能算出接触处的变形能量。这项接触能量由骨架直接给出：骨架是两项线弹性公式，第一项把接触处当成无限大的弹性体，第二项用每个物体预先算好的 mode（一组描述物体有限大小和形状的变形方向，2.1 节解释）把有限大小和形状补回来。我们把骨架和精细仿真的标准答案比，判据见 3.1 节：在接触区够大的 17 个两物体互压算例里，骨架没有一例整段偏离 0.9–1.1 这条带；现有的 hydroelastic 方法有 15 例整段偏离。去掉第二项后，这 17 例里有 12 例整段偏离，所以第二项是必要的。在另一组「单个物体压一块平块」的算例里，骨架在 6 类上基本对，5 类跨线（区间跨过 1.1 这条线），零件的棱整段偏离；龙鳍压平块也偏大。每个物体的预处理只做一次，用时是分钟级。</p></div>
@@ -298,7 +298,7 @@ html.annot-on #annot-capture { display: block; }
 <p>\[U_{\text{GT}}=\sum_b\Pi_b^{\text{fine}}-\sum_b\Pi_b(\Phi z_b)\]</p>
 <h3 id="w2-3" class="numbered">2.3 刚度和泊松比怎么进两条线</h3>
 
-<p><strong>两条线里，每个物体都带着自己的 \(E,\nu\) 分别进去，而不是先合成一个等效模量。</strong> 等效模量 \(E^\ast\) 指两个物体合起来的模量， \(1/E^\ast=1/E_A^{\prime}+1/E_B^{\prime}\) ；本页和第 7 周页面都用这个叫法。上次组会上有人问到这一点。在 GT 里，每个物体的 \(E,\nu\) 直接决定自己的 neo-Hookean 材料。在骨架里，每个物体用自己的 \(E_b^{\prime}\) 进第一项，用自己的 \(\sigma_{b,m}\propto1/E_b\) 进第二项。我们原本的设想是：第一项在两表面平行时只认两个物体的等效模量，管「等效」；第二项带着每个物体自己的形状，管「个体」，两项加起来能分出谁软谁硬。这个设想在第 7 周用软硬对调检验。</p></section>
+<p><strong>两条线里，每个物体都带着自己的 \(E,\nu\) 分别进去，而不是先合成一个等效模量。</strong> 等效模量 \(E^\ast\) 指两个物体合起来的模量， \(1/E^\ast=1/E_A^{\prime}+1/E_B^{\prime}\) ；本页和第 7 周页面都用这个叫法。在 GT 里，每个物体的 \(E,\nu\) 直接决定自己的 neo-Hookean 材料。在骨架里，每个物体用自己的 \(E_b^{\prime}\) 进第一项，用自己的 \(\sigma_{b,m}\propto1/E_b\) 进第二项。我们原本的设想是：第一项在两表面平行时只认两个物体的等效模量，管「等效」；第二项带着每个物体自己的形状，管「个体」，两项加起来能分出谁软谁硬。这个设想在第 7 周用软硬对调检验。</p></section>
 <section id="w3"><h2>三、浅压 edge case 上的验证</h2>
 <p><strong>我们要检验的是：骨架的两项合起来，能不能覆盖各种难的接触。</strong> 为此设计了一组 edge case，每一类专门挑战骨架近似里的一条，或者一种容易出错的情况，比如表面不平、物体有薄处、接触处尖、多处同时接触、两边材料差很多。每个算例都同时算三样：GT、hydroelastic（现有的一种快速接触方法，每一点的压力只由本地穿进去多深决定，Elandt 等 2019）和骨架。所有算例都只是表面浅压，每个构型由浅到深取三档压深（下文称第 1、2、3 档，具体深度随构型不同）；真正的大压深放在第 7 周。</p>
 <h3 id="w3-1" class="numbered">3.1 判据</h3>
@@ -1031,8 +1031,8 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>龙鳍这种薄长部件，取 80 个 mode 时骨架仍是 GT 的 1.30 倍（第 2 档）和 1.43 倍（第 3 档），覆盖不了。</strong> 薄长部件会整片弯曲，描述这种弯曲要用到很多个 mode，80 个还不够。</p>
 <h4>尖处</h4>
 <p><strong>尖处：两物体互压里接触区够大的 3 个尖处算例，1 个基本对、2 个跨线。</strong> 兔耳尖压平块接触区小，读数见上面「尖（兔耳尖）」的单元。</p></section>
-<section id="w4"><h2>四、上次组会上的问题：为什么用整体的 mode</h2>
-<p><strong>每个物体用一套整体的 mode，而不是把表面分成小片、按撞的位置查表，因为分片不耦合会算错，每次现算又太慢。</strong> 上次组会上有人问：撞在不同位置应该是不同的形变，为什么用一套整体的 mode？答案是 mode 描述的是整个物体对表面任意位置受力的反应，撞在哪里只决定用到 mode 在哪一块的取值。三种做法的对比如下：</p>
+<section id="w4"><h2>四、为什么用整体的 mode</h2>
+<p><strong>每个物体用一套整体的 mode，而不是把表面分成小片、按撞的位置查表，因为分片不耦合会算错，每次现算又太慢。</strong> 一套 mode 可以用在不同的接触位置上，因为 mode 描述的是整个物体对表面任意位置受力的反应，撞在哪里只决定用到 mode 在哪一块的取值。三种做法的对比如下：</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
