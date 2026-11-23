@@ -242,7 +242,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "c164002b66ce";</script>
+<script>window.NIPC_PAGE = "556c438dfcef";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -1051,7 +1051,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 <tr>
 <td>整体 mode（现在的做法）</td>
-<td>天然耦合所有接触；同一个龙压鸭算例，方向系数的新旧两种写法求解时间相同（同一张卡、同一时段背靠背各跑 2 次：骨架求解本身，不含找接触区和读 mode，约 0.35 秒（最先跑的那一次是冷启动，0.39 秒）；带 80 个 mode 的单次求解约 1.5 秒）。这组是在有别的作业满载的卡上测的，绝对秒数偏大</td>
+<td>天然耦合所有接触；同一个龙压鸭算例，方向系数的新旧两种写法耗时相同（同一张卡、同一时段背靠背各跑 2 次：找到接触区之后，组装骨架系统（含在接触点读取 mode）并做预计算，约 0.35 秒（最先跑的那一次是冷启动，0.39 秒）；带 80 个 mode 的单次求解约 1.5 秒）。这组是在有别的作业满载的卡上测的，绝对秒数偏大</td>
 </tr>
 </tbody>
 </table></div>
