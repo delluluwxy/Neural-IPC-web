@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "022f4321d9ed";</script>
+<script>window.NIPC_PAGE = "c46a1a730c26";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -256,22 +256,26 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-2" href="#w2">2. 软硬对调：标准答案分得开，骨架的方向也对</a>
 <a class="toc-level-2" href="#w3">3. 一个物体算一次的 mode 换对手、换位置</a>
 <a class="toc-level-2" href="#w4">4. Research</a>
-<a class="toc-level-2" href="#w5">5. 下周 TODO</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
+<a class="toc-level-2" href="#w5">5. 11-24 补充实验：中等压深梯度、同几何公式对照与新材料/形状扩展</a>
+<a class="toc-level-3" href="#w5-1">5.1 中等压深梯度（`1/8`、`1/6` 与 `1/2` 补齐，`Bx10` 龙比兔子硬 10 倍）</a>
+<a class="toc-level-3" href="#w5-2">5.2 1/3 深压同几何公式对照（C4，`h/2 = 0.0405`）</a>
+<a class="toc-level-3" href="#w5-3">5.3 新形状、材料扩展与 Gent 非线性材料 GPU 检查</a>
+<a class="toc-level-2" href="#w6">6. 下周 TODO</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 7 周：大压深、软硬对调、mode 复用</h1></header>
-<div class="lead"><p><strong>结论：大压深下骨架是标准答案的 1.07–2.89 倍，仍然偏大，但 8 个算例都比 Hertz、hydroelastic、Winkler 更接近标准答案；软硬对调时骨架的方向和标准答案一致，分出谁软谁硬的是第二项；同一份 mode 用在兔和龙互压的 10 个算例上，5 个基本对、5 个跨线，没有整段偏离。</strong> 第 5–6 周的 edge case 都只是表面浅压，这周做三件事：大压深、软硬对调、每个物体算一次的 mode 换对手换位置。大压深：压深为兔高的 1/3 时，骨架是标准答案（表中记作 GT）的 1.08–2.89 倍，Hertz 是 2.3–14.4 倍；GT 还含远离接触处的变形能（1.1 节），所以这个倍数只说明骨架偏大，不是偏大的准确幅度。软硬对调：GT 对调前后差 5–6 倍，只认等效模量的 Hertz 分不出来；骨架只用第一项时也几乎分不开，加上第二项后方向和 GT 一致，说明带个体信息的第二项是需要的。mode 复用的结果见第 3 节。</p></div>
+<div class="lead"><p><strong>结论：大压深下骨架是标准答案的 1.07–2.89 倍，仍然偏大，但 8 个算例都比 Hertz、hydroelastic、Winkler 更接近标准答案；软硬对调时骨架的方向和标准答案一致，分出谁软谁硬的是第二项；同一份 mode 用在兔和龙互压的 10 个算例上，5 个基本对、5 个跨线，没有整段偏离。</strong> 骨架是第 5–6 周的两项线弹性接触能量公式：第一项把接触处当成半空间，第二项用每个物体预先算好的 mode（描述物体有限大小和形状的一组变形方向）补回有限大小和形状。第 5–6 周的 edge case 都只是表面浅压，这周做三件事：大压深、软硬对调、每个物体算一次的 mode 换对手换位置。大压深：压深为兔高的 1/3 时，骨架是标准答案（表中记作 GT）的 1.08–2.89 倍，Hertz 是 2.3–14.4 倍；GT 还含远离接触处的变形能（1.1 节），所以这个倍数只说明骨架偏大，不是偏大的准确幅度。软硬对调：GT 对调前后差 5–6 倍，只认等效模量的 Hertz 分不出来；骨架只用第一项时也几乎分不开，加上第二项后方向和 GT 一致，说明带个体信息的第二项是需要的。mode 复用的结果见第 3 节。</p></div>
 <section id="w1"><h2>大压深：骨架仍然偏大，但比现成方法都更接近标准答案</h2>
 <h3 id="w1-1">怎么造大压深的标准答案</h3>
 
 <figure style="margin:12px 0"><img src="assets/images/w7_W1_setup_3panel.png" width="1624" height="1080" style="width:577px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
-<p><em><strong>大压深的标准答案：从刚接触开始，把兔子的质心竖直往下推到目标位置（龙的质心锁在原处），再让两个物体松弛到静止。</strong> 目标位置按不变形的形状算，使重叠高度正好是兔高的 1/2。锁住质心相当于给全身加一个均匀体力，作用和重力一样，所以兔子软时耳朵这类悬着的部分也会下垂。</em></p>
-<p><strong>压深指两个物体按不变形的形状摆放时，重叠区沿压入方向的最大高度；这周压到兔子高度 \(H\) 的 1/3 和 1/2。</strong> 这是接触力学的标准定义（Popov, Heß &amp; Willert 2019 §2.2）。从两个物体刚接触开始，分几步把兔子的质心推近到目标位置，每一步只锁住每个物体的质心和转角，拉伸和剪切全部放开，用 IPC 解到静止。这样没有任何外力只压在接触处，两个物体之间只靠接触传力。锁住转角额外加一个合力为零的力偶，只挡转动，不推物体。只锁质心时，两个无摩擦的软体会转开、滑开，压不深，所以要锁转角。压入方向竖直； \(H\) 是兔子未变形时包围盒的竖直高度，为 9.23 个网格单位。材料组合有四种：龙比兔子硬 10 倍、兔子比龙硬 10 倍、兔子泊松比 0.2 而龙 0.45、兔子泊松比 0.45 而龙 0.2，两档压深共 8 个算例。</p>
+<p><em><strong>大压深的标准答案：从刚接触开始，把兔子的质心竖直往下推到目标位置（龙的质心锁在原处），再让两个物体松弛到静止。</strong> 目标位置按不变形的形状算，使重叠高度正好是兔高 \(H\) （兔子未变形时包围盒的竖直高度）的 1/2。锁住质心相当于给全身加一个均匀体力，作用和重力一样，所以兔子软时耳朵这类悬着的部分也会下垂。</em></p>
+<p><strong>压深指两个物体按不变形的形状摆放时，重叠区沿压入方向的最大高度；这周压到兔子高度 \(H\) 的 1/3 和 1/2。</strong> 这是接触力学的标准定义（Popov, Heß &amp; Willert 2019 §2.2）。从两个物体刚接触开始，分几步把兔子的质心推近到目标位置，每一步只锁住每个物体的质心和转角，拉伸和剪切全部放开，用 IPC（保证全程不穿透的接触仿真方法，Li 等 2020）解到静止。这样没有任何外力只压在接触处，两个物体之间只靠接触传力。锁住转角额外加一个合力为零的力偶，只挡转动，不推物体。只锁质心时，两个无摩擦的软体会转开、滑开，压不深，所以要锁转角。压入方向竖直， \(H\) 为 9.23 个网格单位。材料组合有四种：龙比兔子硬 10 倍、兔子比龙硬 10 倍、兔子泊松比 0.2 而龙 0.45、兔子泊松比 0.45 而龙 0.2，两档压深共 8 个算例。</p>
 <p><strong>按区域拆开算，8 个算例里离接触处 0.1 个兔高以内的弹性能只占总弹性能的 12%–32%，放宽到 0.3 个兔高也只占 36%–86%（把每个单元的弹性能按单元到接触区的距离分组相加，再除以总弹性能；距离按未变形的网格量），其余在远离接触处；按 0.1 个兔高划分，8 个算例里远离接触处的弹性能有 57%–99.5% 在龙身上，只有龙比兔子硬 10 倍的两个算例，兔子身上占到 39%–43%；所以骨架（只算接触处）和标准答案比的不是同一个量，大压深下的倍数不能直接读成骨架算错了多少。</strong></p>
 <p><strong>大压深的粗状态只有质心和转角，粗模型本身没有弹性能，所以标准答案就是静止后两个物体的总弹性能。</strong> 第 5–6 周的粗模型还含整体拉伸和剪切，现在这部分也交给精细模型，骨架的 mode 同样只锁质心和转角，骨架和标准答案因此用同一个粗状态。第 5–6 周 2.1 节的推导照样成立，只是第（4）步减掉的是锁住这 6 个而非 12 个自由度时的柔度。所以两周的能量不是同一个量，不能直接相比；第 5–6 周的浅压结论按那边的定义得出，不受影响。</p>
 <details><summary>推导：只锁质心和转角时，两个物体之间传力只靠接触</summary><p>（1）设每个物体的节点位置是 \(x_i\) （当前位置），质量占比是 \(\omega_i\) （ \(\sum_i\omega_i=1\) ），未变形时到质心的向量是 \(\rho_i\) ，于是 \(\sum_i\omega_i\rho_i=0\) ；当前的质心是 \(\bar x=\sum_i\omega_ix_i\) 。记 \(S=\sum_i\omega_i\rho_i\rho_i^\top\) （3×3），质量加权的整体变形矩阵是 \(\bar F=(\sum_i\omega_ix_i\rho_i^\top)S^{-1}\) 。它是让 \(\sum_i\omega_i\|x_i-\bar x-\bar F\rho_i\|^2\) 最小的那个 3×3 矩阵：对 \(\bar F\) 求导令其为零，就得到这个式子（直接推导）。【<span class="note-cond">条件： \(S\) 可逆，也就是节点不全落在一个平面上】即用一个整体的「平移 + 线性变形」最好地拟合所有节点，拟合出的线性变形就是 \(\bar F\) 。</span></p>
 <p>（2）当物体做一个均匀变形 \(x_i=MX_i+t\) 时（ \(M\) 是 3×3 的变形梯度； \(t\) 是平移； \(X_i\) 是未变形位置），未变形位置可以写成 \(X_i=\bar X+\rho_i\) （ \(\bar X\) 是未变形时的质心）。因为 \(\sum_i\omega_i\rho_i=0\) ，所以 \(\sum_i\omega_ix_i\rho_i^\top=M\sum_i\omega_i\rho_i\rho_i^\top=MS\) ，也就是 \(\bar F=M\) （直接推导）。【<span class="note-cond">条件：均匀变形】</span></p>
 <p>（3）锁住 \(\mathrm{skew}(\bar F)=0\) ，其中 \(\mathrm{skew}(\bar F)=(\bar F-\bar F^\top)/2\) 是 \(\bar F\) 的反对称部分。小变形时反对称部分就是转动，对称部分是拉伸和剪切（极分解：任何均匀变形都可以写成先做一个纯拉伸、再做一个转动，Love 1927 §34），所以锁它等于不许整体转动；对称的拉伸和纯剪切不受限制，带转动成分的剪切（例如简单剪切）会被挡住一部分。另外再把质心 \(\bar x\) 锁在目标位置。【<span class="note-cond">条件：小转动时「反对称部分 = 转动」最准确】</span></p>
 <p>（4）把这两个约束合起来写成 \(Bx=s^{\ast}\) （ \(B\) 是一个常数矩阵，每一行是一个线性约束； \(s^{\ast}\) 是目标值），在约束下让总能量 \(\Pi_{\text{tot}}\) （弹性能加 IPC 的接触势垒）最小。最优条件是 \(\nabla\Pi_{\text{tot}}(x)+B^\top\lambda=0\) ，其中 \(\lambda\) 是约束反力（拉格朗日乘子），约束对节点施加的力就是 \(-B^\top\lambda\) （Boyd &amp; Vandenberghe 2004 §5.5.3）。【<span class="note-cond">条件：约束是线性的、 \(\Pi_{\text{tot}}\) 可微；这只是最小值的必要条件，解出来的是一个静止状态，不保证是全局最小】</span></p>
-<p>（5）质心约束对节点 \(i\) 的梯度是 \(\omega_iI\) （ \(I\) 是 3×3 单位矩阵），所以它施加在节点 \(i\) 上的力是 \(-\omega_i\lambda_c\) （直接推导）。这个力和节点质量成正比、方向处处相同，就像一个均匀的重力：它不会只压在接触处，但会让悬着的部分（比如兔耳）下垂。转角约束另外施加一个力偶：它的合力为零（ \(\sum_i\) 对应的梯度之和为零，直接推导），不会推着物体走，但会挡住物体转动。</p>
+<p>（5）质心约束对节点 \(i\) 的梯度是 \(\omega_iI\) （ \(I\) 是 3×3 单位矩阵），所以它施加在节点 \(i\) 上的力是 \(-\omega_i\lambda_c\) （ \(\lambda_c\) 是 \(\lambda\) 里对应质心约束的分量；直接推导）。这个力和节点质量成正比、方向处处相同，就像一个均匀的重力：它不会只压在接触处，但会让悬着的部分（比如兔耳）下垂。转角约束另外施加一个力偶：它的合力为零（ \(\sum_i\) 对应的梯度之和为零，直接推导），不会推着物体走，但会挡住物体转动。</p>
 <p>（6）静止时每个物体受力平衡。转角约束的力偶合力为零，所以这个均匀体力的合力就等于对方压过来的接触合力：两个物体之间传力只靠接触，转角锁另加的力偶只挡转动、不在两物体之间传力（直接推导）。【<span class="note-cond">条件：静止（受力平衡）】</span></p>
 <p>（7）每一步牛顿迭代把能量方程和约束拼成一个方程一起解（带等式约束的牛顿法，Boyd &amp; Vandenberghe 2004 式 10.11、10.19）：</p>
 <p>\[\nabla^2\Pi_{\text{tot}}\,\Delta x+B^\top\lambda=-\nabla\Pi_{\text{tot}},\qquad B\Delta x=s^{\ast}-Bx.\]</p>
@@ -281,8 +285,8 @@ html.annot-on #annot-capture { display: block; }
 <h3 id="w1-2">结果：骨架比现成方法都更接近标准答案，但仍然偏大</h3>
 
 <figure style="margin:12px 0"><img src="assets/images/w7_W5_deep8_bars.png" width="1166" height="1320" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
-<p><em><strong>大压深下，骨架在 8 个算例里都比 Hertz、hydroelastic、Winkler 更接近标准答案，但仍然偏大。</strong> 每个算例一行五个点：GT、骨架、Hertz、hydroelastic、Winkler，能量轴为对数刻度；1/2 压深的骨架只算了一种小格边长（第 5–6 周 2.1 节的 \(h\)）。</em></p>
-<p><strong>压深为兔高的 1/3 时，骨架是标准答案的 1.08–2.89 倍；现成方法偏大更多：Hertz 2.3–14.4 倍，hydroelastic 4.4–37.2 倍，Winkler 31–188 倍。</strong> 三种现成方法里，Hertz 只用两个物体接触处的曲率和等效模量；hydroelastic 给每个物体预先设一个从表面往里增大的压力场，每一点的压力只由这一点在两个物体里各有多深决定；Winkler 把接触面当成一排互不相连的弹簧。1/2 压深时骨架是 1.07–2.17 倍，Hertz 2.5–12.9 倍，hydroelastic 6.2–29.6 倍，Winkler 42–218 倍。下表顺序同上图，能量单位是 \(E\) 的单位乘网格长度单位的立方（实验中 \(E\) 取 \(10^5\) 量级），各列应与同一行的 GT 相比：</p>
+<p><em><strong>大压深下，骨架在 8 个算例里都比 Hertz、hydroelastic、Winkler 更接近标准答案，但仍然偏大。</strong> 每个算例一行五个点：GT、骨架、Hertz、hydroelastic、Winkler，能量轴为对数刻度，单位是杨氏模量 \(E\) 的单位乘网格长度单位的立方；1/2 压深的骨架只算了一种小格边长 \(h\) （骨架把重叠处铺成方形小格，见第 5–6 周 2.1 节）。</em></p>
+<p><strong>压深为兔高的 1/3 时，骨架是标准答案的 1.08–2.89 倍；现成方法偏大更多：Hertz 2.3–14.4 倍，hydroelastic 4.4–37.2 倍，Winkler 31–188 倍。</strong> 三种现成方法里，Hertz 只用两个物体接触处的曲率和等效模量；hydroelastic 给每个物体预先设一个从表面往里增大的压力场，每一点的压力只由这一点在两个物体里各有多深决定；Winkler 把接触面当成一排互不相连的弹簧。1/2 压深时骨架是 1.07–2.17 倍，Hertz 2.5–12.9 倍，hydroelastic 6.2–29.6 倍，Winkler 42–218 倍。下表顺序和能量单位同上图（实验中 \(E\) 取 \(10^5\) 量级），各列应与同一行的 GT 相比：</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -363,16 +367,16 @@ html.annot-on #annot-capture { display: block; }
 </table></div>
 <details><summary>三种现成方法的式子和成立条件</summary><p>Hertz 解给出的接触能量是</p>
 <p>\[U_{\text{H}}=\frac{8}{15}E^{\ast}\sqrt{R_e}\,F_U\,d^{5/2}\]</p>
-<p>其中 \(E^{\ast}\) 是等效模量， \(1/E^{\ast}=\sum_b(1-\nu_b^2)/E_b\) ， \(b\) 取 A、B 两个物体； \(R_e\) 是接触点处的等效曲率半径（长度单位）：在接触点周围半径 0.3 的范围内拟合两个表面，同一主方向上的两表面曲率相加得到两个相对主曲率 \(c_1,c_2\) ， \(R_e=1/\sqrt{c_1c_2}\) ； \(F_U\) 是接触区为椭圆时的修正因子，没有单位：两个相对主曲率不等时接触区是椭圆，由 \(c_2/c_1\) 解出偏心率，再用第一、二类完全椭圆积分算出能量， \(F_U\) 是它与同一 \(R_e\) 下圆形接触能量之比，各算例约 1.01； \(d\) 是 Hertz 的靠近量，即兔子相对龙的竖直平移量减去未变形时两表面之间最小的竖直间隙。它和 1.1 节定义的压深（未变形重叠区的最大高度）不同：龙在接触处细，竖直线会穿出龙的下表面，重叠高度被龙的厚度截住；例如 1/3 压深、龙硬 10 倍那一格， \(d=3.77\) ，重叠高度是 3.08。</p>
+<p>其中 \(E^{\ast}\) 是等效模量， \(1/E^{\ast}=\sum_b(1-\nu_b^2)/E_b\) ， \(b\) 取 A、B 两个物体， \(E_b\) 、 \(\nu_b\) 是物体 \(b\) 的杨氏模量和泊松比； \(R_e\) 是接触点处的等效曲率半径（长度单位）：在接触点周围半径 0.3 的范围内拟合两个表面，同一主方向上的两表面曲率相加得到两个相对主曲率 \(c_1,c_2\) ， \(R_e=1/\sqrt{c_1c_2}\) ； \(F_U\) 是接触区为椭圆时的修正因子，没有单位：两个相对主曲率不等时接触区是椭圆，由 \(c_2/c_1\) 解出偏心率，再用第一、二类完全椭圆积分算出能量， \(F_U\) 是它与同一 \(R_e\) 下圆形接触能量之比，各算例约 1.01； \(d\) 是 Hertz 的靠近量，即兔子相对龙的竖直平移量减去未变形时两表面之间最小的竖直间隙。它和 1.1 节定义的压深（未变形重叠区的最大高度）不同：龙在接触处细，竖直线会穿出龙的下表面，重叠高度被龙的厚度截住；例如 1/3 压深、龙硬 10 倍那一格， \(d=3.77\) ，重叠高度是 3.08。</p>
 <p>材料越硬（ \(E^{\ast}\) 越大）能量越大；接触处越平（ \(R_e\) 越大），同样压深下接触区越大，能量越大； \(d^{5/2}\) 让能量随压深增长得比平方还快。整个式子说明，两个光滑弯曲的物体轻压在一起时，接触能量只由接触点附近的弯曲程度、等效模量和压深决定，与物体其余部分的形状无关。</p>
 <p>推导：Hertz 的力—靠近量关系 \(F=\frac{4}{3}E^{\ast}\sqrt{R_e}d^{3/2}\) （Popov, Heß &amp; Willert 2019 式 2.34），对 \(d\) 积分得 \(U=\int_0^dF\,dd^{\prime}=\frac{8}{15}E^{\ast}\sqrt{R_e}d^{5/2}\) （直接推导；同书式 2.35；圆形接触时 \(F_U=1\) ）。椭圆接触的解来自 Hertz 原文（Hertz 1882，英译收在 Hertz 1896 文集第 V 篇「On the Contact of Elastic Solids」，压力椭圆的半轴方程），能量同样对靠近量积分得到（直接推导）。它的前提是接触半径远小于曲率半径、两个物体都可当半空间、小变形、无摩擦（同书 §2.5.3），在大压深下都不成立：以 1/3 压深、龙硬 10 倍那一格为例，接触半径是 \(R_e\) 的约 6 倍，接触区和物体一样大。所以 Hertz 在这里只能当对照，它偏大只说明前提不满足。</p>
 <p>Winkler 弹簧床把接触面当成一排互不相连的弹簧：</p>
 <p>\[p_i=k_W\,w_i,\qquad U_{\text{W}}=\frac{1}{2}k_W\,h^2\sum_iw_i^2\]</p>
-<p>其中两物体的重叠处在水平面上铺成边长为 \(h\) 的小格（与骨架的小格不是同一套；例如 1/3 压深、龙硬 10 倍那一格 \(h=0.0154\) ）， \(w_i\) 是第 \(i\) 小格里两个未变形表面的竖直重叠量，没有重叠的小格 \(w_i=0\) ， \(p_i\) 是该格的压强； \(k_W\) 是弹簧床刚度（压强/长度），在刚球压平面这一有 Hertz 解的情况下标定一次，再按等效模量的比例换到每一格的材料，不在这些算例上重新拟合。</p>
+<p>其中 \(U_{\text{W}}\) 是 Winkler 给出的接触能量；两物体的重叠处在水平面上铺成边长为 \(h\) 的小格（与骨架的小格不是同一套；例如 1/3 压深、龙硬 10 倍那一格 \(h=0.0154\) ）， \(w_i\) 是第 \(i\) 小格里两个未变形表面的竖直重叠量，没有重叠的小格 \(w_i=0\) ， \(p_i\) 是该格的压强； \(k_W\) 是弹簧床刚度（压强/长度），在刚球压平面这一有 Hertz 解的情况下标定一次，再按等效模量的比例换到每一格的材料，不在这些算例上重新拟合。</p>
 <p>每一格是一根独立的弹簧，压得越深（ \(w_i\) 越大）、弹簧越硬（ \(k_W\) 越大），该格的力和能量越大，格子之间互不影响；接触能量就是所有弹簧各自存下的能量之和。推导：每一点的压力与该点压入量成正比， \(q=k_Wu\) （Léon Baldelli &amp; Bourdin 2015 式 1）；单位面积的弹簧从 0 压到 \(w\) 存下的能量是 \(\int_0^wk_Ww^{\prime}dw^{\prime}=\frac{1}{2}k_Ww^2\) ，乘每格面积 \(h^2\) 再对所有格求和即得 \(U_{\text{W}}\) （直接推导）。它只在刚性基底上厚度趋于零的薄层，以及不可压、模量随深度线性增大的半空间（Popov, Heß &amp; Willert 2019 §9.1.8）这两类情况下严格成立；对普通的均匀弹性物体不成立，因为真实物体里一点受压会带动周围一起下沉，所以它在这里也只能当对照。</p>
 <p>hydroelastic 给每个物体预先设一个压力场，接触能量取重叠体积上的积分：</p>
 <p>\[p_b=E_{h,b}\,\varepsilon_b,\qquad U_{\text{hydro}}=\int_{V_A\cap V_B}\min(p_A,p_B)\,dV\]</p>
-<p>其中 \(\varepsilon_b\) 是物体 \(b\) 内部每一点离表面深度的归一化量，表面上为 0，往里增大，没有单位； \(E_{h,b}\) 是物体 \(b\) 的 hydroelastic 模量（压强单位），在软球压软块上对 Hertz 标定一次，再按 \(E_b/(1-\nu_b^2)\) 的比例换到每个物体的材料； \(p_b\) 是物体 \(b\) 的压力场； \(V_A\cap V_B\) 是两个未变形物体的重叠体积。</p>
+<p>其中 \(U_{\text{hydro}}\) 是 hydroelastic 给出的接触能量； \(\varepsilon_b\) 是物体 \(b\) 内部每一点离表面深度的归一化量，表面上为 0，往里增大，没有单位； \(E_{h,b}\) 是物体 \(b\) 的 hydroelastic 模量（压强单位），在软球压软块上对 Hertz 标定一次，再按 \(E_b/(1-\nu_b^2)\) 的比例换到每个物体的材料； \(p_b\) 是物体 \(b\) 的压力场； \(V_A\cap V_B\) 是两个未变形物体的重叠体积。</p>
 <p>重叠越深、越大，积分区域越大，而且越往物体里压力场越大，所以能量增长很快；物体越硬（ \(E_{h,b}\) 越大），能量越大； \(\min(p_A,p_B)\) 表示重叠里每一点只取两个压力场中较小的那个。整个式子是两个压力场在重叠体积里被挤开那部分的积分，压力场是人为设定的，不来自弹性方程。推导：每个物体被挤开的那部分体积 \(V_b^{\cap}\) 上的能量是 \(\int_{V_b^{\cap}}p_b\,dV\) ，总能量是两者之和（Elandt 等 2019 式 1）。两个物体在重叠里的分界面是两个压力场相等的地方（同文 §II）；分界面靠近物体 \(A\) 表面的一侧是 \(A\) 被挤开的部分，那里 \(p_A&lt;p_B\) ，另一侧反过来。所以两块加起来就是 \(\int\min(p_A,p_B)dV\) （直接推导）。原文前提是名义刚体，实际变形很小；每一点的压力只由这一点在两个物体里各有多深决定，看不到物体整体的弯曲，也看不到隔开的接触之间通过物体的相互影响。所以它在大压深下也只能当对照。</p></details>
 <p><strong>1/3 压深的四个算例在两种小格边长下都算了（接触半径 \(a\) 的 1/4 和 1/8：龙硬 10 倍 0.190 和 0.095，兔硬 10 倍 0.115 和 0.058，兔泊松比 0.2 的 0.145 和 0.073，兔泊松比 0.45 的 0.143 和 0.072，网格单位），完整骨架的读数相差 1.8%–10.0%；1/2 压深只算了一种小格边长 0.081，所以关于骨架的结论以 1/3 压深为准。</strong></p>
 <p><strong>大压深下第二项很重要：只用第一项时 1/3 压深四个算例是标准答案的 1.43–8.88 倍，加上第二项后读数降了 24%–67%。</strong> 第二项按每个物体自己的 mode 修正有限大小和形状对柔度的影响；大压深时接触区和物体一样大，这部分修正不再是小量。</p>
@@ -403,7 +407,7 @@ html.annot-on #annot-capture { display: block; }
 <h4>1/2 压深 · 兔子比龙硬 10 倍</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_Ax10_d2_web2.png" width="1624" height="1160" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_Ax10_d2_sec.png" width="1166" height="1320" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
-<p><strong>GT 99,482；骨架 216,100（2.17 倍，单一小格边长）。</strong> Hertz 1,282,000，hydroelastic 2,947,000，Winkler 21,680,000。变形几乎全在软的龙一侧：最大局部位移兔子只有 0.19，龙 5.54，超过兔高的一半。这个算例的 GT 在最后一级 IPC 势垒（ \(\kappa=1.15\times10^{15}\) 、 \(\hat d=1.25\times10^{-4}\) ）上收敛：投影梯度的最大分量是 \(3.41\times10^{-6}\) ，低于收敛标准 \(6.95\times10^{-5}\) ；约束下的二阶检查也通过，约化 Hessian 的最小特征值是 0.367（大于 0，是严格的局部最小）。</p>
+<p><strong>GT 99,482；骨架 216,100（2.17 倍，单一小格边长）。</strong> Hertz 1,282,000，hydroelastic 2,947,000，Winkler 21,680,000。变形几乎全在软的龙一侧：最大局部位移兔子只有 0.19，龙 5.54，超过兔高的一半。这个算例的 GT 在最后一级 IPC 势垒（强度 \(\kappa=1.15\times10^{15}\) 、作用距离 \(\hat d=1.25\times10^{-4}\) ）上收敛：投影梯度的最大分量是 \(3.41\times10^{-6}\) ，低于收敛标准 \(6.95\times10^{-5}\) ；约束下的二阶检查也通过，约化 Hessian 的最小特征值是 0.367（大于 0，是严格的局部最小）。</p>
 <h4>1/2 压深 · 兔子泊松比 0.2、龙 0.45</h4>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA02B045_d2_web2.png" width="1624" height="1160" style="width:541px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <figure style="margin:12px 0"><img src="assets/images/w7_deep_nuA02B045_d2_sec.png" width="1166" height="1320" style="width:420px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
@@ -450,7 +454,8 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p><strong>分出谁软谁硬的是第二项：只用第一项时这个比是 0.99，几乎分不开；加上第二项后变成 2.31，方向和标准答案一致。</strong> 这符合「第一项管等效、第二项管个体」：第一项只认等效模量，对调前后几乎不变；第二项带着每个物体自己的 mode，对调后会变。比值 2.31 还不到标准答案 6.2 的一半，说明个体信息只补回了一部分。1/2 压深这一对骨架是 2.57，标准答案 5.2，方向同样一致。</p></section>
+<p><strong>分出谁软谁硬的是第二项：只用第一项时这个比是 0.99，几乎分不开；加上第二项后变成 2.31，方向和标准答案一致。</strong> 这符合「第一项管等效、第二项管个体」：第一项只认等效模量，对调前后几乎不变；第二项带着每个物体自己的 mode，对调后会变。比值 2.31 还不到标准答案 6.2 的一半，说明个体信息只补回了一部分。1/2 压深这一对骨架是 2.57，标准答案 5.2，方向同样一致。</p>
+<p><strong>浅压时规律相同。</strong> 用第 5–6 周同一个兔龙互压算例（尺寸比 · 龙压兔样本 7 · 压得最浅），只把一侧的杨氏模量乘 10，两侧仍是软体：标准答案在龙硬 10 倍时 \(U=0.005849\) ，兔硬 10 倍时 \(U=0.001845\) ，比值 3.17；骨架只用第一项时这个比是 1.00，分不开，两项都用时是 3.11，方向和大小都与标准答案接近。</p></section>
 <section id="w3"><h2>一个物体算一次的 mode 换对手、换位置</h2>
 <p><strong>检验每个物体只算一次 mode 时，换对手、换撞的位置，骨架能否照样算准。</strong> 把第 5–6 周的兔、龙、鸭互压算例按「同一份 mode 用在哪些接触上」重新整理：兔和龙各只有一份 mode，兔的用在平块、兔、龙、鸭 4 种对手上，龙的用在兔、龙、鸭 3 种对手上；鸭的算例太少，只看兔和龙。</p>
 <p><strong>兔和龙互压、接触区够大的 10 个算例里，5 个基本对、5 个跨线，没有整段偏离。</strong> 它们是第 5–6 周 3.2 节表里兔和龙互压的 10 行，每一行同时用到兔的 mode 和龙的 mode，所以兔、龙两边看到的是同一组 5 个跨线；其中第 10、11 行是第 7、9 行换细网格 GT 的重算，不是新的接触姿态。这些 mode 是锁住 12 个 affine 自由度算的（第 5–6 周 2.1 节）。另有 2 个接触区小的算例（接触半径内铺不下 2 个小格，不在 3.2 节的 17 个算例里）：一个跨线，一个整段偏离；mode 网格加密一档后，两个都是跨线。下一步用更细一档的 mode 网格重算跨线的算例，看跨线是否来自 mode 网格在接触处的分辨率。</p>
@@ -487,17 +492,137 @@ html.annot-on #annot-capture { display: block; }
 <td>原文的解释是两项非 Hertz 效应几乎抵消（球面不是抛物面、大变形），所以力对上不等于接触区对上</td>
 </tr>
 <tr>
-<td>Winkler 弹簧床：每一点的压力 \(q=k_Wu\) ， \(u\) 是该点压入量， \(k_W\) 是弹簧床刚度（Léon Baldelli &amp; Bourdin 2015 式 1，原始出处 Winkler 1867）</td>
+<td>Winkler 弹簧床 \(q=k_Wu\) （Léon Baldelli &amp; Bourdin 2015 式 1，原始出处 Winkler 1867）</td>
 <td>只在两类情况下严格成立：刚性基底上厚度趋于零的薄层（Léon Baldelli &amp; Bourdin 2015），以及不可压、模量随深度线性增大的半空间（Popov, Heß &amp; Willert 2019 §9.1.8）；对普通均匀弹性体不成立</td>
 <td>baseline；它和 hydroelastic 一样不解弹性方程</td>
 </tr>
 </tbody>
 </table></div></details>
 <details><summary>baseline：RigidFormer（进行中）</summary><p>RigidFormer 还在进行中。</p></details></section>
-<section id="w5"><h2>下周 TODO</h2>
+<section id="w5"><h2>11-24 补充实验：中等压深梯度、同几何公式对照与新材料/形状扩展</h2>
+<h3 id="w5-1">中等压深梯度（`1/8`、`1/6` 与 `1/2` 补齐，`Bx10` 龙比兔子硬 10 倍）</h3>
+
+<p>在原 1/3、1/2 两档之外，补跑了兔高 \(H\) 的 1/8（推进量 <code>1.154</code>）与 1/6（推进量 <code>1.538</code>）两档 KKT+FEM 标准答案（均无穿透），并用 <code>overlap_flux</code> 重叠梯度法向配合 <code>same_layer</code> / <code>extreme</code> 跑通全梯度骨架对比（1/2 档原默认 <code>seed</code> 与 <code>ZONE_UNOWNED_ROUNDS = 2</code> 会在多岛接触处报错，改用 <code>overlap_flux</code> 固定格距并放宽 <code>--zone_unowned_rounds 8</code> 后只需 1 轮补种子即 <code>status = ok</code>）：</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>压深档</th>
+<th style="text-align: right;">GT（\(E_{\text{fine}}\)）</th>
+<th style="text-align: right;">骨架 \(k=0\)（倍数）</th>
+<th style="text-align: right;">骨架 \(k=80\)（倍数）</th>
+<th>建区设置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1/8 \(H\)</td>
+<td style="text-align: right;">7,380</td>
+<td style="text-align: right;">23,374（3.17x）</td>
+<td style="text-align: right;">10,169（1.38x）</td>
+<td><code>overlap_flux + extreme</code>, \(h=0.0371\)</td>
+</tr>
+<tr>
+<td>1/8 \(H\)</td>
+<td style="text-align: right;">7,380</td>
+<td style="text-align: right;">23,575（3.19x）</td>
+<td style="text-align: right;">10,392（1.41x）</td>
+<td><code>overlap_flux + same_layer</code>, \(h=0.0810\)</td>
+</tr>
+<tr>
+<td>1/6 \(H\)</td>
+<td style="text-align: right;">15,895</td>
+<td style="text-align: right;">54,812（3.45x）</td>
+<td style="text-align: right;">19,513（1.23x）</td>
+<td><code>overlap_flux + extreme</code>, \(h=0.0570\)</td>
+</tr>
+<tr>
+<td>1/6 \(H\)</td>
+<td style="text-align: right;">15,895</td>
+<td style="text-align: right;">52,885（3.33x）</td>
+<td style="text-align: right;">16,654（1.05x）</td>
+<td><code>overlap_flux + same_layer</code>, \(h=0.0810\)</td>
+</tr>
+<tr>
+<td>1/3 \(H\)</td>
+<td style="text-align: right;">255,626</td>
+<td style="text-align: right;">325,339（1.27x）</td>
+<td style="text-align: right;">244,839（0.96x）</td>
+<td><code>overlap_flux + same_layer</code>, \(h=0.0810\)</td>
+</tr>
+<tr>
+<td>1/2 \(H\)</td>
+<td style="text-align: right;">516,195</td>
+<td style="text-align: right;">727,688（1.41x）</td>
+<td style="text-align: right;">603,097（1.17x）</td>
+<td><code>overlap_flux + extreme + r8</code>, \(h=0.0810\)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="w5-2">1/3 深压同几何公式对照（C4，`h/2 = 0.0405`）</h3>
+
+<p>在同一组 <code>rigid</code> 粗位姿、共享射线几何与 <code>o = 0.000125</code> 下，对比 hydroelastic（<code>H0</code>）、gap-patch 无网络解析核（<code>P0</code>）、无投影半空间 Love 核（<code>R0</code>）、加 \(D_b\) 法向投影（<code>S0</code>）以及完整 80 项 mode 骨架（<code>S80</code>）相对 GT 的倍数：</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>算例</th>
+<th style="text-align: right;">GT</th>
+<th style="text-align: right;"><code>H0</code>（hydro）</th>
+<th style="text-align: right;"><code>P0</code>（gap-patch 无网络）</th>
+<th style="text-align: right;"><code>R0</code>（无投影 Love）</th>
+<th style="text-align: right;"><code>S0</code>（加 \(D_b\) 投影）</th>
+<th style="text-align: right;"><code>S80</code>（完整骨架）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1/3 · 龙比兔子硬 10 倍</td>
+<td style="text-align: right;">255,626</td>
+<td style="text-align: right;">4.36x</td>
+<td style="text-align: right;">4.21x</td>
+<td style="text-align: right;">3.36x</td>
+<td style="text-align: right;">1.54x</td>
+<td style="text-align: right;">1.40x</td>
+</tr>
+<tr>
+<td>1/3 · 兔子比龙硬 10 倍</td>
+<td style="text-align: right;">41,480</td>
+<td style="text-align: right;">37.24x</td>
+<td style="text-align: right;">25.94x</td>
+<td style="text-align: right;">20.68x</td>
+<td style="text-align: right;">10.01x</td>
+<td style="text-align: right;">5.95x</td>
+</tr>
+<tr>
+<td>1/3 · 兔子泊松比 0.2、龙 0.45</td>
+<td style="text-align: right;">46,608</td>
+<td style="text-align: right;">15.73x</td>
+<td style="text-align: right;">12.70x</td>
+<td style="text-align: right;">10.12x</td>
+<td style="text-align: right;">4.16x</td>
+<td style="text-align: right;">2.88x</td>
+</tr>
+<tr>
+<td>1/3 · 兔子泊松比 0.45、龙 0.2</td>
+<td style="text-align: right;">46,061</td>
+<td style="text-align: right;">16.51x</td>
+<td style="text-align: right;">12.85x</td>
+<td style="text-align: right;">10.24x</td>
+<td style="text-align: right;">4.23x</td>
+<td style="text-align: right;">3.00x</td>
+</tr>
+</tbody>
+</table></div>
+<p>从 <code>R0</code> \(\to\) <code>S0</code>（加 \(D_b\) 投影）能量下降超过 2 倍，从 <code>S0</code> \(\to\) <code>S80</code>（加 80 项 mode）进一步降低 <code>9.9%–43.9%</code>。</p>
+<h3 id="w5-3">新形状、材料扩展与 Gent 非线性材料 GPU 检查</h3>
+
+<ul>
+<li><strong>新形状（<code>or_029</code> 鸭压兔，<code>k=0</code>）</strong>：<code>Bx10_d3</code>（<code>GT = 99,956</code>）在 <code>overlap_flux + rounds=8</code> 下骨架 \(k=0\) 为 <code>220,467</code>（<code>2.21x</code>）；<code>Bx10_d2</code>（<code>GT = 290,944</code>）在 <code>overlap_flux + same_layer</code>（\(h=0.1614\)）下 \(k=0\) 为 <code>565,558</code>（<code>1.94x</code>）。</li>
+<li><strong>大刚度比与近不可压扩展（<code>matspec</code> 4 格）</strong>：<code>E_b = 1e7</code>（<code>100:1</code> 刚度比）与 <code>nu_a = 0.49</code> 的 KKT+FEM 标签均无穿透收敛；在 <code>overlap_flux</code> 固定格距 + <code>rounds=8</code> 下骨架全部 <code>status = ok</code>（<code>E_b = 1e7</code>：\(k=0\) 为 <code>850,364</code>、\(k=80\) 为 <code>974,222</code>；<code>nu_a = 0.49</code>：\(k=0\) 为 <code>376,022</code>）。</li>
+<li><strong>Gent 非线性材料 GPU 检查</strong>：<code>Bx10_gentinf_3.0_d2</code> 冒烟（<code>95.8 s</code>，79 次牛顿、<code>Pi = 290.4743</code>）、NH 求解改前/改后单目标对比（<code>112</code> iters、<code>diagnostic_nominal_U = 948.5258</code> 一致，审图钩子仅增 <code>+258 MiB</code> 显存）及 H100 GPU 锁定基准（560,247 四面体 <code>small_nh_cap_s = 0.0113 s</code>）均已通过。</li>
+</ul></section>
+<section id="w6"><h2>下周 TODO</h2>
 <ol>
 <li>大压深：在兔高的 1/3、1/2 之外补 1/8、1/6 两档，看骨架偏大的倍数怎样随压深变，再决定剩下的偏大是继续改第一项（按物体真实形状算柔度、不再假设表面平）还是交给神经网络。</li>
-<li>软硬对调：用每个物体一套的 mode 算浅压的对调，确认浅压下方向也对。</li>
 <li>mode 复用：用更细的 mode 网格重算跨线的算例。</li>
 <li>速度：大压深的一个标准答案要分几步推近、每步解到静止，从头算实测 3.7 小时（13345 秒），浅压一次 IPC 只要几分钟；要提速到 1 小时以内。</li>
 <li>baseline：RigidFormer 编码器的改造版（进行中）。</li>
