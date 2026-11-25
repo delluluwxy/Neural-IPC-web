@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "c46a1a730c26";</script>
+<script>window.NIPC_PAGE = "026353bcc4a1";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -260,6 +260,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w5-1">5.1 中等压深梯度（`1/8`、`1/6` 与 `1/2` 补齐，`Bx10` 龙比兔子硬 10 倍）</a>
 <a class="toc-level-3" href="#w5-2">5.2 1/3 深压同几何公式对照（C4，`h/2 = 0.0405`）</a>
 <a class="toc-level-3" href="#w5-3">5.3 新形状、材料扩展与 Gent 非线性材料 GPU 检查</a>
+<a class="toc-level-3" href="#w5-4">5.4 Neural 误差归因与最简复杂度阶梯（`S0` `n=19` / `S80` `n=15`，严格 LOO）</a>
 <a class="toc-level-2" href="#w6">6. 下周 TODO</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 7 周：大压深、软硬对调、mode 复用</h1></header>
 <div class="lead"><p><strong>结论：大压深下骨架是标准答案的 1.07–2.89 倍，仍然偏大，但 8 个算例都比 Hertz、hydroelastic、Winkler 更接近标准答案；软硬对调时骨架的方向和标准答案一致，分出谁软谁硬的是第二项；同一份 mode 用在兔和龙互压的 10 个算例上，5 个基本对、5 个跨线，没有整段偏离。</strong> 骨架是第 5–6 周的两项线弹性接触能量公式：第一项把接触处当成半空间，第二项用每个物体预先算好的 mode（描述物体有限大小和形状的一组变形方向）补回有限大小和形状。第 5–6 周的 edge case 都只是表面浅压，这周做三件事：大压深、软硬对调、每个物体算一次的 mode 换对手换位置。大压深：压深为兔高的 1/3 时，骨架是标准答案（表中记作 GT）的 1.08–2.89 倍，Hertz 是 2.3–14.4 倍；GT 还含远离接触处的变形能（1.1 节），所以这个倍数只说明骨架偏大，不是偏大的准确幅度。软硬对调：GT 对调前后差 5–6 倍，只认等效模量的 Hertz 分不出来；骨架只用第一项时也几乎分不开，加上第二项后方向和 GT 一致，说明带个体信息的第二项是需要的。mode 复用的结果见第 3 节。</p></div>
@@ -618,8 +619,57 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li><strong>新形状（<code>or_029</code> 鸭压兔，<code>k=0</code>）</strong>：<code>Bx10_d3</code>（<code>GT = 99,956</code>）在 <code>overlap_flux + rounds=8</code> 下骨架 \(k=0\) 为 <code>220,467</code>（<code>2.21x</code>）；<code>Bx10_d2</code>（<code>GT = 290,944</code>）在 <code>overlap_flux + same_layer</code>（\(h=0.1614\)）下 \(k=0\) 为 <code>565,558</code>（<code>1.94x</code>）。</li>
 <li><strong>大刚度比与近不可压扩展（<code>matspec</code> 4 格）</strong>：<code>E_b = 1e7</code>（<code>100:1</code> 刚度比）与 <code>nu_a = 0.49</code> 的 KKT+FEM 标签均无穿透收敛；在 <code>overlap_flux</code> 固定格距 + <code>rounds=8</code> 下骨架全部 <code>status = ok</code>（<code>E_b = 1e7</code>：\(k=0\) 为 <code>850,364</code>、\(k=80\) 为 <code>974,222</code>；<code>nu_a = 0.49</code>：\(k=0\) 为 <code>376,022</code>）。</li>
-<li><strong>Gent 非线性材料 GPU 检查</strong>：<code>Bx10_gentinf_3.0_d2</code> 冒烟（<code>95.8 s</code>，79 次牛顿、<code>Pi = 290.4743</code>）、NH 求解改前/改后单目标对比（<code>112</code> iters、<code>diagnostic_nominal_U = 948.5258</code> 一致，审图钩子仅增 <code>+258 MiB</code> 显存）及 H100 GPU 锁定基准（560,247 四面体 <code>small_nh_cap_s = 0.0113 s</code>）均已通过。</li>
-</ul></section>
+<li><strong>Gent 非线性材料 GPU 检查</strong>：<code>Bx10_gentinf_3.0_d2</code> 冒烟（<code>95.8 s</code>，79 次牛顿、<code>Pi = 290.4743</code>）、NH 求解改前/改后单目标对比（<code>112</code> iters、<code>diagnostic_nominal_U = 948.5258</code> 一致，审图钩子仅增 <code>+258 MiB</code> 显存）及 H100 GPU 锁定基准（560,247 四面体 <code>small_nh_cap_s = 0.0113 s</code>）均已通过；<code>Gent d3</code> 全链条（<code>GT = 257,615</code>）已跑通显式 <code>--linear_material_reference</code> 场景与 \(k=0\) 骨架（<code>1,773,863</code>，<code>6.89x</code>，<code>status = ok</code>）。</li>
+<li><strong><code>same_layer</code> vs <code>extreme</code> 同格距对照（<code>overlap_flux + rounds=8</code>，\(h=0.0810\)）</strong>：<code>extreme</code> 下 6 格全部 <code>status = ok</code>；相同格距下 <code>same_layer</code> 仅 <code>or029_Bx10_d3</code> 正常出数（<code>220,442</code>），<code>ov2u_Bx10_d2</code> 与 <code>nu_a=0.49 d3</code> 报区 2/4 命中点重合（<code>zone_fail</code>），<code>matspec</code> 其余 3 格有效重叠对为空。</li>
+</ul>
+<h3 id="w5-4">Neural 误差归因与最简复杂度阶梯（`S0` `n=19` / `S80` `n=15`，严格 LOO）</h3>
+
+<ol>
+<li><strong>为什么盲目对称特征会失效</strong>：此前将 <code>(body A, body B)</code> 与 <code>(body B, body A)</code> 均值对称后，模型无法分辨哪一侧几何更软，导致 <code>Ax10</code>（<code>2.31x–5.95x</code>）与 <code>Bx10</code>（<code>1.17x–1.40x</code>）混在一起，Blind Ridge 最大误差高达 <code>297.4%</code>（<code>S80</code>）/ <code>405.3%</code>（<code>S0</code>）。</li>
+<li><strong>因果特征 + 逐层消融</strong>：加入有物理依据的柔度不对称项 \(s_1 - s_2\)、有效泊松比 \(\nu_{\text{eff}}\)、压深 \(\log(\text{depth})\) 与无量纲骨架能 \(\log(U_{\text{base}}/E^*)\) 后，严格留一交叉验证（LOO）结果如下：</li>
+</ol>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>模型阶梯</th>
+<th style="text-align: right;"><code>S0</code>（<code>n=19</code>）中位 / 均值 / 最大误差</th>
+<th style="text-align: right;"><code>S80</code>（<code>n=15</code>）中位 / 均值 / 最大误差</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原始骨架（Raw）</td>
+<td style="text-align: right;"><code>309.9% / 361.9% / 901.1%</code></td>
+<td style="text-align: right;"><code>90.9% / 123.5% / 495.0%</code></td>
+</tr>
+<tr>
+<td>常数偏置（Const LOO）</td>
+<td style="text-align: right;"><code>61.6% / 75.0% / 204.3%</code></td>
+<td style="text-align: right;"><code>39.0% / 51.9% / 242.7%</code></td>
+</tr>
+<tr>
+<td>盲对称 Ridge（Blind Ridge）</td>
+<td style="text-align: right;"><code>14.1% / 53.8% / 405.3%</code></td>
+<td style="text-align: right;"><code>28.6% / 47.5% / 297.4%</code></td>
+</tr>
+<tr>
+<td>因果特征 Ridge（Causal Ridge）</td>
+<td style="text-align: right;"><code>27.5% / 30.0% / 109.9%</code></td>
+<td style="text-align: right;"><code>24.6% / 32.5% / 141.4%</code></td>
+</tr>
+<tr>
+<td>因果 1 层 MLP（<code>w=4</code> / <code>w=8</code>）</td>
+<td style="text-align: right;"><code>17.5% / 21.9% / 66.4%</code>（<code>w=8</code>）</td>
+<td style="text-align: right;"><code>22.2% / 27.4% / 171.1%</code>（<code>w=4</code>）</td>
+</tr>
+<tr>
+<td>因果 2 层 MLP（<code>w=16</code>）</td>
+<td style="text-align: right;"><code>21.1% / 24.4% / 66.8%</code>（开始过拟合）</td>
+<td style="text-align: right;"><code>25.4% / 29.7% / 177.5%</code>（开始过拟合）</td>
+</tr>
+</tbody>
+</table></div>
+<p>剩余系统性偏差集中在 <code>E_b = 1e7</code>（<code>100:1</code> 刚度比），<code>S80</code> 相对 GT 偏低（<code>0.78x</code>），与有限厚度几何耦合效应（Menga, Carbone &amp; Dini 2020 <code>arXiv:2006.16133v2</code>）一致；文献侧已完成 <code>RigidFormer</code>（<code>arXiv:2605.09196v2</code> §3.1–3.3）精读与源码核对，其 Anchor-Vertex Pooling 与置换不变聚合思想可作为后续多几何体扩展参考。</p></section>
 <section id="w6"><h2>下周 TODO</h2>
 <ol>
 <li>大压深：在兔高的 1/3、1/2 之外补 1/8、1/6 两档，看骨架偏大的倍数怎样随压深变，再决定剩下的偏大是继续改第一项（按物体真实形状算柔度、不再假设表面平）还是交给神经网络。</li>
