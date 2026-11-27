@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "026353bcc4a1";</script>
+<script>window.NIPC_PAGE = "00795198c4d8";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -261,6 +261,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w5-2">5.2 1/3 深压同几何公式对照（C4，`h/2 = 0.0405`）</a>
 <a class="toc-level-3" href="#w5-3">5.3 新形状、材料扩展与 Gent 非线性材料 GPU 检查</a>
 <a class="toc-level-3" href="#w5-4">5.4 Neural 误差归因与最简复杂度阶梯（`S0` `n=19` / `S80` `n=15`，严格 LOO）</a>
+<a class="toc-level-3" href="#w5-5">5.5 11-26/27 统一 `mass_lsq` 12-DoF 锁全量重跑总表（含 B12 `or013_Ax10_d3` 收官与 `or029_Bx10_gent_d3`）</a>
 <a class="toc-level-2" href="#w6">6. 下周 TODO</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 7 周：大压深、软硬对调、mode 复用</h1></header>
 <div class="lead"><p><strong>结论：大压深下骨架是标准答案的 1.07–2.89 倍，仍然偏大，但 8 个算例都比 Hertz、hydroelastic、Winkler 更接近标准答案；软硬对调时骨架的方向和标准答案一致，分出谁软谁硬的是第二项；同一份 mode 用在兔和龙互压的 10 个算例上，5 个基本对、5 个跨线，没有整段偏离。</strong> 骨架是第 5–6 周的两项线弹性接触能量公式：第一项把接触处当成半空间，第二项用每个物体预先算好的 mode（描述物体有限大小和形状的一组变形方向）补回有限大小和形状。第 5–6 周的 edge case 都只是表面浅压，这周做三件事：大压深、软硬对调、每个物体算一次的 mode 换对手换位置。大压深：压深为兔高的 1/3 时，骨架是标准答案（表中记作 GT）的 1.08–2.89 倍，Hertz 是 2.3–14.4 倍；GT 还含远离接触处的变形能（1.1 节），所以这个倍数只说明骨架偏大，不是偏大的准确幅度。软硬对调：GT 对调前后差 5–6 倍，只认等效模量的 Hertz 分不出来；骨架只用第一项时也几乎分不开，加上第二项后方向和 GT 一致，说明带个体信息的第二项是需要的。mode 复用的结果见第 3 节。</p></div>
@@ -669,7 +670,123 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p>剩余系统性偏差集中在 <code>E_b = 1e7</code>（<code>100:1</code> 刚度比），<code>S80</code> 相对 GT 偏低（<code>0.78x</code>），与有限厚度几何耦合效应（Menga, Carbone &amp; Dini 2020 <code>arXiv:2006.16133v2</code>）一致；文献侧已完成 <code>RigidFormer</code>（<code>arXiv:2605.09196v2</code> §3.1–3.3）精读与源码核对，其 Anchor-Vertex Pooling 与置换不变聚合思想可作为后续多几何体扩展参考。</p></section>
+<p>剩余系统性偏差集中在 <code>E_b = 1e7</code>（<code>100:1</code> 刚度比），<code>S80</code> 相对 GT 偏低（<code>0.78x</code>），与有限厚度几何耦合效应（Menga, Carbone &amp; Dini 2020 <code>arXiv:2006.16133v2</code>）一致；文献侧已完成 <code>RigidFormer</code>（<code>arXiv:2605.09196v2</code> §3.1–3.3）精读与源码核对，其 Anchor-Vertex Pooling 与置换不变聚合思想可作为后续多几何体扩展参考。</p>
+<h3 id="w5-5">11-26/27 统一 `mass_lsq` 12-DoF 锁全量重跑总表（含 B12 `or013_Ax10_d3` 收官与 `or029_Bx10_gent_d3`）</h3>
+
+<p>将全部标签与 80 阶表面模态统一至质量加权最小二乘 12-DoF 仿射锁（<code>mass_lsq</code>，与上游 <code>AffineSplit.fit</code> 逐位一致），并在 <code>overlap_flux + extreme + height_gap</code>（\(h=0.025\)）下完成全部 12 格端到端核对（含 <code>or013_Ax10_d3_r99_1_n38</code> 最终 38 步收敛 <code>hard_failures = []</code> 与 <code>or029_Bx10_gent_d3</code> 非线性 Gent 硬化新点）：</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>算例（<code>mass_lsq</code> 12-DoF）</th>
+<th style="text-align: right;">GT（\(U_{\text{IPC}}\)）</th>
+<th style="text-align: right;">\(S_0\)（局部半空间）</th>
+<th style="text-align: right;">\(S_{80}\)（完整骨架）</th>
+<th style="text-align: right;">\(S_{80}/\text{GT}\)</th>
+<th style="text-align: right;">\(s_{\text{quad}}\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>or013_Ax10_d8</code></td>
+<td style="text-align: right;">8,868.43</td>
+<td style="text-align: right;">20,707.57</td>
+<td style="text-align: right;">12,249.29</td>
+<td style="text-align: right;"><code>1.381×</code>（+38.1%）</td>
+<td style="text-align: right;">+0.274</td>
+</tr>
+<tr>
+<td><code>or013_Bx10_d8</code></td>
+<td style="text-align: right;">10,126.13</td>
+<td style="text-align: right;">17,573.81</td>
+<td style="text-align: right;">12,790.37</td>
+<td style="text-align: right;"><code>1.263×</code>（+26.3%）</td>
+<td style="text-align: right;">+0.205</td>
+</tr>
+<tr>
+<td><code>or013_Ax10_d6</code></td>
+<td style="text-align: right;">21,955.94</td>
+<td style="text-align: right;">41,259.40</td>
+<td style="text-align: right;">26,259.65</td>
+<td style="text-align: right;"><code>1.196×</code>（+19.6%）</td>
+<td style="text-align: right;">+0.231</td>
+</tr>
+<tr>
+<td><code>or013_Ax10_d3</code>（<code>r99_1_n38</code>, <code>h=0.025</code>）</td>
+<td style="text-align: right;">528,622.17</td>
+<td style="text-align: right;">1,873,534.34</td>
+<td style="text-align: right;">3,027,286.25</td>
+<td style="text-align: right;"><code>5.727×</code>（+472.7%）</td>
+<td style="text-align: right;">−1.577</td>
+</tr>
+<tr>
+<td><code>or013_nuA02B045_d8</code></td>
+<td style="text-align: right;">4,309.55</td>
+<td style="text-align: right;">11,799.05</td>
+<td style="text-align: right;">6,290.88</td>
+<td style="text-align: right;"><code>1.460×</code>（+46.0%）</td>
+<td style="text-align: right;">+0.275</td>
+</tr>
+<tr>
+<td><code>or013_nuA045B02_d8</code></td>
+<td style="text-align: right;">4,461.05</td>
+<td style="text-align: right;">11,606.87</td>
+<td style="text-align: right;">6,396.88</td>
+<td style="text-align: right;"><code>1.434×</code>（+43.4%）</td>
+<td style="text-align: right;">+0.260</td>
+</tr>
+<tr>
+<td><code>or013_nuA02B045_d3</code></td>
+<td style="text-align: right;">145,266.03</td>
+<td style="text-align: right;">115,103.22</td>
+<td style="text-align: right;">101,757.25</td>
+<td style="text-align: right;"><code>0.700×</code>（−30.0%）</td>
+<td style="text-align: right;">+0.003</td>
+</tr>
+<tr>
+<td><code>or013_nuA045B02_d3</code></td>
+<td style="text-align: right;">140,187.75</td>
+<td style="text-align: right;">113,478.03</td>
+<td style="text-align: right;">103,038.80</td>
+<td style="text-align: right;"><code>0.735×</code>（−26.5%）</td>
+<td style="text-align: right;">−0.018</td>
+</tr>
+<tr>
+<td><code>or029_Bx10_d8</code></td>
+<td style="text-align: right;">29,865.49</td>
+<td style="text-align: right;">22,309.75</td>
+<td style="text-align: right;">27,317.44</td>
+<td style="text-align: right;"><code>0.915×</code>（−8.5%）</td>
+<td style="text-align: right;">−0.261</td>
+</tr>
+<tr>
+<td><code>or029_Bx10_d6</code></td>
+<td style="text-align: right;">67,164.69</td>
+<td style="text-align: right;">45,705.23</td>
+<td style="text-align: right;">58,695.72</td>
+<td style="text-align: right;"><code>0.874×</code>（−12.6%）</td>
+<td style="text-align: right;">−0.417</td>
+</tr>
+<tr>
+<td><code>or029_Bx10_d3</code></td>
+<td style="text-align: right;">528,997.60</td>
+<td style="text-align: right;">220,700.02</td>
+<td style="text-align: right;">383,203.74</td>
+<td style="text-align: right;"><code>0.724×</code>（−27.6%）</td>
+<td style="text-align: right;">−1.045</td>
+</tr>
+<tr>
+<td><code>or029_Bx10_gent_d3</code>（\(J_m=3.0\)）</td>
+<td style="text-align: right;">529,137.29</td>
+<td style="text-align: right;">220,700.02</td>
+<td style="text-align: right;">383,326.62</td>
+<td style="text-align: right;"><code>0.724×</code>（−27.6%）</td>
+<td style="text-align: right;">−1.045</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>结论</strong>：换回统一 <code>mass_lsq</code> 锁后，E-A 同压力对比（骨架 vs 线弹性 FEM）已收紧至 <code>+2.5%</code>（<code>or013_Ax10_d8</code>）与 <code>+4.2%</code>（<code>or029_Bx10_d8</code>）；残余误差主要由大变形几何/材料非线性与多区耦合主导，进入第 8 周轻量物理残差学习阶段。</li>
+</ul></section>
 <section id="w6"><h2>下周 TODO</h2>
 <ol>
 <li>大压深：在兔高的 1/3、1/2 之外补 1/8、1/6 两档，看骨架偏大的倍数怎样随压深变，再决定剩下的偏大是继续改第一项（按物体真实形状算柔度、不再假设表面平）还是交给神经网络。</li>
