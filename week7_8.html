@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "148f345c334a";</script>
+<script>window.NIPC_PAGE = "d3abe315a9ca";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -474,7 +474,7 @@ html.annot-on #annot-capture { display: block; }
 <p>GT 一行的表面误差不是 0：这是把 GT 投影到 12 维 affine 后剩下的误差，是任何 12 维模型的下限。三个 12 维方法的表面误差都接近这个下限，差别主要在压缩量上。</p>
 <p><strong>速度：</strong> 上面三段视频和表都在同一张 GPU 上跑，骨架 + 网络每步约 73 ms，全网格 FEM+IPC 每步约 124 ms，现在只快 1.7 倍；薄鳍那一例两者每步都约 120 ms。骨架每步要重新铺小格、解一次二次规划，这是下一步提速的重点。</p>
 <figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_dent_fast_or003.mp4" style="width:611px;max-width:100%;height:auto"></video><figcaption>龙撞兔，压得更深（GT 峰值压缩 33.6% 兔高），接触处是龙的尖角。从左到右：标准答案、骨架 + 网络、只用骨架、hydroelastic。</figcaption></figure>
-<p><strong>龙撞兔压得更深，差距更大：骨架 + 网络 1.61%，只用骨架 10.1%，hydroelastic 30.3%，Winkler 28.7%。</strong> GT 的峰值压缩是 33.6% 兔高，hydroelastic 和 Winkler 只压到 23.4% 和 24.0%，都明显偏硬：它们的力只由局部重叠量决定，看不到兔子在尖角下整体让开。只用骨架压到 30.3%，也偏硬但差得少；骨架 + 网络压到 33.1%。这一次网络在接触时给出 0.53–0.64 倍的修正，即把骨架能量调软。需要说明的是，在静态标签里同一压深范围的真实网格算例，GT 与骨架之比的中位数约 1.05，并不需要调软；所以动态里这个改进是不是来自接触能量本身学得更准，还是在抵消动态积分的其他误差，还要用「骨架能量乘一个常数」的对照来确认。</p>
+<p><strong>龙撞兔压得更深，差距更大：骨架 + 网络 1.61%，只用骨架 10.1%，hydroelastic 30.3%，Winkler 28.7%。</strong> GT 的峰值压缩是 33.6% 兔高，hydroelastic 和 Winkler 只压到 23.4% 和 24.0%，都明显偏硬：它们的力只由局部重叠量决定，看不到兔子在尖角下整体让开。只用骨架压到 30.3%，也偏硬但差得少；骨架 + 网络压到 33.1%。这一次网络在接触时给出 0.53–0.64 倍的修正，即把骨架能量调软。需要说明的是，在静态标签里同一压深范围的真实网格算例，GT 与骨架之比的中位数约 1.05，并不需要调软；对照实验说明这个改进主要来自一个整体的变软倍数：不用网络、把骨架能量直接乘事先定好的常数 0.80，鸭撞兔的峰值压缩误差是 0.89%（网络 1.72%），龙撞兔是 5.58%（网络 1.61%；常数取 0.64 时 2.56%）。所以现在的网络在动态里起的作用接近一个整体缩放，不能说明它学对了接触能量随状态的变化；动态里骨架整体偏硬的原因（12 维 affine 积分、GT 的 BDF2 阻尼等）要单独查。</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -557,6 +557,7 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>和学习方法比：RigidFormer 和 Romero 2023 都做不了两个软体互压。</strong> RigidFormer 只有 6 维刚体状态，没有变形，鸭撞兔时两个物体互相穿进，峰值误差 53%，转角误差 8.5°。Romero 2023 学的是一个固定软体在刚性压头下的局部变形场，每个物体单独训练；在鸭撞兔上用官方代码训练，训练帧上的局部变形误差（MSEN）是 0.12%，同一次碰撞回弹段（训练时没见过的帧）升到 69.6%，说明它记住了训练帧。我们的骨架不需要逐物体训练接触，网络只学 18 个量到一个倍数的映射。</p></section>
 <section id="w6"><h2>下一步</h2>
 <ol>
+<li>查清动态里骨架为什么整体偏硬（常数 0.80 即可把鸭撞兔误差降到 0.9%），再决定网络在动态里该学什么。</li>
 <li>网络权重：深压硬化样本加入后，网络在「变硬」与「变软」两个方向上此消彼长（软鸭撞硬兔 21.6%）；按压深和修正方向均衡加权重训，目标是一份权重在两个方向同时 &lt; 5%。</li>
 <li>两片接触夹挤（兔压龙 0.408 兔高， \(S_{80}\) 5.56 倍）：骨架第二项在多片接触下给负柔度，要从骨架本身修，而不是交给网络。</li>
 <li>薄件弯曲：粗模型加弯曲自由度，再看接触项是否还要改。</li>
