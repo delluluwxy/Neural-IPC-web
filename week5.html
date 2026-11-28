@@ -244,11 +244,11 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "dd0bb38e3145";</script>
+<script>window.NIPC_PAGE = "900a80746944";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
-<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week7.html">Week 7</a><a href="week5.html" aria-current="page">Week 5–6</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
+<header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">N</span> Neural-IPC <span class="brand-separator">/</span> <span class="brand-note">研究记录</span></a><nav aria-label="各周页面"><a href="index.html">所有周</a><a href="week7_8.html">Week 7–8</a><a href="week5.html" aria-current="page">Week 5–6</a><a href="week3_4.html">Week 3–4</a><a href="week2.html">Week 2</a><a href="week1.html">Week 1</a></nav></header>
 <div class="layout"><aside><details id="contents" open><summary>本页目录</summary><nav aria-label="章节目录"><a class="toc-level-2" href="#w1">1. 我们要算什么</a>
 <a class="toc-level-2" href="#w2">2. 骨架与标准答案怎么算</a>
 <a class="toc-level-3" href="#w2-1">2.1 骨架：每个物体预处理一次，每次接触套用骨架公式</a>
@@ -256,13 +256,13 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-3" href="#w2-3">2.3 刚度和泊松比怎么进入骨架和标准答案</a>
 <a class="toc-level-2" href="#w3">3. 浅压 edge case 上的验证</a>
 <a class="toc-level-3" href="#w3-1">3.1 判据</a>
-<a class="toc-level-3" href="#w3-2">3.2 主结果：接触区够大的 17 个算例里，骨架没有一例整段偏离</a>
+<a class="toc-level-3" href="#w3-2">3.2 主结果：接触区够大的 18 个算例里，骨架 12 个基本对、5 个跨线、1 个整段偏离</a>
 <a class="toc-level-3" href="#w3-3">3.3 第二项是必要的</a>
 <a class="toc-level-3" href="#w3-4">3.4 按类别看：能覆盖什么，不能覆盖什么</a>
 <a class="toc-level-2" href="#w4">4. 为什么用整体的 mode</a>
 <a class="toc-level-2" href="#w5">5. Research</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 5–6 周：骨架方法，以及它在浅压 edge case 上的验证</h1></header>
-<div class="lead"><p><strong>结论：在表面浅压下，不用训练的「骨架」公式已经能把接触能量算到标准答案附近；算不准的是零件的棱和龙鳍这种薄长部件，骨架都偏大（偏硬）。</strong> 每个物体用只有 12 个自由度的粗模型描述，再加一项接触能量，让粗模型也能算出接触处的变形能量。接触能量由骨架直接给出。骨架是两项线弹性公式：第一项把接触处当成半空间（表面为无限大平面的弹性体），第二项用每个物体预先算好的 mode（描述物体有限大小和形状的一组变形方向，见 2.1 节）把有限大小和形状补回来。与精细仿真的标准答案相比（判据见 3.1 节），在接触区够大的 17 个两物体互压算例里，骨架没有一例整段偏离 0.9–1.1 这条带；现有的 hydroelastic 方法有 15 例整段偏离。去掉第二项后，这 17 例里有 12 例整段偏离，所以第二项是必要的。在单个物体压平块的一组算例里，骨架 6 类基本对、5 类跨线（区间跨过 1.1 这条线）、零件的棱整段偏离，龙鳍压平块也偏大。每个物体的预处理只做一次，耗时分钟级。</p></div>
+<div class="lead"><p><strong>结论：在表面浅压下，不用训练的「骨架」公式已经能把接触能量算到标准答案附近；算不准的是零件的棱和龙鳍这种薄长部件，骨架都偏大（偏硬）。</strong> 每个物体用只有 12 个自由度的粗模型描述，再加一项接触能量，让粗模型也能算出接触处的变形能量。接触能量由骨架直接给出。骨架是两项线弹性公式：第一项把接触处当成半空间（表面为无限大平面的弹性体），第二项用每个物体预先算好的 mode（描述物体有限大小和形状的一组变形方向，见 2.1 节）把有限大小和形状补回来。与精细仿真的标准答案相比（判据见 3.1 节），在接触区够大的 18 个两物体互压算例里，骨架 12 例落在 0.9–1.1 这条带内、5 例跨线、只有 1 例尖处接触整段偏离；现有的 hydroelastic 方法 18 例全部整段偏离。去掉第二项后直接比值升到 0.93–4.46，所以第二项是必要的。在单个物体压平块的一组算例里，骨架 6 类基本对、5 类跨线（区间跨过 1.1 这条线）、零件的棱整段偏离，龙鳍压平块也偏大。每个物体的预处理只做一次，耗时十几分钟。</p></div>
 <section id="w1"><h2>我们要算什么</h2>
 <figure style="margin:12px 0"><img src="assets/images/w5t_F1_energy_split.png" width="1624" height="860" style="width:555px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em><strong>接触能量 U 等于：同一个粗状态下，精细模型在不穿透的条件下松弛到静止后的能量，减去粗模型自己的能量。</strong> 图中是兔背压平块。左柱 \(\Pi(\Phi z)\) 是只按粗状态变形时的弹性能，右柱 \(\min_\xi\Pi\) 是不穿透条件下松弛到静止后的弹性能，即下面式子的两项。其中 \(z\) 是粗状态，即两个物体各自的 affine 参数（整体平移、转动、拉伸和剪切）； \(\Phi z\) 是按粗状态算出的精细网格节点位置； \(\Pi\) 是精细模型的弹性能； \(\xi\) 是粗模型表示不了的那部分变形， \(\min_\xi\) 表示让它松弛到静止。这个粗状态没有整体变形，所以粗状态的能量约为 0。</em></p>
@@ -286,8 +286,8 @@ html.annot-on #annot-capture { display: block; }
 <p>这里的 \(K\) 是柔度而不是刚度，只取「法向按、法向退」的部分；它在帽函数基上积分得到（下面折叠块第（3）步），单位是长度³/压强。 \(W\) 是每个表面顶点管辖的面积组成的对角阵（面积单位）。 \(v_m\) 是第 \(m\) 个特征向量，取长度为 1，对应的特征值 \(\sigma_m\) 的单位是长度/压强；把 \(v_m\) 乘回 \(W^{-1/2}\) 得到表面上的函数 \(r_m\) ，它在每个表面顶点上有一个值，单位是 1/长度。 \(\sigma_m\) 、 \(r_m\) 就是图中的 \(\sigma_{b,m}\) 、 \(r_{b,m}\) ，这里省去物体下标 \(b\) 。</p>
 <p>\(\Delta K\) 是真实物体比半空间多出来（或少掉）的柔度：物体越小、越薄、离边界越近，同样的压力下它比半空间退得越多， \(\Delta K\) 越大。两边乘 \(W^{-1/2}\) 是为了消掉网格疏密的影响：顶点密的地方每个顶点管的面积小，不除掉的话密处会被多算。 \(\sigma_m\) 越大，说明沿 \(r_m\) 这个压力分布，真实物体比半空间软得越多； \(\sigma_m\) 为负，说明沿这个方向它比半空间硬。整个式子把「这个物体和半空间差在哪里」分解成一组相互独立的压力分布 \(r_m\) ，每个方向的差别有多大由 \(\sigma_m\) 给出，按 \(|\sigma_m|\) 从大到小只留前 80 个；推导见下面折叠块第（3）–（5）步。</p>
 <p>这个矩阵太大，无法直接写出（龙的有限元有 102 万个自由度），所以只做矩阵乘一组向量的运算，用随机化特征值方法（Halko, Martinsson &amp; Tropp 2011 算法 4.4 的子空间迭代求近似值域，再按算法 5.3 求特征对）求解，迭代到 80 个 mode 的相对特征值残差都不超过 1%。残差是矩阵乘 \(v_m\) 的结果与 \(\sigma_mv_m\) 之差的长度除以 \(|\sigma_m|\) 。1% 这条停止标准是我们定的。</p>
-<p>这一步要求线弹性，并且锁住 12 个 affine 自由度（否则 \(K_{\text{lock}}\) 没有定义，物体会整体漂走）；舍去的特征方向对柔度的贡献可以忽略：17 个主结果算例里，从 79 个 mode 加到 80 个，骨架能量最多只变 0.06%。80 是固定的选择，3.4 节龙鳍的例子说明它对薄长部件不够。</p>
-<p><strong>每个物体的预处理是分钟级：兔约 2 分钟，鸭约 1.4 分钟，龙约 6.5 分钟。</strong> 兔、鸭这两个数只含算 mode，龙的还含建网格。</p>
+<p>这一步要求线弹性，并且锁住 12 个 affine 自由度（否则 \(K_{\text{lock}}\) 没有定义，物体会整体漂走）；舍去的特征方向对柔度的贡献可以忽略：18 个主结果算例里，从 79 个 mode 加到 80 个，骨架能量最多只变 0.08%。80 是固定的选择，3.4 节龙鳍的例子说明它对薄长部件不够。</p>
+<p><strong>每个物体的预处理是十几分钟：兔约 18 分钟，鸭约 13 分钟。</strong> 这两个数是在 12 维 affine 锁下从头算 80 个 mode 的总耗时（含组装、半空间项、锁住仿射后的凝聚和存检查点）；龙这次是从检查点续算的，记录的 20 分钟不是一次完整的耗时。</p>
 <p><strong>每次接触时，骨架先量出两个表面的重叠，再拼出柔度、解一个凸二次规划。</strong> 输入是两个物体当前的粗状态。由重叠处的几何定出一个压入方向，在垂直于它的平面上把重叠处铺成边长为 \(h\) 的小格（ \(h\) 有两种取法：17 个主结果算例里 5 个按接触处的弯曲程度定， \(h=\sqrt{R_{\min}\hat d_{\text{rule}}}/4\) ， \(R_{\min}\) 是接触处两表面相对曲率最大的方向上的曲率半径， \(\hat d_{\text{rule}}=1.25\times10^{-4}\) 取 GT 里 IPC 的势垒作用距离 \(\hat d\) ，即标签有意义的最浅压深。由来：按 Hertz 解 \(d=a^2/R\) （ \(d\) 是压深， \(a\) 是接触半宽， \(R\) 是曲率半径；Popov, Heß &amp; Willert 2019 式 2.29），压深为 \(\hat d_{\text{rule}}\) 时接触区沿最弯方向的半宽约为 \(\sqrt{R_{\min}\hat d_{\text{rule}}}\) ，除以 4，就让最浅的接触半宽里也有 4 个小格【<span class="note-cond">条件：Hertz 的前提，接触处光滑、可当半空间】；弯得越厉害小格越细。另外 12 个用固定的 \(h=0.004\) ，这个值沿用下来，没有书面理由。两种取法都满足 3.1 节「接触半径内至少铺得下 2 个小格」），量出每一小格的 \(w_i\) ，再用两个物体的材料和 mode 拼出 \(C\) 。方括号里的分式是第一项，后面的求和是第二项：</span></p>
 <p>\[C_{ij}=\sum_{b=A,B}\frac{1}{c_{b,i}c_{b,j}}[\frac{L_{ij}}{E_b^{\prime}}+h^2\sum_{m=1}^{80}\sigma_{b,m}r_{b,m}(x_i)r_{b,m}(x_j)],\qquad L_{ij}=\frac{1}{\pi}\int\int_{\text{小格}j}\frac{dA_y}{|x_i-y|}\]</p>
 <p>其中 \(y\) 是第 \(j\) 小格里的点， \(dA_y\) 是 \(y\) 处的面积微元， \(x_i\) 和 \(y\) 都在垂直于压入方向的平面上量； \(E_b^{\prime}\) 、 \(E_b\) 的单位是压强， \(\nu_b\) 没有单位；表面正对压入方向时 \(c_{b,i}=1\) ； \(r_{b,m}(x_i)\) 是 \(r_{b,m}\) 在第 \(i\) 小格中心的值。 \(L_{ij}\) 的单位是长度， \(C_{ij}\) 的单位是长度/压强，即单位压强让表面退多少长度。</p>
@@ -310,7 +310,7 @@ html.annot-on #annot-capture { display: block; }
 <p>（10）这个最大值是一族关于 \(w\) 的线性函数取最大，对 \(w\) 求导就等于最优点处的系数（包络定理，Milgrom &amp; Segal 2002 定理 1），所以 \(\partial U_{\text{skel}}/\partial w=h^2p^{\ast}\) ，每一小格受的力就是解出来的压强乘小格面积。【<span class="note-cond">条件： \(C\) 正定】</span></p></details>
 <h3 id="w2-2">GT：精细网格、非线性材料、IPC 仿真到静止</h3>
 
-<p><strong>GT 用精细网格和非线性材料仿真得到，骨架的线弹性近似不进入这条线。</strong> 输入是两个物体的粗状态、精细网格和各自的 \(E\) 、 \(\nu\) 。把两个物体的 12 个 affine 自由度锁在粗状态上，其余变形全部放开，用 IPC（Li 等 2020）在精细网格上解到静止。材料是 neo-Hookean，接触无摩擦。静止后，精细模型的弹性能减去粗模型自己的弹性能就是 GT：</p>
+<p><strong>GT 用精细网格和非线性材料仿真得到，骨架的线弹性近似不进入这条线。</strong> 输入是两个物体的粗状态、精细网格和各自的 \(E\) 、 \(\nu\) 。把两个物体的 12 个 affine 自由度锁在粗状态上（锁的是质量加权质心，以及对全部节点做质量加权最小二乘拟合出的 \(3\times3\) 矩阵，与导师代码的定义相同），其余变形全部放开，静止的判据是最后 20 帧总能量漂移不超过 0.01%，用 IPC（Li 等 2020）在精细网格上解到静止。材料是 neo-Hookean，接触无摩擦。静止后，精细模型的弹性能减去粗模型自己的弹性能就是 GT：</p>
 <p>\[U_{\text{GT}}=\sum_b\Pi_b^{\text{fine}}-\sum_b\Pi_b(\Phi z_b)\]</p>
 <p>其中两项的单位都是压强 × 长度³，都按 neo-Hookean 算： \(\Pi_b^{\text{fine}}\) 取 IPC 静止后的精细网格位置， \(\Pi_b(\Phi z_b)\) 取只按粗状态变形的位置。IPC 在两表面距离小于 \(\hat d\) 时加一个排斥势垒，强度是 \(\kappa\) 。实验中取 \(\hat d=1.25\times10^{-4}\) （网格单位）； \(\kappa\) 设的是 \(1.15\times10^{15}\) ，IPC 库会把它调进按场景自动定的区间，实际用的值没有记录。 \(U_{\text{GT}}\) 只算弹性能，不含势垒能。</p>
 <p>第一项是物体为了不穿透真正付出的全部弹性能，压得越深、材料越硬，它越大；第二项是粗模型已经算过的部分，减掉它，剩下的就是粗模型看不到的那块。所以这个式子就是第 1 节 \(U(z)\) 的定义本身，只是 \(\min\) 由 IPC 仿真到静止来完成，弹性能用非线性的 neo-Hookean 来算（直接推导：仿真到静止就是在「12 个 affine 自由度固定、两物体不穿透」的限制下让弹性能（加势垒）最小，所以静止时的 \(\Pi_b^{\text{fine}}\) 就是第 1 节式子的第一项）。IPC 用势垒代替「不穿透」这条硬限制，势垒只在两表面距离小于 \(\hat d\) 的地方非零，所以静止时两表面之间留着不到 \(\hat d\) 的缝（Li 等 2020）。这要求精细网格足够细、仿真真正停在静止、无摩擦。线性四面体单元在薄处和近不可压时偏硬，GT 偏大，这部分在 3.1 节换算时扣掉。</p>
@@ -327,185 +327,238 @@ html.annot-on #annot-capture { display: block; }
 <p>其中 \(\rho\) 是直接比值， \([\rho_{\text{lo}},\ \rho_{\text{hi}}]\) 是换算后的区间， \(q\) 是一项误差来源， \(l_q\le u_q\) 是它的下、上修正因子，都是没有单位的数： GT 的线性单元偏硬一项取 \(l_q=u_q\) =（同一网格上线性单元与高阶单元线弹性能量之比）的倒数，只是一个点；GT 仿真提前停止一项取 \(l_q=1\) 、 \(u_q=1+\) 实测的上界；平块算例另有平块网格粗细一项；骨架只取 80 个 mode 一项取 \(1\mp|U_{80}-U_{k^{\prime}}|/U_{80}\) （ \(U_k\) 是只用前 \(k\) 个 mode 的骨架能量， \(k^{\prime}\) 是比 80 少的最近一档）；小格边长一项，有加密实测时取「细一档 ÷ 本档」，否则按 \(a/h\) 取 \(1\mp0.013\) （ \(a/h\ge2\) ）或 \(1\mp0.033\) （ \(1.5\le a/h&lt;2\) ）。接触半径 \(a=h\sqrt{n/\pi}\) ， \(n\) 是受力的小格数，也就是和受力区面积相同的圆的半径。</p>
 <p>某一项误差越大， \(l_q\) 和 \(u_q\) 离 1 越远，区间越宽；GT 偏硬的那一项让 GT 偏大，所以它的因子大于 1，把整个区间往上推。hydroelastic 只乘 GT 一侧的三项（单元、提前停止、平块网格），没有骨架自己的两项。整个式子就是把每一项已知误差的上下限连乘到直接比值上，得到真实比值可能落在的范围。例如下表第 1 行：直接比值 0.949，线性单元一项把它推到 1.020，其余各项再给出 [1.006, 1.034]。</p>
 <p>这一步是直接推导：每一项误差都写成乘在能量上的因子，比值的误差就是这些因子的乘积，取每一项的上限相乘得上端、下限相乘得下端，是最坏情况的组合。它假设各项误差都是乘性的、互相独立，这样连乘出来的区间偏宽（偏保守），不会偏窄。</p>
-<p>有几例 GT 一侧各项只有一个估计值、没有上下限，区间就缩成一个点。下表 17 个算例里，骨架区间两端相对直接比值放大 1.04–1.32 倍；放大最多的是两个「一侧薄」算例，上端约 1.32 倍，因为线性单元在薄处偏硬得最厉害。</p>
-<h3 id="w3-2">主结果：接触区够大的 17 个算例里，骨架没有一例整段偏离</h3>
+<p>有几例 GT 一侧各项只有一个估计值、没有上下限，区间就缩成一个点。下表 18 个算例里，骨架区间两端相对直接比值放大 1.03–1.37 倍；放大最多的是「一侧薄 · 兔压龙」，上端约 1.37 倍，因为线性单元在薄处偏硬得最厉害。</p>
+<h3 id="w3-2">主结果：接触区够大的 18 个算例里，骨架 12 个基本对、5 个跨线、1 个整段偏离</h3>
 
 <figure style="margin:12px 0"><img src="assets/images/w5t_W4_17cases.png" width="1624" height="1400" style="width:568px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
-<p><em><strong>接触区够大的 17 个算例（新 <code>mass_lsq</code> 锁 18 例复核）里，骨架换算后的区间都落在或贴着 0.9–1.1 这条带；hydroelastic 没有一例整段在带内，只有 2 例跨着 1.1 线。</strong> 横轴是下表的编号。圆点和菱形分别是骨架和 hydroelastic 的直接比值，同色系的竖条是各自换算后的区间，区间很窄时画成短横线；灰带是 0.9–1.1。</em></p>
-<blockquote>
-<p><strong>11-27 统一 <code>mass_lsq</code> 12-DoF 锁全量重跑复核</strong>：全部 41/41 无预应变浅压格（<code>lin_lsq_replay</code> 52/52）已切换至与上游 <code>AffineSplit.fit</code> 逐位一致的质量加权最小二乘仿射锁（<code>mass_lsq</code>）重跑完毕。上图已更新为新版 <code>mass_lsq</code> 18 例实测图：经 P2/P1 单元修正后，骨架区间 18/18 全部居中于 <code>1.00</code>（<code>[0.955, 1.195]</code>），0 例整段偏离，第 5 周全部核心结论保持成立。</p>
-</blockquote>
-<p><strong>在接触区够大的 17 个算例里，骨架 13 个基本对、4 个跨线、0 个整段偏离；hydroelastic 0 个基本对、2 个跨线、15 个整段偏离。</strong> 下表与图中算例顺序相同。类名说明构型：「尖」是尖处接触，「尺寸比」是两个物体大小差很多（样本 7 里兔体积约为龙的 3.6 倍），「鞍面」是接触在马鞍形的面上，「一侧薄」是一侧是薄片；同一类里不同的摆放用编号区分；「标准答案用细网格」两行把 GT 换成更细的网格重算作对照，所以 17 个算例里独立的构型是 15 个。兔和龙互压的第 8–11 行，龙的 mode 网格加密两档（mode 只依赖龙自身的几何）后，比值每档下降 5.4–5.8%、1.4–2.1%，都落进 0.9–1.1。</p>
+<p><em><strong>接触区够大的 18 个算例里，骨架换算后的区间 12 个落在 0.9–1.1 带内、5 个跨着 1.1 线、1 个（尖 · 龙压龙 · 压得最深）整段在带外；hydroelastic 18 个全部整段在带外。</strong> 横轴是下表的编号。圆点和菱形分别是骨架和 hydroelastic 的直接比值，同色系的竖条是各自换算后的区间，区间很窄时画成短横线；灰带是 0.9–1.1。</em></p>
+<p><strong>GT 一律在 12 维 affine 锁下算：锁的是质量加权质心和质量加权最小二乘拟合出的 \(3\times3\) 矩阵（定义见第 7–8 周第 1 节），mode 也在同一个锁下算。</strong> 「接触区够大」指接触半径内铺得下至少 2 个骨架小格，且同一标签上的 P1/P2 线弹性参照网格够细、能给出换算区间。类名说明构型：「尖」是尖处接触，「尺寸比」是两个物体大小差很多（样本 7 里兔体积约为龙的 3.6 倍），「鞍面」是接触在马鞍形的面上，「一侧薄」是一侧是薄片；同一类里不同的摆放用编号区分；「标准答案用细网格」两行把 GT 换成更细的网格重算作对照，</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th>编号</th>
+<th>类</th>
 <th>算例</th>
-<th>骨架（直接比值 → 区间 · 判定）</th>
-<th>hydroelastic（直接比值 → 区间 · 判定）</th>
+<th>骨架（直接 → 换算区间）</th>
+<th>判档</th>
+<th>hydroelastic（直接 → 换算区间）</th>
+<th>判档</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>1</td>
-<td>普通单片 · 鸭压兔 · 压得最深</td>
-<td>0.949 → [1.006, 1.034] · 基本对</td>
-<td>0.375 → [0.404, 0.404] · 整段偏离</td>
+<td>普通单片</td>
+<td>鸭压兔 · 压得居中</td>
+<td>0.937 → [0.968, 1.061]</td>
+<td>基本对</td>
+<td>0.235 → [0.246, 0.263]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>2</td>
-<td>尖 · 兔压龙 · 压得最浅</td>
-<td>0.937 → [0.974, 1.062] · 基本对</td>
-<td>0.103 → [0.109, 0.115] · 整段偏离</td>
+<td>普通单片</td>
+<td>鸭压兔 · 压得最深</td>
+<td>0.950 → [0.994, 1.048]</td>
+<td>基本对</td>
+<td>0.347 → [0.368, 0.378]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>3</td>
-<td>尖 · 龙压龙 · 压得最浅</td>
-<td>0.984 → [1.023, 1.116] · 跨线</td>
-<td>0.286 → [0.301, 0.320] · 整段偏离</td>
+<td>尖</td>
+<td>兔压龙 · 压得居中</td>
+<td>0.960 → [1.012, 1.110]</td>
+<td>跨线</td>
+<td>0.154 → [0.164, 0.176]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>4</td>
-<td>尖 · 龙压龙 · 压得居中</td>
-<td>1.020 → [1.060, 1.156] · 跨线</td>
-<td>0.568 → [0.598, 0.635] · 整段偏离</td>
+<td>尖</td>
+<td>兔压龙 · 压得最深</td>
+<td>0.992 → [1.056, 1.113]</td>
+<td>跨线</td>
+<td>0.255 → [0.275, 0.282]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>5</td>
-<td>尺寸比 · 龙压兔样本 12 · 压得最浅</td>
-<td>0.892 → [0.927, 1.011] · 基本对</td>
-<td>0.100 → [0.106, 0.112] · 整段偏离</td>
+<td>尖</td>
+<td>龙压龙 · 压得最深</td>
+<td>1.042 → [1.134, 1.195]</td>
+<td>整段偏离</td>
+<td>0.567 → [0.626, 0.642]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>6</td>
-<td>尺寸比 · 龙压兔样本 12 · 压得最深</td>
-<td>0.938 → [1.012, 1.039] · 基本对</td>
-<td>0.281 → [0.307, 0.307] · 整段偏离</td>
+<td>尺寸比</td>
+<td>龙压兔样本 12 · 压得居中</td>
+<td>0.931 → [0.976, 1.071]</td>
+<td>基本对</td>
+<td>0.155 → [0.165, 0.176]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>7</td>
-<td>尺寸比 · 龙压兔样本 7 · 压得最浅</td>
-<td>0.948 → [0.985, 1.075] · 基本对</td>
-<td>0.252 → [0.265, 0.282] · 整段偏离</td>
+<td>尺寸比</td>
+<td>龙压兔样本 12 · 压得最深</td>
+<td>0.952 → [1.009, 1.064]</td>
+<td>基本对</td>
+<td>0.245 → [0.263, 0.270]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>8</td>
-<td>尺寸比 · 龙压兔样本 7 · 压得居中</td>
-<td>0.909 → [0.944, 1.030] · 基本对</td>
-<td>0.513 → [0.540, 0.573] · 整段偏离</td>
+<td>尺寸比</td>
+<td>龙压兔样本 7 · 压得最深</td>
+<td>0.926 → [1.033, 1.133]</td>
+<td>跨线</td>
+<td>0.597 → [0.675, 0.721]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>9</td>
-<td>尺寸比 · 龙压兔样本 7 · 压得最深</td>
-<td>0.922 → [0.958, 1.045] · 基本对</td>
-<td>1.001 → [1.054, 1.120] · 跨线</td>
+<td>尺寸比</td>
+<td>龙压兔样本 7（标准答案用细网格） · 压得最浅</td>
+<td>0.915 → [1.006, 1.103]</td>
+<td>跨线</td>
+<td>0.172 → [0.191, 0.204]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>10</td>
-<td>尺寸比 · 龙压兔样本 7（标准答案用细网格） · 压得最浅</td>
-<td>0.914 → [0.949, 1.036] · 基本对</td>
-<td>0.261 → [0.274, 0.292] · 整段偏离</td>
+<td>尺寸比</td>
+<td>龙压兔样本 7（标准答案用细网格） · 压得最深</td>
+<td>0.934 → [1.056, 1.113]</td>
+<td>跨线</td>
+<td>0.603 → [0.691, 0.709]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>11</td>
-<td>尺寸比 · 龙压兔样本 7（标准答案用细网格） · 压得最深</td>
-<td>0.931 → [0.967, 1.055] · 基本对</td>
-<td>1.013 → [1.066, 1.133] · 跨线</td>
+<td>鞍面</td>
+<td>兔压兔样本 1 · 压得最深</td>
+<td>0.932 → [0.986, 1.039]</td>
+<td>基本对</td>
+<td>0.329 → [0.353, 0.363]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>12</td>
-<td>鞍面 · 兔压兔样本 1 · 压得最深</td>
-<td>0.931 → [1.004, 1.106] · 跨线</td>
-<td>0.340 → [0.371, 0.398] · 整段偏离</td>
+<td>鞍面</td>
+<td>兔压兔样本 3 · 压得最深</td>
+<td>0.924 → [0.983, 1.037]</td>
+<td>基本对</td>
+<td>0.347 → [0.375, 0.384]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>13</td>
-<td>鞍面 · 兔压兔样本 3 · 压得最深</td>
-<td>0.925 → [0.998, 1.025] · 基本对</td>
-<td>0.355 → [0.388, 0.388] · 整段偏离</td>
+<td>鞍面</td>
+<td>兔压兔样本 16 · 压得最深</td>
+<td>0.963 → [1.020, 1.075]</td>
+<td>基本对</td>
+<td>0.268 → [0.288, 0.295]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>14</td>
-<td>鞍面 · 兔压兔样本 16 · 压得最深</td>
-<td>0.970 → [1.043, 1.070] · 基本对</td>
-<td>0.271 → [0.295, 0.295] · 整段偏离</td>
+<td>鞍面</td>
+<td>兔压龙样本 3 · 压得最深</td>
+<td>0.921 → [0.981, 1.033]</td>
+<td>基本对</td>
+<td>0.524 → [0.565, 0.580]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>15</td>
-<td>鞍面 · 兔压龙样本 3 · 压得最深</td>
-<td>0.917 → [1.015, 1.042] · 基本对</td>
-<td>1.529 → [1.715, 1.715] · 整段偏离</td>
+<td>一侧薄</td>
+<td>兔压龙 · 压得最浅</td>
+<td>0.745 → [0.964, 1.017]</td>
+<td>基本对</td>
+<td>1.328 → [1.743, 1.788]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>16</td>
-<td>一侧薄 · 兔压龙 · 压得最浅</td>
-<td>0.767 → [0.984, 1.010] · 基本对</td>
-<td>1.482 → [1.927, 1.927] · 整段偏离</td>
+<td>一侧薄</td>
+<td>龙压鸭 · 压得居中</td>
+<td>0.915 → [0.955, 1.047]</td>
+<td>基本对</td>
+<td>0.505 → [0.535, 0.571]</td>
+<td>整段偏离</td>
 </tr>
 <tr>
 <td>17</td>
-<td>一侧薄 · 龙压鸭 · 压得最深</td>
-<td>0.884 → [0.978, 1.164] · 跨线</td>
-<td>2.770 → [3.105, 3.602] · 整段偏离</td>
+<td>一侧薄</td>
+<td>龙压鸭 · 压得最深</td>
+<td>0.919 → [0.977, 1.029]</td>
+<td>基本对</td>
+<td>0.783 → [0.843, 0.865]</td>
+<td>整段偏离</td>
+</tr>
+<tr>
+<td>18</td>
+<td>两侧材料差</td>
+<td>龙压龙（被压的龙硬 10 倍） · 压得最深</td>
+<td>0.975 → [1.039, 1.095]</td>
+<td>基本对</td>
+<td>0.470 → [0.508, 0.521]</td>
+<td>整段偏离</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>hydroelastic 的偏差有大有小，直接比值从 0.100 到 2.770。</strong> 它的压力只由每一点自己在两个物体里有多深决定，看不到物体整体的弯曲，也看不到同一片接触区里各点之间、以及隔开的几处接触之间通过物体的相互影响；骨架用第一项给出同一片接触区里各点之间的影响，用第二项补上物体有限大小带来的那部分。</p>
-<p>下面 17 个单元依次对应上表 17 行，每个单元两张图。「压入前」左边是整体摆放，箭头是压入方向，每片接触一个红圈；右边是从下往上看压入物体的接触面，红色是静止后贴上的部分。「静止后」是两个接触面正对着看：左边压入物体（橙色系），右边被压物体（蓝色系），颜色是 GT 静止后的局部位移：每个表面点的位置减去「只按这个物体的 12 个 affine 自由度变形时它应在的位置」，取长度（单位同网格坐标）。每个物体各有一条色标，范围取接触处局部位移的 1%–99% 分位，比大小要看色标上的数字；每张图还有比例尺。</p>
+<p><strong>骨架整段偏离的一例是尖处接触（龙压龙、压得最深），区间 [1.134, 1.195]，偏大，尖处表面不光滑，是第一项（按平面算的半空间近似）最弱的地方；跨线的 5 例都是区间上端略过 1.1。hydroelastic 的直接比值从 0.154 到 1.328，全部整段偏离。</strong> 它的压力只由每一点自己在两个物体里有多深决定，看不到物体整体的弯曲，也看不到同一片接触区里各点之间的相互影响。</p>
+<p>下面 18 个单元依次对应上表 18 行。有图的单元：「压入前」左边是整体摆放，箭头是压入方向，每片接触一个红圈，右边是从下往上看压入物体的接触面，红色是静止后贴上的部分；「静止后」是两个接触面正对着看，左边压入物体（橙色系），右边被压物体（蓝色系），颜色是 GT 静止后的局部变形。</p>
+<h4>· 普通单片 · 鸭压兔 · 压得居中</h4>
+<p><strong>骨架 0.937 → [0.968, 1.061]，基本对；hydroelastic 0.235 → [0.246, 0.263]，整段偏离。</strong></p>
 <h4>· 普通单片 · 鸭压兔 · 压得最深</h4>
 <div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_or_029_S3_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_or_029_S3_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.949 → [1.006, 1.034]，基本对；hydroelastic 0.375 → [0.404, 0.404]，整段偏离。</strong> 最普通的两物体单片接触。GT 保持到完全静止，并在同一标签上实测线性单元偏硬的修正后，骨架区间落在 0.9–1.1 内。</p>
-<h4>· 尖 · 兔压龙 · 压得最浅</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_or_013_S1_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_or_013_S1_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.937 → [0.974, 1.062]，基本对；hydroelastic 0.103 → [0.109, 0.115]，整段偏离。</strong> 接触在尖处，hydroelastic 只有 GT 的十分之一左右。</p>
-<h4>· 尖 · 龙压龙 · 压得最浅</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_or_023_S1_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_or_023_S1_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.984 → [1.023, 1.116]，跨线；hydroelastic 0.286 → [0.301, 0.320]，整段偏离。</strong> 骨架的区间上端越过 1.1。</p>
-<h4>· 尖 · 龙压龙 · 压得居中</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_E10_or_023_S2_rI_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_E10_or_023_S2_rI_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 1.020 → [1.060, 1.156]，跨线；hydroelastic 0.568 → [0.598, 0.635]，整段偏离。</strong> 和第 3 行同一构型，压得更深，骨架的区间上端更高。</p>
-<h4>· 尺寸比 · 龙压兔样本 12 · 压得最浅</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_or_012_S1_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_or_012_S1_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.892 → [0.927, 1.011]，基本对；hydroelastic 0.100 → [0.106, 0.112]，整段偏离。</strong> 两个物体大小差很多，hydroelastic 在 17 行里偏小得最多。</p>
+<p><strong>骨架 0.950 → [0.994, 1.048]，基本对；hydroelastic 0.347 → [0.368, 0.378]，整段偏离。</strong></p>
+<h4>· 尖 · 兔压龙 · 压得居中</h4>
+<p><strong>骨架 0.960 → [1.012, 1.110]，跨线；hydroelastic 0.154 → [0.164, 0.176]，整段偏离。</strong></p>
+<h4>· 尖 · 兔压龙 · 压得最深</h4>
+<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_or_013_S3_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_or_013_S3_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
+<p><strong>骨架 0.992 → [1.056, 1.113]，跨线；hydroelastic 0.255 → [0.275, 0.282]，整段偏离。</strong></p>
+<h4>· 尖 · 龙压龙 · 压得最深</h4>
+<p><strong>骨架 1.042 → [1.134, 1.195]，整段偏离；hydroelastic 0.567 → [0.626, 0.642]，整段偏离。</strong></p>
+<h4>· 尺寸比 · 龙压兔样本 12 · 压得居中</h4>
+<p><strong>骨架 0.931 → [0.976, 1.071]，基本对；hydroelastic 0.155 → [0.165, 0.176]，整段偏离。</strong></p>
 <h4>· 尺寸比 · 龙压兔样本 12 · 压得最深</h4>
 <div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_or_012_S3_h1000_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_or_012_S3_h1000_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.938 → [1.012, 1.039]，基本对；hydroelastic 0.281 → [0.307, 0.307]，整段偏离。</strong> 和第 5 行同一构型，压得更深，骨架仍基本对。</p>
-<h4>· 尺寸比 · 龙压兔样本 7 · 压得最浅</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_ore4_007_S1_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_ore4_007_S1_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.948 → [0.985, 1.075]，基本对；hydroelastic 0.252 → [0.265, 0.282]，整段偏离。</strong> 兔体积约为龙的 3.6 倍。</p>
-<h4>· 尺寸比 · 龙压兔样本 7 · 压得居中</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_ore4_007_S2_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_ore4_007_S2_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.909 → [0.944, 1.030]，基本对；hydroelastic 0.513 → [0.540, 0.573]，整段偏离。</strong> 和第 7 行同一构型，压得更深。</p>
+<p><strong>骨架 0.952 → [1.009, 1.064]，基本对；hydroelastic 0.245 → [0.263, 0.270]，整段偏离。</strong></p>
 <h4>· 尺寸比 · 龙压兔样本 7 · 压得最深</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_ore4_007_S3_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_ore4_007_S3_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.922 → [0.958, 1.045]，基本对；hydroelastic 1.001 → [1.054, 1.120]，跨线。</strong></p>
+<p><strong>骨架 0.926 → [1.033, 1.133]，跨线；hydroelastic 0.597 → [0.675, 0.721]，整段偏离。</strong></p>
 <h4>· 尺寸比 · 龙压兔样本 7（标准答案用细网格） · 压得最浅</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_ore4_007_f_S1_h600_1_before.png" width="760" height="684" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_ore4_007_f_S1_h600_2_rest.png" width="760" height="834" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.914 → [0.949, 1.036]，基本对；hydroelastic 0.261 → [0.274, 0.292]，整段偏离。</strong> 和第 7 行同一构型，只把 GT 换成更细的网格。</p>
+<p><strong>骨架 0.915 → [1.006, 1.103]，跨线；hydroelastic 0.172 → [0.191, 0.204]，整段偏离。</strong></p>
 <h4>· 尺寸比 · 龙压兔样本 7（标准答案用细网格） · 压得最深</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_ore4_007_f_S3_h600_1_before.png" width="760" height="684" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_ore4_007_f_S3_h600_2_rest.png" width="760" height="834" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.931 → [0.967, 1.055]，基本对；hydroelastic 1.013 → [1.066, 1.133]，跨线。</strong> 和第 9 行同一构型，只把 GT 换成更细的网格。</p>
+<p><strong>骨架 0.934 → [1.056, 1.113]，跨线；hydroelastic 0.603 → [0.691, 0.709]，整段偏离。</strong></p>
 <h4>· 鞍面 · 兔压兔样本 1 · 压得最深</h4>
-<div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_K27a_bb_saddle1_S3_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_K27a_bb_saddle1_S3_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.931 → [1.004, 1.106]，跨线；hydroelastic 0.340 → [0.371, 0.398]，整段偏离。</strong> 接触在马鞍形的面上。</p>
+<p><strong>骨架 0.932 → [0.986, 1.039]，基本对；hydroelastic 0.329 → [0.353, 0.363]，整段偏离。</strong></p>
 <h4>· 鞍面 · 兔压兔样本 3 · 压得最深</h4>
 <div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_E4_bb_saddle3_S3_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_E4_bb_saddle3_S3_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.925 → [0.998, 1.025]，基本对；hydroelastic 0.355 → [0.388, 0.388]，整段偏离。</strong> 另一处马鞍形接触。</p>
+<p><strong>骨架 0.924 → [0.983, 1.037]，基本对；hydroelastic 0.347 → [0.375, 0.384]，整段偏离。</strong></p>
 <h4>· 鞍面 · 兔压兔样本 16 · 压得最深</h4>
 <div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_E16_bbS_c16_S3_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_E16_bbS_c16_S3_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.970 → [1.043, 1.070]，基本对；hydroelastic 0.271 → [0.295, 0.295]，整段偏离。</strong></p>
+<p><strong>骨架 0.963 → [1.020, 1.075]，基本对；hydroelastic 0.268 → [0.288, 0.295]，整段偏离。</strong></p>
 <h4>· 鞍面 · 兔压龙样本 3 · 压得最深</h4>
 <div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_E3_bd_saddle3_S3_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_E3_bd_saddle3_S3_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.917 → [1.015, 1.042]，基本对；hydroelastic 1.529 → [1.715, 1.715]，整段偏离。</strong> 这一行 hydroelastic 偏大。龙的 mode 网格加密一档、GT 保持到完全静止，并在同一标签上实测线性单元偏硬的修正后，骨架区间落在 0.9–1.1 内。</p>
+<p><strong>骨架 0.921 → [0.981, 1.033]，基本对；hydroelastic 0.524 → [0.565, 0.580]，整段偏离。</strong></p>
 <h4>· 一侧薄 · 兔压龙 · 压得最浅</h4>
 <div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_B1_bd2_thin1_S1_f_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_B1_bd2_thin1_S1_f_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.767 → [0.984, 1.010]，基本对；hydroelastic 1.482 → [1.927, 1.927]，整段偏离。</strong> 一侧是薄片，线性单元在薄处偏硬得最厉害，所以直接比值偏低、换算后落在带内。</p>
+<p><strong>骨架 0.745 → [0.964, 1.017]，基本对；hydroelastic 1.328 → [1.743, 1.788]，整段偏离。</strong></p>
+<h4>· 一侧薄 · 龙压鸭 · 压得居中</h4>
+<p><strong>骨架 0.915 → [0.955, 1.047]，基本对；hydroelastic 0.505 → [0.535, 0.571]，整段偏离。</strong></p>
 <h4>· 一侧薄 · 龙压鸭 · 压得最深</h4>
 <div class="grid pair"><figure style="margin:12px 0"><figcaption class="pair-label">压入前</figcaption><img src="assets/images/w5t_or_019_S3_h600_1_before.png" width="760" height="640" style="width:100%;max-width:min(100%,440px);height:auto" alt="压入前" loading="lazy"></figure><figure style="margin:12px 0"><figcaption class="pair-label">静止后</figcaption><img src="assets/images/w5t_or_019_S3_h600_2_rest.png" width="760" height="790" style="width:100%;max-width:min(100%,440px);height:auto" alt="静止后" loading="lazy"></figure></div>
-<p><strong>骨架 0.884 → [0.978, 1.164]，跨线；hydroelastic 2.770 → [3.105, 3.602]，整段偏离。</strong> hydroelastic 在 17 行里偏大得最多。</p>
+<p><strong>骨架 0.919 → [0.977, 1.029]，基本对；hydroelastic 0.783 → [0.843, 0.865]，整段偏离。</strong></p>
+<h4>· 两侧材料差 · 龙压龙（被压的龙硬 10 倍） · 压得最深</h4>
+<p><strong>骨架 0.975 → [1.039, 1.095]，基本对；hydroelastic 0.470 → [0.508, 0.521]，整段偏离。</strong></p>
 <h3 id="w3-3">第二项是必要的</h3>
 
-<p><strong>把第二项去掉、只留第一项，同样这 17 个算例里有 12 个整段偏离，而且全部偏大；完整的骨架是 0 个。</strong> 消融时别的都不变，只拿掉每个物体的 mode。只留第一项时，这 17 个算例的直接比值在 0.96 到 4.97 之间，按同样的换算（去掉 mode 截断这一项），整段偏离的 12 个区间都在 1.1 以上。第一项把物体当成半空间，真实的兔、龙、鸭有限大、有薄处，只靠第一项算不准，所以骨架必须是两项。</p>
+<p><strong>把第二项去掉、只留第一项，同样这 18 个算例的直接比值在 0.93 到 4.46 之间，大多明显偏大；加上第二项后直接比值收到 0.75–1.04。</strong> 消融时别的都不变，只拿掉每个物体的 mode。第一项把物体当成半空间，真实的兔、龙、鸭有限大、有薄处，只靠第一项算不准，所以骨架必须是两项。</p>
 <h3 id="w3-4">按类别看：能覆盖什么，不能覆盖什么</h3>
 
 <p><strong>骨架在光滑处、整体转动、面贴面、大面积贴合、近不可压和斜压这 6 类上基本对；另外 5 类跨线，区间都跨过 1.1 这条线；零件的棱整段偏离，换算后的区间是 1.22–1.35。</strong> 证据来自兔子或 CAD 零件压平块的 14 类 edge case。其中尖（兔耳尖）和一侧薄（兔耳薄片）两类接触区小，接触半径内铺不下 2 个小格，读数列在下面的单元里；下表是另外 12 类，每类取一个代表算例：</p>
