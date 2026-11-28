@@ -24,7 +24,7 @@ def _kp(m):
 
 def draft_path(name):
     """讲稿 web_<name>.md 的路径。"""
-    current = {"week5": "week5 (1).md", "week7": "week7.md"}
+    current = {"week5": "week5 (1).md", "week7_8": "week7_8.md"}
     if name in current:
         return WEB / current[name]
     return DRAFTS / f"web_{name}.md"

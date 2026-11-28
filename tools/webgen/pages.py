@@ -8,7 +8,7 @@ from .html_parts import page
 from .week2_hydro import week2_sections
 
 # 页首直接用讲稿标题的周（用户 11-12 21:1x 的 week5_web 稿：页首就是她的标题和导语，不另放摘要）
-DRAFT_HEADED = {"week5", "week7"}
+DRAFT_HEADED = {"week5", "week7_8"}
 
 
 def week_summaries(demos, tests, gsweeps):
@@ -20,10 +20,9 @@ def week_summaries(demos, tests, gsweeps):
     n_grows = sum(len(s["rows"]) for s in gsweeps)
     return {
         # 首页卡片摘要：与 week7.md、week5 (1).md 当前稿一致（主会话 11-22：只写有什么，不点名导师）
-        "week7": ("大压深：兔、龙两个软体自然压到兔高 1/3、1/2，骨架是标准答案的 1.07–2.89 倍，8 个算例都比 Hertz、hydroelastic、"
-                  "Winkler 更接近标准答案；软硬对调：标准答案对调前后差 5–6 倍，只认等效模量的 Hertz 分不出，"
-                  "骨架靠带个体信息的第二项分出谁软谁硬，方向和标准答案一致；"
-                  "每个物体算一次的 mode 换对手、换位置：兔和龙互压 10 个算例 5 个基本对、5 个跨线。"),
+        "week7_8": ("12 维 affine 锁下的大压深与软硬对调：骨架浅压时与标准答案差 −13% 到 +46%，深压出现偏小（材料非线性）和偏大（两片夹挤）两类失效；"
+                    "骨架乘一个只在深压打开的小网络修正，9 对复杂网格 220 个场景训练；接进两个 12 维 affine 物体的动力学，"
+                    "鸭撞兔、龙撞兔的峰值压缩误差 1.7%、2.4%，hydroelastic 4.2%、30.1%；薄鳍折弯超出 12 维 affine 的表达范围。"),
         "week5": ("骨架两项（第一项把接触处当成半空间，第二项是每个物体预先算好的 80 个 mode）与标准答案的计算流程及推导；"
                   "浅压 edge case：接触区够大的 17 个两物体互压算例里骨架 13 个基本对、4 个跨线、没有整段偏离，"
                   "hydroelastic 15 个整段偏离；去掉第二项后 12 个整段偏离；压平块 12 类里 6 类基本对、5 类跨线、棱整段偏离；"

@@ -31,7 +31,7 @@ PAGE_TITLE = "Neural-IPC 周汇报"
 # (页面名, 标题, [(节锚点, 节名)])；节名用于首页卡片和该周页面顶部的目录。
 # 列表为空的周（week3_4、week1）整页从讲稿生成，目录自动取讲稿的节标题（pages.build_pages）。
 # week3 没开会，第 3、4 周合成一页 week3_4（用户 10-22）；旧 week3.html 不再生成、不再链接。
-WEEKS = [("week7", "Week 7（第 7 周）", []),
+WEEKS = [("week7_8", "Week 7–8（第 7–8 周）", []),
          ("week5", "Week 5–6（第 5–6 周）", []),
          ("week3_4", "Week 3–4（第 3–4 周）", []),
          ("week2", "Week 2（TODO 2026-10-04）",
