@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "900a80746944";</script>
+<script>window.NIPC_PAGE = "f78836bce5ec";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -262,7 +262,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-2" href="#w4">4. 为什么用整体的 mode</a>
 <a class="toc-level-2" href="#w5">5. Research</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 5–6 周：骨架方法，以及它在浅压 edge case 上的验证</h1></header>
-<div class="lead"><p><strong>结论：在表面浅压下，不用训练的「骨架」公式已经能把接触能量算到标准答案附近；算不准的是零件的棱和龙鳍这种薄长部件，骨架都偏大（偏硬）。</strong> 每个物体用只有 12 个自由度的粗模型描述，再加一项接触能量，让粗模型也能算出接触处的变形能量。接触能量由骨架直接给出。骨架是两项线弹性公式：第一项把接触处当成半空间（表面为无限大平面的弹性体），第二项用每个物体预先算好的 mode（描述物体有限大小和形状的一组变形方向，见 2.1 节）把有限大小和形状补回来。与精细仿真的标准答案相比（判据见 3.1 节），在接触区够大的 18 个两物体互压算例里，骨架 12 例落在 0.9–1.1 这条带内、5 例跨线、只有 1 例尖处接触整段偏离；现有的 hydroelastic 方法 18 例全部整段偏离。去掉第二项后直接比值升到 0.93–4.46，所以第二项是必要的。在单个物体压平块的一组算例里，骨架 6 类基本对、5 类跨线（区间跨过 1.1 这条线）、零件的棱整段偏离，龙鳍压平块也偏大。每个物体的预处理只做一次，耗时十几分钟。</p></div>
+<div class="lead"><p><strong>结论：在表面浅压下，不用训练的「骨架」公式已经能把接触能量算到标准答案附近；旧锁下算不准的是零件的棱和龙鳍这种薄长部件，骨架都偏大（偏硬；这一点未按新锁核实）。</strong> 每个物体用只有 12 个自由度的粗模型描述，再加一项接触能量，让粗模型也能算出接触处的变形能量。接触能量由骨架直接给出。骨架是两项线弹性公式：第一项把接触处当成半空间（表面为无限大平面的弹性体），第二项用每个物体预先算好的 mode（描述物体有限大小和形状的一组变形方向，见 2.1 节）把有限大小和形状补回来。与精细仿真的标准答案相比（判据见 3.1 节），在接触区够大的 18 个两物体互压算例里，骨架 12 例落在 0.9–1.1 这条带内、5 例跨线、只有 1 例尖处接触整段偏离；现有的 hydroelastic 方法 18 例全部整段偏离。去掉第二项后直接比值升到 0.93–4.46，所以第二项是必要的。在单个物体压平块的一组算例里，旧锁下骨架 6 类基本对、5 类跨线（区间跨过 1.1 这条线）、零件的棱整段偏离，龙鳍压平块也偏大（未按新锁核实）。每个物体的预处理只做一次，耗时十几分钟。</p></div>
 <section id="w1"><h2>我们要算什么</h2>
 <figure style="margin:12px 0"><img src="assets/images/w5t_F1_energy_split.png" width="1624" height="860" style="width:555px;max-width:100%;height:auto" alt="" loading="lazy"></figure>
 <p><em><strong>接触能量 U 等于：同一个粗状态下，精细模型在不穿透的条件下松弛到静止后的能量，减去粗模型自己的能量。</strong> 图中是兔背压平块。左柱 \(\Pi(\Phi z)\) 是只按粗状态变形时的弹性能，右柱 \(\min_\xi\Pi\) 是不穿透条件下松弛到静止后的弹性能，即下面式子的两项。其中 \(z\) 是粗状态，即两个物体各自的 affine 参数（整体平移、转动、拉伸和剪切）； \(\Phi z\) 是按粗状态算出的精细网格节点位置； \(\Pi\) 是精细模型的弹性能； \(\xi\) 是粗模型表示不了的那部分变形， \(\min_\xi\) 表示让它松弛到静止。这个粗状态没有整体变形，所以粗状态的能量约为 0。</em></p>
@@ -561,6 +561,7 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>把第二项去掉、只留第一项，同样这 18 个算例的直接比值在 0.93 到 4.46 之间，大多明显偏大；加上第二项后直接比值收到 0.75–1.04。</strong> 消融时别的都不变，只拿掉每个物体的 mode。第一项把物体当成半空间，真实的兔、龙、鸭有限大、有薄处，只靠第一项算不准，所以骨架必须是两项。</p>
 <h3 id="w3-4">按类别看：能覆盖什么，不能覆盖什么</h3>
 
+<p><strong>（本节未核实：下面 14 类和龙鳍压平块的数是 12 维 affine 质量加权最小二乘锁之前的旧锁结果，还没有按新锁重算核实。）</strong></p>
 <p><strong>骨架在光滑处、整体转动、面贴面、大面积贴合、近不可压和斜压这 6 类上基本对；另外 5 类跨线，区间都跨过 1.1 这条线；零件的棱整段偏离，换算后的区间是 1.22–1.35。</strong> 证据来自兔子或 CAD 零件压平块的 14 类 edge case。其中尖（兔耳尖）和一侧薄（兔耳薄片）两类接触区小，接触半径内铺不下 2 个小格，读数列在下面的单元里；下表是另外 12 类，每类取一个代表算例：</p>
 <div class="tablewrap"><table>
 <thead>
@@ -718,7 +719,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p>一个物体算一次的 mode，换对手、换接触位置能不能照样算准，在第 7 周检验。</p></section>
+<p>表中的耗时是旧版本的实测，未按现行代码重新核实。一个物体算一次的 mode，换对手、换接触位置能不能照样算准，还没有按新锁重新检验（未核实）。</p></section>
 <section id="w5"><h2>Research</h2>
 <details><summary>已有的接触力学公式和成立条件，以及和骨架的关系</summary><div class="tablewrap"><table>
 <thead>
