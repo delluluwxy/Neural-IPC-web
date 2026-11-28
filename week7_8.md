@@ -67,6 +67,12 @@ $$A=\Big(\sum_i\omega_ix_i\rho_i^\top\Big)S^{-1},\qquad S=\sum_i\omega_i\rho_i\r
 
 将两物体细网格就位并锁定各自的 12 维状态，沿压入方向分步推近至目标压深；每步令其余顶点在 IPC 不穿透约束下放松至能量极小。终态弹性能减去 $E_{\text{coarse}}$ 即为 $U$。
 
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig03.png | 标准答案的初始构型（兔压龙、兔硬 10 倍）：左为两物体的四面体网格，右为过接触中心的剖面，箭头为压入方向。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig04.png | 加载过程：压深 $d/H_A$ = 0.027、0.060、0.093、0.126 四个时刻的接触区剖面，下方是压深–能量曲线，橙点对应四个时刻。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig05.png | 终态：左为表面按位移幅值着色，右为过接触中心剖面的应变分布。]]
+
 [[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig06.png | 锁定的含义：实线是细网格真实变形（含凹陷），虚线是拟合出的仿射形状；锁定的是后者，$U$ 只计前者多出的部分。]]
 
 ## 骨架
@@ -110,17 +116,27 @@ $$f(p^\ast)=\tfrac12h^2p^\top w=\tfrac12h^2p^\top Cp$$
 
 **步骤 1：放置表面。** 由 12 维状态将两物体的未变形表面放到当前位置，接触处出现穿透。
 
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig07.png | 同一窗口对照：左为粗模型按 12 维状态放置，接触处互相穿透（深红）；右为细网格终态，接触处凹陷让开。]]
+
 **步骤 2：识别接触区并确定法向。** 找出重叠区域，按连通性划分为若干接触片，每片确定一个接触法向。
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig08.png | 兔表面上识别出的两片接触区（橙、绿）及各自的接触法向。]]
 
 **步骤 3：铺设网格。** 在垂直于法向的平面上铺设 $h\times h$ 网格；重叠格向外扩展若干格作为候选格。
 
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig09.png | 接触区俯视图上的网格：重叠格（红）、向外扩展的候选格（浅橙）与外部格（灰），右下为框内放大。]]
+
 **步骤 4：量取重叠。** 自每格中心沿法向求交，得到两表面的重叠量 $w_i$。
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig10.png | 左：各格重叠量 $w_i$ 的俯视热力图（以压深归一化），蓝线为剖面位置；右：沿该剖面的两表面，箭头为每格沿法向量取的重叠。]]
 
 **步骤 5：组装柔度矩阵。** **骨架的精度取决于 $C$。** $C$ 由两项组成。
 
 第一项 $C_{\text{Love}}$ 将接触处视为半空间，即无限大、无限厚、表面平整的弹性体。一格受压时周围随之沉降，沉降随距离近似按 $1/r$ 衰减。该项有解析解，只依赖材料与局部几何。
 
 [[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig11.png | 半空间上一格受压 $p$，表面呈漏斗状沉降；沉降随距离按 $1/r$ 衰减。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig12.png | $C_{\text{Love}}$ 的一行：中心格施加单位压强时其余各格的沉降（左），沉降随距离按 $1/r$ 衰减（右）。]]
 
 <details>
 <summary><b>推导：Love 项</b></summary>
@@ -175,6 +191,14 @@ $$C^\text{mode}_{ij}=h^2\sum_{m=1}^{80}\sigma_m\,\Phi_{i,m}\,\Phi_{j,m}$$
 
 [[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig13.png | mode 项补偿的两种偏差（蓝虚线为半空间的沉降）：薄壁整体弯曲比半空间软；整体变形被 12 维锁定的厚物体比半空间硬。]]
 
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig14.png | 兔（上）与龙（下）表面上的第 1、2、5、20 个 mode（红正蓝负）；下方是 mode 强度 $\sigma_m$ 随编号 $m$ 的变化，灰色为 $\sigma_m<0$。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig15.png | 兔、龙各自第 1 个 mode 插值到接触网格后的值（与图 10 同一网格）。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig16.png | 同一格施加单位压强：只用 Love 项、Love + mode 的沉降，以及两者之差。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig17.png | 完整柔度矩阵 $C$（3414 格，两片接触各成一个对角块，块间有耦合）；为显示清楚，按 6×6 格取绝对值最大后作对称对数着色。]]
+
 <details>
 <summary><b>推导：mode 项</b></summary>
 
@@ -205,6 +229,12 @@ $$C^{\text{mode}}_{ij}=h^2\sum_{m=1}^{80}\sigma_m\Phi_{i,m}\Phi_{j,m}$$
 </details>
 
 **步骤 6：求解压强与能量。** 用主动集法求解二次规划，得各格压强 $p_i$，能量为 $\tfrac12h^2\sum_ip_iw_i$。下文记仅含 Love 项的骨架为 $S_0$，含两项的完整骨架为 $S_{80}$。
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig18.png | 骨架解出的压强 $p_i$ 俯视热力图，蓝线圈出重叠区；有压强的格只是重叠区的一部分。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig19.png | 过中心剖面上的重叠 $w$（黑）与 $S_0$、$S_{80}$ 的沉降：有压强的格上，沉降贴合重叠。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig20.png | 同一套格子、同一视角：骨架压强分布（左）与细网格 IPC 接触力分布（右）。骨架的压强集中在接触区一角，IPC 的接触力分布得更开。]]
 
 ## 残差网络
 
@@ -290,6 +320,8 @@ $$\frac{\partial S}{\partial q}=h^2\sum_ip_i\frac{\partial w_i}{\partial q}-\tfr
 </details>
 
 [[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig28.png | 动力学的单步循环：放置 → 骨架 → 网络 → 求导 → 推进，下方是每步的输出。]]
+
+[[图 /nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/web_figs/w78_fig29.png | 两物体所受接触合力等大反向（箭头），接触面上贴压强分布。注意：这里画的是静态算例的终态，不是动态对撞的某一帧（动态逐帧数据未保存）。]]
 
 ---
 
