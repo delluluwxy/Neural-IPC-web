@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "b8c38d013606";</script>
+<script>window.NIPC_PAGE = "6eae0d37fffb";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -367,16 +367,16 @@ html.annot-on #annot-capture { display: block; }
 <p>第二类是偏大：兔压龙「龙硬 10 倍」压到 0.408 兔高时 \(S_{80}\) 是 5.56 倍，比只用第一项的 3.01 倍还大。这一格的重叠区在龙身上分成两片、两片法向夹角约 113°，兔子被两侧夹住。骨架按未变形形状算重叠，没有考虑兔子被挤向两侧，所以第一项就偏大；80 个 mode 是在单个物体上算的，在两片同时受压时给出负的柔度贡献，把能量进一步推高。</p>
 <p><strong>软硬对调：浅压时标准答案分得开，骨架方向对但幅度不足。</strong> 同样 0.126 兔高，兔压龙「龙硬 10 倍」的 GT 是「兔硬 10 倍」的 1.14 倍，骨架是 1.04 倍，只用第一项是 1.17 倍。两组泊松比对调时 GT 只差 3.5%，骨架差 1.7%，方向一致；但在 0.333 兔高 GT 是 0.97 倍、骨架是 1.01 倍，方向反了。这说明谁软谁硬的差别有一部分来自非线性，骨架（线弹性）补不全，需要第二部分的网络。</p></section>
 <section id="w3"><h2>数据集：9 对复杂网格、220 个场景</h2>
-<figure style="margin:12px 0"><img src="assets/images/dataset_gallery_9pairs.png" width="1950" height="1820" style="width:450px;max-width:100%;height:auto" alt="数据集里的 9 对复杂网格（兔、龙、鸭的不同摆放与组合），每格标出这一对的场景数和四面体数（42.5 万–69.6 万）。蓝色是上面的物体，橙色是下面的物体。" loading="lazy"><figcaption>数据集里的 9 对复杂网格（兔、龙、鸭的不同摆放与组合），每格标出这一对的场景数和四面体数（42.5 万–69.6 万）。蓝色是上面的物体，橙色是下面的物体。</figcaption></figure>
-<p><strong>每个场景是一组「两个物体的网格、材料、12 维状态」和它的标准答案。</strong> 标准答案按第 1 节的定义，用 GPU 上的 FEM+IPC 在 12 维 affine 锁下解到静止。复杂网格共 68 个场景，覆盖 9 对物体、压深 0.05–0.41 兔高、刚度比 1 和 10、泊松比 0.2–0.45 以及 Gent 材料；另有 152 个参数化场景（细长锥、斜置薄鳍等形状，压深以深压为主）补足形状覆盖。每个场景同时存下骨架 \(S_0\)、 \(S_{80}\) 和骨架在每片接触区解出的局部场（压强、重叠、法向），作为网络的输入来源。</p></section>
+<figure style="margin:12px 0"><img src="assets/images/w78_dataset_gallery.png" width="1624" height="1380" style="width:555px;max-width:100%;height:auto" alt="数据集里的 9 对复杂网格，由兔、龙、鸭三种网格按不同摆放两两组合，每个物体 42.5 万–69.6 万个四面体。蓝色是上面的物体，橙色是下面的物体。" loading="lazy"><figcaption>数据集里的 9 对复杂网格，由兔、龙、鸭三种网格按不同摆放两两组合，每个物体 42.5 万–69.6 万个四面体。蓝色是上面的物体，橙色是下面的物体。</figcaption></figure>
+<p><strong>每个场景是一组「两个物体的网格、材料、12 维状态」和它的标准答案。</strong> 标准答案按第 1 节的定义，用 GPU 上的 FEM+IPC 在 12 维 affine 锁下解到静止。复杂网格共 68 个场景，覆盖 9 对物体、多档压深、刚度比 1 和 10、泊松比 0.2–0.45 以及 Gent 材料；另有 152 个参数化场景（细长锥、斜置薄鳍等形状，压深以深压为主）补足形状覆盖。每个场景同时存下骨架 \(S_0\)、 \(S_{80}\) 和骨架在每片接触区解出的局部场（压强、重叠、法向），作为网络的输入来源。</p></section>
 <section id="w4"><h2>模型：骨架乘一个只在深压时打开的修正</h2>
 <p><strong>网络不直接输出能量，只输出对骨架的对数修正：</strong></p>
-<p>\[U_\theta=S_{80}\cdot\exp\!\big(\phi(\varepsilon_c)\,\bar g_\theta(f)\big),\qquad \phi(\varepsilon_c)=\frac{\varepsilon_c}{1+\varepsilon_c},\qquad \varepsilon_c=\frac{d}{a_0},\]</p>
-<p>其中 \(S_{80}\) 是完整骨架的能量； \(a_0=\sqrt{A_c/\pi}\) 是把接触面积 \(A_c\) 换成等面积圆的半径， \(\varepsilon_c\) 是压深与接触半径之比，衡量这次接触有多「深」； \(\phi\) 是包络； \(\bar g_\theta\) 是网络对输入特征 \(f\) 的输出。</p>
+<p>\[U_\theta=S_{80}\cdot\exp\!\big(\phi(\varepsilon_c)\,\bar g_\theta(f)\big),\qquad \phi(\varepsilon_c)=\frac{\varepsilon_c}{1+\varepsilon_c},\qquad \varepsilon_c=\frac{d}{\sqrt{a_0H_{\text{eff}}}},\]</p>
+<p>其中 \(S_{80}\) 是完整骨架的能量； \(a_0=\sqrt{A_c/\pi}\) 是把接触面积 \(A_c\) 换成等面积圆的半径； \(H_{\text{eff}}\) 是两个物体沿接触法向厚度的较小值； \(\varepsilon_c\) 是压深与接触尺度 \(\sqrt{a_0H_{\text{eff}}}\) 之比，量纲为一，衡量这次接触有多「深」（接触小、物体薄时同样的压深更深）； \(\phi\) 是包络； \(\bar g_\theta\) 是网络对输入特征 \(f\) 的输出。</p>
 <figure style="margin:12px 0"><img src="assets/images/w78_envelope.png" width="1624" height="840" style="width:555px;max-width:100%;height:auto" alt="包络 \(\phi(\varepsilon_c)=\varepsilon_c/(1+\varepsilon_c)\)：浅压时趋于 0，网络的修正被压掉，能量退回骨架；深压时趋于 1，修正全部放开。" loading="lazy"><figcaption>包络 \(\phi(\varepsilon_c)=\varepsilon_c/(1+\varepsilon_c)\)：浅压时趋于 0，网络的修正被压掉，能量退回骨架；深压时趋于 1，修正全部放开。</figcaption></figure>
 <p><strong>这样写有三个好处。</strong> 第一，浅压时 \(\phi\to0\) ， \(U_\theta\to S_{80}\) ，第 5–6 周已经验证过的浅压精度原样保留，网络不会把它弄坏。第二，乘上 \(\exp(\cdot)\) 后能量恒为正，网络学的是倍数，和第 2 节表里「骨架是 GT 的几倍」直接对应。第三，网络对两个物体对称：</p>
 <p>\[\bar g_\theta(f)=\tfrac12\big[g_\theta(f_{AB})+g_\theta(f_{BA})\big],\]</p>
-<p>\(f_{AB}\) 和 \(f_{BA}\) 是同一组特征把两个物体的位置对调后的两种排法，所以「A 压 B」和「B 压 A」给出同一个能量。网络本身是一层宽 8 的 SiLU 全连接（光滑，保证力和刚度连续）。</p>
+<p>\(f_{AB}\) 和 \(f_{BA}\) 是同一组特征把两个物体的位置对调后的两种排法，所以「A 压 B」和「B 压 A」给出同一个能量。现在用的 \(g_\theta\) 是 18 个输入的线性组合 \(g_\theta(f)=w^\top f+b\) （输入先按训练集均值、标准差归一化），5 个随机种子各训一份、输出取平均；它对状态光滑，力和刚度连续。按「从最简单的开始」，加隐藏层只在线性不够时才做。</p>
 <p><strong>输入是 18 个无量纲量，每一个都对应第 2 节里骨架跟不上的一种变化：</strong></p>
 <div class="tablewrap"><table>
 <thead>
@@ -388,7 +388,7 @@ html.annot-on #annot-capture { display: block; }
 <tbody>
 <tr>
 <td>\(\log(d/a_0)\) 、 \(\log(d/H_{\text{eff}})\)</td>
-<td>压深越大骨架越偏（第一类失效）； \(H_{\text{eff}}\) 是两个物体沿接触法向厚度的较小值</td>
+<td>压深越大骨架越偏（第一类失效）</td>
 </tr>
 <tr>
 <td>\(\log(S_{80}/S_0)\) 、 \(\operatorname{asinh}(U_{\text{mode}}/S_{80})\)</td>
@@ -515,7 +515,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p><strong>软硬对调和小压深（鸭撞兔，同一套网络权重）：</strong> 鸭硬 10 倍撞软兔时骨架 + 网络 1.53%，只用骨架 5.72%；小压深（初速度 0.5，GT 峰值压缩 4.6% 兔高）时 2.17% 对 5.10%，hydroelastic 29.6%，说明包络确实在浅压时保住了骨架。软鸭撞硬兔是这一组里最差的：骨架 + 网络 21.6%，只用骨架 18.9%，hydroelastic 16.5%。这时鸭子较软，颈部整体弯下去，而弯曲不在 12 维 affine 能表达的范围内，骨架和网络都按「局部凹陷」去解释这部分位移，给出偏硬的力。</p>
+<p><strong>软硬对调和小压深（鸭撞兔；这一组用的是复杂网格场景加到 54 个后重训的权重，和上面两个视频不是同一份）：</strong> 鸭硬 10 倍撞软兔时骨架 + 网络 1.53%，只用骨架 5.72%；小压深（初速度 0.5，GT 峰值压缩 4.6% 兔高）时 2.17% 对 5.10%，hydroelastic 29.6%，说明包络确实在浅压时保住了骨架。软鸭撞硬兔是这一组里最差的：骨架 + 网络 21.6%，只用骨架 18.9%，hydroelastic 16.5%。这时鸭子较软，颈部整体弯下去，而弯曲不在 12 维 affine 能表达的范围内，骨架和网络都按「局部凹陷」去解释这部分位移，给出偏硬的力。</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
