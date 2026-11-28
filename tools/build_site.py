@@ -188,7 +188,8 @@ DISPLAY_W = {   # 宽度取自出图 agent 表（sandbox c155bbb5「11-23 05:xx�
     "w7_W1_setup_3panel.png": 577, "w7_W5_deep8_bars.png": 420,
     "w78_skel_ratio_depth.png": 555, "w78_envelope.png": 555, "w78_dataset_gallery.png": 555,
 }
-DISPLAY_W_PAT = [(re.compile(r"^w7_deep_.+_web2\.png$"), 541), (re.compile(r"^w7_deep_.+_sec\.png$"), 420)]
+DISPLAY_W_PAT = [(re.compile(r"^w7_deep_.+_web2\.png$"), 541), (re.compile(r"^w7_deep_.+_sec\.png$"), 420),
+                 (re.compile(r"^w78_fig\d+\.png$"), 555)]   # week7_8 新图：都按 8.12 in 画布、显示 555 px 出图（save() 断言字 15–18 px）
 PAIR_MAX_PX = 440   # 上下排时每张最宽 440 px（出图 agent：再宽图内字超过 18 px）
 PAIR_IMG = re.compile(r"^w5t_.+_(?:1_before|2_rest)\.png$")   # week5 每例的压入前 / 静止后：并排各占半栏，不放大到超过原图宽
 
