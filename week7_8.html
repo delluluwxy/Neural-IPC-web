@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "7e2f0a69f037";</script>
+<script>window.NIPC_PAGE = "861eede84fbb";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -319,6 +319,9 @@ html.annot-on #annot-capture { display: block; }
 <h3 id="w3-1">标准答案</h3>
 
 <p>将两物体细网格就位并锁定各自的 12 维状态，沿压入方向分步推近至目标压深；每步令其余顶点在 IPC 不穿透约束下放松至能量极小。终态弹性能减去 \(E_{\text{coarse}}\) 即为 \(U\)。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig03.png" width="1624" height="1120" style="width:555px;max-width:100%;height:auto" alt="标准答案的初始构型（兔压龙、兔硬 10 倍）：左为两物体的四面体网格，右为过接触中心的剖面，箭头为压入方向。" loading="lazy"><figcaption>标准答案的初始构型（兔压龙、兔硬 10 倍）：左为两物体的四面体网格，右为过接触中心的剖面，箭头为压入方向。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig04.png" width="1624" height="1180" style="width:555px;max-width:100%;height:auto" alt="加载过程：压深 \(d/H_A\) = 0.027、0.060、0.093、0.126 四个时刻的接触区剖面，下方是压深–能量曲线，橙点对应四个时刻。" loading="lazy"><figcaption>加载过程：压深 \(d/H_A\) = 0.027、0.060、0.093、0.126 四个时刻的接触区剖面，下方是压深–能量曲线，橙点对应四个时刻。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig05.png" width="1624" height="1000" style="width:555px;max-width:100%;height:auto" alt="终态：左为表面按位移幅值着色，右为过接触中心剖面的应变分布。" loading="lazy"><figcaption>终态：左为表面按位移幅值着色，右为过接触中心剖面的应变分布。</figcaption></figure>
 <figure style="margin:12px 0"><img src="assets/images/w78_fig06.png" width="1624" height="1180" style="width:555px;max-width:100%;height:auto" alt="锁定的含义：实线是细网格真实变形（含凹陷），虚线是拟合出的仿射形状；锁定的是后者，\(U\) 只计前者多出的部分。" loading="lazy"><figcaption>锁定的含义：实线是细网格真实变形（含凹陷），虚线是拟合出的仿射形状；锁定的是后者，\(U\) 只计前者多出的部分。</figcaption></figure>
 <h3 id="w3-2">骨架</h3>
 
@@ -355,12 +358,17 @@ html.annot-on #annot-capture { display: block; }
 </ul></details>
 <p>骨架按以下步骤计算，每步输出均可视化：</p>
 <p><strong>步骤 1：放置表面。</strong> 由 12 维状态将两物体的未变形表面放到当前位置，接触处出现穿透。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig07.png" width="1624" height="1000" style="width:555px;max-width:100%;height:auto" alt="同一窗口对照：左为粗模型按 12 维状态放置，接触处互相穿透（深红）；右为细网格终态，接触处凹陷让开。" loading="lazy"><figcaption>同一窗口对照：左为粗模型按 12 维状态放置，接触处互相穿透（深红）；右为细网格终态，接触处凹陷让开。</figcaption></figure>
 <p><strong>步骤 2：识别接触区并确定法向。</strong> 找出重叠区域，按连通性划分为若干接触片，每片确定一个接触法向。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig08.png" width="1624" height="1000" style="width:555px;max-width:100%;height:auto" alt="兔表面上识别出的两片接触区（橙、绿）及各自的接触法向。" loading="lazy"><figcaption>兔表面上识别出的两片接触区（橙、绿）及各自的接触法向。</figcaption></figure>
 <p><strong>步骤 3：铺设网格。</strong> 在垂直于法向的平面上铺设 \(h\times h\) 网格；重叠格向外扩展若干格作为候选格。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig09.png" width="1624" height="1240" style="width:555px;max-width:100%;height:auto" alt="接触区俯视图上的网格：重叠格（红）、向外扩展的候选格（浅橙）与外部格（灰），右下为框内放大。" loading="lazy"><figcaption>接触区俯视图上的网格：重叠格（红）、向外扩展的候选格（浅橙）与外部格（灰），右下为框内放大。</figcaption></figure>
 <p><strong>步骤 4：量取重叠。</strong> 自每格中心沿法向求交，得到两表面的重叠量 \(w_i\)。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig10.png" width="1624" height="920" style="width:555px;max-width:100%;height:auto" alt="左：各格重叠量 \(w_i\) 的俯视热力图（以压深归一化），蓝线为剖面位置；右：沿该剖面的两表面，箭头为每格沿法向量取的重叠。" loading="lazy"><figcaption>左：各格重叠量 \(w_i\) 的俯视热力图（以压深归一化），蓝线为剖面位置；右：沿该剖面的两表面，箭头为每格沿法向量取的重叠。</figcaption></figure>
 <p><strong>步骤 5：组装柔度矩阵。</strong> <strong>骨架的精度取决于 \(C\)。</strong> \(C\) 由两项组成。</p>
 <p>第一项 \(C_{\text{Love}}\) 将接触处视为半空间，即无限大、无限厚、表面平整的弹性体。一格受压时周围随之沉降，沉降随距离近似按 \(1/r\) 衰减。该项有解析解，只依赖材料与局部几何。</p>
 <figure style="margin:12px 0"><img src="assets/images/w78_fig11.png" width="1624" height="740" style="width:555px;max-width:100%;height:auto" alt="半空间上一格受压 \(p\)，表面呈漏斗状沉降；沉降随距离按 \(1/r\) 衰减。" loading="lazy"><figcaption>半空间上一格受压 \(p\)，表面呈漏斗状沉降；沉降随距离按 \(1/r\) 衰减。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig12.png" width="1624" height="920" style="width:555px;max-width:100%;height:auto" alt="\(C_{\text{Love}}\) 的一行：中心格施加单位压强时其余各格的沉降（左），沉降随距离按 \(1/r\) 衰减（右）。" loading="lazy"><figcaption>\(C_{\text{Love}}\) 的一行：中心格施加单位压强时其余各格的沉降（左），沉降随距离按 \(1/r\) 衰减（右）。</figcaption></figure>
 <details><summary><b>推导：Love 项</b></summary><p><strong>第 1 步：Boussinesq 点力解。</strong> 半空间表面受法向点力 \(P\)，距离 \(r\) 处法向沉降</p>
 <p>\[u(r)=\frac{(1-\nu^2)P}{\pi Er}=\frac{P}{\pi E&#x27;r},\qquad E&#x27;=\frac{E}{1-\nu^2}\]</p>
 <ul>
@@ -396,6 +404,10 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>回到「薄的地方比半空间软、锁住的整体比半空间硬」：</strong> 前者体现在第 1 步的有限元里耳朵会整片弯，减掉 \(H\) 之后 \(R\) 在耳朵区域是正的，于是出现 \(\sigma&gt;0\)、形状集中在耳朵上的 mode，接触落在耳朵上时 \(\Phi\) 很大，mode 项让那里更软；后者体现在第 1 步锁了 12 个数，物体没法整体压缩，\(R\) 在厚实部位是负的，于是出现 \(\sigma&lt;0\) 的 mode，让那里更硬。</p>
 <p><strong>局限：</strong> 第 1 步是「一次只按一处」算出来的。接触同时落在两片区域、物体被两侧夹住时，几个负 \(\sigma\) 的 mode 会叠加，把表面算得过硬；推测这是兔压龙夹挤那一格到 5.56 倍的原因之一（未核实）。</p></details>
 <figure style="margin:12px 0"><img src="assets/images/w78_fig13.png" width="1624" height="840" style="width:555px;max-width:100%;height:auto" alt="mode 项补偿的两种偏差（蓝虚线为半空间的沉降）：薄壁整体弯曲比半空间软；整体变形被 12 维锁定的厚物体比半空间硬。" loading="lazy"><figcaption>mode 项补偿的两种偏差（蓝虚线为半空间的沉降）：薄壁整体弯曲比半空间软；整体变形被 12 维锁定的厚物体比半空间硬。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig14.png" width="1624" height="1400" style="width:555px;max-width:100%;height:auto" alt="兔（上）与龙（下）表面上的第 1、2、5、20 个 mode（红正蓝负）；下方是 mode 强度 \(\sigma_m\) 随编号 \(m\) 的变化，灰色为 \(\sigma_m&lt;0\)。" loading="lazy"><figcaption>兔（上）与龙（下）表面上的第 1、2、5、20 个 mode（红正蓝负）；下方是 mode 强度 \(\sigma_m\) 随编号 \(m\) 的变化，灰色为 \(\sigma_m&lt;0\)。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig15.png" width="1624" height="1080" style="width:555px;max-width:100%;height:auto" alt="兔、龙各自第 1 个 mode 插值到接触网格后的值（与图 10 同一网格）。" loading="lazy"><figcaption>兔、龙各自第 1 个 mode 插值到接触网格后的值（与图 10 同一网格）。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig16.png" width="1624" height="780" style="width:555px;max-width:100%;height:auto" alt="同一格施加单位压强：只用 Love 项、Love + mode 的沉降，以及两者之差。" loading="lazy"><figcaption>同一格施加单位压强：只用 Love 项、Love + mode 的沉降，以及两者之差。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig17.png" width="1624" height="1400" style="width:555px;max-width:100%;height:auto" alt="完整柔度矩阵 \(C\)（3414 格，两片接触各成一个对角块，块间有耦合）；为显示清楚，按 6×6 格取绝对值最大后作对称对数着色。" loading="lazy"><figcaption>完整柔度矩阵 \(C\)（3414 格，两片接触各成一个对角块，块间有耦合）；为显示清楚，按 6×6 格取绝对值最大后作对称对数着色。</figcaption></figure>
 <details><summary><b>推导：mode 项</b></summary><p><strong>第 1 步：真实表面柔度。</strong> 以线弹性 P2 有限元组装刚度矩阵 \(K\)。在每个表面顶点施加帽函数形单位压强（该点为 1，向相邻三角形线性降至 0），锁定 12 维状态求解 \(Ku=f\)，读取表面法向沉降，得 \(C_{\text{lock}}\)。</p>
 <ul>
 <li><span class="note-cond">条件：线弹性、小变形；锁定方式与标准答案一致。</span></li>
@@ -425,6 +437,9 @@ html.annot-on #annot-capture { display: block; }
 <li><span class="note-cond">条件：mode 在单物体、单片接触下导出。两片同时受压时负 \(\sigma_m\) 叠加，是 3.3 节夹挤算例偏大的来源之一。</span></li>
 </ul></details>
 <p><strong>步骤 6：求解压强与能量。</strong> 用主动集法求解二次规划，得各格压强 \(p_i\)，能量为 \(\tfrac12h^2\sum_ip_iw_i\)。下文记仅含 Love 项的骨架为 \(S_0\)，含两项的完整骨架为 \(S_{80}\)。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig18.png" width="1624" height="920" style="width:555px;max-width:100%;height:auto" alt="骨架解出的压强 \(p_i\) 俯视热力图，蓝线圈出重叠区；有压强的格只是重叠区的一部分。" loading="lazy"><figcaption>骨架解出的压强 \(p_i\) 俯视热力图，蓝线圈出重叠区；有压强的格只是重叠区的一部分。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig19.png" width="1624" height="880" style="width:555px;max-width:100%;height:auto" alt="过中心剖面上的重叠 \(w\)（黑）与 \(S_0\)、\(S_{80}\) 的沉降：有压强的格上，沉降贴合重叠。" loading="lazy"><figcaption>过中心剖面上的重叠 \(w\)（黑）与 \(S_0\)、\(S_{80}\) 的沉降：有压强的格上，沉降贴合重叠。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig20.png" width="1624" height="780" style="width:555px;max-width:100%;height:auto" alt="同一套格子、同一视角：骨架压强分布（左）与细网格 IPC 接触力分布（右）。骨架的压强集中在接触区一角，IPC 的接触力分布得更开。" loading="lazy"><figcaption>同一套格子、同一视角：骨架压强分布（左）与细网格 IPC 接触力分布（右）。骨架的压强集中在接触区一角，IPC 的接触力分布得更开。</figcaption></figure>
 <h3 id="w3-3">残差网络</h3>
 
 <p>网络输出对骨架的对数修正：</p>
@@ -489,7 +504,8 @@ html.annot-on #annot-capture { display: block; }
 <li>实现：现有代码只计入第一项（各格压强乘法向得力），未计入 \(\partial C/\partial q\) 项，因此接触力只是 \(-\partial U/\partial q\) 的近似，能量守恒在实现上为近似。</li>
 <li>ref：Milgrom &amp; Segal (2002)。</li>
 </ul></details>
-<figure style="margin:12px 0"><img src="assets/images/w78_fig28.png" width="1624" height="860" style="width:555px;max-width:100%;height:auto" alt="动力学的单步循环：放置 → 骨架 → 网络 → 求导 → 推进，下方是每步的输出。" loading="lazy"><figcaption>动力学的单步循环：放置 → 骨架 → 网络 → 求导 → 推进，下方是每步的输出。</figcaption></figure></section>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig28.png" width="1624" height="860" style="width:555px;max-width:100%;height:auto" alt="动力学的单步循环：放置 → 骨架 → 网络 → 求导 → 推进，下方是每步的输出。" loading="lazy"><figcaption>动力学的单步循环：放置 → 骨架 → 网络 → 求导 → 推进，下方是每步的输出。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig29.png" width="1624" height="1000" style="width:555px;max-width:100%;height:auto" alt="两物体所受接触合力等大反向（箭头），接触面上贴压强分布。注意：这里画的是静态算例的终态，不是动态对撞的某一帧（动态逐帧数据未保存）。" loading="lazy"><figcaption>两物体所受接触合力等大反向（箭头），接触面上贴压强分布。注意：这里画的是静态算例的终态，不是动态对撞的某一帧（动态逐帧数据未保存）。</figcaption></figure></section>
 <section id="w4"><h2>骨架在边界情况下的表现</h2>
 <h3 id="w4-1">数据</h3>
 
