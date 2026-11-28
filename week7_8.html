@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "70fea5b9532a";</script>
+<script>window.NIPC_PAGE = "7e2f0a69f037";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -275,14 +275,16 @@ html.annot-on #annot-capture { display: block; }
 <header class="top"><h1>Week 7–8：骨架的边界、残差网络与 12 维动力学对比</h1></header>
 <div class="lead"><p>本阶段回答三个问题：骨架在大压深、材料对调等边界情况下是否仍然准确；残差网络能修正多少；接入 12 维动力学后，与全网格 FEM+IPC 及各 baseline 相比表现如何。</p></div>
 <section id="w1"><h2>结论</h2>
-<p><span style="color:#c0392b"><strong>骨架在浅压下基本可用</strong></span>：\(d/H_A\le1/6\) 时与标准答案相差 −13% 至 +46%。<strong>\(d/H_A\ge1/3\) 时出现两类失效</strong>：多数算例随压深单调偏小，推测源于材料非线性；兔压龙「龙硬 10 倍」在 \(d/H_A=0.408\) 两片夹挤时显著偏大。<strong>材料对调时，骨架方向正确而幅度不足。</strong></p>
+<p><span style="color:#c0392b"><strong>骨架在浅压下仍有明显偏差</strong></span>：\(d/H_A\le1/6\) 时与标准答案相差 −13% 至 +46%，多数超出 10%，需要继续归因和 debug。<strong>\(d/H_A\ge1/3\) 时出现两类失效</strong>：多数算例随压深单调偏小，推测源于材料非线性；兔压龙「龙硬 10 倍」在 \(d/H_A=0.408\) 两片夹挤时显著偏大。<strong>材料对调时，骨架方向正确而幅度不足。</strong></p>
 <p>接入动力学后，<span style="color:#c0392b"><strong>鸭撞兔、龙撞兔的峰值压缩误差分别为 1.72% 和 1.61%</strong></span>，hydroelastic 为 4.20% 和 30.30%，Winkler 约 28%。</p>
 <p>该结果有三点保留。第一，<strong>与骨架、hydroelastic、Winkler 相比，7 个对撞算例中胜出 4 个</strong>。第二，<span style="color:#c0392b"><strong>网络在动态中的作用接近全局缩放</strong></span>：将骨架能量乘以常数 0.80 即可达到相近精度。第三，<strong>每步仅比全网格快 1.7 倍</strong>，且慢于 hydroelastic。</p></section>
 <section id="w2"><h2>问题定义</h2>
 <p>粗模型以 12 个自由度描述一个物体：\(3\times3\) 矩阵 \(A\) 与平移 \(t\)，物体上一点按 \(x=AX+t\) 运动，\(X\) 为该点的参考位置。\(A\) 可表达整体转动、拉伸与剪切，但无法表达接触处的局部凹陷，因此两个粗物体相碰时会互相穿透。真实物体通过局部凹陷避免穿透，凹陷中储存的弹性能即为待学习的接触能量：</p>
 <p>\[U(z_A,z_B)=E_{\text{fine}}-E_{\text{coarse}}\]</p>
-<p>其中 \(z_A,z_B\) 为两物体的 12 维状态；\(E_{\text{fine}}\) 为细网格在 12 维状态锁定、其余自由度放松、IPC 保证不穿透时的平衡弹性能；\(E_{\text{coarse}}\) 为粗模型自身的弹性能。<strong>接触力是 \(U\) 对 12 维状态的导数，因此 \(U\) 准确即保证粗模型运动正确</strong>，仿真只需推进 12 维状态。</p>
+<p>其中 \(z_A,z_B\) 为两物体的 12 维状态；\(E_{\text{fine}}\) 为细网格在 12 维状态锁定、其余自由度放松、IPC 保证不穿透时的平衡弹性能；\(E_{\text{coarse}}\) 为粗模型自身的弹性能。标准答案用全网格 FEM+IPC 算：FEM 是有限元，把物体切成几十万个小四面体逐块算弹性能；IPC 是一种保证绝不穿透的接触算法。这样很准，但很慢。<strong>接触力是 \(U\) 对 12 维状态的导数，因此 \(U\) 准确即保证粗模型运动正确</strong>，仿真只需推进 12 维状态。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig01.png" width="1624" height="1100" style="width:555px;max-width:100%;height:auto" alt="左：粗模型只做整体运动，两物体在接触处互相穿透（红）。右：细网格在接触处局部凹陷让开（蓝，虚线为原表面），凹陷里存的弹性能就是 \(U\)。" loading="lazy"><figcaption>左：粗模型只做整体运动，两物体在接触处互相穿透（红）。右：细网格在接触处局部凹陷让开（蓝，虚线为原表面），凹陷里存的弹性能就是 \(U\)。</figcaption></figure>
 <p>压深 \(d\) 采用接触力学标准定义：两物体自初次接触起沿压入方向的靠近量，即未变形轮廓的最大重叠。下文以兔高 \(H_A\) 无量纲化为 \(d/H_A\)。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig02.png" width="1624" height="920" style="width:555px;max-width:100%;height:auto" alt="压深 \(d\) 的定义：① 初次接触；② 继续靠近 \(d\)，未变形轮廓重叠 \(d\)；③ 同一状态下细网格两侧各自凹陷，实际不重叠。" loading="lazy"><figcaption>压深 \(d\) 的定义：① 初次接触；② 继续靠近 \(d\)，未变形轮廓重叠 \(d\)；③ 同一状态下细网格两侧各自凹陷，实际不重叠。</figcaption></figure>
 <details><summary><b>推导：\(U=E_{\text{fine}}-E_{\text{coarse}}\) 与 12 维锁定的定义</b></summary><p><strong>第 1 步：自由度分解。</strong> 细网格位置写为 \(x=\Phi z+\Psi w\)，\(\Phi z\) 为由 12 维状态决定的仿射形状，\(\Psi w\) 为不改变 12 维状态的局部变形。</p>
 <ul>
 <li><span class="note-cond">条件：\(\Psi w\) 与仿射运动正交，使 \(z,w\) 唯一分离。</span></li>
@@ -317,11 +319,12 @@ html.annot-on #annot-capture { display: block; }
 <h3 id="w3-1">标准答案</h3>
 
 <p>将两物体细网格就位并锁定各自的 12 维状态，沿压入方向分步推近至目标压深；每步令其余顶点在 IPC 不穿透约束下放松至能量极小。终态弹性能减去 \(E_{\text{coarse}}\) 即为 \(U\)。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig06.png" width="1624" height="1180" style="width:555px;max-width:100%;height:auto" alt="锁定的含义：实线是细网格真实变形（含凹陷），虚线是拟合出的仿射形状；锁定的是后者，\(U\) 只计前者多出的部分。" loading="lazy"><figcaption>锁定的含义：实线是细网格真实变形（含凹陷），虚线是拟合出的仿射形状；锁定的是后者，\(U\) 只计前者多出的部分。</figcaption></figure>
 <h3 id="w3-2">骨架</h3>
 
-<p>骨架是线弹性无摩擦接触能量。在重叠区铺设边长为 \(h\) 的网格，以各格压强为未知量求解二次规划：</p>
+<p>骨架是线弹性无摩擦接触能量。在重叠区铺设边长为 \(h\) 的网格，以各格压强为未知量求解二次规划（一种带「压强只能推、不能拉」条件的标准最优化问题）：</p>
 <p>\[U_{\text{sk}}=\max_{p\ge 0}\;h^2\Big[\sum_ip_i\,w_i-\tfrac12\,p^\top C\,p\Big],\qquad C=C_{\text{Love}}+C_{\text{mode}}\]</p>
-<p>\(w_i\) 为第 \(i\) 格两未变形表面的重叠量；\(p_i\) 为该格压强，接触只能推不能拉，故 \(p_i\ge0\)；柔度矩阵 \(C\) 的元素 \(C_{ij}\) 为第 \(j\) 格单位压强引起的第 \(i\) 格表面沉降。最优解满足：有压强的格，沉降恰好抵消重叠；无压强的格不穿透。此时最优值等于表面储存的弹性能。</p>
+<p>\(w_i\) 为第 \(i\) 格两未变形表面的重叠量；\(p_i\) 为该格压强，接触只能推不能拉，故 \(p_i\ge0\)；柔度矩阵 \(C\) 的元素 \(C_{ij}\) 为第 \(j\) 格单位压强引起的第 \(i\) 格表面沉降（柔度就是「加单位压强会陷下去多少」，是刚度的倒数）。最优解满足：有压强的格，沉降恰好抵消重叠；无压强的格不穿透。此时最优值等于表面储存的弹性能。</p>
 <details><summary><b>推导：二次规划的来源及其最优值为弹性能</b></summary><p><strong>第 1 步：离散。</strong> 每格压强取常数 \(p_i\)，受力 \(h^2p_i\)。</p>
 <ul>
 <li><span class="note-cond">条件：\(h\) 足够小，压强在格内变化可忽略。</span></li>
@@ -357,6 +360,7 @@ html.annot-on #annot-capture { display: block; }
 <p><strong>步骤 4：量取重叠。</strong> 自每格中心沿法向求交，得到两表面的重叠量 \(w_i\)。</p>
 <p><strong>步骤 5：组装柔度矩阵。</strong> <strong>骨架的精度取决于 \(C\)。</strong> \(C\) 由两项组成。</p>
 <p>第一项 \(C_{\text{Love}}\) 将接触处视为半空间，即无限大、无限厚、表面平整的弹性体。一格受压时周围随之沉降，沉降随距离近似按 \(1/r\) 衰减。该项有解析解，只依赖材料与局部几何。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig11.png" width="1624" height="740" style="width:555px;max-width:100%;height:auto" alt="半空间上一格受压 \(p\)，表面呈漏斗状沉降；沉降随距离按 \(1/r\) 衰减。" loading="lazy"><figcaption>半空间上一格受压 \(p\)，表面呈漏斗状沉降；沉降随距离按 \(1/r\) 衰减。</figcaption></figure>
 <details><summary><b>推导：Love 项</b></summary><p><strong>第 1 步：Boussinesq 点力解。</strong> 半空间表面受法向点力 \(P\)，距离 \(r\) 处法向沉降</p>
 <p>\[u(r)=\frac{(1-\nu^2)P}{\pi Er}=\frac{P}{\pi E&#x27;r},\qquad E&#x27;=\frac{E}{1-\nu^2}\]</p>
 <ul>
@@ -376,7 +380,22 @@ html.annot-on #annot-capture { display: block; }
 <li><span class="note-cond">条件：忽略法向压强与切向位移的耦合；两物体材料相同时精确，不同时为近似。ref：Dundurs 参数 （出处未核实）。</span></li>
 <li>表面倾斜时，加载与读数两端各乘斜面换算因子（表面法向与接触法向夹角余弦的倒数）。</li>
 </ul></details>
-<p>第二项 \(C_{\text{mode}}\) 补偿物体的有限尺寸与形状。每个物体预计算 80 个表面 mode，描述该物体相对半空间偏软或偏硬的部分：薄壁部位整体弯曲，比半空间软；被 12 维锁定的整体变形，又使其比半空间硬。mode 每个物体只算一次，与对手及接触位置无关。</p>
+<p>第二项 \(C_{\text{mode}}\) 补偿物体的有限尺寸与形状。每个物体预计算 80 个表面 mode（可以想成这个物体最典型的几种凹法），描述该物体相对半空间偏软或偏硬的部分：薄壁部位整体弯曲，比半空间软；被 12 维锁定的整体变形，又使其比半空间硬。mode 每个物体只算一次，与对手及接触位置无关。</p>
+<details><summary><b>mode 项具体怎么算</b></summary><p>一句话：先在真实物体上用有限元实打实算一遍「这里按一下，表面各处陷多少」，再减去「假装它是半空间」时的答案，剩下的差值就是 mode 要补的东西。这个差值变化很平缓，可以压缩成 80 个形状。仿真时把这 80 个形状搬到接触格子上，加进柔度矩阵。</p>
+<p><strong>第 1 步：在真实物体上算「按一下、各处陷多少」。</strong> 拿一个物体（比如兔子）的四面体网格，表面上有 \(N\) 个顶点（上万个）。对表面上的每一个顶点 \(j\)：在 \(j\) 附近施加一小片「帽子形」的单位压强，顶点 \(j\) 处最大，向周围的三角形线性降到 0（不用一个点，是因为一个点上的力会让那一点陷到无穷深）；把物体的 12 个数锁住，不许整体平移、转动、整体拉伸，和标准答案的锁法一样；用线弹性有限元解一次受这个力之后物体各处怎么变形；读出每个表面顶点 \(i\) 沿法向陷了多少。把所有 \(j\) 都做一遍，得到一张 \(N\times N\) 的表 \(C_\text{lock}\)：第 \(i\) 行第 \(j\) 列表示「在 \(j\) 按，\(i\) 陷多少」，这是真实物体的表面柔度。</p>
+<p><strong>第 2 步：在同一张表面上算「假装是半空间」的答案。</strong> 还是这张兔子表面、这些顶点，但用半空间公式（下陷 = 力 \(/(\pi E&#x27;\times\)距离\()\)）来算「在 \(j\) 按，\(i\) 陷多少」，得到同样大小的表 \(H\)。这个公式只看两点之间的距离，不知道耳朵是薄的、物体是有限大的。</p>
+<p><strong>第 3 步：相减。</strong></p>
+<p>\[R=C_\text{lock}-H\]</p>
+<p>\(R\) 就是「真实物体比半空间多陷或少陷多少」：在耳朵上按，真实情况下整只耳朵会弯下去，比半空间陷得多，\(R\) 在这里是正的（更软）；在厚实的身体上按，本来会有的整体压缩被 12 个数锁住了，比半空间陷得少，\(R\) 在这里是负的（更硬）。要减掉 \(H\) 是因为骨架的 Love 项已经在更细的接触格子上把半空间那部分算过了，mode 只负责补「真实和半空间的差」，否则半空间那部分会被算两次。</p>
+<p><strong>第 4 步：把 \(R\) 压缩成 80 个形状。</strong> \(R\) 有上万 × 上万个数，存不下，用起来也太慢。好在它变化很平缓：半空间里那种「按的那一点附近陷得特别尖」的成分已经被减掉了，剩下的是「整只耳朵弯一下」「整个身体被锁住变硬」这种大范围的变化。这种矩阵可以用少数几个形状拼出来：</p>
+<p>\[R\approx\sum_{m=1}^{80}\sigma_m\,r_m\,r_m^\top\]</p>
+<p>\(r_m\) 是第 \(m\) 个 mode：表面上每个顶点一个数，画出来就是表面上的一种「凹法」，比如「整只左耳往下弯」「背部整体被压平」。\(\sigma_m\) 是这个形状的强度：正的表示这种凹法比半空间软，负的表示比半空间硬。实际代码并不先算出整张 \(R\) 再拆（那样要解上万次有限元），而是用随机化方法：生成 100 个随机的压力分布，对每一个做第 1、2 步，只要 100 次求解；反复乘几遍让主要的形状更突出（幂迭代 4 次）；在这 100 个方向上解一个 100×100 的小特征问题，取出最强的 80 个。这一步每个物体只做一次，十几分钟（兔约 18 分钟、鸭约 13 分钟），存成一张 mode 表；之后不管和谁接触、在哪接触，都直接查表。</p>
+<p><strong>第 5 步：仿真时把 mode 搬到接触格子上。</strong> 骨架在接触区铺了 \(h\times h\) 的小格子。对每个格子 \(i\)：从格子中心沿接触法向打一条线，碰到兔子表面上的点 \(X_i\)；把这个点换回兔子未变形时的位置 \(\bar X_i=A^{-1}(X_i-t)\)（mode 表是在未变形的表面上存的）；找到 \(\bar X_i\) 所在的表面三角形，用三个顶点的 mode 值按距离加权平均，得到 \(\Phi_{i,m}\)，即第 \(m\) 个 mode 在第 \(i\) 格的值。然后拼成 mode 项：</p>
+<p>\[C^\text{mode}_{ij}=h^2\sum_{m=1}^{80}\sigma_m\,\Phi_{i,m}\,\Phi_{j,m}\]</p>
+<p>意思是：在第 \(j\) 格按一下，第 \(i\) 格除了半空间算出的下陷之外，还要多陷（或少陷）一个量，这个量等于每个 mode 的强度 × 它在 \(j\) 处的值 × 它在 \(i\) 处的值，对 80 个 mode 求和。两个物体各有一张 mode 表，各自的 mode 项都加上，再和 Love 项相加，得到完整的柔度矩阵 \(C\)，进入二次规划求压强。</p>
+<p><strong>回到「薄的地方比半空间软、锁住的整体比半空间硬」：</strong> 前者体现在第 1 步的有限元里耳朵会整片弯，减掉 \(H\) 之后 \(R\) 在耳朵区域是正的，于是出现 \(\sigma&gt;0\)、形状集中在耳朵上的 mode，接触落在耳朵上时 \(\Phi\) 很大，mode 项让那里更软；后者体现在第 1 步锁了 12 个数，物体没法整体压缩，\(R\) 在厚实部位是负的，于是出现 \(\sigma&lt;0\) 的 mode，让那里更硬。</p>
+<p><strong>局限：</strong> 第 1 步是「一次只按一处」算出来的。接触同时落在两片区域、物体被两侧夹住时，几个负 \(\sigma\) 的 mode 会叠加，把表面算得过硬；推测这是兔压龙夹挤那一格到 5.56 倍的原因之一（未核实）。</p></details>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig13.png" width="1624" height="840" style="width:555px;max-width:100%;height:auto" alt="mode 项补偿的两种偏差（蓝虚线为半空间的沉降）：薄壁整体弯曲比半空间软；整体变形被 12 维锁定的厚物体比半空间硬。" loading="lazy"><figcaption>mode 项补偿的两种偏差（蓝虚线为半空间的沉降）：薄壁整体弯曲比半空间软；整体变形被 12 维锁定的厚物体比半空间硬。</figcaption></figure>
 <details><summary><b>推导：mode 项</b></summary><p><strong>第 1 步：真实表面柔度。</strong> 以线弹性 P2 有限元组装刚度矩阵 \(K\)。在每个表面顶点施加帽函数形单位压强（该点为 1，向相邻三角形线性降至 0），锁定 12 维状态求解 \(Ku=f\)，读取表面法向沉降，得 \(C_{\text{lock}}\)。</p>
 <ul>
 <li><span class="note-cond">条件：线弹性、小变形；锁定方式与标准答案一致。</span></li>
@@ -413,7 +432,7 @@ html.annot-on #annot-capture { display: block; }
 <p>\(\bar g_\theta\) 为修正倍数的对数：为零时不修正，为正时增硬，为负时变软；指数保证能量恒正。网络学习的量即「骨架是标准答案的几倍」。</p>
 <p>\(\phi(\varepsilon_c)=\varepsilon_c/(1+\varepsilon_c)\) 为包络，\(\varepsilon_c=d/\sqrt{a_0H_{\text{eff}}}\) 衡量压深相对接触尺度的大小（\(a_0\) 为接触面积的等效圆半径，\(H_{\text{eff}}\) 为两物体沿法向厚度的较小值）。浅压时 \(\phi\to0\)，结果退回骨架，<strong>已验证的浅压精度不受网络影响</strong>；深压时 \(\phi\to1\)，修正完全打开。</p>
 <p>网络对两物体对称：\(\bar g_\theta=\tfrac12[g_\theta(f_{AB})+g_\theta(f_{BA})]\)，\(f_{AB},f_{BA}\) 为交换两物体顺序后的两种特征排列，保证「A 压 B」与「B 压 A」能量相同。</p>
-<p>输入为 18 个无量纲量，分别对应骨架的一类失效：压深（\(\log(d/a_0)\)、\(\log(d/H_{\text{eff}})\)），mode 修正的大小与符号（\(\log(S_{80}/S_0)\)、\(\operatorname{asinh}(U_{\text{mode}}/S_{80})\)），每个物体的模量比、泊松比与 Gent 硬化极限，粗状态已有的整体应变，以及物体沿法向的厚度。\(g_\theta\) 为线性函数，仅在线性不足时加入隐藏层。损失为相对能量误差加对数误差项，5 个随机种子训练后取平均。</p>
+<p>输入为 18 个无量纲量（没有单位的比值，比如压深 ÷ 接触区大小、两物体硬度之比；换材料或整体缩放时结论都通用），分别对应骨架的一类失效：压深（\(\log(d/a_0)\)、\(\log(d/H_{\text{eff}})\)），mode 修正的大小与符号（\(\log(S_{80}/S_0)\)、\(\operatorname{asinh}(U_{\text{mode}}/S_{80})\)），每个物体的模量比、泊松比与 Gent 硬化极限，粗状态已有的整体应变，以及物体沿法向的厚度。\(g_\theta\) 为线性函数，仅在线性不足时加入隐藏层。损失为相对能量误差加对数误差项，5 个随机种子训练后取平均。</p>
 <details><summary><b>推导：乘性修正、无量纲输入、包络与对称化</b></summary><p><strong>第 1 步：乘性而非加性。</strong> 标签能量跨 \(10^3\)–\(10^6\)，加性修正下大能量样本主导训练。对数倍数使各样本处于同一尺度，指数保证能量为正。</p>
 <ul>
 <li><span class="note-cond">条件：骨架与标准答案同号、同量级（3.1 节比值范围 0.42–5.56）。</span></li>
@@ -434,7 +453,12 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li><span class="note-cond">条件：标准答案本身对交换两物体不变。</span></li>
 </ul></details>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig21.png" width="1624" height="1060" style="width:555px;max-width:100%;height:auto" alt="残差网络的数据流：特征经线性网络得对数倍数，压深经包络得 \([0,1]\) 权重，二者相乘取指数后乘 \(S_{80}\) 得 \(U_\theta\)。蓝色是数据，橙色是算法。" loading="lazy"><figcaption>残差网络的数据流：特征经线性网络得对数倍数，压深经包络得 \([0,1]\) 权重，二者相乘取指数后乘 \(S_{80}\) 得 \(U_\theta\)。蓝色是数据，橙色是算法。</figcaption></figure>
 <figure style="margin:12px 0"><img src="assets/images/w78_envelope.png" width="1624" height="840" style="width:555px;max-width:100%;height:auto" alt="包络 \(\phi(\varepsilon_c)=\varepsilon_c/(1+\varepsilon_c)\)：浅压时趋于 0，网络的修正被压掉，能量退回骨架；深压时趋于 1，修正全部放开。" loading="lazy"><figcaption>包络 \(\phi(\varepsilon_c)=\varepsilon_c/(1+\varepsilon_c)\)：浅压时趋于 0，网络的修正被压掉，能量退回骨架；深压时趋于 1，修正全部放开。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig23.png" width="1624" height="1440" style="width:555px;max-width:100%;height:auto" alt="四个代表性场景的 18 维输入特征（按 v1 的均值、标准差归一化）：浅压 0.126（兔压龙·龙硬 10 倍）、深压 0.333（鸭压兔·兔硬 10 倍）、夹挤 0.408（兔压龙·龙硬 10 倍）、材料对调 0.126（兔压龙·兔硬 10 倍）。粗状态取 \(A=I\)，所以整体应变三项为 0。" loading="lazy"><figcaption>四个代表性场景的 18 维输入特征（按 v1 的均值、标准差归一化）：浅压 0.126（兔压龙·龙硬 10 倍）、深压 0.333（鸭压兔·兔硬 10 倍）、夹挤 0.408（兔压龙·龙硬 10 倍）、材料对调 0.126（兔压龙·兔硬 10 倍）。粗状态取 \(A=I\)，所以整体应变三项为 0。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig24.png" width="1624" height="1080" style="width:555px;max-width:100%;height:auto" alt="v1（4.1、4.2 节动态算例所用）线性网络的权重，作用在归一化后的输入上；两物体对称，每物体 7 项取两槽平均。正为增硬，负为变软；误差线是 5 个随机种子的范围。" loading="lazy"><figcaption>v1（4.1、4.2 节动态算例所用）线性网络的权重，作用在归一化后的输入上；两物体对称，每物体 7 项取两槽平均。正为增硬，负为变软；误差线是 5 个随机种子的范围。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig25.png" width="1624" height="1320" style="width:555px;max-width:100%;height:auto" alt="全部 242 个场景的 \(S_{80}\)/GT（上）与 v4 修正后的 \(U_\theta\)/GT（下）随 \(\varepsilon_c\) 变化。v4 用全部 242 个场景训练，图中都是训练样本，不代表留出泛化；按参数化与复杂网格分色。" loading="lazy"><figcaption>全部 242 个场景的 \(S_{80}\)/GT（上）与 v4 修正后的 \(U_\theta\)/GT（下）随 \(\varepsilon_c\) 变化。v4 用全部 242 个场景训练，图中都是训练样本，不代表留出泛化；按参数化与复杂网格分色。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig26.png" width="1624" height="1120" style="width:555px;max-width:100%;height:auto" alt="全部 242 个场景的预测能量对标准答案能量（双对数），骨架与 v4 修正后分色，附 \(y=x\)。图中都是训练样本，不代表留出泛化。" loading="lazy"><figcaption>全部 242 个场景的预测能量对标准答案能量（双对数），骨架与 v4 修正后分色，附 \(y=x\)。图中都是训练样本，不代表留出泛化。</figcaption></figure>
 <p>数据集共 220 个场景：68 个复杂网格场景（兔、龙、鸭组成 9 对物体，覆盖多档压深、刚度比 1 与 10、泊松比 0.2–0.45 及 Gent 材料）与 152 个参数化场景（补充形状覆盖）。标签均由细网格 + IPC 计算。各份权重的训练数据不同：v1（4.1、4.2 与薄鳍算例所用）的训练数据未保存；v2 为 152 + 54；v3 为 152 + 68 = 220；v4 为 242。</p>
 <figure style="margin:12px 0"><img src="assets/images/w78_dataset_gallery.png" width="1624" height="1380" style="width:555px;max-width:100%;height:auto" alt="数据集里的 9 对复杂网格，由兔、龙、鸭三种网格按不同摆放两两组合。蓝色是上面的物体，橙色是下面的物体。" loading="lazy"><figcaption>数据集里的 9 对复杂网格，由兔、龙、鸭三种网格按不同摆放两两组合。蓝色是上面的物体，橙色是下面的物体。</figcaption></figure>
 <h3 id="w3-4">接入动力学</h3>
@@ -464,7 +488,8 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li>实现：现有代码只计入第一项（各格压强乘法向得力），未计入 \(\partial C/\partial q\) 项，因此接触力只是 \(-\partial U/\partial q\) 的近似，能量守恒在实现上为近似。</li>
 <li>ref：Milgrom &amp; Segal (2002)。</li>
-</ul></details></section>
+</ul></details>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig28.png" width="1624" height="860" style="width:555px;max-width:100%;height:auto" alt="动力学的单步循环：放置 → 骨架 → 网络 → 求导 → 推进，下方是每步的输出。" loading="lazy"><figcaption>动力学的单步循环：放置 → 骨架 → 网络 → 求导 → 推进，下方是每步的输出。</figcaption></figure></section>
 <section id="w4"><h2>骨架在边界情况下的表现</h2>
 <h3 id="w4-1">数据</h3>
 
@@ -550,7 +575,8 @@ html.annot-on #annot-capture { display: block; }
 <figure style="margin:12px 0"><img src="assets/images/w78_skel_ratio_depth.png" width="1624" height="1120" style="width:555px;max-width:100%;height:auto" alt="完整骨架 \(S_{80}\) 除以标准答案，随压深变化。每条线是一组材料，灰带是 0.9–1.1。" loading="lazy"><figcaption>完整骨架 \(S_{80}\) 除以标准答案，随压深变化。每条线是一组材料，灰带是 0.9–1.1。</figcaption></figure>
 <h3 id="w4-2">浅压：mode 项不可或缺</h3>
 
-<p><span style="color:#c0392b"><strong>浅压下仅用半空间不够，加入 mode 后骨架基本可用。</strong></span>\(d/H_A=0.125\) 时，\(S_0\)/GT 为 0.75–2.74，\(S_{80}\)/GT 收窄至 0.91–1.46。两组物体的偏差方向相反：兔压龙中半空间假设偏硬，鸭压兔中偏软。mode 按各物体自身形状计算，能同时校正两个方向。</p>
+<p><span style="color:#c0392b"><strong>浅压下仅用半空间不够，加入 mode 后误差明显缩小，但仍超出 10%，需要继续归因和 debug。</strong></span>\(d/H_A=0.125\) 时，\(S_0\)/GT 为 0.75–2.74，\(S_{80}\)/GT 收窄至 0.91–1.46。两组物体的偏差方向相反：兔压龙中半空间假设偏硬，鸭压兔中偏软。mode 按各物体自身形状计算，能同时校正两个方向。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig33.png" width="1624" height="1040" style="width:555px;max-width:100%;height:auto" alt="\(d/H_A=0.125\) 各算例只用第一项（\(S_0\)）与两项都用（\(S_{80}\)）除以标准答案。" loading="lazy"><figcaption>\(d/H_A=0.125\) 各算例只用第一项（\(S_0\)）与两项都用（\(S_{80}\)）除以标准答案。</figcaption></figure>
 <h3 id="w4-3">大压深：两类成因不同的失效</h3>
 
 <p><strong>第一类：单调偏小。</strong> 鸭压兔（单片接触）自 \(d/H_A=0.125\) 至 0.333，比值由 0.91 降至 0.72；兔压龙两组泊松比对调（两片接触）在 0.333 处为 0.70 与 0.74。单片、两片都出现偏小，片数不是区分两类失效的依据。<strong>推测成因是材料非线性</strong>：骨架为线弹性，标准答案为 neo-Hookean，后者在大应变下硬化，骨架缺失这一部分，偏差随压深增大。验证需同状态下的线弹性标准答案，尚未完成。</p>
@@ -563,10 +589,12 @@ html.annot-on #annot-capture { display: block; }
 <ul>
 <li><span class="note-cond">条件：偏差主要来自材料而非几何非线性（大转动、接触区形状变化）。二者的区分需线弹性标准答案。</span></li>
 </ul></details>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig34.png" width="1624" height="1000" style="width:555px;max-width:100%;height:auto" alt="示意：线弹性（骨架）与 neo-Hookean（标准答案）的应力–应变曲线，两线之间是深压时骨架缺失的能量（推测的成因，未核实）。" loading="lazy"><figcaption>示意：线弹性（骨架）与 neo-Hookean（标准答案）的应力–应变曲线，两线之间是深压时骨架缺失的能量（推测的成因，未核实）。</figcaption></figure>
 <p><strong>第二类：偏大，且加入 mode 后加剧。</strong> 兔压龙「龙硬 10 倍」在 \(d/H_A=0.408\) 时 \(S_{80}\)/GT 为 5.56，高于 \(S_0\) 的 3.01。该算例重叠区在龙身上分为两片，法向夹角约 113°，兔被两侧夹持。推测成因有二：<strong>骨架按未变形形状计算重叠，未计入兔向两侧的让位</strong>，使第一项已偏大；<strong>mode 在单物体上导出，两片同时受压时给出负柔度</strong>，进一步抬高能量。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig35.png" width="1624" height="1080" style="width:555px;max-width:100%;height:auto" alt="夹挤算例示意：兔的凸起楔入龙的 V 形凹处，两片接触的法向夹角约 \(113^\circ\)；真实情况下兔向两侧让位，骨架按未变形形状算重叠，没有这部分让位（推测的成因，未核实）。" loading="lazy"><figcaption>夹挤算例示意：兔的凸起楔入龙的 V 形凹处，两片接触的法向夹角约 \(113^\circ\)；真实情况下兔向两侧让位，骨架按未变形形状算重叠，没有这部分让位（推测的成因，未核实）。</figcaption></figure>
 <h3 id="w4-4">材料对调</h3>
 
-<p><span style="color:#c0392b"><strong>材料对调时，骨架方向正确、幅度不足</strong></span>；<strong>深压下泊松比对调时方向相反。</strong></p>
+<p><span style="color:#c0392b"><strong>材料对调时，骨架方向正确、幅度不足</strong></span>；<strong>深压下泊松比对调时方向相反。</strong>杨氏模量是材料有多硬，泊松比是压下去时往旁边鼓多少（越接近 0.5，体积越不可压）。</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -594,6 +622,7 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <p>刚度对调使真实能量相差 14%，骨架仅分辨出 4%。<strong>推测这部分差异有相当比例来自非线性，线弹性骨架无法补全，这是引入网络的直接动机（未核实：缺同状态的线弹性标准答案）。</strong></p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig36.png" width="1624" height="1000" style="width:555px;max-width:100%;height:auto" alt="材料对调前后的能量之比：标准答案（灰）与骨架（蓝）。深压泊松比对调时两者方向相反。" loading="lazy"><figcaption>材料对调前后的能量之比：标准答案（灰）与骨架（蓝）。深压泊松比对调时两者方向相反。</figcaption></figure>
 <h3 id="w4-5">小结</h3>
 
 <div class="tablewrap"><table>
@@ -607,8 +636,8 @@ html.annot-on #annot-capture { display: block; }
 <tbody>
 <tr>
 <td>浅压</td>
-<td>0.87–1.46，基本可用</td>
-<td>半空间 + mode 覆盖</td>
+<td>0.87–1.46，仍超出 10%，需归因与 debug</td>
+<td>半空间 + mode 覆盖了主要部分</td>
 </tr>
 <tr>
 <td>大压深（单片、两片均有）</td>
@@ -640,9 +669,11 @@ html.annot-on #annot-capture { display: block; }
 <li>表面误差：全部表面点位置误差的均方根，以兔高归一化。ref：Pfaff et al. (2021) （出处未核实）。</li>
 <li>标准答案投影到 12 维后的表面误差（鸭撞兔为 1.01% 兔高）是任何 12 维模型的下限。</li>
 </ul></details>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig37.png" width="1624" height="960" style="width:555px;max-width:100%;height:auto" alt="峰值压缩误差的定义（示意）：标准答案与某一方法的质心靠近量曲线，两峰值之差除以标准答案峰值。" loading="lazy"><figcaption>峰值压缩误差的定义（示意）：标准答案与某一方法的质心靠近量曲线，两峰值之差除以标准答案峰值。</figcaption></figure>
 <h3 id="w5-1">鸭撞兔（等刚度）</h3>
 
 <p>鸭以初速度 1.5 撞击静止的兔，标准答案峰值压缩 12.8% 兔高。</p>
+<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_5way_or029.mp4" style="width:651px;max-width:100%;height:auto"></video><figcaption>鸭（蓝）以 1.5 的初速度撞向静止的兔（橙），两者杨氏模量都是 \(10^5\)。从左到右：全网格 FEM+IPC（标准答案）、骨架 + 网络、只用骨架、hydroelastic、RigidFormer（灰色线框是标准答案的位置）。</figcaption></figure>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -692,10 +723,10 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <p><span style="color:#c0392b"><strong>骨架 + 网络误差最小</strong></span>，峰值压缩与转角均优于骨架和 hydroelastic。RigidFormer 仅有刚体状态，两物体互相穿透 19.5% 兔高。</p>
-<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_5way_or029.mp4" style="width:651px;max-width:100%;height:auto"></video><figcaption>鸭（蓝）以 1.5 的初速度撞向静止的兔（橙），两者杨氏模量都是 \(10^5\)。从左到右：全网格 FEM+IPC（标准答案）、骨架 + 网络、只用骨架、hydroelastic、RigidFormer（灰色线框是标准答案的位置）。</figcaption></figure>
 <h3 id="w5-2">龙撞兔（深压，尖角接触）</h3>
 
 <p>标准答案峰值压缩 33.6% 兔高，接触点为龙的尖角。</p>
+<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_dent_fast_or003.mp4" style="width:611px;max-width:100%;height:auto"></video><figcaption>龙撞兔，标准答案峰值压缩 33.6% 兔高，接触处是龙的尖角。从左到右：标准答案、骨架 + 网络、只用骨架、hydroelastic。</figcaption></figure>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -733,7 +764,8 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <p><span style="color:#c0392b"><strong>压深越大，差距越大。</strong></span>hydroelastic 与 Winkler 仅压至 23–24% 兔高，显著偏硬：<strong>二者的力只取决于局部重叠，无法反映兔在尖角下的大范围让位</strong>。骨架的柔度包含非局部沉降与物体形状信息，偏硬程度小得多；网络在本例中给出 0.53–0.64 倍修正，<span style="color:#c0392b"><strong>结果与标准答案基本一致</strong></span>。</p>
-<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_dent_fast_or003.mp4" style="width:611px;max-width:100%;height:auto"></video><figcaption>龙撞兔，标准答案峰值压缩 33.6% 兔高，接触处是龙的尖角。从左到右：标准答案、骨架 + 网络、只用骨架、hydroelastic。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig39.png" width="1624" height="920" style="width:555px;max-width:100%;height:auto" alt="龙撞兔四种方法的峰值压缩，虚线是标准答案 33.6% 兔高。" loading="lazy"><figcaption>龙撞兔四种方法的峰值压缩，虚线是标准答案 33.6% 兔高。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig40.png" width="1624" height="820" style="width:555px;max-width:100%;height:auto" alt="示意：尖角压兔时真实情况是大范围沉降（左）；hydroelastic 与 Winkler 只按尖角正下方的重叠算力（右）。" loading="lazy"><figcaption>示意：尖角压兔时真实情况是大范围沉降（左）；hydroelastic 与 Winkler 只按尖角正下方的重叠算力（右）。</figcaption></figure>
 <h3 id="w5-3">其他算例</h3>
 
 <p>以下算例所用权重：小压深与两组 10 倍刚度为 v2（扩充数据后重训），近不可压为 v4（均衡加权重训），薄鳍与 4.1、4.2 同为 v1。</p>
@@ -786,9 +818,10 @@ html.annot-on #annot-capture { display: block; }
 </tbody>
 </table></div>
 <p><strong>小压深算例表明包络有效</strong>，网络未损害浅压精度。软鸭撞硬兔时所有方法误差均为 16–22%，推测是鸭颈整体弯曲，超出 12 维的表达范围。</p>
-<p><strong>近不可压算例暴露了网络的缺陷</strong>：骨架已通过柔度计入泊松比，误差仅 3.01%；网络却给出 0.97–1.60 倍（平均 1.23 倍）的增硬修正，误差升至 11.4%。<span style="color:#c0392b"><strong>网络在未见过的材料组合上会给出方向错误的修正。</strong></span></p>
+<p><strong>近不可压算例（泊松比 0.45，材料几乎不能被压缩体积）暴露了网络的缺陷</strong>：骨架已通过柔度计入泊松比，误差仅 3.01%；网络却给出 0.97–1.60 倍（平均 1.23 倍）的增硬修正，误差升至 11.4%。<span style="color:#c0392b"><strong>网络在未见过的材料组合上会给出方向错误的修正。</strong></span></p>
 <p>薄鳍算例中，标准答案的鳍片整体折弯让位，既非仿射变形也非局部凹陷，<strong>12 维无法表达，所有方法误差均超过 15%</strong>。</p>
-<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_12dof_phys_or008_fast.mp4" style="width:611px;max-width:100%;height:auto"></video><figcaption>鸭撞龙，接触在龙的薄鳍上。从左到右：标准答案、骨架 + 网络、只用骨架、hydroelastic。</figcaption></figure></section>
+<figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_12dof_phys_or008_fast.mp4" style="width:611px;max-width:100%;height:auto"></video><figcaption>鸭撞龙，接触在龙的薄鳍上。从左到右：标准答案、骨架 + 网络、只用骨架、hydroelastic。</figcaption></figure>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig41.png" width="1624" height="840" style="width:555px;max-width:100%;height:auto" alt="三种变形：仿射变形 12 维可表达；局部凹陷形状不在 12 维内但能量由 \(U\) 计入；薄件折弯二者都覆盖不了。" loading="lazy"><figcaption>三种变形：仿射变形 12 维可表达；局部凹陷形状不在 12 维内但能量由 \(U\) 计入；薄件折弯二者都覆盖不了。</figcaption></figure></section>
 <section id="w6"><h2>与 baseline 对比</h2>
 <h3 id="w6-1">方法比较</h3>
 
@@ -840,6 +873,7 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig42.png" width="1624" height="1040" style="width:555px;max-width:100%;height:auto" alt="方法谱系（示意）：横轴为状态维数，纵轴为接触模型里的物理含量。Romero 2023 的位置是按方法描述估计的。" loading="lazy"><figcaption>方法谱系（示意）：横轴为状态维数，纵轴为接触模型里的物理含量。Romero 2023 的位置是按方法描述估计的。</figcaption></figure>
 <h3 id="w6-2">峰值压缩误差汇总</h3>
 
 <div class="tablewrap"><table>
@@ -904,12 +938,14 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig43.png" width="1624" height="1440" style="width:555px;max-width:100%;height:auto" alt="7 个对撞算例的峰值压缩误差（对数轴），虚线为 5%。" loading="lazy"><figcaption>7 个对撞算例的峰值压缩误差（对数轴），虚线为 5%。</figcaption></figure>
 <p><strong>两种学习方法均不支持两软体互压。</strong>RigidFormer 在鸭撞兔上峰值误差 53%。Romero 2023 在鸭撞兔上训练集局部变形误差 0.12%，测试集 69.6%，泛化差（训练 / 测试帧划分未核实）。<strong>我们的接触模型无需逐物体训练</strong>：mode 为每物体一次性预计算，网络仅学习 18 维输入到一个倍数的映射。</p>
 <h3 id="w6-3">精度与速度：与目标的差距</h3>
 
 <p>目标是精度显著高于所有 baseline、耗时显著低于标准答案。<span style="color:#c0392b"><strong>两项目标均只部分达成。</strong></span></p>
 <p><strong>精度：与骨架、hydroelastic、Winkler 相比，7 个算例胜出 4 个，且胜出时优势显著</strong>（深压 1.61% 对 hydroelastic 30.30%，小压深 2.17% 对 29.57%）。未胜出的 3 个：鸭硬 10 倍时 hydroelastic 更优；软鸭撞硬兔时各方法均为 16–22%；近不可压时网络使结果劣化。<span style="color:#c0392b"><strong>在 12 维可表达、材料处于训练范围内时，骨架 + 网络的精度显著高于 hydroelastic 与 Winkler，深压时尤甚。</strong></span></p>
-<p><strong>速度：每步 73 ms 对全网格 124 ms，仅快 1.7 倍</strong>；薄鳍算例两者均约 120 ms。鸭撞兔总耗时 8.1 s，hydroelastic 5.2 s、Winkler 5.6 s，<strong>我们最慢</strong>。<strong>瓶颈推测在骨架</strong>：每步需重新铺设网格并求解二次规划（未做分段计时，未核实）。</p></section>
+<p><strong>速度：每步 73 ms 对全网格 124 ms，仅快 1.7 倍</strong>；薄鳍算例两者均约 120 ms。鸭撞兔总耗时 8.1 s，hydroelastic 5.2 s、Winkler 5.6 s，<strong>我们最慢</strong>。<strong>瓶颈推测在骨架</strong>：每步需重新铺设网格并求解二次规划（未做分段计时，未核实）。</p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig44.png" width="1624" height="1080" style="width:555px;max-width:100%;height:auto" alt="鸭撞兔各方法的精度与总耗时，竖虚线是标准答案（误差 0）的耗时。" loading="lazy"><figcaption>鸭撞兔各方法的精度与总耗时，竖虚线是标准答案（误差 0）的耗时。</figcaption></figure></section>
 <section id="w7"><h2>问题与归因</h2>
 <p><strong>问题 1：<span style="color:#c0392b">网络在动态中的作用接近全局缩放。</span></strong> 对照实验：去掉网络，将骨架能量乘以常数。</p>
 <div class="tablewrap"><table>
@@ -933,7 +969,8 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
-<p><strong>鸭撞兔上常数 0.80 优于网络。</strong>而静态数据中同压深范围的骨架/标准答案中位数约 1.05，静态并不需要整体变软。因此动态中骨架整体偏硬另有成因，候选为 12 维模型的时间积分方式或标准答案积分器（BDF2）的数值阻尼。<span style="color:#c0392b"><strong>在查明之前，不能认为网络学到了接触能量随状态的变化。</strong></span></p>
+<p><strong>鸭撞兔上常数 0.80 优于网络。</strong>而静态数据中同压深范围的骨架/标准答案中位数约 1.05，静态并不需要整体变软。因此动态中骨架整体偏硬另有成因，候选为 12 维模型的时间积分方式或标准答案积分器（BDF2）的数值阻尼（时间推进方法本身让运动额外损失能量的数值效应）。<span style="color:#c0392b"><strong>在查明之前，不能认为网络学到了接触能量随状态的变化。</strong></span></p>
+<figure style="margin:12px 0"><img src="assets/images/w78_fig45.png" width="1624" height="900" style="width:555px;max-width:100%;height:auto" alt="去掉网络、把骨架能量乘常数的对照：鸭撞兔乘 0.80 即好于网络；龙撞兔乘 0.80 为 5.58%，乘 0.64（按网络倍数挑的）为 2.56%。" loading="lazy"><figcaption>去掉网络、把骨架能量乘常数的对照：鸭撞兔乘 0.80 即好于网络；龙撞兔乘 0.80 为 5.58%，乘 0.64（按网络倍数挑的）为 2.56%。</figcaption></figure>
 <p><strong>问题 2：网络在增硬与变软两个方向上相互牵制。</strong> 加入深压硬化样本后，两类样本的修正方向冲突：软鸭撞硬兔误差 21.64%，近不可压修正方向相反。</p>
 <p><strong>问题 3：多片接触下 mode 给出负柔度</strong>（夹挤算例 mode 低秩项 \(-5.43\times10^6\)），推测是该算例达到 5.56 倍的原因之一（未核实：尚未与「未计让位」拆开）。<strong>若属实，这是骨架的结构缺陷，应在骨架内修正，而非交由网络补偿。</strong></p>
 <p><strong>问题 4：薄件弯曲超出 12 维表达能力。</strong> 鳍片折弯、鸭颈弯曲影响所有方法，与接触模型无关，需在粗模型中解决。</p>
