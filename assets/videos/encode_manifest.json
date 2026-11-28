@@ -1793,8 +1793,8 @@
  },
  "demos_benchmark_5way_or029.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/demos/benchmark_5way_or029/collision_benchmark_5way.mp4",
-  "src_size": 2171061,
-  "src_mtime": 1795831779.2730727,
+  "src_size": 2166577,
+  "src_mtime": 1795834766.5343356,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1820,13 +1820,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 338956,
-  "encoded_at": "2026-11-27 18:32:29"
+  "out_size": 335170,
+  "encoded_at": "2026-11-27 19:16:18"
  },
  "demos_benchmark_dent_fast_or003.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/demos/benchmark_dent_fast_or003/collision_benchmark_4way.mp4",
-  "src_size": 1530467,
-  "src_mtime": 1795802723.1440184,
+  "src_size": 1549259,
+  "src_mtime": 1795834891.49874,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1852,13 +1852,13 @@
    "-an",
    "<out>"
   ],
-  "out_size": 286889,
-  "encoded_at": "2026-11-27 18:32:29"
+  "out_size": 300339,
+  "encoded_at": "2026-11-27 19:16:18"
  },
  "demos_benchmark_12dof_phys_or008_fast.mp4": {
   "src": "/nas/xiaoyingwang/Neural-IPC/outputs/week8_1127/demos/benchmark_12dof_phys_or008_fast/collision_benchmark_4way.mp4",
-  "src_size": 1886482,
-  "src_mtime": 1795797907.5534563,
+  "src_size": 1989378,
+  "src_mtime": 1795835029.5102568,
   "crf": 26,
   "ffmpeg": "/data/xiaoyingwang/projects/Neural-IPC-sandbox/.conda/genesis/lib/python3.11/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2",
   "args": [
@@ -1884,7 +1884,7 @@
    "-an",
    "<out>"
   ],
-  "out_size": 307919,
-  "encoded_at": "2026-11-27 18:32:30"
+  "out_size": 327370,
+  "encoded_at": "2026-11-27 19:16:19"
  }
 }

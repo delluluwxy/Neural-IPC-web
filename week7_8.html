@@ -244,7 +244,7 @@ html.annot-on #annot-capture { display: block; }
   html.annot-fixed pre, html.annot-fixed mjx-container[display="true"] { overflow: visible; }
 }
 </style>
-<script>window.NIPC_PAGE = "6eae0d37fffb";</script>
+<script>window.NIPC_PAGE = "f46d45967ecb";</script>
 <script>window.MathJax = {tex: {inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]]}, svg: {fontCache: "global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
 <a class="skip" href="#content">跳转到正文</a><div id="progress" aria-hidden="true"></div>
@@ -256,7 +256,7 @@ html.annot-on #annot-capture { display: block; }
 <a class="toc-level-2" href="#w5">5. 接进动力学：两个 12 维 affine 物体对撞</a>
 <a class="toc-level-2" href="#w6">6. 下一步</a></nav></details></aside><main id="content"><div class="eyebrow">NEURAL-IPC <span>·</span> WEEKLY REPORT</div><article>
 <header class="top"><h1>第 7–8 周：大压深、软硬对调，以及骨架加小网络接进 12 维 affine 动力学</h1></header>
-<div class="lead"><p><strong>这两周做了三件事。第一，按 12 维 affine 锁重造大压深标签，量骨架随压深怎么偏：浅压到 1/6 兔高时骨架与标准答案（GT）相差 −13% 到 +46%，压到 1/3 以上出现两类失效，一类偏小（材料非线性），一类偏大（两处接触夹挤）。第二，在骨架上加一个只修残差的小网络，用 9 对复杂网格、220 个场景训练。第三，把「骨架 + 网络」的接触能量接进两个 12 维 affine 物体的动力学，和全网格 FEM+IPC 对撞比较：鸭撞兔的峰值压缩误差 1.7%，龙撞兔 2.4%，均小于 hydroelastic（4.2%、30.1%）；薄鳍折弯的算例误差 26%，因为 12 维 affine 表达不了弯曲。</strong> 第 7 周没有开会，两周合成一页。</p></div>
+<div class="lead"><p><strong>这两周做了三件事。第一，按 12 维 affine 锁重造大压深标签，量骨架随压深怎么偏：浅压到 1/6 兔高时骨架与标准答案（GT）相差 −13% 到 +46%，压到 1/3 以上出现两类失效，一类偏小（材料非线性），一类偏大（两处接触夹挤）。第二，在骨架上加一个只修残差的小网络，用 9 对复杂网格、220 个场景训练。第三，把「骨架 + 网络」的接触能量接进两个 12 维 affine 物体的动力学，和全网格 FEM+IPC 对撞比较：鸭撞兔的峰值压缩误差 1.7%，龙撞兔 1.6%，均小于 hydroelastic（4.2%、30.3%）；薄鳍折弯的算例所有方法误差都在 15% 以上（骨架 + 网络 15.2%），因为 12 维 affine 表达不了弯曲。</strong> 第 7 周没有开会，两周合成一页。</p></div>
 <section id="w1"><h2>要算的量：12 维 affine 锁下的接触能量</h2>
 <p><strong>粗模型给每个物体 12 个自由度：一个 \(3\times3\) 矩阵 \(A\) 和一个平移 \(t\)，物体上每一点按 \(x=AX+t\) 运动，其中 \(X\) 是这一点未变形时的位置。</strong> \(A\) 能表达整体的转动、拉伸和剪切，表达不了接触处的局部凹陷。我们要学的是：给定两个物体的 12 维状态，精细物体为了不穿透而局部变形所多存的弹性能</p>
 <p>\[U(z_A,z_B)=E_{\text{fine}}-E_{\text{coarse}},\]</p>
@@ -435,7 +435,7 @@ html.annot-on #annot-capture { display: block; }
 <td>0</td>
 <td>0</td>
 <td>1.01</td>
-<td>74.2 s</td>
+<td>13.6 s</td>
 </tr>
 <tr>
 <td>骨架 + 网络</td>
@@ -443,7 +443,7 @@ html.annot-on #annot-capture { display: block; }
 <td>0.76</td>
 <td>0.89°</td>
 <td>1.43</td>
-<td>6.6 s</td>
+<td>8.1 s</td>
 </tr>
 <tr>
 <td>只用骨架</td>
@@ -451,7 +451,7 @@ html.annot-on #annot-capture { display: block; }
 <td>0.74</td>
 <td>1.09°</td>
 <td>1.44</td>
-<td>5.1 s</td>
+<td>6.6 s</td>
 </tr>
 <tr>
 <td>hydroelastic</td>
@@ -459,7 +459,7 @@ html.annot-on #annot-capture { display: block; }
 <td>1.00</td>
 <td>1.13°</td>
 <td>1.57</td>
-<td>4.7 s</td>
+<td>5.2 s</td>
 </tr>
 <tr>
 <td>Winkler</td>
@@ -467,13 +467,14 @@ html.annot-on #annot-capture { display: block; }
 <td>2.97</td>
 <td>2.15°</td>
 <td>2.68</td>
-<td>4.8 s</td>
+<td>5.6 s</td>
 </tr>
 </tbody>
 </table></div>
 <p>GT 一行的表面误差不是 0：这是把 GT 投影到 12 维 affine 后剩下的误差，是任何 12 维模型的下限。三个 12 维方法的表面误差都接近这个下限，差别主要在压缩量上。</p>
+<p><strong>速度：</strong> 上面三段视频和表都在同一张 GPU 上跑，骨架 + 网络每步约 73 ms，全网格 FEM+IPC 每步约 124 ms，现在只快 1.7 倍；薄鳍那一例两者每步都约 120 ms。骨架每步要重新铺小格、解一次二次规划，这是下一步提速的重点。</p>
 <figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_dent_fast_or003.mp4" style="width:611px;max-width:100%;height:auto"></video><figcaption>龙撞兔，压得更深（GT 峰值压缩 33.6% 兔高），接触处是龙的尖角。从左到右：标准答案、骨架 + 网络、只用骨架、hydroelastic。</figcaption></figure>
-<p><strong>龙撞兔压得更深，差距更大：骨架 + 网络 2.37%，只用骨架 11.8%，hydroelastic 30.1%，Winkler 26.7%。</strong> hydroelastic 的压力场只看每一点在两个物体里各有多深，龙的尖角插进兔子时重叠体积小、压力场给的力不够，所以压过头；骨架用真实的表面柔度，偏差小得多，网络再把深压下偏软的部分补回来。</p>
+<p><strong>龙撞兔压得更深，差距更大：骨架 + 网络 1.61%，只用骨架 10.1%，hydroelastic 30.3%，Winkler 28.7%。</strong> hydroelastic 的压力场只看每一点在两个物体里各有多深，龙的尖角插进兔子时重叠体积小、压力场给的力不够，所以压过头；骨架用真实的表面柔度，偏差小得多，网络再把深压下偏软的部分补回来。</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -487,35 +488,35 @@ html.annot-on #annot-capture { display: block; }
 <tbody>
 <tr>
 <td>骨架 + 网络</td>
-<td>2.37%</td>
-<td>0.44</td>
-<td>1.30°</td>
-<td>2.61</td>
+<td>1.61%</td>
+<td>0.34</td>
+<td>1.14°</td>
+<td>2.20</td>
 </tr>
 <tr>
 <td>只用骨架</td>
-<td>11.76%</td>
-<td>1.81</td>
-<td>2.11°</td>
-<td>3.08</td>
+<td>10.06%</td>
+<td>1.55</td>
+<td>1.83°</td>
+<td>2.73</td>
 </tr>
 <tr>
 <td>hydroelastic</td>
-<td>30.10%</td>
-<td>4.46</td>
-<td>5.03°</td>
-<td>4.93</td>
+<td>30.30%</td>
+<td>4.53</td>
+<td>5.41°</td>
+<td>5.08</td>
 </tr>
 <tr>
 <td>Winkler</td>
-<td>26.72%</td>
-<td>3.86</td>
-<td>3.80°</td>
-<td>4.28</td>
+<td>28.68%</td>
+<td>4.17</td>
+<td>4.62°</td>
+<td>4.61</td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>软硬对调和小压深（鸭撞兔；这一组用的是复杂网格场景加到 54 个后重训的权重，和上面两个视频不是同一份）：</strong> 鸭硬 10 倍撞软兔时骨架 + 网络 1.53%，只用骨架 5.72%；小压深（初速度 0.5，GT 峰值压缩 4.6% 兔高）时 2.17% 对 5.10%，hydroelastic 29.6%，说明包络确实在浅压时保住了骨架。软鸭撞硬兔是这一组里最差的：骨架 + 网络 21.6%，只用骨架 18.9%，hydroelastic 16.5%。这时鸭子较软，颈部整体弯下去，而弯曲不在 12 维 affine 能表达的范围内，骨架和网络都按「局部凹陷」去解释这部分位移，给出偏硬的力。</p>
+<p><strong>软硬对调和小压深（鸭撞兔；这一组用的是复杂网格场景加到 54 个后重训的权重，和上面两个视频用的不是同一份）：</strong> 鸭硬 10 倍撞软兔时骨架 + 网络 1.53%，只用骨架 5.72%；小压深（初速度 0.5，GT 峰值压缩 4.6% 兔高）时 2.17% 对 5.10%，hydroelastic 29.6%，说明包络确实在浅压时保住了骨架。软鸭撞硬兔是这一组里最差的：骨架 + 网络 21.6%，只用骨架 18.9%，hydroelastic 16.5%。这时鸭子较软，颈部整体弯下去，而弯曲不在 12 维 affine 能表达的范围内，骨架和网络都按「局部凹陷」去解释这部分位移，给出偏硬的力。</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -550,8 +551,9 @@ html.annot-on #annot-capture { display: block; }
 </tr>
 </tbody>
 </table></div>
+<p><strong>近不可压（兔撞龙，两者泊松比都是 0.45）：只用骨架 3.01%，加网络后反而升到 11.4%，hydroelastic 17.8%，Winkler 1.61%。</strong> 这一次用的是按压深和修正方向均衡加权重训的权重，它在这一例给出 1.0–1.6 倍的变硬修正，而标准答案并不需要；骨架自己已经把泊松比算进了柔度。说明现在的网络在没见过的材料组合上会给出方向错误的修正，下一步要先解决这个问题，再谈加隐藏层。</p>
 <figure style="margin:12px 0"><video controls muted playsinline preload="metadata" src="assets/videos/demos_benchmark_12dof_phys_or008_fast.mp4" style="width:611px;max-width:100%;height:auto"></video><figcaption>鸭撞龙，接触在龙的薄鳍上（GT 峰值压缩 28.7% 兔高）。从左到右：标准答案、骨架 + 网络、只用骨架、hydroelastic。标准答案里薄鳍整片折弯，所有 12 维方法都做不到。</figcaption></figure>
-<p><strong>薄鳍折弯是 12 维 affine 表达不了的：所有方法的峰值压缩误差都在 23%–34%（骨架 + 网络 26.3%）。</strong> 标准答案里鳍片整片弯折让开，这是一个物体局部的大弯曲，既不是整体仿射变形，也不是接触处的小凹陷。这一类要靠粗模型加弯曲自由度，接触项改不了。</p>
+<p><strong>薄鳍折弯是 12 维 affine 表达不了的：所有方法的峰值压缩误差都在 15% 以上，骨架 + 网络 15.2%、只用骨架 19.5%、hydroelastic 40.9%、Winkler 26.2%。</strong> 标准答案里鳍片整片弯折让开，这是一个物体局部的大弯曲，既不是整体仿射变形，也不是接触处的小凹陷。这一类要靠粗模型加弯曲自由度，接触项改不了。</p>
 <p><strong>和学习方法比：RigidFormer 和 Romero 2023 都做不了两个软体互压。</strong> RigidFormer 只有 6 维刚体状态，没有变形，鸭撞兔时两个物体互相穿进，峰值误差 53%，转角误差 8.5°。Romero 2023 学的是一个固定软体在刚性压头下的局部变形场，每个物体单独训练；在鸭撞兔上用官方代码训练，训练帧上的局部变形误差（MSEN）是 0.12%，同一次碰撞回弹段（训练时没见过的帧）升到 69.6%，说明它记住了训练帧。我们的骨架不需要逐物体训练接触，网络只学 18 个量到一个倍数的映射。</p></section>
 <section id="w6"><h2>下一步</h2>
 <ol>
